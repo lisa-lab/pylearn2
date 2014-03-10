@@ -57,32 +57,42 @@ class Preprocessor(object):
 
     def apply(self, dataset, can_fit=False):
         """
-            dataset: The dataset to act on.
-            can_fit: If True, the Preprocessor can adapt internal parameters
-                     based on the contents of dataset. Otherwise it must not
-                     fit any parameters, or must re-use old ones.
-                     Subclasses should still have this default to False, so
-                     that the behavior of the preprocessors is uniform.
+        Parameters
+        ----------
+        dataset: Dataset
+            The dataset to act on.
+        can_fit: bool
+            If True, the Preprocessor can adapt internal parameters
+            based on the contents of dataset. Otherwise it must not
+            fit any parameters, or must re-use old ones.
+            Subclasses should still have this default to False, so
+            that the behavior of the preprocessors is uniform.
 
-            Typical usage:
-                # Learn PCA preprocessing and apply it to the training set
-                my_pca_preprocessor.apply(training_set, can_fit = True)
-                # Now apply the same transformation to the test set
-                my_pca_preprocessor.apply(test_set, can_fit = False)
+        Notes
+        -----
+        Typical usage:
 
-            Note: this method must take a dataset, rather than a numpy ndarray,
-                  for a variety of reasons:
-                      1) Preprocessors should work on any dataset, and not all
-                         datasets will store their data as ndarrays.
-                      2) Preprocessors often need to change a dataset's
-                         metadata.  For example, suppose you have a
-                         DenseDesignMatrix dataset of images. If you implement
-                         a fovea Preprocessor that reduces the dimensionality
-                         of images by sampling them finely near the center and
-                         coarsely with blurring at the edges, then your
-                         preprocessor will need to change the way that the
-                         dataset converts example vectors to images for
-                         visualization.
+        .. code-block::  python
+
+            # Learn PCA preprocessing and apply it to the training set
+            my_pca_preprocessor.apply(training_set, can_fit = True)
+            # Now apply the same transformation to the test set
+            my_pca_preprocessor.apply(test_set, can_fit = False)
+
+        This method must take a dataset, rather than a numpy ndarray, for a
+        variety of reasons:
+
+        - Preprocessors should work on any dataset, and not all
+            datasets will store their data as ndarrays.
+        - Preprocessors often need to change a dataset's
+            metadata.  For example, suppose you have a
+            DenseDesignMatrix dataset of images. If you implement
+            a fovea Preprocessor that reduces the dimensionality
+            of images by sampling them finely near the center and
+            coarsely with blurring at the edges, then your
+            preprocessor will need to change the way that the
+            dataset converts example vectors to images for
+            visualization.
         """
 
         raise NotImplementedError(str(type(self)) +
@@ -815,11 +825,11 @@ class GlobalContrastNormalization(Preprocessor):
                 log.info("GCN processing data from %d to %d" % (i, stop))
                 X = data[i:stop]
                 X = global_contrast_normalize(X,
-                                          scale=self._scale,
-                                          subtract_mean=self._subtract_mean,
-                                          use_std=self._use_std,
-                                          sqrt_bias=self._sqrt_bias,
-                                          min_divisor=self._min_divisor)
+                                              scale=self._scale,
+                                              subtract_mean=self._subtract_mean,
+                                              use_std=self._use_std,
+                                              sqrt_bias=self._sqrt_bias,
+                                              min_divisor=self._min_divisor)
                 dataset.set_design_matrix(X, start=i)
 
 
@@ -901,27 +911,32 @@ class ZCA(Preprocessor):
     @staticmethod
     def _gpu_mdmt(mat, diags):
         """
-        Performs the matrix multiplication A * D * A^T.
+        Performs the matrix multiplication M * D * M^T.
 
         First tries to do this on the GPU. If this throws a MemoryError, it
         falls back to the CPU, with a warning message.
         """
 
+        floatX = theano.config.floatX
+
         # compile theano function
         if not hasattr(ZCA._gpu_mdmt, 'theano_func'):
-            t_mat = theano.tensor.matrix('A')
+            t_mat = theano.tensor.matrix('M')
             t_diags = theano.tensor.vector('D')
             result = theano.tensor.dot(t_mat * t_diags, t_mat.T)
-            ZCA._gpu_mdmt.theano_func = theano.function([t_mat, t_diags],
-                                                        result,
-                                                        allow_input_downcast=True)
+            ZCA._gpu_mdmt.theano_func = theano.function(
+                [t_mat, t_diags],
+                result,
+                allow_input_downcast=True)
 
         try:
             # function()-call above had to downcast the data. Emit warnings.
-            if mat.dtype != numpy.float32:
-                warnings.warn('Implicitly converting mat from dtype=%s to float32 for gpu' % mat.dtype)
-            if diags.dtype != numpy.float32:
-                warnings.warn('Implicitly converting diag from dtype=%s to float32 for gpu' % diags.dtype)
+            if str(mat.dtype) != floatX:
+                warnings.warn('Implicitly converting mat from dtype=%s to '
+                              '%s for gpu' % (mat.dtype, floatX))
+            if str(diags.dtype) != floatX:
+                warnings.warn('Implicitly converting diag from dtype=%s to '
+                              '%s for gpu' % (diags.dtype, floatX))
 
             return ZCA._gpu_mdmt.theano_func(mat, diags)
 
@@ -937,9 +952,9 @@ class ZCA(Preprocessor):
         """
         Analogous to DenseDesignMatrix.use_design_loc().
 
-        If a matrices_save_path is set, when this ZCA is pickled, the P_ and
-        P_inv_ matrices will be saved separately to matrices_save_path, as a
-        numpy .npz archive. This uses half the memory that a normal pickling
+        If a matrices_save_path is set, when this ZCA is pickled, the internal
+        parameter matrices will be saved separately to `matrices_save_path`, as
+        a numpy .npz archive. This uses half the memory that a normal pickling
         does.
         """
         if matrices_save_path is not None:
@@ -1009,17 +1024,20 @@ class ZCA(Preprocessor):
 
     def fit(self, X):
         """
-        Fits this ZCA to a design matrix X. Stores result as self.P_.
-        If self.store_inverse is true, this also computes self.inv_P_.
+        Fits this `ZCA` instance to a design matrix `X`.
 
-        X: a matrix where each row is a datum.
+        Parameters
+        ----------
+        X : ndarray
+            A matrix where each row is a datum.
 
-        compute_inverese: Computes the inverse of P_, storing it as inv_P_.
-                          This is not always necessary, but ZCA_Dataset
-                          requires inv_P_. If it's not computed here,
-                          ZCA_Dataset will compute it much less efficiently in
-                          its constructor.
+        Notes
+        -----
+        Implementation details:
+        Stores result as `self.P_`.
+        If self.store_inverse is true, this also computes `self.inv_P_`.
         """
+
         assert X.dtype in ['float32', 'float64']
         assert not numpy.any(numpy.isnan(X))
         assert len(X.shape) == 2
@@ -1085,7 +1103,7 @@ class ZCA(Preprocessor):
             ZCA._x_minus_mean_times_p = theano.function([x_symbol,
                                                          mean_symbol,
                                                          p_symbol],
-                                                         new_x_symbol)
+                                                        new_x_symbol)
 
         X = dataset.get_design_matrix()
         assert X.dtype in ['float32', 'float64']
@@ -1098,7 +1116,7 @@ class ZCA(Preprocessor):
 
     def inverse(self, X):
         assert X.ndim == 2
-        return numpy.dot(X, self.inv_P_) + self.mean_
+        return self._gpu_matrix_dot(X, self.inv_P_) + self.mean_
 
 
 class LeCunLCN(ExamplewisePreprocessor):

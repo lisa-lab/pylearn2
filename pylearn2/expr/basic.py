@@ -75,6 +75,9 @@ def multiple_switch(*args):
 
     Applies a cascade of ifelse. The output will be a Theano expression
     which evaluates:
+
+    .. code-block:: none
+
         if args0:
             then arg1
         elif arg2:
@@ -93,42 +96,51 @@ def multiple_switch(*args):
 
 def symGivens2(a, b):
     """
-    .. todo::
-
-        WRITEME properly
-    
     Stable Symmetric Givens rotation plus reflection
 
     Parameters
+    ----------
+    a : theano scalar
+        first element of a two-vector  [a; b]
+    b : theano scalar
+        second element of a two-vector [a; b]
 
-        a: (theano scalar) first element of a two-vector  [a; b]
-        b: (theano scalar) second element of a two-vector [a; b]
     Returns
+    -------
+    c : WRITEME
+        cosine(theta), where theta is the implicit angle of
+        rotation (counter-clockwise) in a plane-rotation
+    s : WRITEME
+        sine(theta)
+    d : WRITEME
+        two-norm of [a; b]
 
-        c  cosine(theta), where theta is the implicit angle of
-           rotation (counter-clockwise) in a plane-rotation
-        s  sine(theta)
-        d  two-norm of [a; b]
+    See Also
+    --------
 
-    Description:
-        This method gives c and s such that
-            [ c  s ][a] = [d],
-            [ s -c ][b]   [0]
-      where d = two norm of vector [a, b],
-            c = a / sqrt(a^2 + b^2) = a / d,
-            s = b / sqrt(a^2 + b^2) = b / d.
-      The implementation guards against overflow in computing
-         sqrt(a^2 + b^2).
+    - Algorithm 4.9, stable *unsymmetric* Givens rotations in Golub and van
+        Loan's book Matrix Computations, 3rd edition.
+    - MATLAB's function PLANEROT.
 
-      SEE ALSO:
-         (1) Algorithm 4.9, stable *unsymmetric* Givens
-         rotations in Golub and van Loan's book Matrix
-         Computations, 3rd edition.
-         (2) MATLAB's function PLANEROT.
+    Notes
+    -----
+    This method gives c and s such that
 
-      Observations:
-          Implementing this function as a single op in C might improve speed
-          considerably ..
+    [ c  s ][a] = [d],
+    [ s -c ][b]   [0]
+
+    where
+
+    d = two norm of vector [a, b],
+    c = a / sqrt(a^2 + b^2) = a / d,
+    s = b / sqrt(a^2 + b^2) = b / d.
+
+    The implementation guards against overflow in computing
+    sqrt(a^2 + b^2).
+
+    Observations:
+    Implementing this function as a single op in C might improve speed
+    considerably ..
     """
     c_branch1 = T.switch(T.eq(a, constantX(0)),
                           constantX(1),
@@ -173,7 +185,7 @@ def sqrt_inner_product(xs, ys=None):
     .. todo::
 
         WRITEME properly
-    
+
     Compute the square root of the inner product between `xs` and `ys`.
     If `ys` is not provided, computes the norm between `xs` and `xs`.
     Since `xs` and `ys` are list of tensor, think of it as the norm
@@ -196,7 +208,7 @@ def inner_product(xs, ys=None):
     .. todo::
 
         WRITEME properly
-    
+
     Compute the inner product between `xs` and `ys`. If ys is not provided,
     computes the square norm between `xs` and `xs`.
     Since `xs` and `ys` are list of tensor, think of it as the inner

@@ -17,6 +17,7 @@ for model_path in sys.argv[1:]:
         print 'old file, not all fields parsed correctly'
     else:
         print 'epochs seen: ',monitor._epochs_seen
-    print 'time trained: ',max(channels[key].time_record[-1] for key in channels)
+    print 'time trained: ',max(channels[key].time_record[-1] for key in
+            channels)
     for key in sorted(channels.keys()):
         print key, ':', channels[key].val_record[-1]

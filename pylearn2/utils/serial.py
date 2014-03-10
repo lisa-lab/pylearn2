@@ -56,9 +56,31 @@ def raise_cannot_open(path):
 
 def load(filepath, recurse_depth=0, retry = True):
     """
-    .. todo::
+    Parameters
+    ----------
+    filepath : str
+        A path to a file to load. Should be a pickle, Matlab, or NumPy
+        file.
+    recurse_depth : int
+        End users should not use this argument. It is used by the function
+        itself to implement the `retry` option recursively.
+    retry : bool
+        If True, will make a handful of attempts to load the file before
+        giving up. This can be useful if you are for example calling
+        show_weights.py on a file that is actively being written to by a
+        training script--sometimes the load attempt might fail if the
+        training script writes at the same time show_weights tries to
+        read, but if you try again after a few seconds you should be able
+        to open the file.
 
-        WRITEME
+    Returns
+    -------
+    loaded_object : object
+        The object that was stored in the file.
+
+    ..todo
+
+        Refactor to hide recurse_depth from end users
     """
     try:
         import joblib
@@ -197,11 +219,12 @@ def save(filepath, obj, on_overwrite = 'ignore'):
 
     on_overwrite: str
         A string specifying what to do if the file already exists.
-                ignore: just overwrite it
-                backup: make a copy of the file (<filepath>.bak) and
-                        delete it when done saving the new copy.
-                        this allows recovery of the old version of
-                        the file if saving the new one fails
+        Possible values include:
+
+        - "ignore" : Just overwrite the existing file.
+        - "backup" : Make a backup copy of the file (<filepath>.bak). Save the
+            new copy. Then delete the backup copy. This allows recovery of the
+            old version of the file if saving the new one fails.
     """
     filepath = preprocess(filepath)
 

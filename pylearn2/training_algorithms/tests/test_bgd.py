@@ -114,7 +114,8 @@ def test_determinism():
     """
     Tests that apply nodes are all passed inputs
     with the same md5sums, apply nodes are run in same order, etc.
-    Uses disturb_mem to try to cause dictionaries to iterate in different orders, etc.
+    Uses disturb_mem to try to cause dictionaries to iterate in different
+    orders, etc.
     """
 
     def run_bgd(mode):
@@ -163,7 +164,8 @@ def test_determinism():
                 self.W1 = [sharedX(rng.randn(num_features, chunk_width)) for i
                     in xrange(num_chunks)]
                 disturb_mem.disturb_mem()
-                self.W2 = [sharedX(rng.randn(chunk_width)) for i in xrange(num_chunks)]
+                self.W2 = [sharedX(rng.randn(chunk_width)) for i in
+                        xrange(num_chunks)]
                 self._params = safe_union(self.W1, self.W2)
                 self.input_space = VectorSpace(num_features)
                 self.output_space = VectorSpace(1)
@@ -175,7 +177,8 @@ def test_determinism():
 
         class LotsOfSummingCost(Cost):
             """
-            Make a cost whose gradient on the parameters involves summing many terms together,
+            Make a cost whose gradient on the parameters involves summing many
+            terms together,
             so that T.grad is more likely to sum things in a random order.
             """
 
@@ -192,7 +195,8 @@ def test_determinism():
                     pred = sum(Z)
                     return pred
 
-                nonlinearity_predictions = map(mlp_pred, [T.nnet.sigmoid, T.nnet.softplus, T.sqr, T.sin])
+                nonlinearity_predictions = map(mlp_pred, [T.nnet.sigmoid,
+                    T.nnet.softplus, T.sqr, T.sin])
                 pred = sum(nonlinearity_predictions)
                 disturb_mem.disturb_mem()
 
@@ -310,7 +314,8 @@ def test_fixed_vars():
             self.get_data_specs(model)[0].validate(data)
             assert unsup_aux_var is unsup_counter
             called[1] = True
-            gradients, updates = Cost.get_gradients(self, model, data, unsup_aux_var=unsup_aux_var)
+            gradients, updates = Cost.get_gradients(self, model, data,
+                    unsup_aux_var=unsup_aux_var)
             updates[grad_counter] = grad_counter + 1
             return gradients, updates
 

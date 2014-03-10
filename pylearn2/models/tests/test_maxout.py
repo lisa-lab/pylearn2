@@ -34,7 +34,8 @@ def test_min_zero():
     discard information about the size of the zero buffer.
     """
     mlp = MLP(input_space=VectorSpace(1),
-            layers= [Maxout(layer_name="test_layer", num_units=1, num_pieces = 2,
+            layers= [Maxout(layer_name="test_layer", num_units=1,
+                num_pieces = 2,
             irange=.05, min_zero=True)])
     X = T.matrix()
     output = mlp.fprop(X)
@@ -52,7 +53,8 @@ def test_maxout_basic():
 
     yaml_string = """
     !obj:pylearn2.train.Train {
-        dataset: &train !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix {
+        dataset: &train !obj:pylearn2.testing.datasets.random_one_hot_dense_d\
+esign_matrix {
             rng: !obj:numpy.random.RandomState { seed: [2013, 3, 16] },
             num_examples: 12,
             dim: 2,
@@ -95,10 +97,12 @@ def test_maxout_basic():
                 input_include_probs: { 'h0' : .8 },
                 input_scales: { 'h0': 1. }
             },
-            termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
+            termination_criterion: !obj:pylearn2.termination_criteria.EpochCo\
+unter {
                 max_epochs: 3,
             },
-            update_callbacks: !obj:pylearn2.training_algorithms.sgd.ExponentialDecay {
+            update_callbacks: !obj:pylearn2.training_algorithms.sgd.Exponenti\
+alDecay {
                 decay_factor: 1.000004,
                 min_lr: .000001
             }
@@ -119,7 +123,8 @@ def test_maxout_basic():
 
 yaml_string_maxout_conv_c01b_basic = """
     !obj:pylearn2.train.Train {
-        dataset: &train !obj:pylearn2.testing.datasets.random_one_hot_topological_dense_design_matrix {
+        dataset: &train !obj:pylearn2.testing.datasets.random_one_hot_topolog\
+ical_dense_design_matrix {
             rng: !obj:numpy.random.RandomState { seed: [2013, 3, 16] },
             shape: &input_shape [10, 10],
             channels: 1,
@@ -193,10 +198,12 @@ yaml_string_maxout_conv_c01b_basic = """
                 input_include_probs: { 'h0' : .8 },
                 input_scales: { 'h0': 1. }
             },
-            termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
+            termination_criterion: !obj:pylearn2.termination_criteria.EpochCo\
+unter {
                 max_epochs: 3
             },
-            update_callbacks: !obj:pylearn2.training_algorithms.sgd.ExponentialDecay {
+            update_callbacks: !obj:pylearn2.training_algorithms.sgd.Exponenti\
+alDecay {
                 decay_factor: 1.00004,
                 min_lr: .000001
             }
@@ -275,7 +282,8 @@ yaml_string_maxout_conv_c01b_cifar10 = """
                                   one_hot: 1,
                               }
                 },
-            termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
+            termination_criterion: !obj:pylearn2.termination_criteria.EpochCo\
+unter {
                 max_epochs: 5
             }
         }
@@ -333,7 +341,9 @@ class TestMaxout(unittest.TestCase):
             # Check that the performance is close to the expected one:
             # test_y_misclass: 0.3777000308036804
             misclass_chan = train.algorithm.monitor.channels['test_y_misclass']
-            assert misclass_chan.val_record[-1] < 0.38
+            assert misclass_chan.val_record[-1] < 0.38, \
+                ("misclass_chan.val_record[-1] = %g" %
+                 misclass_chan.val_record[-1])
             # test_y_nll: 1.0978516340255737
             nll_chan = train.algorithm.monitor.channels['test_y_nll']
             assert nll_chan.val_record[-1] < 1.1

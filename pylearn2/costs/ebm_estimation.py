@@ -1,16 +1,20 @@
-""" Training costs for unsupervised learning of energy-based models """
-import warnings
+"""
+Training costs for unsupervised learning of energy-based models
+"""
+import functools
+from itertools import izip
+import numpy as np
 import sys
-import theano.tensor as T
+import warnings
+
+from theano.compat.python2x import OrderedDict
 from theano import scan
+import theano.tensor as T
+
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
-from pylearn2.space import CompositeSpace
 from pylearn2.utils import py_integer_types
 from pylearn2.utils.rng import make_theano_rng
-from theano.compat.python2x import OrderedDict
-from itertools import izip
 from pylearn2.models.rbm import BlockGibbsSampler
-import numpy as np
 
 warnings.warn("Cost changing the recursion limit.")
 # We need this to be high enough that the big theano graphs we make
@@ -101,7 +105,7 @@ class NCE(DefaultDataSpecsMixin, Cost):
         .. todo::
 
             WRITEME properly
-        
+
         params
         -------
             noise: a Distribution from which noisy examples are generated
@@ -119,6 +123,7 @@ class SM(DefaultDataSpecsMixin, Cost):
     (Regularized) Score Matching
 
     See:
+
     - "Regularized estimation of image statistics by Score Matching",
       D. Kingma, Y. LeCun, NIPS 2010
     - eqn. 4 of "On Autoencoders and Score Matching for Energy Based Models"
@@ -170,23 +175,19 @@ class SMD(DefaultDataSpecsMixin, Cost):
 
     Note that instead of using half the squared norm we use the mean squared error,
     so that hyperparameters don't depend as much on the # of visible units
+
+    Parameters
+    ----------
+    corruptor : WRITEME
+        WRITEME
     """
 
     def __init__(self, corruptor):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(SMD, self).__init__()
         self.corruptor = corruptor
 
+    @functools.wraps(Cost.expr)
     def expr(self, model, data):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.get_data_specs(model)[0].validate(data)
         X = data
         X_name = 'X' if X.name is None else X.name
@@ -195,7 +196,6 @@ class SMD(DefaultDataSpecsMixin, Cost):
 
         if corrupted_X.name is None:
             corrupted_X.name = 'corrupt('+X_name+')'
-        #
 
         model_score = model.score(corrupted_X)
         assert len(model_score.type.broadcastable) == len(X.type.broadcastable)
@@ -223,16 +223,15 @@ class SMD(DefaultDataSpecsMixin, Cost):
         return (model.get_input_space(), model.get_input_source())
 
 class SML(Cost):
-    """ Stochastic Maximum Likelihood
+    """
+    Stochastic Maximum Likelihood
 
-        See "On the convergence of Markovian stochastic algorithms with rapidly 
-             decreasing ergodicity rates"
-        by Laurent Younes (1998)
-        
-        Also known as Persistent Constrastive Divergence (PCD)
-        See "Training restricted boltzmann machines using approximations to
-             the likelihood gradient" 
-        by Tijmen Tieleman  (2008)
+    See "On the convergence of Markovian stochastic algorithms with rapidly
+    decreasing ergodicity rates" by Laurent Younes (1998)
+
+    Also known as Persistent Constrastive Divergence (PCD)
+    See "Training restricted boltzmann machines using approximations to
+    the likelihood gradient" by Tijmen Tieleman  (2008)
     """
 
     def __init__(self, batch_size, nsteps ):
@@ -256,7 +255,7 @@ class SML(Cost):
 
         params = list(model.get_params())
 
-        grads = T.grad(cost, params, disconnected_inputs = 'ignore', 
+        grads = T.grad(cost, params, disconnected_inputs = 'ignore',
                        consider_constant = [self.sampler.particles])
 
         gradients = OrderedDict(izip(params, grads))
@@ -271,9 +270,9 @@ class SML(Cost):
 
         if not hasattr(self,'sampler'):
             self.sampler = BlockGibbsSampler(
-                rbm=model, 
-                particles=0.5+np.zeros((self.nchains,model.get_input_dim())), 
-                rng=model.rng, 
+                rbm=model,
+                particles=0.5+np.zeros((self.nchains,model.get_input_dim())),
+                rng=model.rng,
                 steps=self.nsteps)
 
         # compute negative phase updates
@@ -297,7 +296,7 @@ class SML(Cost):
 class CDk(Cost):
     """ Contrastive Divergence
 
-        See "Training products of experts by minimizing contrastive divergence" 
+        See "Training products of experts by minimizing contrastive divergence"
         by Geoffrey E. Hinton (2002)
     """
 
@@ -310,7 +309,7 @@ class CDk(Cost):
             seed: int
                 seed for the random number generator
         """
- 
+
         super(CDk, self).__init__()
         self.nsteps  = nsteps
         self.rng = make_theano_rng(seed, which_method='binomial')
@@ -318,7 +317,7 @@ class CDk(Cost):
     def _cost(self, model, data):
         pos_v = data
         neg_v = data
-        
+
         for k in range(self.nsteps):
             [neg_v, _locals] = model.gibbs_step_for_v(neg_v,self.rng)
 

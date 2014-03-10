@@ -4,6 +4,7 @@ strategies.
 """
 # Standard library imports
 from itertools import izip
+import sys
 
 # Third-party imports
 import numpy
@@ -207,6 +208,21 @@ class BlockGibbsSampler(Sampler):
 class RBM(Block, Model):
     """
     A base interface for RBMs, implementing the binary-binary case.
+
+    Notes
+    -----
+
+    The `RBM` class is redundant now that we have a `DBM` class, since
+    an RBM is just a DBM with one hidden layer. Users of pylearn2 should
+    use single-layer DBMs when possible. Not all RBM functionality has
+    been ported to the DBM framework yet, so this is not always possible.
+    (Examples: spike-and-slab RBMs, score matching, denoising score matching)
+    pylearn2 developers should not add new features to the RBM class or
+    add new RBM subclasses. pylearn2 developers should only add documentation
+    and bug fixes to the RBM class and subclasses. pylearn2 developers should
+    finish porting all RBM functionality to the DBM framework, then turn
+    the RBM class into a thin wrapper around the DBM class that allocates
+    a single layer DBM.
     """
     def __init__(self, nvis = None, nhid = None,
             vis_space = None,
@@ -214,7 +230,8 @@ class RBM(Block, Model):
             transformer = None,
             irange=0.5, rng=None, init_bias_vis = None,
             init_bias_vis_marginals = None, init_bias_hid=0.0,
-            base_lr = 1e-3, anneal_start = None, nchains = 100, sml_gibbs_steps = 1,
+            base_lr = 1e-3, anneal_start = None, nchains = 100,
+            sml_gibbs_steps = 1,
             random_patches_src = None,
             monitor_reconstruction = False):
 
@@ -300,9 +317,8 @@ class RBM(Block, Model):
                         W = irange * random_patches_src.T
                         assert W.shape == (nvis, nhid)
                     else:
-                        #assert type(irange) == type(0.01)
-                        #assert irange == 0.01
-                        W = irange * random_patches_src.get_batch_design(nhid).T
+                        W = irange * random_patches_src.get_batch_design(
+                                nhid).T
 
                 self.transformer = MatrixMul(  sharedX(
                         W,
@@ -345,31 +361,50 @@ class RBM(Block, Model):
 
 
         self.__dict__.update(nhid=nhid, nvis=nvis)
-        self._params = safe_union(self.transformer.get_params(), [self.bias_vis, self.bias_hid])
+        self._params = safe_union(self.transformer.get_params(),
+                [self.bias_vis, self.bias_hid])
 
         self.base_lr = base_lr
         self.anneal_start = anneal_start
         self.nchains = nchains
         self.sml_gibbs_steps = sml_gibbs_steps
 
+    def get_default_cost(self):
+        raise NotImplementedError("The RBM class predates the current "
+                "Cost-based training algorithms (SGD and BGD). To train "
+                "the RBM with PCD, use DefaultTrainingAlgorithm rather "
+                "than SGD or BGD. Some RBM subclassess may also be "
+                "trained with SGD or BGD by using the "
+                "Cost classes defined in pylearn2.costs.ebm_estimation. "
+                "Note that it is also possible to make an RBM by allocating "
+                "a DBM with only one hidden layer. The DBM class is newer "
+                "and supports training with SGD / BGD. In the long run we "
+                "should remove the old RBM class and turn it into a wrapper "
+                "around the DBM class that makes a 1-layer DBM.")
+
     def get_input_dim(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns
+        -------
+        dim : int
+            The number of elements in the input, if the input is a vector.
         """
         if not isinstance(self.vis_space, VectorSpace):
-            raise TypeError("Can't describe "+str(type(self.vis_space))+" as a dimensionality number.")
+            raise TypeError("Can't describe " + str(type(self.vis_space))
+                    + " as a dimensionality number.")
+
         return self.vis_space.dim
 
     def get_output_dim(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns
+        -------
+        dim : int
+            The number of elements in the output, if the output is a vector.
         """
         if not isinstance(self.hid_space, VectorSpace):
-            raise TypeError("Can't describe "+str(type(self.hid_space))+" as a dimensionality number.")
+            raise TypeError("Can't describe " + str(type(self.hid_space))
+                    + " as a dimensionality number.")
         return self.hid_space.dim
 
     def get_input_space(self):
@@ -433,10 +468,6 @@ class RBM(Block, Model):
         V = data
         theano_rng = make_theano_rng(None, 42, which_method="binomial")
 
-        #TODO: re-enable this in the case where self.transformer
-        #is a matrix multiply
-        #norms = theano_norms(self.weights)
-
         H = self.mean_h_given_v(V)
 
         h = H.mean(axis=0)
@@ -450,12 +481,8 @@ class RBM(Block, Model):
                  'h_min' : T.min(h),
                  'h_mean': T.mean(h),
                  'h_max' : T.max(h),
-                 #'W_min' : T.min(self.weights),
-                 #'W_max' : T.max(self.weights),
-                 #'W_norms_min' : T.min(norms),
-                 #'W_norms_max' : T.max(norms),
-                 #'W_norms_mean' : T.mean(norms),
-                'reconstruction_error' : self.reconstruction_error(V, theano_rng) }
+                'reconstruction_error' : self.reconstruction_error(V,
+                    theano_rng) }
 
     def get_monitoring_data_specs(self):
         """
@@ -539,7 +566,9 @@ class RBM(Block, Model):
         return rval
 
     def redo_theano(self):
-        """ Compiles the theano function for the default learning rule """
+        """
+        Compiles the theano function for the default learning rule
+        """
 
         init_names = dir(self)
 
@@ -547,18 +576,20 @@ class RBM(Block, Model):
 
         optimizer = _SGDOptimizer(self, self.base_lr, self.anneal_start)
 
-        sampler = sampler = BlockGibbsSampler(self, 0.5 + np.zeros((self.nchains, self.get_input_dim())), self.rng,
-                                                  steps= self.sml_gibbs_steps)
+        sampler = sampler = BlockGibbsSampler(self, 0.5 + np.zeros((
+            self.nchains, self.get_input_dim())), self.rng,
+            steps= self.sml_gibbs_steps)
 
 
         updates = training_updates(visible_batch=minibatch, model=self,
-                                            sampler=sampler, optimizer=optimizer)
+                                   sampler=sampler, optimizer=optimizer)
 
         self.learn_func = theano.function([minibatch], updates=updates)
 
         final_names = dir(self)
 
-        self.register_names_to_del([name for name in final_names if name not in init_names])
+        self.register_names_to_del([name for name in final_names
+            if name not in init_names])
 
     def gibbs_step_for_v(self, v, rng):
         """
@@ -597,7 +628,8 @@ class RBM(Block, Model):
         # For binary hidden units
         # TODO: factor further to extend to other kinds of hidden units
         #       (e.g. spike-and-slab)
-        h_sample = rng.binomial(size = h_mean.shape, n = 1 , p = h_mean, dtype=h_mean.type.dtype)
+        h_sample = rng.binomial(size = h_mean.shape, n = 1 , p = h_mean,
+            dtype=h_mean.type.dtype)
         assert h_sample.type.dtype == v.type.dtype
         # v_mean is always based on h_sample, not h_mean, because we don't
         # want h transmitting more than one bit of information per unit.
@@ -1038,7 +1070,7 @@ class mu_pooled_ssRBM(RBM):
             rng=None):
         """
         .. todo::
-            
+
             WRITEME properly
 
         alpha    : vector of length nslab, diagonal precision term on s.
@@ -1229,7 +1261,7 @@ def build_stacked_RBM(nvis, nhids, batch_size, vis_type='binary',
         input_mean_vis=None, irange=1e-3, rng=None):
     """
     .. todo::
-        
+
         WRITEME properly
 
     Note from IG:
@@ -1341,20 +1373,26 @@ class _SGDOptimizer(_Optimizer):
     Supports constant learning rates, or decreasing like 1/t after an initial
     period.
     """
-    def __init__(self, params, base_lr, anneal_start=None, **kwargs):
+    def __init__(self, params, base_lr, anneal_start=None, use_adagrad=False,
+                 ** kwargs):
         """
+        Construct an SGDOptimizer.
+
         Parameters
         ----------
         params : object or list
-            Either a Model object with a .get_params() method, or a list of \
+            Either a Model object with a .get_params() method, or a list of
             parameters to be optimized.
         base_lr : float
-            The base learning rate before annealing or parameter-specific \
+            The base learning rate before annealing or parameter-specific
             scaling.
         anneal_start : int
-            Number of steps after which to start annealing the learning \
-            rate at a 1/t schedule, where t is the number of stochastic \
+            Number of steps after which to start annealing the learning
+            rate at a 1/t schedule, where t is the number of stochastic
             gradient updates.
+        use_adagrad : bool
+            'adagrad' adaptive learning rate scheme is used. If set to True,
+        base_lr is used as e0.
 
         Notes
         -----
@@ -1367,10 +1405,15 @@ class _SGDOptimizer(_Optimizer):
 
         Parameter-specific bounding values can be specified by passing
         keyword arguments <param>_clip, which should be a (min, max) pair.
+
+        Adagrad is recommended with sparse inputs. It normalizes the base
+        learning rate of a parameter theta_i by the accumulated 2-norm of its
+        gradient: e{ti} = e0 / sqrt( sum_t (dL_t / dtheta_i)^2 )
         """
         if hasattr(params, '__iter__'):
             self.params = params
-        elif hasattr(params, 'get_params') and hasattr(params.get_params, '__call__'):
+        elif hasattr(params, 'get_params') and hasattr(
+                params.get_params, '__call__'):
             self.params = params.get_params()
         else:
             raise ValueError("SGDOptimizer couldn't figure out what to do "
@@ -1380,5 +1423,255 @@ class _SGDOptimizer(_Optimizer):
         else:
             self.anneal_start = as_floatX(anneal_start)
 
+        # Create accumulators and epsilon0's
+        self.use_adagrad = use_adagrad
+        if self.use_adagrad:
+            self.accumulators = {}
+            self.e0s = {}
+            for param in self.params:
+                self.accumulators[param] = theano.shared(
+                        value=as_floatX(0.), name='acc_%s' % param.name)
+                self.e0s[param] = as_floatX(base_lr)
+
         # Set up the clipping values
         self.clipping_values = {}
+        # Keep track of names already seen
+        clip_names_seen = set()
+        for parameter in self.params:
+            clip_name = '%s_clip' % parameter.name
+            if clip_name in kwargs:
+                if clip_name in clip_names_seen:
+                    print >> sys.stderr, ('Warning: In SGDOptimizer, '
+                            'at least two parameters have the same name. '
+                            'Both will be affected by the keyword argument '
+                            '%s.' % clip_name)
+                clip_names_seen.add(clip_name)
+                p_min, p_max = kwargs[clip_name]
+                assert p_min <= p_max
+                self.clipping_values[parameter] = (p_min, p_max)
+
+        # Check that no ..._clip keyword is being ignored
+        for clip_name in clip_names_seen:
+            kwargs.pop(clip_name)
+        for kw in kwargs.iterkeys():
+            if kw[-5:] == '_clip':
+                print >> sys.stderr, ('Warning: in SGDOptimizer, '
+                        'keyword argument %s will be ignored, '
+                        'because no parameter was found with name %s.'
+                        % (kw, kw[:-5]))
+
+        self.learning_rates_setup(base_lr, **kwargs)
+
+    def learning_rates_setup(self, base_lr, **kwargs):
+        """
+        Initializes parameter-specific learning rate dictionary and shared
+        variables for the annealed base learning rate and iteration number.
+
+        Parameters
+        ----------
+        base_lr : float
+            The base learning rate before annealing or parameter-specific
+            scaling.
+
+        Notes
+        -----
+        Parameter-specific learning rates can be set by passing keyword
+        arguments <name>_lr, where name is the .name attribute of a given
+        parameter.
+        """
+        # Take care of learning rate scales for individual parameters
+        self.learning_rates = {}
+        # Base learning rate per example.
+        self.base_lr = theano._asarray(base_lr, dtype=theano.config.floatX)
+
+        # Keep track of names already seen
+        lr_names_seen = set()
+        for parameter in self.params:
+            lr_name = '%s_lr' % parameter.name
+            if lr_name in lr_names_seen:
+                print >> sys.stderr, ('Warning: In SGDOptimizer, '
+                        'at least two parameters have the same name. '
+                        'Both will be affected by the keyword argument '
+                        '%s.' % lr_name)
+            lr_names_seen.add(lr_name)
+
+            thislr = kwargs.get(lr_name, 1.)
+            self.learning_rates[parameter] = sharedX(thislr, lr_name)
+
+        # Verify that no ..._lr keyword argument is ignored
+        for lr_name in lr_names_seen:
+            if lr_name in kwargs:
+                kwargs.pop(lr_name)
+        for kw in kwargs.iterkeys():
+            if kw[-3:] == '_lr':
+                print >> sys.stderr, ('Warning: in SGDOptimizer, '
+                        'keyword argument %s will be ignored, '
+                        'because no parameter was found with name %s.'
+                        % (kw, kw[:-3]))
+
+        # A shared variable for storing the iteration number.
+        self.iteration = sharedX(theano._asarray(0, dtype='int32'),
+                                 name='iter')
+
+        # A shared variable for storing the annealed base learning rate, used
+        # to lower the learning rate gradually after a certain amount of time.
+        self.annealed = sharedX(base_lr, 'annealed')
+
+    def learning_rate_updates(self, gradients):
+        """
+        Compute a dictionary of shared variable updates related to annealing
+        the learning rate.
+
+        Returns
+        -------
+        updates : dict
+            A dictionary with the shared variables representing SGD metadata
+            as keys and a symbolic expression of how they are to be updated as
+            values.
+        """
+        ups = {}
+
+        if self.use_adagrad:
+            learn_rates = []
+            for param, gp in zip(self.params, gradients):
+                acc = self.accumulators[param]
+                ups[acc] = acc + (gp ** 2).sum()
+                learn_rates.append(self.e0s[param] / (ups[acc] ** .5))
+        else:
+            # Annealing coefficient. Here we're using a formula of
+            # min(base_lr, anneal_start / (iteration + 1))
+            if self.anneal_start is None:
+                annealed = sharedX(self.base_lr)
+            else:
+                frac = self.anneal_start / (self.iteration + 1.)
+                annealed = tensor.minimum(
+                                          as_floatX(frac),
+                                          self.base_lr  # maximum learning rate
+                                          )
+
+            # Update the shared variable for the annealed learning rate.
+            ups[self.annealed] = annealed
+            ups[self.iteration] = self.iteration + 1
+
+            # Calculate the learning rates for each parameter, in the order
+            # they appear in self.params
+            learn_rates = [annealed * self.learning_rates[p] for p in
+                    self.params]
+        return ups, learn_rates
+
+    def updates(self, gradients):
+        """
+        Return symbolic updates to apply given a set of gradients
+        on the parameters being optimized.
+
+        Parameters
+        ----------
+        gradients : list of tensor_likes
+            List of symbolic gradients for the parameters contained
+            in self.params, in the same order as in self.params.
+
+        Returns
+        -------
+        updates : dict
+            A dictionary with the shared variables in self.params as keys
+            and a symbolic expression of how they are to be updated each
+            SGD step as values.
+
+        Notes
+        -----
+        `cost_updates` is a convenient helper function that takes all
+        necessary gradients with respect to a given symbolic cost.
+        """
+        ups = {}
+        # Add the learning rate/iteration updates
+        l_ups, learn_rates = self.learning_rate_updates(gradients)
+        safe_update(ups, l_ups)
+
+        # Get the updates from sgd_updates, a PyLearn library function.
+        p_up = dict(self.sgd_updates(self.params, gradients, learn_rates))
+
+        # Add the things in p_up to ups
+        safe_update(ups, p_up)
+
+        # Clip the values if needed.
+        # We do not want the clipping values to force an upcast
+        # of the update: updates should have the same type as params
+        for param, (p_min, p_max) in self.clipping_values.iteritems():
+            p_min = tensor.as_tensor(p_min)
+            p_max = tensor.as_tensor(p_max)
+            dtype = param.dtype
+            if p_min.dtype != dtype:
+                p_min = tensor.cast(p_min, dtype)
+            if p_max.dtype != dtype:
+                p_max = tensor.cast(p_max, dtype)
+            ups[param] = tensor.clip(ups[param], p_min, p_max)
+
+        # Return the updates dictionary.
+        return ups
+
+    def cost_updates(self, cost):
+        """
+        Return symbolic updates to apply given a cost function.
+
+        Parameters
+        ----------
+        cost : tensor_like
+            Symbolic cost with respect to which the gradients of
+            the parameters should be taken. Should be 0-dimensional
+            (scalar valued).
+
+        Returns
+        -------
+        updates : dict
+            A dictionary with the shared variables in self.params as keys
+            and a symbolic expression of how they are to be updated each
+            SGD step as values.
+        """
+        grads = [tensor.grad(cost, p) for p in self.params]
+        return self.updates(gradients=grads)
+
+    def sgd_updates(self, params, grads, stepsizes):
+        """
+        Return a list of (pairs) that can be used
+        as updates in theano.function to
+        implement stochastic gradient descent.
+
+        Parameters
+        ----------
+        params : list of Variable
+            variables to adjust in order to minimize some cost
+        grads : list of Variable
+            the gradient on each param (with respect to some cost)
+        stepsizes : symbolic scalar or list of one symbolic scalar per param
+            step by this amount times the negative gradient on each iteration
+        """
+        try:
+            iter(stepsizes)
+        except Exception:
+            stepsizes = [stepsizes for p in params]
+        if len(params) != len(grads):
+            raise ValueError('params and grads have different lens')
+        updates = [(p, p - step * gp) for (step, p, gp)
+                in zip(stepsizes, params, grads)]
+        return updates
+
+    def sgd_momentum_updates(self, params, grads, stepsizes, momentum=0.9):
+        # if stepsizes is just a scalar, expand it to match params
+        try:
+            iter(stepsizes)
+        except Exception:
+            stepsizes = [stepsizes for p in params]
+        try:
+            iter(momentum)
+        except Exception:
+            momentum = [momentum for p in params]
+        if len(params) != len(grads):
+            raise ValueError('params and grads have different lens')
+        headings = [theano.shared(numpy.zeros_like(p.get_value(borrow=True)))
+                for p in params]
+        updates = []
+        for s, p, gp, m, h in zip(stepsizes, params, grads, momentum,
+                headings):
+            updates.append((p, p + s * h))
+            updates.append((h, m * h - (1.0 - m) * gp))
+        return updates

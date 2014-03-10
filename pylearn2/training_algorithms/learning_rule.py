@@ -45,28 +45,34 @@ class LearningRule():
         learning_rate : float
             Learning rate coefficient
         grads : dict
-            A dictionary mapping from the model's parameters to their \
+            A dictionary mapping from the model's parameters to their
             gradients.
         lr_scalers : dict
-            A dictionary mapping from the model's parameters to a learning \
+            A dictionary mapping from the model's parameters to a learning
             rate multiplier.
 
         Returns
         -------
-        A dictionary mapping from the old model parameters, to their new
-        values after a single iteration of the learning rule.
+        updates : OrderdDict
+            A dictionary mapping from the old model parameters, to their new
+            values after a single iteration of the learning rule.
 
+        Notes
+        -----
         e.g. for standard SGD, one would return `sgd_rule_updates` defined
-        below. Note that such a LearningRule object is not implemented, as
+        below. Note that such a `LearningRule` object is not implemented, as
         these updates are implemented by default when the `learning_rule`
         parameter of sgd.SGD.__init__ is None.
+
+        .. code-block::  python
 
             sgd_rule_updates = OrderedDict()
             for (param, grad) in grads.iteritems():
                 sgd_rule_updates[k] = param - learning_rate *
                 lr_scalers.get(param, 1.) * grad
         """
-        raise NotImplementedError()
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "get_updates.")
 
 
 class Momentum(LearningRule):

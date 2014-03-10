@@ -2,6 +2,7 @@
 Generative Stochastic Networks
 
 This is described in:
+
 - "Generalized Denoising Auto-Encoders as Generative Models" Bengio, Yao, Alain,
    Vincent. arXiv:1305.6663
 - "Deep Generative Stochastic Networks Trainable by Backprop" Bengio,
@@ -16,7 +17,6 @@ __license__ = "3-clause BSD"
 
 import copy
 import functools
-import itertools
 import warnings
 
 import numpy as np
@@ -29,6 +29,12 @@ from pylearn2.models.autoencoder import Autoencoder
 from pylearn2.models.model import Model
 from pylearn2.utils import safe_zip
 
+# Enforce correct restructured text list format.
+# Be sure to re-run docgen.py and make sure there are no warnings if you
+# modify the module-level docstring.
+assert """:
+
+- """ in __doc__
 
 class GSN(StackedBlocks, Model):
     """

@@ -1,5 +1,5 @@
 from pylearn2.models.dbm.dbm import DBM
-from pylearn2.models.dbm.layer import BinaryVector, BinaryVectorMaxPool, Softmax
+from pylearn2.models.dbm.layer import BinaryVector, BinaryVectorMaxPool, Softmax, GaussianVisLayer
 
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012, Universite de Montreal"
@@ -8,6 +8,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
 import numpy as np
+import random
 assert hasattr(np, 'exp')
 
 from theano import config
@@ -36,12 +37,12 @@ def check_binary_samples(value, expected_shape, expected_mean, tol):
     assert is_binary(value)
     mean = value.mean(axis=0)
     max_error = np.abs(mean-expected_mean).max()
+    print 'Actual mean:'
+    print mean
+    print 'Expected mean:'
+    print expected_mean
+    print 'Maximal error:', max_error
     if max_error > tol:
-        print 'Actual mean:'
-        print mean
-        print 'Expected mean:'
-        print expected_mean
-        print 'Maximal error:', max_error
         raise ValueError("Samples don't seem to have the right mean.")
 
 def test_binary_vis_layer_make_state():
@@ -116,6 +117,223 @@ def test_binary_vis_layer_sample():
     sample = sample.eval()
 
     check_binary_samples(sample, (num_samples, n), mean, tol)
+
+
+def check_gaussian_samples(value, nsamples, nvis, rows, cols, channels, expected_mean, tol):
+    """
+    Tests that a matrix of Gaussian samples (observations in rows, variables
+     in columns)
+    1) Has the right shape
+    2) Is not binary
+    3) Converges to the right mean
+
+    """
+    if nvis:
+        expected_shape = (nsamples, nvis)
+    else:
+        expected_shape = (nsamples,rows,cols,channels)
+    assert value.shape == expected_shape
+    assert not is_binary(value)
+    mean = value.mean(axis=0)
+    max_error = np.abs(mean-expected_mean).max()
+    print 'Actual mean:'
+    print mean
+    print 'Expected mean:'
+    print expected_mean
+    print 'Maximal error:', max_error
+    print 'Tolerable variance:', tol
+    if max_error > tol:
+        raise ValueError("Samples don't seem to have the right mean.")
+    else:
+        print 'Mean is within expected range'
+
+
+def test_gaussian_vis_layer_make_state():
+    """
+    Verifies that GaussianVisLayer.make_state creates
+    a shared variable whose value passes check_gaussian_samples
+
+    In this case the layer lives in a VectorSpace
+
+    """
+    n = 5
+    rows = None
+    cols = None
+    channels = None
+    num_samples = 1000
+    tol = .042 # tolerated variance
+    beta = 1/tol # precision parameter
+
+    layer = GaussianVisLayer(nvis = n, init_beta=beta)
+
+    rng = np.random.RandomState([2012,11,1])
+
+    mean = rng.uniform(1e-6, 1. - 1e-6, (n,))
+
+    z= mean
+
+    layer.set_biases(z.astype(config.floatX))
+
+    init_state = layer.make_state(num_examples=num_samples,
+            numpy_rng=rng)
+
+    value = init_state.get_value()
+
+    check_gaussian_samples(value, num_samples, n, rows, cols, channels, mean, tol)
+
+def test_gaussian_vis_layer_make_state_conv():
+    """
+    Verifies that GaussianVisLayer.make_state creates
+    a shared variable whose value passes check_gaussian_samples
+
+    In this case the layer lives in a Conv2DSpace
+
+    """
+    n = None
+    rows = 3
+    cols = 3
+    channels = 3
+    num_samples = 1000
+    tol = .042  # tolerated variance
+    beta = 1/tol  # precision parameter
+    # axes for batch, rows, cols, channels, can be given in any order
+    axes = ['b', 0, 1, 'c']
+    random.shuffle(axes)
+    axes = tuple(axes)
+    print 'axes:', axes
+
+    layer = GaussianVisLayer(rows=rows, cols=cols, channels=channels, init_beta=beta, axes=axes)
+
+    # rng = np.random.RandomState([2012,11,1])
+    rng = np.random.RandomState()
+    mean = rng.uniform(1e-6, 1. - 1e-6, (rows, cols, channels))
+
+    #z = inverse_sigmoid_numpy(mean)
+    z= mean
+
+    layer.set_biases(z.astype(config.floatX))
+
+    init_state = layer.make_state(num_examples=num_samples,
+            numpy_rng=rng)
+
+    value = init_state.get_value()
+
+    check_gaussian_samples(value, num_samples, n, rows, cols, channels, mean, tol)
+
+def test_gaussian_vis_layer_sample():
+    """
+    Verifies that GaussianVisLayer.sample returns an expression
+    whose value passes check_gaussian_samples
+
+    In this case the layer lives in a VectorSpace
+
+    """
+    assert hasattr(np, 'exp')
+
+    n = 5
+    num_samples = 1000
+    tol = .042  # tolerated variance
+    beta = 1/tol  # precision parameter
+    rows = None
+    cols = None
+    channels = None
+
+    class DummyLayer(object):
+        """
+        A layer that we build for the test that just uses a state
+        as its downward message.
+        """
+
+        def downward_state(self, state):
+            return state
+
+        def downward_message(self, state):
+            return state
+
+    vis = GaussianVisLayer(nvis=n, init_beta=beta)
+    hid = DummyLayer()
+
+    rng = np.random.RandomState([2012,11,1,259])
+
+    mean = rng.uniform(1e-6, 1. - 1e-6, (n,))
+
+    ofs = rng.randn(n)
+
+    vis.set_biases(ofs.astype(config.floatX))
+
+    #z = inverse_sigmoid_numpy(mean) - ofs
+    z=mean -ofs # linear activation function
+    z_var = sharedX(np.zeros((num_samples, n)) + z)
+    # mean will be z_var + mu
+
+    theano_rng = MRG_RandomStreams(2012+11+1)
+
+    sample = vis.sample(state_above=z_var, layer_above=hid,
+            theano_rng=theano_rng)
+
+    sample = sample.eval()
+
+    check_gaussian_samples(sample, num_samples, n, rows, cols, channels, mean, tol)
+
+def test_gaussian_vis_layer_sample_conv():
+    """
+    Verifies that GaussianVisLayer.sample returns an expression
+    whose value passes check_gaussian_samples.
+
+    In this case the layer lives in a Conv2DSpace
+
+    """
+    assert hasattr(np, 'exp')
+
+    n = None
+    num_samples = 1000
+    tol = .042  # tolerated variance
+    beta = 1/tol  # precision parameter
+    rows = 3
+    cols = 3
+    channels = 3
+    # axes for batch, rows, cols, channels, can be given in any order
+    axes = ['b', 0, 1, 'c']
+    random.shuffle(axes)
+    axes = tuple(axes)
+    print 'axes:', axes
+
+    class DummyLayer(object):
+        """
+        A layer that we build for the test that just uses a state
+        as its downward message.
+        """
+
+        def downward_state(self, state):
+            return state
+
+        def downward_message(self, state):
+            return state
+
+    vis = GaussianVisLayer(nvis=None,rows=rows, cols=cols, channels=channels, init_beta=beta, axes=axes)
+    hid = DummyLayer()
+
+    rng = np.random.RandomState([2012,11,1,259])
+
+    mean = rng.uniform(1e-6, 1. - 1e-6, (rows, cols, channels))
+
+    ofs = rng.randn(rows,cols,channels)
+
+    vis.set_biases(ofs.astype(config.floatX))
+
+    #z = inverse_sigmoid_numpy(mean) - ofs
+    z = mean -ofs
+
+    z_var = sharedX(np.zeros((num_samples, rows, cols, channels)) + z)
+
+    theano_rng = MRG_RandomStreams(2012+11+1)
+
+    sample = vis.sample(state_above=z_var, layer_above=hid,
+            theano_rng=theano_rng)
+
+    sample = sample.eval()
+
+    check_gaussian_samples(sample, num_samples, n, rows, cols, channels, mean, tol)
 
 def check_bvmp_samples(value, num_samples, n, pool_size, mean, tol):
     """
@@ -408,23 +626,25 @@ def test_bvmp_mf_energy_consistent():
 
 
 def test_bvmp_mf_energy_consistent_center():
+    """
+    A test of the BinaryVectorMaxPool class
+    Verifies that the mean field update is consistent with
+    the energy function when using Gregoire Montavon's centering
+    trick.
 
-    # A test of the BinaryVectorMaxPool class
-    # Verifies that the mean field update is consistent with
-    # the energy function when using Gregoire Montavon's centering
-    # trick.
+    Specifically, in a DBM consisting of (v, h1, h2), the
+    lack of intra-layer connections means that
+    P(h1|v, h2) is factorial so mf_update tells us the true
+    conditional.
+    We also know P(h1[i] | h1[-i], v)
+    = P(h, v) / P(h[-i], v)
+    = P(h, v) / sum_h[i] P(h, v)
+    = exp(-E(h, v)) / sum_h[i] exp(-E(h, v))
+    So we can check that computing P(h[i] | v) with both
+    methods works the same way
 
-    # Specifically, in a DBM consisting of (v, h1, h2), the
-    # lack of intra-layer connections means that
-    # P(h1|v, h2) is factorial so mf_update tells us the true
-    # conditional.
-    # We also know P(h1[i] | h1[-i], v)
-    #  = P(h, v) / P(h[-i], v)
-    #  = P(h, v) / sum_h[i] P(h, v)
-    #  = exp(-E(h, v)) / sum_h[i] exp(-E(h, v))
-    # So we can check that computing P(h[i] | v) with both
-    # methods works the same way
-
+    :return:
+    """
     rng = np.random.RandomState([2012,11,1,613])
 
     def do_test(pool_size_1):

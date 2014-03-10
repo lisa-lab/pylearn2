@@ -55,9 +55,9 @@ class Train(object):
             A collection of `TrainExtension` objects whose callbacks are
             triggered at various points in learning.
         allow_overwrite : <Optional> bool
-            If `True`, will save the model to save_path even if there is already
-            something there. Otherwise, will raise an error if the `save_path`
-            is already occupied.
+            If `True`, will save the model to save_path even if there is
+            already something there. Otherwise, will raise an error if the
+            `save_path` is already occupied.
         """
         self.allow_overwrite = allow_overwrite
         self.first_save = True
@@ -88,7 +88,8 @@ class Train(object):
                           "data it was trained on")
 
         self.extensions = extensions if extensions is not None else []
-        self.training_seconds = sharedX(value=0, name='training_seconds_this_epoch')
+        self.training_seconds = sharedX(value=0,
+                                        name='training_seconds_this_epoch')
         self.total_seconds = sharedX(value=0, name='total_seconds_last_epoch')
 
     def setup_extensions(self):
@@ -166,19 +167,32 @@ class Train(object):
                 # rewrite to avoid the AttributeError
                 raise RuntimeError("The algorithm is responsible for setting"
                                    " up the Monitor, but failed to.")
-            if len(self.model.monitor._datasets)>0:
+            if len(self.model.monitor._datasets) > 0:
                 # This monitoring channel keeps track of a shared variable,
                 # which does not need inputs nor data.
-                self.model.monitor.add_channel(name="training_seconds_this_epoch",
-                                               ipt=None,
-                                               val=self.training_seconds,
-                                               data_specs=(NullSpace(), ''),
-                                               dataset=self.model.monitor._datasets[0])
-                self.model.monitor.add_channel(name="total_seconds_last_epoch",
-                                               ipt=None,
-                                               val=self.total_seconds,
-                                               data_specs=(NullSpace(), ''),
-                                               dataset=self.model.monitor._datasets[0])
+                self.training_seconds.__doc__ = """\
+The number of seconds that were spent in actual training during the most
+recent epoch. This excludes seconds that were spent running callbacks for
+the extensions, computing monitoring channels, etc."""
+                self.model.monitor.add_channel(
+                    name="training_seconds_this_epoch",
+                    ipt=None,
+                    val=self.training_seconds,
+                    data_specs=(NullSpace(), ''),
+                    dataset=self.model.monitor._datasets[0])
+                self.total_seconds.__doc__ = """\
+The number of seconds that were spent on the entirety of processing for the
+previous epoch. This includes not only training but also the computation of
+the monitoring channels, running TrainExtension callbacks, etc. This value
+is reported for the *previous* epoch because the amount of time spent on
+monitoring for this epoch is not known until the monitoring channels have
+already been reported."""
+                self.model.monitor.add_channel(
+                    name="total_seconds_last_epoch",
+                    ipt=None,
+                    val=self.total_seconds,
+                    data_specs=(NullSpace(), ''),
+                    dataset=self.model.monitor._datasets[0])
             self.run_callbacks_and_monitoring()
             while True:
                 if self.exceeded_time_budget(t0, time_budget):
@@ -186,17 +200,20 @@ class Train(object):
 
                 with log_timing(log, None, level=logging.DEBUG,
                                 callbacks=[self.total_seconds.set_value]):
-                    with log_timing(log, None, final_msg='Time this epoch:',
-                                    callbacks=[self.training_seconds.set_value]):
+                    with log_timing(
+                            log, None, final_msg='Time this epoch:',
+                            callbacks=[self.training_seconds.set_value]):
                         rval = self.algorithm.train(dataset=self.dataset)
                     if rval is not None:
-                        raise ValueError("TrainingAlgorithm.train should not " +
-                                         "return anything. Use " +
-                                         "TrainingAlgorithm.continue_learning " +
-                                         "to control whether learning continues.")
+                        raise ValueError("TrainingAlgorithm.train should not "
+                                         "return anything. Use "
+                                         "TrainingAlgorithm.continue_learning "
+                                         "to control whether learning "
+                                         "continues.")
                     self.model.monitor.report_epoch()
                     extension_continue = self.run_callbacks_and_monitoring()
-                    if self.save_freq > 0 and self.model.monitor._epochs_seen % self.save_freq == 0:
+                    if self.save_freq > 0 and \
+                       self.model.monitor._epochs_seen % self.save_freq == 0:
                         self.save()
                 continue_learning = (
                     self.algorithm.continue_learning(self.model) and
@@ -246,7 +263,7 @@ class Train(object):
         if self.save_path is not None:
             with log_timing(log, 'Saving to ' + self.save_path):
                 if self.first_save and (not self.allow_overwrite) \
-                    and os.path.exists(self.save_path):
+                   and os.path.exists(self.save_path):
                     # Every job overwrites its own output on the second save
                     # and every save thereafter. The "allow_overwrite" flag
                     # only pertains to overwriting the output of previous jobs.

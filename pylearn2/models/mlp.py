@@ -104,20 +104,40 @@ class Layer(Model):
 
     def get_monitoring_channels_from_state(self, state, target=None):
         """
-        .. todo::
+        Parameters
+        ----------
+        state : member of self.output_space
+            A minibatch of states that this Layer took on during fprop.
+            Provided externally so that we don't need to make a second
+            expression for it. This helps keep the Theano graph smaller
+            so that function compilation runs faster.
+        target : member of self.output_space
+            Should be None unless this is the last layer.
+            If specified, it should be a minibatch of targets for the
+            last layer.
 
-            WRITEME
+        Returns
+        -------
+        channels : OrderedDict
+            A dictionary mapping channel names to monitoring channels of
+            interest for this layer.
         """
+
         return OrderedDict()
 
     def fprop(self, state_below):
         """
         Does the forward prop transformation for this layer.
-        state_below is a minibatch of states for the previous layer.
 
         Parameters
         ----------
-        state_below : WRITEME
+        state_below : member of self.input_space
+            A minibatch of states of the layer below.
+
+        Returns
+        -------
+        state : member of self.output_space
+            A minibatch of states of this layer.
         """
 
         raise NotImplementedError(str(type(self))+" does not implement fprop.")
@@ -188,27 +208,46 @@ class Layer(Model):
 
     def set_weights(self, weights):
         """
-        .. todo::
+        Sets the weights of the layer.
 
-            WRITEME
+        Parameters
+        ----------
+        weights : ndarray
+            A numpy ndarray containing the desired weights of the layer. This
+            docstring is provided by the Layer base class. Layer subclasses
+            should add their own docstring explaining the subclass-specific
+            format of the ndarray.
         """
-        raise NotImplementedError
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "set_weights.")
 
     def get_biases(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns
+        -------
+        biases : ndarray
+            A numpy ndarray containing the biases of the layer. This docstring
+            is provided by the Layer base class. Layer subclasses should add
+            their own docstring explaining the subclass-specific format of the
+            ndarray.
         """
-        raise NotImplementedError
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "get_biases (perhaps because the class has no biases).")
 
     def set_biases(self, biases):
         """
-        .. todo::
+        Sets the biases of the layer.
 
-            WRITEME
+        Parameters
+        ----------
+        biases : ndarray
+            A numpy ndarray containing the desired biases of the layer. This
+            docstring is provided by the Layer base class. Layer subclasses
+            should add their own docstring explaining the subclass-specific
+            format of the ndarray.
         """
-        raise NotImplementedError
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "set_biases (perhaps because the class has no biases).")
 
     def get_weights_format(self):
         """
@@ -220,31 +259,70 @@ class Layer(Model):
 
     def get_weight_decay(self, coeff):
         """
-        .. todo::
+        Provides an expresion for a squared L2 penalty on the weights.
 
-            WRITEME
+        Parameters
+        ----------
+        coeff : float or tuple
+            The coefficient on the weight decay penalty for this layer.
+            This docstring is provided by the Layer base class. Individual
+            Layer subclasses should add their own docstring explaining the
+            format of `coeff` for that particular layer. For most ordinary
+            layers, `coeff` is a single float to multiply by the weight
+            decay term. Layers containing many pieces may take a tuple or
+            nested tuple of floats, and should explain the semantics of
+            the different elements of the tuple.
+
+        Returns
+        -------
+        weight_decay : theano.gof.Variable
+            An expression for the weight decay penalty term for this
+            layer.
         """
-        raise NotImplementedError
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "get_weight_decay.")
 
     def get_l1_weight_decay(self, coeff):
         """
-        .. todo::
+        Provides an expresion for an L1 penalty on the weights.
 
-            WRITEME
+        Parameters
+        ----------
+        coeff : float or tuple
+            The coefficient on the L1 weight decay penalty for this layer.
+            This docstring is provided by the Layer base class. Individual
+            Layer subclasses should add their own docstring explaining the
+            format of `coeff` for that particular layer. For most ordinary
+            layers, `coeff` is a single float to multiply by the weight
+            decay term. Layers containing many pieces may take a tuple or
+            nested tuple of floats, and should explain the semantics of
+            the different elements of the tuple.
+
+        Returns
+        -------
+        weight_decay : theano.gof.Variable
+            An expression for the L1 weight decay penalty term for this
+            layer.
         """
-        raise NotImplementedError
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "get_l1_weight_decay.")
 
     def set_input_space(self, space):
         """
-        .. todo::
+        Tells the layer to prepare for input formatted according to the
+        given space.
 
-            WRITEME
+        Parameters
+        ----------
+        space : Space
+            The Space the input to this layer will lie in.
 
         Notes
         -----
         This usually resets parameters.
         """
-        raise NotImplementedError
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "set_input_space.")
 
 
 class MLP(Layer):
@@ -253,32 +331,30 @@ class MLP(Layer):
 
     Note that it's possible for an entire MLP to be a single layer of a larger
     MLP.
+
+    Parameters
+    ----------
+    layers : list
+        A list of Layer objects. The final layer specifies the output space
+        of this MLP.
+    batch_size : int, optional
+        If not specified then must be a positive integer. Mostly useful if
+        one of your layers involves a Theano op like convolution that
+        requires a hard-coded batch size.
+    nvis : int, optional
+        Number of "visible units" (input units). Equivalent to specifying
+        `input_space=VectorSpace(dim=nvis)`. Should be None if the MLP is 
+        not part of another MLP. 
+    input_space : Space object, optional
+        A Space specifying the kind of input the MLP accepts. If None,
+        input space is specified by nvis. Should be None if the MLP is 
+        not part of another MLP. 
+    layer_name : name of the MLP layer. Should be None if the MLP is 
+        not part of another MLP. 
     """
 
     def __init__(self, layers, batch_size=None, input_space=None,
                  nvis=None, seed=None, layer_name=None):
-        """
-        Parameters
-        ----------
-        layers : list
-            A list of Layer objects. The final layer specifies the output space
-            of this MLP.
-        batch_size : int, optional
-            If not specified then must be a positive integer. Mostly useful if
-            one of your layers involves a Theano op like convolution that
-            requires a hard-coded batch size.
-        nvis : int, optional
-            Number of "visible units" (input units). Equivalent to specifying
-            `input_space=VectorSpace(dim=nvis)`. Should be None if the MLP is 
-            not part of another MLP. 
-        input_space : Space object, optional
-            A Space specifying the kind of input the MLP accepts. If None,
-            input space is specified by nvis. Should be None if the MLP is 
-            not part of another MLP. 
-        layer_name : name of the MLP layer. Should be None if the MLP is 
-            not part of another MLP. 
-        """
-
         super(MLP, self).__init__()
 
         self.seed = seed
@@ -983,7 +1059,7 @@ class Softmax(Layer):
     """
     .. todo::
 
-        WRITEME
+        WRITEME (including parameters list)
     """
     def __init__(self, n_classes, layer_name, irange=None,
                  istdev=None,
@@ -991,11 +1067,6 @@ class Softmax(Layer):
                  b_lr_scale=None, max_row_norm=None,
                  no_affine=False,
                  max_col_norm=None, init_bias_target_marginals=None):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         super(Softmax, self).__init__()
 
@@ -1295,6 +1366,24 @@ class SoftmaxPool(Layer):
     A hidden layer that uses the softmax function to do max pooling over groups
     of units. When the pooling size is 1, this reduces to a standard sigmoidal
     MLP layer.
+
+    Parameters
+    ----------
+    detector_layer_dim : WRITEME
+    layer_name : WRITEME
+    pool_size : WRITEME
+    irange : WRITEME
+    sparse_init : WRITEME
+    sparse_stdev : WRITEME
+    include_prob : float
+        Probability of including a weight element in the set of weights \
+        initialized to U(-irange, irange). If not included it is \
+        initialized to 0.
+    init_bias : WRITEME
+    W_lr_scale : WRITEME
+    b_lr_scale : WRITEME
+    mask_weights : WRITEME
+    max_col_norm : WRITEME
     """
 
     def __init__(self,
@@ -1310,25 +1399,6 @@ class SoftmaxPool(Layer):
                  b_lr_scale=None,
                  mask_weights=None,
                  max_col_norm=None):
-        """
-        Parameters
-        ----------
-        detector_layer_dim : WRITEME
-        layer_name : WRITEME
-        pool_size : WRITEME
-        irange : WRITEME
-        sparse_init : WRITEME
-        sparse_stdev : WRITEME
-        include_prob : float
-            Probability of including a weight element in the set of weights \
-            initialized to U(-irange, irange). If not included it is \
-            initialized to 0.
-        init_bias : WRITEME
-        W_lr_scale : WRITEME
-        b_lr_scale : WRITEME
-        mask_weights : WRITEME
-        max_col_norm : WRITEME
-        """
         super(SoftmaxPool, self).__init__()
         self.__dict__.update(locals())
         del self.self
@@ -1641,6 +1711,55 @@ class Linear(Layer):
     gets a RectifiedLinear layer with a factored weight matrix, which can
     reduce the number of parameters in the model (by making the effective
     weight matrix low rank).
+
+    Parameters
+    ----------
+    dim : int
+        The number of elements in the output of the layer.
+    layer_name : str
+        The name of the layer. All layers in an MLP must have a unique name.
+    irange : WRITEME
+    istdev : WRITEME
+    sparse_init : WRITEME
+    sparse_stdev : WRITEME
+    include_prob : float
+        Probability of including a weight element in the set of weights \
+        initialized to U(-irange, irange). If not included it is \
+        initialized to 0.
+    init_bias : float or ndarray
+        Anything that can be broadcasted to a numpy vector.
+        Provides the initial value of the biases of the model.
+        When using this class as an output layer (specifically the Linear
+        class, or subclasses that don't change the output like
+        LinearGaussian, but not subclasses that change the output, like
+        Softmax) it can be a good idea to set this to the return value of
+        the `mean_of_targets` function. This provides the mean value of
+        all the targets in the training set, so the model is initialized
+        to a dummy model that predicts the expected value of each output
+        variable.
+    W_lr_scale : float
+        Multiply the learning rate on the weights by this constant.
+    b_lr_scale : float
+        Multiply the learning rate on the biases by this constant.
+    mask_weights : ndarray, optional
+        If provided, the weights will be multiplied by this mask after each
+        learning update.
+    max_row_norm : WRITEME
+    max_col_norm : WRITEME
+    min_col_norm : WRITEME
+    softmax_columns : DEPRECATED
+    copy_input : WRITEME
+    use_abs_loss : bool
+        If True, the cost function will be mean absolute error rather
+        than mean squared error.
+        You can think of mean squared error as fitting a Gaussian
+        distribution with variance 1, or as learning to predict the mean
+        of the data.
+        You can think of mean absolute error as fitting a Laplace
+        distribution with variance 1, or as learning to predict the
+        median of the data.
+    use_bias : bool
+        If False, does not add the bias term to the output.
     """
     def __init__(self,
                  dim,
@@ -1661,56 +1780,6 @@ class Linear(Layer):
                  copy_input=0,
                  use_abs_loss=False,
                  use_bias=True):
-        """
-        Parameters
-        ----------
-        dim : int
-            The number of elements in the output of the layer.
-        layer_name : str
-            The name of the layer. All layers in an MLP must have a unique name.
-        irange : WRITEME
-        istdev : WRITEME
-        sparse_init : WRITEME
-        sparse_stdev : WRITEME
-        include_prob : float
-            Probability of including a weight element in the set of weights \
-            initialized to U(-irange, irange). If not included it is \
-            initialized to 0.
-        init_bias : float or ndarray
-            Anything that can be broadcasted to a numpy vector.
-            Provides the initial value of the biases of the model.
-            When using this class as an output layer (specifically the Linear
-            class, or subclasses that don't change the output like
-            LinearGaussian, but not subclasses that change the output, like
-            Softmax) it can be a good idea to set this to the return value of
-            the `mean_of_targets` function. This provides the mean value of
-            all the targets in the training set, so the model is initialized
-            to a dummy model that predicts the expected value of each output
-            variable.
-        W_lr_scale : float
-            Multiply the learning rate on the weights by this constant.
-        b_lr_scale : float
-            Multiply the learning rate on the biases by this constant.
-        mask_weights : ndarray, optional
-            If provided, the weights will be multiplied by this mask after each
-            learning update.
-        max_row_norm : WRITEME
-        max_col_norm : WRITEME
-        min_col_norm : WRITEME
-        softmax_columns : DEPRECATED
-        copy_input : WRITEME
-        use_abs_loss : bool
-            If True, the cost function will be mean absolute error rather
-            than mean squared error.
-            You can think of mean squared error as fitting a Gaussian
-            distribution with variance 1, or as learning to predict the mean
-            of the data.
-            You can think of mean absolute error as fitting a Laplace
-            distribution with variance 1, or as learning to predict the
-            median of the data.
-        use_bias : bool
-            If False, does not add the bias term to the output.
-        """
 
         super(Linear, self).__init__()
 
@@ -2080,34 +2149,33 @@ class Sigmoid(Linear):
     """
     A layer that performs an affine transformation of its (vectorial)
     input followed by a logistic sigmoid elementwise nonlinearity.
+
+    .. todo::
+
+        WRITEME properly
+
+    monitor_style: a string, either 'detection' or 'classification'
+                   'detection' by default
+
+                   if 'detection':
+                       get_monitor_from_state makes no assumptions about
+                       target, reports info about how good model is at
+                       detecting positive bits.
+                       This will monitor precision, recall, and F1 score
+                       based on a detection threshold of 0.5. Note that
+                       these quantities are computed *per-minibatch* and
+                       averaged together. Unless your entire monitoring
+                       dataset fits in one minibatch, this is not the same
+                       as the true F1 score, etc., and will usually
+                       seriously overestimate your performance.
+                    if 'classification':
+                        get_monitor_from_state assumes target is one-hot
+                        class indicator, even though you're training the
+                        model as k independent sigmoids. gives info on how
+                        good the argmax is as a classifier
     """
 
     def __init__(self, monitor_style='detection', **kwargs):
-        """
-        .. todo::
-
-            WRITEME properly
-
-        monitor_style: a string, either 'detection' or 'classification'
-                       'detection' by default
-
-                       if 'detection':
-                           get_monitor_from_state makes no assumptions about
-                           target, reports info about how good model is at
-                           detecting positive bits.
-                           This will monitor precision, recall, and F1 score
-                           based on a detection threshold of 0.5. Note that
-                           these quantities are computed *per-minibatch* and
-                           averaged together. Unless your entire monitoring
-                           dataset fits in one minibatch, this is not the same
-                           as the true F1 score, etc., and will usually
-                           seriously overestimate your performance.
-                        if 'classification':
-                            get_monitor_from_state assumes target is one-hot
-                            class indicator, even though you're training the
-                            model as k independent sigmoids. gives info on how
-                            good the argmax is as a classifier
-        """
         super(Sigmoid, self).__init__(**kwargs)
         assert monitor_style in ['classification', 'detection']
         self.monitor_style = monitor_style
@@ -2259,14 +2327,11 @@ class Sigmoid(Linear):
 class RectifiedLinear(Linear):
     """
     Rectified linear MLP layer (Glorot and Bengio 2011).
+
+    WRITEME parameters list
     """
 
     def __init__(self, left_slope=0.0, **kwargs):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(RectifiedLinear, self).__init__(**kwargs)
         self.left_slope = left_slope
 
@@ -2285,14 +2350,11 @@ class RectifiedLinear(Linear):
 
 class Softplus(Linear):
     """
-    Softplus MLP layer
+    An MLP layer using the softplus nonlinearity
+    h = log(1 + exp(Wx + b))
     """
 
     def __init__(self, **kwargs):
-        """
-        Initializes an MLP layer using the softplus nonlinearity
-        h = log(1 + exp(Wx + b))
-        """
         super(Softplus, self).__init__(**kwargs)
 
     @wraps(Layer.fprop)
@@ -2316,11 +2378,6 @@ class SpaceConverter(Layer):
     """
 
     def __init__(self, layer_name, output_space):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(SpaceConverter, self).__init__()
         self.__dict__.update(locals())
         del self.self
@@ -2342,6 +2399,47 @@ class ConvRectifiedLinear(Layer):
     .. todo::
 
         WRITEME
+    .. todo::
+
+        WRITEME properly
+
+     output_channels: The number of output channels the layer should have.
+     kernel_shape: The shape of the convolution kernel.
+     pool_shape: The shape of the spatial max pooling. A two-tuple of ints.
+     pool_stride: The stride of the spatial max pooling. Also must be
+                  square.
+     layer_name: A name for this layer that will be prepended to
+                 monitoring channels related to this layer.
+     irange: if specified, initializes each weight randomly in
+             U(-irange, irange)
+     border_mode: A string indicating the size of the output:
+        full - The output is the full discrete linear convolution of the
+               inputs.
+        valid - The output consists only of those elements that do not rely
+                on the zero-padding.(Default)
+     include_prob: probability of including a weight element in the set
+                   of weights initialized to U(-irange, irange). If not
+                   included it is initialized to 0.
+     init_bias: All biases are initialized to this number
+     W_lr_scale: The learning rate on the weights for this layer is
+                 multiplied by this scaling factor
+     b_lr_scale: The learning rate on the biases for this layer is
+                 multiplied by this scaling factor
+     left_slope: **TODO**
+     max_kernel_norm: If specifed, each kernel is constrained to have at
+                      most this norm.
+     pool_type: The type of the pooling operation performed the the
+                convolution. Default pooling type is max-pooling.
+     detector_normalization, output_normalization:
+          if specified, should be a callable object. the state of the
+          network is optionally replaced with normalization(state) at each
+          of the 3 points in processing:
+              detector: the maxout units can be normalized prior to the
+                        spatial pooling
+              output: the output of the layer, after sptial pooling, can
+                      be normalized as well
+     kernel_stride: The stride of the convolution kernel. A two-tuple of
+                    ints.
     """
     def __init__(self,
                  output_channels,
@@ -2362,50 +2460,6 @@ class ConvRectifiedLinear(Layer):
                  detector_normalization=None,
                  output_normalization=None,
                  kernel_stride=(1, 1)):
-        """
-        .. todo::
-
-            WRITEME properly
-
-         output_channels: The number of output channels the layer should have.
-         kernel_shape: The shape of the convolution kernel.
-         pool_shape: The shape of the spatial max pooling. A two-tuple of ints.
-         pool_stride: The stride of the spatial max pooling. Also must be
-                      square.
-         layer_name: A name for this layer that will be prepended to
-                     monitoring channels related to this layer.
-         irange: if specified, initializes each weight randomly in
-                 U(-irange, irange)
-         border_mode: A string indicating the size of the output:
-            full - The output is the full discrete linear convolution of the
-                   inputs.
-            valid - The output consists only of those elements that do not rely
-                    on the zero-padding.(Default)
-         include_prob: probability of including a weight element in the set
-                       of weights initialized to U(-irange, irange). If not
-                       included it is initialized to 0.
-         init_bias: All biases are initialized to this number
-         W_lr_scale: The learning rate on the weights for this layer is
-                     multiplied by this scaling factor
-         b_lr_scale: The learning rate on the biases for this layer is
-                     multiplied by this scaling factor
-         left_slope: **TODO**
-         max_kernel_norm: If specifed, each kernel is constrained to have at
-                          most this norm.
-         pool_type: The type of the pooling operation performed the the
-                    convolution. Default pooling type is max-pooling.
-         detector_normalization, output_normalization:
-              if specified, should be a callable object. the state of the
-              network is optionally replaced with normalization(state) at each
-              of the 3 points in processing:
-                  detector: the maxout units can be normalized prior to the
-                            spatial pooling
-                  output: the output of the layer, after sptial pooling, can
-                          be normalized as well
-         kernel_stride: The stride of the convolution kernel. A two-tuple of
-                        ints.
-        """
-
         super(ConvRectifiedLinear, self).__init__()
 
         if (irange is None) and (sparse_init is None):
@@ -2965,38 +3019,37 @@ class LinearGaussian(Linear):
     will reweight the mean squared error so that variables that can be
     estimated easier will receive a higher penalty. This is one way of
     adapting the model better to heterogenous data.
+
+    Parameters
+    ----------
+    init_beta : float or ndarray
+        Any value > 0 that can be broadcasted to a vector of shape (dim, ).
+        The elements of beta are initialized to this value.
+        A good value is often the precision (inverse variance) of the target
+        variables in the training set, as provided by the
+        `beta_from_targets` function. This is the optimal beta for a dummy
+        model that just predicts the mean target value from the training set.
+    min_beta : float
+        The elements of beta are constrained to be >= this value.
+        This value must be > 0., otherwise the output conditional is not
+        constrained to be a valid probability distribution.
+        A good value is often the precision (inverse variance) of the target
+        variables in the training set, as provided by the
+        `beta_from_targets` function. This is the optimal beta for a dummy
+        model that just predicts the mean target value from the training set.
+        A trained model should always be able to obtain at least this much
+        precision, at least on the training set.
+    max_beta : float
+        The elements of beta are constrained to be <= this value.
+        We impose this constraint because for problems
+        where the training set values can be predicted
+        exactly, beta can grow without bound, which also makes the
+        gradients grow without bound, resulting in numerical problems.
+    kwargs : dict
+        Arguments to the `Linear` superclass.
     """
 
     def __init__(self, init_beta, min_beta, max_beta, beta_lr_scale, **kwargs):
-        """
-        Parameters
-        ----------
-        init_beta : float or ndarray
-            Any value > 0 that can be broadcasted to a vector of shape (dim, ).
-            The elements of beta are initialized to this value.
-            A good value is often the precision (inverse variance) of the target
-            variables in the training set, as provided by the
-            `beta_from_targets` function. This is the optimal beta for a dummy
-            model that just predicts the mean target value from the training set.
-        min_beta : float
-            The elements of beta are constrained to be >= this value.
-            This value must be > 0., otherwise the output conditional is not
-            constrained to be a valid probability distribution.
-            A good value is often the precision (inverse variance) of the target
-            variables in the training set, as provided by the
-            `beta_from_targets` function. This is the optimal beta for a dummy
-            model that just predicts the mean target value from the training set.
-            A trained model should always be able to obtain at least this much
-            precision, at least on the training set.
-        max_beta : float
-            The elements of beta are constrained to be <= this value.
-            We impose this constraint because for problems
-            where the training set values can be predicted
-            exactly, beta can grow without bound, which also makes the
-            gradients grow without bound, resulting in numerical problems.
-        kwargs : dict
-            Arguments to the `Linear` superclass.
-        """
         super(LinearGaussian, self).__init__(**kwargs)
         self.__dict__.update(locals())
         del self.self
@@ -3117,20 +3170,19 @@ class PretrainedLayer(Layer):
     """
     A layer whose weights are initialized, and optionally fixed,
     based on prior training.
+
+    .. todo::
+
+        WRITEME properly
+
+    layer_content: A Model that implements "upward_pass", such as an
+        RBM or an Autoencoder
+    freeze_params: If True, regard layer_conent's parameters as fixed
+        If False, they become parameters of this layer and can be
+        fine-tuned to optimize the MLP's cost function.
     """
 
     def __init__(self, layer_name, layer_content, freeze_params=False):
-        """
-        .. todo::
-
-            WRITEME properly
-
-        layer_content: A Model that implements "upward_pass", such as an
-            RBM or an Autoencoder
-        freeze_params: If True, regard layer_conent's parameters as fixed
-            If False, they become parameters of this layer and can be
-            fine-tuned to optimize the MLP's cost function.
-        """
         super(PretrainedLayer, self).__init__()
         self.__dict__.update(locals())
         del self.self
@@ -3157,6 +3209,11 @@ class PretrainedLayer(Layer):
 
         return self.layer_content.get_output_space()
 
+    @wraps(Layer.get_monitoring_channels)
+    def get_monitoring_channels(self):
+
+        return OrderedDict([])
+
     @wraps(Layer.fprop)
     def fprop(self, state_below):
 
@@ -3166,16 +3223,15 @@ class PretrainedLayer(Layer):
 class CompositeLayer(Layer):
     """
     A Layer that runs several simpler layers in parallel.
+
+    .. todo::
+
+        WRITEME properly
+
+    layers: a list or tuple of Layers.
     """
 
     def __init__(self, layer_name, layers):
-        """
-        .. todo::
-
-            WRITEME properly
-
-        layers: a list or tuple of Layers.
-        """
         super(CompositeLayer, self).__init__()
         self.__dict__.update(locals())
         del self.self
@@ -3238,14 +3294,14 @@ class FlattenerLayer(Layer):
 
     See pylearn2.sandbox.tuple_var and the theano-dev e-mail thread
     "TupleType".
+
+    Parameters
+    ----------
+    raw_layer : WRITEME
+        WRITEME
     """
 
     def __init__(self, raw_layer):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(FlattenerLayer, self).__init__()
         self.__dict__.update(locals())
         del self.self

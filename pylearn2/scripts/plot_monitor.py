@@ -42,7 +42,8 @@ def unique_substring(s, other, min_size=1):
     return s
 
 def unique_substrings(l, min_size=1):
-    return [unique_substring(s, [x for x in l if x is not s], min_size) for s in l]
+    return [unique_substring(s, [x for x in l if x is not s], min_size)
+            for s in l]
 
 def main():
     parser = argparse.ArgumentParser()
@@ -57,9 +58,11 @@ def main():
     import matplotlib.pyplot as plt
 
     print 'generating names...'
-    model_names = [model_path.replace('.pkl', '!') for model_path in model_paths]
+    model_names = [model_path.replace('.pkl', '!') for model_path in
+            model_paths]
     model_names = unique_substrings(model_names, min_size=10)
-    model_names = [model_name.replace('!','') for model_name in model_names]
+    model_names = [model_name.replace('!','') for model_name in
+            model_names]
     print '...done'
 
     for i, arg in enumerate(model_paths):
@@ -67,7 +70,8 @@ def main():
             model = serial.load(arg)
         except:
             if arg.endswith('.yaml'):
-                print >> sys.stderr, arg+" is a yaml config file, you need to load a trained model."
+                print >> sys.stderr, arg + " is a yaml config file," + \
+                "you need to load a trained model."
                 quit(-1)
             raise
         this_model_channels = model.monitor.channels
@@ -82,11 +86,13 @@ def main():
 
 
     while True:
-#Make a list of short codes for each channel so user can specify them easily
+        # Make a list of short codes for each channel so user can specify them
+        # easily
         tag_generator = _TagGenerator()
         codebook = {}
         sorted_codes = []
-        for channel_name in sorted(channels, key = number_aware_alphabetical_key):
+        for channel_name in sorted(channels,
+                key = number_aware_alphabetical_key):
             code = tag_generator.get_tag()
             codebook[code] = channel_name
             codebook['<'+channel_name+'>'] = channel_name
@@ -99,19 +105,23 @@ def main():
             print "there are no channels to plot"
             break
 
-        #if there is more than one channel in the monitor ask which ones to plot
+        # If there is more than one channel in the monitor ask which ones to
+        # plot
         prompt = len(channels.values()) > 1
 
         if prompt:
 
-            #Display the codebook
+            # Display the codebook
             for code in sorted_codes:
                 print code + '. ' + codebook[code]
 
             print
 
-            print "Put e, b, s or h in the list somewhere to plot epochs, batches, seconds, or hours, respectively."
-            response = raw_input('Enter a list of channels to plot (example: A, C,F-G, h, <test_err>) or q to quit or o for options: ')
+            print "Put e, b, s or h in the list somewhere to plot " + \
+                    "epochs, batches, seconds, or hours, respectively."
+            response = raw_input('Enter a list of channels to plot ' + \
+                    '(example: A, C,F-G, h, <test_err>) or q to quit' + \
+                    'or o for options: ')
 
             if response == 'o':
                 print '1: smooth all channels'
@@ -200,7 +210,7 @@ def main():
         fig = plt.figure()
         ax = plt.subplot(1,1,1)
 
-        #plot the requested channels
+        # plot the requested channels
         for idx, code in enumerate(sorted(final_codes)):
 
             channel_name= codebook[code]
@@ -235,15 +245,17 @@ def main():
             ax.plot( x,
                       y,
                       styles[idx % len(styles)],
-                      marker = '.',  # added by mkg; adds point markers to lines
+                      marker = '.', # add point margers to lines
                       label = channel_name)
 
         plt.xlabel('# '+x_axis+'s')
         ax.ticklabel_format( scilimits = (-3,3), axis = 'both')
 
         handles, labels = ax.get_legend_handles_labels()
-        lgd = ax.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5,-0.1))
-        fig.subplots_adjust(bottom=0.11 + 0.046 * len(final_codes)) # 0.046 size of 1 legend box
+        lgd = ax.legend(handles, labels, loc='upper center',
+                bbox_to_anchor=(0.5,-0.1))
+        # 0.046 is the size of 1 legend box
+        fig.subplots_adjust(bottom=0.11 + 0.046 * len(final_codes))
 
         if options.out is None:
           plt.show()
