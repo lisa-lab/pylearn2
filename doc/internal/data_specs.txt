@@ -159,7 +159,7 @@ data. Then, the following data_specs are correct:
   CompositeSpace; mini-batches will be ((matrix, matrix, matrix), matrix)
   pairs with the first element being a triplet.
 
-The following ones are incorrect:
+The following ones are **incorrect**:
 
 - ``(target_vecspace, "features")``: it will not crash immediately, but
   as soon as actual data are used, it will crash because feature data will
