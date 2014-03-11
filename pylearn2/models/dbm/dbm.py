@@ -39,7 +39,7 @@ class DBM(Model):
             The hidden layers. A list of HiddenLayer objects. The first \
             layer in the list is connected to the visible layer. 
         niter : int
-            Number of mean field interations for variational inference \
+            Number of mean field iterations for variational inference \
             for the positive phase. 
         sampling_procedure : WRITEME
         inference_procedure : WRITEME
