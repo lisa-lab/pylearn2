@@ -31,7 +31,7 @@ __maintainer__ = "Ian Goodfellow"
 
 import numpy as np
 
-from collections import OrderedDict
+from theano.compat.python2x import OrderedDict
 
 from theano import function
 from theano.gof.op import get_debug_values
