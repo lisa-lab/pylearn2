@@ -1598,7 +1598,7 @@ class Linear(Layer):
     max_col_norm : WRITEME
     min_col_norm : WRITEME
     softmax_columns : DEPRECATED
-    copy_input : WRITEME
+    copy_input : REMOVED
     use_abs_loss : bool
         If True, the cost function will be mean absolute error rather
         than mean squared error.
@@ -1627,9 +1627,13 @@ class Linear(Layer):
                  max_col_norm=None,
                  min_col_norm=None,
                  softmax_columns=None,
-                 copy_input=0,
+                 copy_input=None,
                  use_abs_loss=False,
                  use_bias=True):
+
+        if copy_input is not None:
+            raise AssertionError("The copy_input option had a bug and has "
+                    "been removed from the library.")
 
         super(Linear, self).__init__()
 
@@ -1685,8 +1689,7 @@ class Linear(Layer):
             self.input_dim = space.get_total_dimension()
             self.desired_space = VectorSpace(self.input_dim)
 
-        self.output_space = VectorSpace(self.dim +
-                                        self.copy_input * self.input_dim)
+        self.output_space = VectorSpace(self.dim)
 
         rng = self.mlp.rng
         if self.irange is not None:
@@ -1946,9 +1949,6 @@ class Linear(Layer):
 
         if self.layer_name is not None:
             z.name = self.layer_name + '_z'
-
-        if self.copy_input:
-            z = T.concatenate((z, state_below), axis=1)
 
         return z
 
