@@ -27,10 +27,9 @@ class DataSpecsMapping(object):
         Maps one elementary (not composite) data_specs pair to its
         index in the flattened space.  Not sure if this one should
         be a member, or passed as a parameter to _fill_mapping. It
-        might be useful to get the index of one data_specs later
-    dumdum : int
-        DUMB DUMB DUMB DUMB DUMB
+        might be us
     """
+    #might be useful to get the index of one data_specs later
     #but if it is not, then we should remove it.
     def __init__(self, data_specs):
         self.specs_to_index = {}
