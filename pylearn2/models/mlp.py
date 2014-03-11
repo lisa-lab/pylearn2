@@ -487,7 +487,8 @@ class MLP(Layer):
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self, data=None):
-        # if the MLP is the outer MLP (ie MLP is not contained in another structure)
+        # if the MLP is the outer MLP \
+        # (ie MLP is not contained in another structure)
         if data is not None:
             X, Y = data
             state = X
@@ -499,7 +500,8 @@ class MLP(Layer):
                     value = ch[key]
                     doc = get_monitor_doc(value)
                     if doc is None:
-                        doc = str(type(layer)) + ".get_monitoring_channels did" + \
+                        doc = str(type(layer)) + \
+                                ".get_monitoring_channels did" + \
                                 " not provide any further documentation for" + \
                                 " this channel."
                     doc = 'This channel came from a layer called "' + \
@@ -540,7 +542,8 @@ class MLP(Layer):
                     value = ch[key]
                     doc = get_monitor_doc(value)
                     if doc is None:
-                        doc = str(type(layer)) + ".get_monitoring_channels did" + \
+                        doc = str(type(layer)) + \
+                                ".get_monitoring_channels did" + \
                                 " not provide any further documentation for" + \
                                 " this channel."
                     doc = 'This channel came from a layer called "' + \
