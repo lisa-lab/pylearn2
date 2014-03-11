@@ -501,9 +501,9 @@ class MLP(Layer):
                     doc = get_monitor_doc(value)
                     if doc is None:
                         doc = str(type(layer)) + \
-                                ".get_monitoring_channels did" + \
-                                " not provide any further documentation for" + \
-                                " this channel."
+                            ".get_monitoring_channels did" + \
+                            " not provide any further documentation for" + \
+                            " this channel."
                     doc = 'This channel came from a layer called "' + \
                             layer.layer_name + '" of an MLP.\n' + doc
                     value.__doc__ = doc
@@ -521,9 +521,9 @@ class MLP(Layer):
                     doc = get_monitor_doc(value)
                     if doc is None:
                         doc = str(type(layer)) + \
-                                ".get_monitoring_channels_from_state did" + \
-                                " not provide any further documentation for" + \
-                                " this channel."
+                            ".get_monitoring_channels_from_state did" + \
+                            " not provide any further documentation for" + \
+                            " this channel."
                     doc = 'This channel came from a layer called "' + \
                             layer.layer_name + '" of an MLP.\n' + doc
                     value.__doc__ = doc
@@ -543,9 +543,9 @@ class MLP(Layer):
                     doc = get_monitor_doc(value)
                     if doc is None:
                         doc = str(type(layer)) + \
-                                ".get_monitoring_channels did" + \
-                                " not provide any further documentation for" + \
-                                " this channel."
+                            ".get_monitoring_channels did" + \
+                            " not provide any further documentation for" + \
+                            " this channel."
                     doc = 'This channel came from a layer called "' + \
                             layer.layer_name + '" of an MLP.\n' + doc
                     value.__doc__ = doc
