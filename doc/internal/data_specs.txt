@@ -129,7 +129,8 @@ For example, let us define the following spaces:
 .. code-block:: python
 
     input_vecspace = VectorSpace(dim=(32 * 32 * 3))
-    input_convspace = Conv2DSpace(shape=(32, 32), num_channels=3, axes=('b', 'c', 0, 1))
+    input_convspace = Conv2DSpace(shape=(32, 32), num_channels=3,
+                                  axes=('b', 'c', 0, 1))
     target_space = VectorSpace(dim=10)
 
 and suppose ``"features"`` and ``"targets"`` are sources present in our
