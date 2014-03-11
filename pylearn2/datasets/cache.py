@@ -54,18 +54,18 @@ class LocalDatasetCache:
         if self.dataset_local_dir == "":
             self._write("Local cache deactivated : file %s not cached" %
                         remote_name)
-            return remote_name
+            return filename
 
         # Make sure the file to cache exists and really is a file
         if not os.path.exists(remote_name):
             self._write("Error : Specified file %s does not exist" %
                         remote_name)
-            return remote_name
+            return filename
 
         if not os.path.isfile(remote_name):
             self._write("Error : Specified name %s is not a file" %
                         remote_name)
-            return remote_name
+            return filename
 
         # Create the $PYLEARN2_LOCAL_DATA_PATH folder if needed
         self.safe_mkdir(self.dataset_local_dir)
@@ -91,7 +91,7 @@ class LocalDatasetCache:
                 self._write("Not enough free space : file %s not cached" %
                             remote_name)
                 self.releaseWriteLock()
-                return remote_name
+                return filename
 
             # There is enough space; make a local copy of the file
             self.copy_from_server_to_local(remote_name, local_name)
