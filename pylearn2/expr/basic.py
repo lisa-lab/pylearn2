@@ -11,7 +11,7 @@ __email__ = "goodfeli@iro"
 import numpy as np
 import theano.tensor as T
 
-from pylearn2.base import Block
+from pylearn2.blocks import Block
 from pylearn2.utils import as_floatX, constantX
 
 

@@ -17,7 +17,7 @@ from theano.tensor import nnet
 from pylearn2.costs.cost import Cost
 
 # Local imports
-from pylearn2.base import Block, StackedBlocks
+from pylearn2.blocks import Block, StackedBlocks
 from pylearn2.utils import as_floatX, safe_update, sharedX
 from pylearn2.models import Model
 from pylearn2.expr.nnet import inverse_sigmoid_numpy

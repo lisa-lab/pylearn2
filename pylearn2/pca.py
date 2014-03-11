@@ -44,7 +44,7 @@ except ImportError:
 
 
 # Local imports
-from pylearn2.base import Block
+from pylearn2.blocks import Block
 from pylearn2.utils import sharedX
 
 
