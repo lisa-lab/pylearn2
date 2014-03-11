@@ -5,12 +5,17 @@ set -x -e
 if [ "x$TEST_DOC" = "xYES" ]; then
     PYTHONPATH=${PYTHONPATH}:`pwd`
 
+    ls `pwd`
     # does PYTHONPATH work?
     echo "CD experiment"
     mkdir a
     cd a
     mkdir b
     cd b
+    python -c "print sys.path"
+    python "import pylearn2"
+    python "import pylearn2.config"
+    python "import pylearn2.config.yaml_parse"
     python -c "import pylearn2.config.yaml_parse" || exit 1
     cd ../..
     excho "CD experiment concluded"
