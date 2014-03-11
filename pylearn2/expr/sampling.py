@@ -12,7 +12,7 @@ __email__ = "goodfeli@iro"
 
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 
-from pylearn2.base import Block
+from pylearn2.blocks import Block
 from pylearn2.utils.rng import make_theano_rng
 
 

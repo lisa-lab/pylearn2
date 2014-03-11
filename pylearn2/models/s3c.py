@@ -1,7 +1,5 @@
 """
-.. todo::
-
-    WRITEME
+Spike-and-slab sparse coding (S3C)
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2011, Universite de Montreal"
@@ -21,7 +19,7 @@ from theano.gof.op import get_debug_values, debug_error_message, debug_assert
 import theano.tensor as T
 
 from pylearn2.utils import make_name, sharedX, as_floatX
-from pylearn2.base import Block
+from pylearn2.blocks import Block
 from pylearn2.expr.information_theory import entropy_binary_vector
 from pylearn2.models import Model
 from pylearn2.space import VectorSpace
