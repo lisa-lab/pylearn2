@@ -20,20 +20,16 @@ from pylearn2.models.softmax_regression import SoftmaxRegression
 from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.costs.autoencoder import MeanSquaredReconstructionError
 from pylearn2.termination_criteria import EpochCounter
-from pylearn2.datasets import mnist
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.energy_functions.rbm_energy import GRBM_Type_1
-from pylearn2.base import StackedBlocks
+from pylearn2.blocks import StackedBlocks
 from pylearn2.datasets.transformer_dataset import TransformerDataset
 from pylearn2.costs.ebm_estimation import SMD
 from pylearn2.training_algorithms.sgd import MonitorBasedLRAdjuster
 from pylearn2.train import Train
-import pylearn2.utils.serial as serial
-import os
 from optparse import OptionParser
 
 import numpy
-import numpy.random
 
 
 class ToyDataset(DenseDesignMatrix):

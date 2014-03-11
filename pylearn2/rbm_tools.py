@@ -155,7 +155,7 @@ def rbm_ais(rbm_params, n_runs, visbias_a=None, data=None,
     """
     (weights, visbias, hidbias) = rbm_params
 
-    rng = make_np_rng(rng, seed, ['random_sample','rand'])
+    rng = make_np_rng(rng, seed, ['random_sample', 'rand'])
 
     if data is None:
         if visbias_a is None:
@@ -330,7 +330,7 @@ def rbm_ais_gibbs_for_v(rbmA_params, rbmB_params, beta, v_sample, seed=23098):
 
     # equation 15 (Salakhutdinov & Murray 2008)
     ph_a = nnet.sigmoid((1 - beta) * (tensor.dot(v_sample, weights_a) +
-                                    hidbias_a))
+                        hidbias_a))
     ha_sample = theano_rng.binomial(size=(v_sample.shape[0], len(hidbias_a)),
                                     n=1, p=ph_a, dtype=config.floatX)
 
@@ -341,7 +341,7 @@ def rbm_ais_gibbs_for_v(rbmA_params, rbmB_params, beta, v_sample, seed=23098):
 
     # equation 17 (Salakhutdinov & Murray 2008)
     pv_act = (1 - beta) * (tensor.dot(ha_sample, weights_a.T) + visbias_a) + \
-                beta * (tensor.dot(hb_sample, weights_b.T) + visbias_b)
+             beta * (tensor.dot(hb_sample, weights_b.T) + visbias_b)
     pv = nnet.sigmoid(pv_act)
     new_v_sample = theano_rng.binomial(
         size=(v_sample.shape[0], len(visbias_b)),
@@ -371,13 +371,13 @@ class AIS(object):
                   fe_{k-1}(v_{k-1}) - fe_{k}(v_{k-1})
     """
 
-    def fX(a):
-        return numpy.asarray(a, dtype=config.floatX)
-
     # default configuration for interpolating distributions
-    dflt_beta = numpy.hstack((fX(numpy.linspace(0, 0.5, 1e3)),
-                              fX(numpy.linspace(0.5, 0.9, 1e4)),
-                              fX(numpy.linspace(0.9, 1.0, 1e4))))
+    dflt_beta = numpy.hstack((numpy.asarray(numpy.linspace(0, 0.5, 1e3),
+                                            dtype=config.floatX),
+                              numpy.asarray(numpy.linspace(0.5, 0.9, 1e4),
+                                            dtype=config.floatX),
+                              numpy.asarray(numpy.linspace(0.9, 1.0, 1e4),
+                                            dtype=config.floatX)))
 
     def __init__(self, sample_fn, free_energy_fn, v_sample0, n_runs,
                  log_int=500):
@@ -418,8 +418,8 @@ class AIS(object):
         # utility function for safely computing log-mean of the ais weights
         ais_w = tensor.vector()
         dlogz = (
-            tensor.log(tensor.mean(tensor.exp(ais_w - tensor.max(ais_w)))) \
-                + tensor.max(ais_w)
+            tensor.log(tensor.mean(tensor.exp(ais_w - tensor.max(ais_w))))
+            + tensor.max(ais_w)
         )
         self.log_mean = theano.function([ais_w], dlogz,
                                         allow_input_downcast=False)
@@ -442,7 +442,7 @@ class AIS(object):
         self.key_betas = None if key_betas is None else numpy.sort(key_betas)
 
         betas = numpy.array(betas, dtype=config.floatX) \
-                if betas is not None else self.dflt_beta
+            if betas is not None else self.dflt_beta
         # insert key temperatures within
         if key_betas is not None:
             betas = numpy.hstack((betas, key_betas))
@@ -480,8 +480,9 @@ class AIS(object):
         for i in range(len(self.betas) - 1):
             bp, bp1 = self.betas[i], self.betas[i + 1]
             # log-ratio of (free) energies for two nearby temperatures
-            self.log_ais_w += self.free_energy_fn(bp,  state) - \
-                              self.free_energy_fn(bp1, state)
+            self.log_ais_w += \
+                self.free_energy_fn(bp, state) - \
+                self.free_energy_fn(bp1, state)
             # log standard deviation of AIS weights (kind of deprecated)
             if (i + 1) % self.log_int == 0:
                 m = numpy.max(self.log_ais_w)

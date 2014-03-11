@@ -20,7 +20,7 @@ except ImportError:
 import theano
 from theano import function, tensor
 
-from pylearn2.base import Block
+from pylearn2.blocks import Block
 from pylearn2.linear.conv2d import Conv2D
 from pylearn2.space import Conv2DSpace, VectorSpace
 from pylearn2.expr.preprocessing import global_contrast_normalize

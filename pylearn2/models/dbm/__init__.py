@@ -20,10 +20,9 @@ import sys
 import warnings
 
 from theano.compat.python2x import OrderedDict
-from theano.sandbox.rng_mrg import MRG_RandomStreams
 
 from pylearn2.expr.nnet import inverse_sigmoid_numpy
-from pylearn2.base import Block
+from pylearn2.blocks import Block
 from pylearn2.utils import block_gradient
 from pylearn2.utils.rng import make_theano_rng
 

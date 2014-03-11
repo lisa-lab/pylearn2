@@ -3,7 +3,7 @@ K-means as a postprocessing Block subclass.
 """
 
 import numpy
-from pylearn2.base import Block
+from pylearn2.block import Block
 from pylearn2.models.model import Model
 from pylearn2.space import VectorSpace
 from pylearn2.utils import sharedX

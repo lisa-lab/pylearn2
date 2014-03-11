@@ -12,7 +12,7 @@ import theano
 from theano import tensor
 
 # Local imports
-from pylearn2.base import Block, StackedBlocks
+from pylearn2.blocks import Block, StackedBlocks
 from pylearn2.models import Model
 from pylearn2.utils import sharedX
 from pylearn2.utils.theano_graph import is_pure_elemwise
