@@ -6,6 +6,11 @@ import os
 import shutil
 import sys
 
+print "!!!!!!!!!!!!!!!!!!! in docgen.py !!!!!!!!!!!!!!!!!!!!!!!!!!"
+print "sys.path: "
+print sys.path
+print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+
 
 if __name__ == '__main__':
 
