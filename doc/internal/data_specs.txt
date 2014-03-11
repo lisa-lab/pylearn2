@@ -108,10 +108,10 @@ to request features and targets from a dataset, the `source` would be
 ``('features', 'targets')``.
 
 
-Structure of composite specifications
-=====================================
+Structure of data specifications
+================================
 
-When using composite specifications ``data_specs=(space, source)``,
+When using data specifications ``data_specs=(space, source)``,
 ``space`` and ``source`` have to have the same *structure*. This means
 that:
 
