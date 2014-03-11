@@ -18,15 +18,21 @@ class DataSpecsMapping(object):
 
     Parameters
     ----------
-    data_specs: WRITEME
+    data_specs : WRITEME
         WRITEME
+
+    Attributes
+    ----------
+    specs_to_index : dict
+        Maps one elementary (not composite) data_specs pair to its
+        index in the flattened space.  Not sure if this one should
+        be a member, or passed as a parameter to _fill_mapping. It
+        might be useful to get the index of one data_specs later
+    dumdum : int
+        DUMB DUMB DUMB DUMB DUMB
     """
+    #but if it is not, then we should remove it.
     def __init__(self, data_specs):
-        # Maps one elementary (not composite) data_specs pair to its index in
-        # the flattened space
-        # Not sure if this one should be a member, or passed as a parameter to
-        # _fill_mapping. It might be useful to get the index of one data_specs
-        # later, but if it is not, then we should remove it.
         self.specs_to_index = {}
 
         # Size of the flattened space
