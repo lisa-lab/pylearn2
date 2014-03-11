@@ -53,12 +53,12 @@ class SGD(TrainingAlgorithm):
     Parameters
     ----------
     learning_rate : float
-        The learning rate to use. Train object callbacks can change the \
-        learning rate after each epoch. SGD update_callbacks can change \
+        The learning rate to use. Train object callbacks can change the
+        learning rate after each epoch. SGD update_callbacks can change
         it after each minibatch.
     cost : pylearn2.costs.cost.Cost
-        Cost object specifying the objective function to be minimized. \
-        Optionally, may be None. In this case, SGD will call the model's \
+        Cost object specifying the objective function to be minimized.
+        Optionally, may be None. In this case, SGD will call the model's
         get_default_cost method to obtain the objective function.
     batch_size : optional, int
         The size of the batch to be used.
@@ -99,26 +99,30 @@ class SGD(TrainingAlgorithm):
         All callbacks will be called with this SGD instance after each
         SGD step.
     learning_rule : training_algorithms.learning_rule.LearningRule
-        A learning rule computes the new parameter values given old \
-        parameters and first-order gradients. If learning_rule is None, \
-        sgd.SGD will update parameters according to the standard SGD \
+        A learning rule computes the new parameter values given old
+        parameters and first-order gradients. If learning_rule is None,
+        sgd.SGD will update parameters according to the standard SGD
         learning rule:
+
+        .. code-block:: none
+
             param := param - learning_rate * d cost / d param
+
         This argument allows more sophisticated learning rules, such
         as SGD with momentum.
     init_momentum : **DEPRECATED** option, float
         Use learning_rule instead.
-        If None, does not use momentum otherwise, use momentum and \
-        initialize the momentum coefficient to init_momentum. Callbacks \
-        can change this over time just like the learning rate. If the \
-        gradient is the same on every step, then the update taken by the \
-        SGD algorithm is scaled by a factor of 1/(1-momentum). See \
-        section 9 of Geoffrey Hinton's "A Practical Guide to Training \
+        If None, does not use momentum otherwise, use momentum and
+        initialize the momentum coefficient to init_momentum. Callbacks
+        can change this over time just like the learning rate. If the
+        gradient is the same on every step, then the update taken by the
+        SGD algorithm is scaled by a factor of 1/(1-momentum). See
+        section 9 of Geoffrey Hinton's "A Practical Guide to Training
         Restricted Boltzmann Machines" for details.
     set_batch_size : optional, bool
         Defaults to False.
-        If True, and batch_size conflicts with model.force_batch_size, \
-        will call model.set_batch_size(batch_size) in an attempt to \
+        If True, and batch_size conflicts with model.force_batch_size,
+        will call model.set_batch_size(batch_size) in an attempt to
         change model.force_batch_size
     train_iteration_mode : optional, str
         Defaults to 'shuffled_sequential'.
@@ -130,11 +134,11 @@ class SGD(TrainingAlgorithm):
         is unnecessary; when unspecified we will iterate over all examples.
     theano_function_mode : optional, a valid argument to theano.function's
         'mode' parameter.
-        The theano mode to compile the updates function with. Note that \
-        pylearn2 includes some wraplinker modes that are not bundled with \
-        theano. See pylearn2.devtools. These extra modes let you do \
-        things like check for NaNs at every step, or record md5 digests \
-        of all computations performed by the update function to help \
+        The theano mode to compile the updates function with. Note that
+        pylearn2 includes some wraplinker modes that are not bundled with
+        theano. See pylearn2.devtools. These extra modes let you do
+        things like check for NaNs at every step, or record md5 digests
+        of all computations performed by the update function to help
         isolate problems with nondeterminism.
     monitoring_costs : optional, list
         a list of Cost instances. The Monitor will also include all
