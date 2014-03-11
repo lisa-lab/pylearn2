@@ -12,7 +12,7 @@ if [ "x$TEST_DOC" = "xYES" ]; then
     cd a
     mkdir b
     cd b
-    python -c "print sys.path"
+    python -c "import sys; print sys.path"
     python "import pylearn2"
     python "import pylearn2.config"
     python "import pylearn2.config.yaml_parse"
