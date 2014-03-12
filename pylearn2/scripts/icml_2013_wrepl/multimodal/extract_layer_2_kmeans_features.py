@@ -1,25 +1,32 @@
 import numpy as np
 import os
 import sys
+import logging
 
 from pylearn2.utils import serial
 from pylearn2.utils import sharedX
 from pylearn2.utils.string_utils import preprocess
 
+
+logger = logging.getLogger(__name__)
+
+
 def usage():
-    print """
+    logger.info("""
 Run
 python extract_layer_2_kmeans_features.py public_test
-to extract features for the ICML 2013 multimodal learning contest's public test images.
+to extract features for
+the ICML 2013 multimodal learning contest's public test images.
 or
 python extract_layer_2_kmeans_features.py private_test
-to extract features for the ICML 2013 multimodal learning contest's private test images
+to extract features for
+the ICML 2013 multimodal learning contest's private test images
 (which will be released 72 hours before the contest ends)
-"""
+""")
 
 if len(sys.argv) != 2:
     usage()
-    print '(You used the wrong number of arguments)'
+    logger.error('(You used the wrong number of arguments)')
     quit(-1)
 
 _, arg = sys.argv
@@ -32,8 +39,8 @@ elif arg == 'private_test':
     expected_num_images = 500
 else:
     usage()
-    print 'Unrecognized argument value:',arg
-    print 'Recognized values are: public_test, private_test'
+    logger.error('Unrecognized argument value: %s', arg)
+    logger.error('Recognized values are: public_test, private_test')
 
 outdir = base[:-len('layer_1_features')] + 'layer_2_features'
 serial.mkdir(outdir)
@@ -72,7 +79,7 @@ f = function([X], F)
 
 for i, path in enumerate(paths):
     if i % 100 == 0:
-        print i
+        logger.info(i)
     try:
 
         X = np.load(base + '/' + path)
@@ -95,4 +102,3 @@ for i, path in enumerate(paths):
         np.save(outdir + '/' + path, F)
     except Exception, e:
         raise
-

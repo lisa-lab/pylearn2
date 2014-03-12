@@ -13,6 +13,7 @@ starting from that seed data to see how the DBM's MCMC
 sampling changes the data.
 
 """
+import logging
 
 from pylearn2.utils import serial
 import sys
@@ -24,20 +25,23 @@ from theano.sandbox.rng_mrg import MRG_RandomStreams
 import numpy as np
 from pylearn2.expr.basic import is_binary
 
+logger = logging.getLogger(__name__)
+
 rows = 10
 cols = 10
 m = rows * cols
 
 _, model_path = sys.argv
 
-print 'Loading model...'
+logger.info('Loading model...')
 model = serial.load(model_path)
 model.set_batch_size(m)
 
 
 dataset_yaml_src = model.dataset_yaml_src
 
-print 'Loading data (used for setting up visualization and seeding gibbs chain) ...'
+logger.info('Loading data ' +
+            '(used for setting up visualization and seeding gibbs chain) ...')
 dataset = yaml_parse.load(dataset_yaml_src)
 
 
@@ -73,12 +77,13 @@ def show():
 if hasattr(model.visible_layer, 'beta'):
     beta = model.visible_layer.beta.get_value()
 #model.visible_layer.beta.set_value(beta * 100.)
-    print 'beta: ',(beta.min(), beta.mean(), beta.max())
+    logger.info('beta: %s', (beta.min(), beta.mean(), beta.max()))
 
-print 'showing seed data...'
+logger.info('showing seed data...')
 show()
 
-print 'How many Gibbs steps should I run with the seed data clamped? (negative = ignore seed data) '
+logger.info('How many Gibbs steps should I run with the seed data clamped? ' +
+            '(negative = ignore seed data) ')
 x = int(input())
 
 
@@ -141,7 +146,7 @@ if x > 0:
     t1 = time.time()
     sample_func = function([], updates=sampling_updates)
     t2 = time.time()
-    print 'Clamped sampling function compilation took',t2-t1
+    logger.info('Clamped sampling function compilation took %d', t2 - t1)
     sample_func()
 
 
@@ -153,10 +158,11 @@ t1 = time.time()
 sample_func = function([], updates=sampling_updates)
 t2 = time.time()
 
-print 'Sampling function compilation took',t2-t1
+logger.info('Sampling function compilation took %d', t2 - t1)
 
 while True:
-    print 'Displaying samples. How many steps to take next? (q to quit, ENTER=1)'
+    logger.info('Displaying samples. How many steps to take next? ' +
+                '(q to quit, ENTER=1)')
     while True:
         x = raw_input()
         if x == 'q':
@@ -169,10 +175,10 @@ while True:
                 x = int(x)
                 break
             except:
-                print 'Invalid input, try again'
+                logger.exception('Invalid input, try again')
 
     for i in xrange(x):
-        print i
+        logger.info(i)
         sample_func()
 
     validate_all_samples()
@@ -186,7 +192,4 @@ while True:
         y = np.argmax(value, axis=1)
         assert y.ndim == 1
         for i in xrange(0, y.shape[0], cols):
-            print y[i:i+cols]
-
-
-
+            logger.info(y[i:i+cols])

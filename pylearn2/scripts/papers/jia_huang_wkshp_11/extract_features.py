@@ -16,6 +16,7 @@ from pylearn2.config import yaml_parse
 import warnings
 import time
 import copy
+import logging
 import numpy as np
 from theano import config
 from theano import tensor as T
@@ -33,6 +34,8 @@ from pylearn2.space import VectorSpace
 
 import sys
 config.floatX = 'float32'
+
+logger = logging.getLogger(__name__)
 
 #This is hard-coded to the value from the Jia and Huang paper
 #I confirmed via e-mail with the authors that they indeed create
@@ -199,7 +202,7 @@ class FeatureExtractor:
 
     def __call__(self):
 
-        print 'loading model'
+        logger.info('loading model')
         model_path = self.model_path
         self.model = serial.load(model_path)
         self.model.set_dtype('float32')
@@ -287,7 +290,8 @@ class FeatureExtractor:
         if self.restrict is not None:
             assert self.restrict[1]  <= full_X.shape[0]
 
-            print 'restricting to examples ',self.restrict[0],' through ',self.restrict[1],' exclusive'
+            logger.info('restricting to examples %s through %s exclusive',
+                        self.restrict[0], self.restrict[1])
             full_X = full_X[self.restrict[0]:self.restrict[1],:]
 
             assert self.restrict[1] > self.restrict[0]
@@ -309,7 +313,7 @@ class FeatureExtractor:
         pipeline.items[0] = patchifier
 
 
-        print 'defining features'
+        logger.info('defining features')
         V = T.matrix('V')
 
         mu = model.mu
@@ -318,7 +322,7 @@ class FeatureExtractor:
 
 
         assert feat.dtype == 'float32'
-        print 'compiling theano function'
+        logger.info('compiling theano function')
         f = function([V],feat)
 
         nhid = model.mu.get_value().shape[0]
@@ -357,11 +361,11 @@ class FeatureExtractor:
         depatchifier = ReassembleGridPatches( orig_shape  = (ns, ns), patch_shape=(1,1) )
 
         if len(range(0,num_examples-batch_size+1,batch_size)) <= 0:
-            print num_examples
-            print batch_size
+            logger.info(num_examples)
+            logger.info(batch_size)
 
         for i in xrange(0,num_examples-batch_size+1,batch_size):
-            print i
+            logger.info(i)
             t1 = time.time()
 
             d = copy.copy(dataset)
@@ -419,7 +423,7 @@ class FeatureExtractor:
 
             t6 = time.time()
 
-            print (t6-t1, t2-t1, t3-t2, t4-t3, t5-t4, t6-t5)
+            logger.info((t6-t1, t2-t1, t3-t2, t4-t3, t5-t4, t6-t5))
 
         if self.chunk_size is not None:
             assert save_path.endswith('.npy')

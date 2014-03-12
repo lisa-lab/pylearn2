@@ -1,5 +1,7 @@
 from optparse import OptionParser
 import warnings
+import logging
+
 try:
     from sklearn.metrics import classification_report
 except ImportError:
@@ -16,13 +18,16 @@ from pylearn2.datasets.cifar10 import CIFAR10
 from pylearn2.datasets.cifar100 import CIFAR100
 import numpy as np
 
+logger = logging.getLogger(__name__)
+
+
 def test(model, X, y):
-    print "Evaluating svm"
+    logger.info("Evaluating svm")
     y_pred = model.predict(X)
     #try:
     if True:
         acc = (y == y_pred).mean()
-        print "Accuracy ",acc
+        logger.info("Accuracy %d", acc)
     """except:
         print "something went wrong"
         print 'y:'
@@ -45,15 +50,15 @@ def get_test_labels(cifar10, cifar100, stl10):
     assert cifar10 + cifar100 +  stl10 == 1
 
     if stl10:
-        print 'loading entire stl-10 test set just to get the labels'
+        logger.info('loading entire stl-10 test set just to get the labels')
         stl10 = serial.load("${PYLEARN2_DATA_PATH}/stl10/stl10_32x32/test.pkl")
         return stl10.y
     if cifar10:
-        print 'loading entire cifar10 test set just to get the labels'
+        logger.info('loading entire cifar10 test set just to get the labels')
         cifar10 = CIFAR10(which_set = 'test')
         return np.asarray(cifar10.y)
     if cifar100:
-        print 'loading entire cifar100 test set just to get the fine labels'
+        logger.info('loading entire cifar100 test set just to get the labels')
         cifar100 = CIFAR100(which_set = 'test')
         return np.asarray(cifar100.y_fine)
     assert False

@@ -5,8 +5,13 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
+import logging
 import sys
 from pylearn2.utils import serial
+
+
+logger = logging.getLogger(__name__)
+
 for model_path in sys.argv[1:]:
     if len(sys.argv) > 2:
         print model_path
@@ -14,10 +19,10 @@ for model_path in sys.argv[1:]:
     monitor = model.monitor
     channels = monitor.channels
     if not hasattr(monitor, '_epochs_seen'):
-        print 'old file, not all fields parsed correctly'
+        logger.warning('old file, not all fields parsed correctly')
     else:
-        print 'epochs seen: ',monitor._epochs_seen
-    print 'time trained: ',max(channels[key].time_record[-1] for key in
-            channels)
+        logger.info('epochs seen: %s', monitor._epochs_seen)
+    logger.info('time trained: %d', max(channels[key].time_record[-1]
+                for key in channels))
     for key in sorted(channels.keys()):
-        print key, ':', channels[key].val_record[-1]
+        logger.info('%s : %d', key, channels[key].val_record[-1])

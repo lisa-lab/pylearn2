@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 
 import sys, argparse, pickle
+import logging
 import numpy
 from matplotlib import pyplot
 from pylearn2.datasets import norb
+
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -34,8 +37,8 @@ def main():
             with open(args.which_set) as norb_file:
                 dataset = pickle.load(norb_file)
                 if len(dataset.y.shape) < 2 or dataset.y.shape[1] == 1:
-                    print("This viewer does not support NORB datasets that "
-                          "only have classification labels.")
+                    logger.error("This viewer does not support NORB datasets "
+                                 "that only have classification labels.")
                     sys.exit(1)
 
             if args.zca is not None:
