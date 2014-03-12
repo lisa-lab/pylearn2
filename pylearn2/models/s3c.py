@@ -93,13 +93,12 @@ class SufficientStatistics:
     terms of the second moment matrix are now written with a different order of
     operations that avoids O(nhid^2) operations but whose dependence on the
     dataset cannot be expressed in terms only of sufficient statistics.
+
+    Parameters
+    ----------
+    d : WRITEME
     """
     def __init__(self, d):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self. d = {}
         for key in d:
             self.d[key] = d[key]
@@ -295,8 +294,6 @@ class S3C(Model, Block):
     init_unit_W : bool
         if True, initializes weights with unit norm
     """
-
-
     def __init__(self, nvis, nhid, irange, init_bias_hid,
                        init_B, min_B, max_B,
                        init_alpha, min_alpha, max_alpha, init_mu,
@@ -1648,8 +1645,33 @@ class E_Step(object):
     This is because the damping is necessary for parallel updates to be
     reasonable, but damping the solution to s_i from the joint update makes the
     solution to h_i from the joint update no longer optimal.
-    """
 
+    Parameters
+    ----------
+    h_new_coeff_schedule : list
+        List of coefficients to put on the new value of h on each damped \
+        fixed point step (coefficients on s are driven by a special \
+        formula). Length of this list determines the number of fixed point
+        steps. If None, assumes that the model is not meant to run on its \
+        own (ie a larger model will specify how to do inference in this \
+        layer)
+    s_new_coeff_schedule : list
+        List of coefficients to put on the new value of s on each damped \
+        fixed point step. These are applied AFTER the reflection \
+        clipping, which can be seen as a form of per-unit damping. \
+        s_new_coeff_schedule must have same length as \
+        h_new_coeff_schedule. If s_new_coeff_schedule is not provided, it \
+        will be filled in with all ones, i.e. it will default to no \
+        damping beyond the reflection clipping
+    clip_reflections, rho : bool, float
+        If clip_reflections is True, the update to S_hat[i,j] is bounded \
+        on one side by - rho * S_hat[i,j] and unbounded on the other side
+    monitor_ranges : bool
+        If True, adds the channels h_range_<min,mean,max> and \
+        hs_range_<min,mean_max>  showing the amounts that different h_hat \
+        and s_hat variational parameters change across the monitoring \
+        dataset
+    """
     def get_monitoring_channels(self, V):
         """
         .. todo::
@@ -1724,34 +1746,6 @@ class E_Step(object):
                        monitor_s_mag = False,
                        rho = 0.5,
                        monitor_ranges = False):
-        """
-        Parameters
-        ----------
-        h_new_coeff_schedule : list
-            List of coefficients to put on the new value of h on each damped \
-            fixed point step (coefficients on s are driven by a special \
-            formula). Length of this list determines the number of fixed point
-            steps. If None, assumes that the model is not meant to run on its \
-            own (ie a larger model will specify how to do inference in this \
-            layer)
-        s_new_coeff_schedule : list
-            List of coefficients to put on the new value of s on each damped \
-            fixed point step. These are applied AFTER the reflection \
-            clipping, which can be seen as a form of per-unit damping. \
-            s_new_coeff_schedule must have same length as \
-            h_new_coeff_schedule. If s_new_coeff_schedule is not provided, it \
-            will be filled in with all ones, i.e. it will default to no \
-            damping beyond the reflection clipping
-        clip_reflections, rho : bool, float
-            If clip_reflections is True, the update to S_hat[i,j] is bounded \
-            on one side by - rho * S_hat[i,j] and unbounded on the other side
-        monitor_ranges : bool
-            If True, adds the channels h_range_<min,mean,max> and \
-            hs_range_<min,mean_max>  showing the amounts that different h_hat \
-            and s_hat variational parameters change across the monitoring \
-            dataset
-        """
-
         self.autonomous = True
 
         if h_new_coeff_schedule is None:
@@ -2222,17 +2216,15 @@ class Grad_M_Step:
     """
     A partial M-step based on gradient ascent. More aggressive M-steps are
     possible but didn't work particularly well in practice on STL-10/CIFAR-10
+
+    .. todo::
+
+        WRITEME : parameter list
     """
 
     def __init__(self, learning_rate = None, B_learning_rate_scale  = 1,
             alpha_learning_rate_scale = 1.,
             W_learning_rate_scale = 1, p_penalty = 0.0, B_penalty = 0.0, alpha_penalty = 0.0):
-        """
-        .. todo::
-
-            WRITEME
-        """
-
         self.autonomous = True
 
         if learning_rate is None:
@@ -2347,11 +2339,6 @@ class E_Step_Scan(E_Step):
     The heuristic E step implemented using scan rather than unrolled loops
     """
     def __init__(self, ** kwargs):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(E_Step_Scan, self).__init__( ** kwargs )
 
         self.h_new_coeff_schedule = sharedX( self.h_new_coeff_schedule)

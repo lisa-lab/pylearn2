@@ -910,6 +910,20 @@ class Softmax(Layer):
     .. todo::
 
         WRITEME (including parameters list)
+
+    Parameters
+    ----------
+    n_classes : WRITEME
+    layer_name : WRITEME
+    irange : WRITEME
+    istdev : WRITEME
+    sparse_init : WRITEME
+    W_lr_scale : WRITEME
+    b_lr_scale : WRITEME
+    max_row_norm : WRITEME
+    no_affine : WRITEME
+    max_col_norm : WRITEME
+    init_bias_target_marginals : WRITEME
     """
     def __init__(self, n_classes, layer_name, irange=None,
                  istdev=None,

@@ -440,11 +440,6 @@ class Model(object):
         self.__dict__.update(d)
 
     def __init__(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.names_to_del = set()
 
     def get_test_batch_size(self):
