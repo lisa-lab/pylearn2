@@ -5,7 +5,11 @@ import numpy as np
 from pylearn2.utils import serial
 
 class Simulator(object):
+    """
+    .. todo::
 
+        WRITEME : parameter list
+    """
     def __init__(self, agent, environment, algorithm, save_path):
         self.__dict__.update(locals())
         del self.self

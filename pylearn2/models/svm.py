@@ -42,28 +42,27 @@ class DenseMulticlassSVM(OneVsRestClassifier):
     To avoid duplicating the training data, use only numpy ndarrays
     whose tags.c_contigous flag is true, and which are in float64
     format.
+
+    Parameters
+    ----------
+    C : float
+        SVM regularization parameter.
+        See SVC.__init__ for details.
+    kernel : str
+        Type of kernel to use.
+        See SVC.__init__ for details.
+    gamma : float
+        Optional parameter of kernel.
+        See SVC.__init__ for details.
+    coef0 : float
+        Optional parameter of kernel.
+        See SVC.__init__ for details.
+    degree : int
+        Degree of kernel, if kernel is polynomial.
+        See SVC.__init__ for details.
     """
 
     def __init__(self, C, kernel='rbf', gamma = 1.0, coef0 = 1.0, degree = 3):
-        """
-        Parameters
-        ----------
-        C : float
-            SVM regularization parameter.
-            See SVC.__init__ for details.
-        kernel : str
-            Type of kernel to use.
-            See SVC.__init__ for details.
-        gamma : float
-            Optional parameter of kernel.
-            See SVC.__init__ for details.
-        coef0 : float
-            Optional parameter of kernel.
-            See SVC.__init__ for details.
-        degree : int
-            Degree of kernel, if kernel is polynomial.
-            See SVC.__init__ for details.
-        """
         estimator = SVC(C=C, kernel=kernel, gamma = gamma, coef0 = coef0,
                 degree = degree)
         super(DenseMulticlassSVM,self).__init__(estimator)

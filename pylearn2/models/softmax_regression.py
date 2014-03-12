@@ -19,8 +19,29 @@ class SoftmaxRegression(mlp.MLP):
     A softmax regression model. TODO: add reference.
     This is just a convenience class making a logistic regression model
     out of an MLP.
-    """
 
+    Parameters
+    ----------
+    n_classes : int
+        WRITEME
+    batch_size : int, optional
+        If not None, then should be a positive integer. Mostly useful if
+        one of your layers involves a theano op like convolution that
+        requires a hard-coded batch size.
+    input_space : pylearn2.space.Space, optional
+        A Space specifying the kind of input the MLP acts on. If None,
+        input space is specified by nvis.
+    irange : WRITEME
+    istdev : WRITEME
+    W_lr_scale : WRITEME
+    b_lr_scale : WRITEME
+    max_row_norm : WRITEME
+    max_col_norm : WRITEME
+    sparse_init : WRITEME
+    init_bias_target_marginals : WRITEME
+    nvis : WRITEME
+    seed : WRITEME
+    """
     def __init__(self,
                  n_classes,
                  batch_size=None,
@@ -35,29 +56,6 @@ class SoftmaxRegression(mlp.MLP):
                  init_bias_target_marginals=None,
                  nvis=None,
                  seed=None):
-        """
-        Parameters
-        ----------
-        n_classes : int
-            WRITEME
-        batch_size : int, optional
-            If not None, then should be a positive integer. Mostly useful if \
-            one of your layers involves a theano op like convolution that \
-            requires a hard-coded batch size.
-        input_space : pylearn2.space.Space, optional
-            A Space specifying the kind of input the MLP acts on. If None, \
-            input space is specified by nvis.
-        irange : WRITEME
-        istdev : WRITEME
-        W_lr_scale : WRITEME
-        b_lr_scale : WRITEME
-        max_row_norm : WRITEME
-        max_col_norm : WRITEME
-        sparse_init : WRITEME
-        init_bias_target_marginals : WRITEME
-        nvis : WRITEME
-        seed : WRITEME
-        """
 
         super(SoftmaxRegression, self).__init__(
                 layers=[mlp.Softmax(n_classes=n_classes, layer_name='y',

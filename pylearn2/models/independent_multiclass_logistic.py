@@ -23,14 +23,13 @@ class IndependentMulticlassLogistic:
     modeling them as one-hot like softmax would do.
 
     This is what Jia+Huang used to get state of the art on CIFAR-100
+
+    Parameters
+    ----------
+    C : WRITEME
     """
 
     def __init__(self, C):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.C = C
 
     def fit(self, X, y):
@@ -72,13 +71,12 @@ class Classifier:
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    logistics : WRITEME
     """
     def __init__(self, logistics):
-        """
-        .. todo::
-
-            WRITEME
-        """
         assert len(logistics) > 1
 
         num_classes = len(logistics)

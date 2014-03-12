@@ -26,6 +26,15 @@ def not_symbolic(*args):
 
 
 class Base(theano.Op):
+    """
+    .. todo::
+
+        WRITEME
+
+    Parameters
+    ----------
+    module_stride : WRITEME
+    """
     def __init__(self,
             module_stride=1,
             ):
