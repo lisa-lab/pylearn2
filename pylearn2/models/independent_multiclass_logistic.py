@@ -1,7 +1,6 @@
 """
-.. todo::
-
-    WRITEME
+Multiclass-classification by taking the max over a set of one-against-rest
+logistic classifiers.
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
@@ -9,7 +8,10 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
-from sklearn.linear_model import LogisticRegression
+try:
+    from sklearn.linear_model import LogisticRegression
+except ImportError:
+    LogisticRegression = None
 import numpy as np
 
 
@@ -31,12 +33,20 @@ class IndependentMulticlassLogistic:
         """
         self.C = C
 
-    def fit(self, X,y):
+    def fit(self, X, y):
         """
-        .. todo::
+        Fits the model to the given training data.
 
-            WRITEME
+        Parameters
+        ----------
+        X : ndarray
+            2D array, each row is one example
+        y : ndarray
+            vector of integer class labels
         """
+
+        if LogisticRegression is None:
+            raise RuntimeError("sklearn not available.")
 
         min_y = y.min()
         max_y = y.max()

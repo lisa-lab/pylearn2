@@ -6,6 +6,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
+import numpy as np
 import warnings
 
 try:
@@ -13,7 +14,20 @@ try:
     from sklearn.svm import SVC
 except ImportError:
     warnings.warn("Could not import sklearn.")
-import numpy as np
+
+    class OneVsRestClassifier(object):
+        """
+        See `sklearn.multiclass.OneVsRestClassifier`.
+
+        Notes
+        -----
+        This class is a dummy class included so that sphinx
+        can import DenseMulticlassSVM and document it even
+        when sklearn is not installed.
+        """
+
+        def __init__(self, estimator):
+            raise RuntimeError("sklearn not available.")
 
 class DenseMulticlassSVM(OneVsRestClassifier):
     """

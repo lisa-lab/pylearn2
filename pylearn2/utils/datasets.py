@@ -12,8 +12,11 @@ import warnings
 import numpy
 import scipy
 import theano
-from matplotlib import pyplot
-from mpl_toolkits.mplot3d import Axes3D
+try:
+    from matplotlib import pyplot
+    from mpl_toolkits.mplot3d import Axes3D
+except ImportError:
+    warnings.warn("Could not import some dependencies.")
 
 # Local imports
 from pylearn2.utils import sharedX

@@ -585,12 +585,13 @@ class MaxoutConvC01B(Layer):
         if specified, should be a callable object. the state of the
         network is optionally replaced with normalization(state) at each
         of the 3 points in processing:
-            input: the input the layer receives can be normalized right
-                away
-            detector: the maxout units can be normalized prior to the
-                spatial pooling
-            output: the output of the layer, after sptial pooling,
-                can be normalized as well
+
+        - input: the input the layer receives can be normalized right
+            away
+        - detector: the maxout units can be normalized prior to the
+            spatial pooling
+        - output: the output of the layer, after sptial pooling,
+            can be normalized as well
     kernel_stride : vertical and horizontal pixel stride between
                    each detector.
     """
@@ -1022,11 +1023,12 @@ class MaxoutLocalC01B(Layer):
         if specified, should be a callable object. the state of the network
         is optionally replaced with normalization(state) at each of the 3
         points in processing:
-            input: the input the layer receives can be normalized right
+
+        - input: the input the layer receives can be normalized right
             away
-            detector: the maxout units can be normalized prior to the
+        - detector: the maxout units can be normalized prior to the
             spatial pooling
-            output: the output of the layer, after sptial pooling, can be
+        - output: the output of the layer, after sptial pooling, can be
             normalized as well
     """
 
