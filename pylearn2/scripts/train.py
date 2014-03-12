@@ -79,13 +79,16 @@ class FeatureDump(object):
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    encoder : WRITEME
+    dataset : WRITEME
+    path : WRITEME
+    batch_size : WRITEME
+    topo : WRITEME
     """
     def __init__(self, encoder, dataset, path, batch_size=None, topo=False):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.encoder = encoder
         self.dataset = dataset
         self.path = path

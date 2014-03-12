@@ -174,13 +174,14 @@ class ObjectProxy(object):
     """
     Class used to delay instantiation of objects so that overrides can be
     applied.
+
+    Parameters
+    ----------
+    cls : WRITEME
+    kwds : WRITEME
+    yaml_src : WRITEME
     """
     def __init__(self, cls, kwds, yaml_src):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.cls = cls
         self.kwds = kwds
         self.yaml_src = yaml_src

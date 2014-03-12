@@ -12,22 +12,18 @@ class OneHotFormatter(object):
     """
     A target formatter that transforms labels from integers in both single
     and batch mode.
+
+    Parameters
+    ----------
+    max_labels : int
+        The number of possible classes/labels. This means that all labels
+        should be < max_labels. Example: For MNIST there are 10 numbers and
+        hence max_labels = 10.
+    dtype : dtype, optional
+        The desired dtype for the converted one-hot vectors. Defaults to
+        `config.floatX` if not given.
     """
     def __init__(self, max_labels, dtype=None):
-        """
-        Initializes a OneHotFormatter class for a given label space
-        i.e. maximum number of labels.
-
-        Parameters
-        ----------
-        max_labels : int
-            The number of possible classes/labels. This means that
-            all labels should be < max_labels. Example: For MNIST
-            there are 10 numbers and hence max_labels = 10.
-        dtype : dtype, optional
-            The desired dtype for the converted one-hot vectors.
-            Defaults to config.floatX if not given.
-        """
         try:
             np.empty(max_labels)
         except (ValueError, TypeError):
