@@ -50,23 +50,20 @@ class MonitorBased(TerminationCriterion):
     A termination criterion that pulls out the specified channel in
     the model's monitor and checks to see if it has decreased by a
     certain proportion of the lowest value in the last N epochs.
+
+    Parameters
+    ----------
+    prop_decrease : float
+        The threshold factor by which we expect the channel value to have \
+        decreased
+    N : int
+        Number of epochs to look back
+    channel_name : string, optional
+        Name of the channel to examine. If None and the monitor \
+        has only one channel, this channel will be used; otherwise, an \
+        error will be raised.
     """
     def __init__(self, prop_decrease = .01, N = 5, channel_name=None):
-        """
-        Initialize a monitor-based termination criterion.
-
-        Parameters
-        ----------
-        prop_decrease : float
-            The threshold factor by which we expect the channel value to have \
-            decreased
-        N : int
-            Number of epochs to look back
-        channel_name : string, optional
-            Name of the channel to examine. If None and the monitor \
-            has only one channel, this channel will be used; otherwise, an \
-            error will be raised.
-        """
         self._channel_name = channel_name
         self.prop_decrease = prop_decrease
         self.N = N
@@ -122,21 +119,19 @@ class MatchChannel(TerminationCriterion):
     function from a previous training run.
     (Useful for getting training likelihood on entire training set to
     match validation likelihood from an earlier early stopping run)
-    """
 
+    Parameters
+    ----------
+    channel_name : str
+        The name of the new channel that we want to match the final value
+        from the previous training run
+    prev_channel_name : str
+        The name of the channel from the previous run that we want to match
+    prev_monitor_name : str
+        The name of the field of the model instance containing the monitor
+        from the previous training run
+    """
     def __init__(self, channel_name, prev_channel_name, prev_monitor_name):
-        """
-        Parameters
-        ----------
-        channel_name : str
-            The name of the new channel that we want to match the final value
-            from the previous training run
-        prev_channel_name : str
-            The name of the channel from the previous run that we want to match
-        prev_monitor_name : str
-            The name of the field of the model instance containing the monitor
-            from the previous training run
-        """
         self.__dict__.update(locals())
         self.target = None
 
@@ -159,17 +154,16 @@ class MatchChannel(TerminationCriterion):
 class ChannelTarget(TerminationCriterion):
     """
     Stop training when a cost function reaches some target value.
+
+    Parameters
+    ----------
+    channel_name : str
+        The name of the channel to track
+    target : float
+        Quit training after the channel is below this value
     """
 
     def __init__(self, channel_name, target):
-        """
-        Parameters
-        ----------
-        channel_name : str
-            The name of the channel to track
-        target : float
-            Quit training after the channel is below this value
-        """
         target = float(target)
         self.__dict__.update(locals())
 
@@ -185,14 +179,13 @@ class ChannelTarget(TerminationCriterion):
 class ChannelInf(TerminationCriterion):
     """
     Stop training when a channel value reaches Inf or -inf.
+
+    Parameters
+    ----------
+    channel_name : The channel to track.
     """
 
     def __init__(self, channel_name):
-        """
-        Parameters
-        ----------
-        channel_name : The channel to track.
-        """
         self.__dict__.update(locals())
 
     @functools.wraps(TerminationCriterion.continue_learning)
@@ -207,20 +200,18 @@ class ChannelInf(TerminationCriterion):
 class EpochCounter(TerminationCriterion):
     """
     Learn for a fixed number of epochs.
+
+    A termination criterion that uses internal state to trigger termination
+    after a fixed number of calls (epochs).
+
+    Parameters
+    ----------
+    max_epochs : int
+        Number of epochs (i.e. calls to this object's `__call__`
+        method) after which this termination criterion should
+        return `False`.
     """
     def  __init__(self, max_epochs):
-        """
-        A termination criterion that uses internal state to
-        trigger termination after a fixed number of calls
-        (epochs).
-
-        Parameters
-        ----------
-        max_epochs : int
-            Number of epochs (i.e. calls to this object's `__call__` \
-            method) after which this termination criterion should \
-            return `False`.
-        """
         self._max_epochs = max_epochs
         self._epochs_done = 0
 
@@ -231,21 +222,20 @@ class EpochCounter(TerminationCriterion):
 
 class And(TerminationCriterion):
     """
-    Keep learning until any of a set of criteria wants to stop
+    Keep learning until any of a set of criteria wants to stop.
+
+    Termination criterion representing the logical conjunction
+    of several individual criteria. Optimization continues only
+    if every constituent criterion returns `True`.
+
+    Parameters
+    ----------
+    criteria : iterable
+        A sequence of callables representing termination criteria, \
+        with a return value of True indicating that training \
+        should continue.
     """
     def __init__(self, criteria):
-        """
-        Termination criterion representing the logical conjunction
-        of several individual criteria. Optimization continues only
-        if every constituent criterion returns `True`.
-
-        Parameters
-        ----------
-        criteria : iterable
-            A sequence of callables representing termination criteria, \
-            with a return value of True indicating that training \
-            should continue.
-        """
         self._criteria = list(criteria)
 
     @functools.wraps(TerminationCriterion.continue_learning)
@@ -256,20 +246,19 @@ class And(TerminationCriterion):
 class Or(TerminationCriterion):
     """
     Keep learning as long as any of some set of criteria say to do so.
+
+    Termination criterion representing the logical disjunction
+    of several individual criteria. Optimization continues if
+    any of the constituent criteria return `True`.
+
+    Parameters
+    ----------
+    criteria : iterable
+        A sequence of callables representing termination criteria, \
+        with a return value of True indicating that gradient \
+        descent should continue.
     """
     def __init__(self, criteria):
-        """
-        Termination criterion representing the logical disjunction
-        of several individual criteria. Optimization continues if
-        any of the constituent criteria return `True`.
-
-        Parameters
-        ----------
-        criteria : iterable
-            A sequence of callables representing termination criteria, \
-            with a return value of True indicating that gradient \
-            descent should continue.
-        """
         self._criteria = list(criteria)
 
     @functools.wraps(TerminationCriterion.continue_learning)
