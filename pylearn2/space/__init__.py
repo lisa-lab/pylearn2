@@ -1152,18 +1152,20 @@ class Conv2DSpace(SimplyTypedSpace):
     ----------
     shape : sequence, length 2
         The shape of a single image, i.e. (rows, cols).
-    num_channels : int     (synonym: channels)
+    num_channels : int (synonym: channels)
         Number of channels in the image, i.e. 3 if RGB.
     axes : tuple
-        A tuple indicating the semantics of each axis.
-        'b' : this axis is the batch index of a minibatch.
-        'c' : this axis the channel index of a minibatch.
-        <i> : this is topological axis i (i.e., 0 for rows, 1 for
-              cols)
+        A tuple indicating the semantics of each axis, containing the
+        following elements in some order:
+
+        - 'b' : this axis is the batch index of a minibatch.
+        - 'c' : this axis the channel index of a minibatch.
+        - 0 : topological axis 0 (rows)
+        - 1 : topological axis 1 (columns)
 
         For example, a PIL image has axes (0, 1, 'c') or (0, 1).
         The pylearn2 image displaying functionality uses
-            ('b', 0, 1, 'c') for batches and (0, 1, 'c') for images.
+        ('b', 0, 1, 'c') for batches and (0, 1, 'c') for images.
         theano's conv2d operator uses ('b', 'c', 0, 1) images.
     dtype : str
         A numpy dtype string (e.g. 'float32') indicating this space's

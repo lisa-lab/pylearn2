@@ -230,7 +230,7 @@ class SML(Cost):
     The number of particles fits the batch size.
 
     Parameters
-    ---------
+    ----------
     batch_size: int
         Batch size of the training algorithm
     nsteps: int
