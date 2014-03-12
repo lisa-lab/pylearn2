@@ -235,14 +235,15 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                 type_key = readNums(file_handle, 'int32', 1)[0]
                 elem_type, elem_size = key_to_type[type_key]
                 if debug:
-                    logger.debug("header's type key, type, type size: %s %s %s",
-                        type_key, elem_type, elem_size)
+                    logger.debug("header's type key, type, type size: " +
+                      "%s %s %s", type_key, elem_type, elem_size)
                 if elem_type == 'packed matrix':
                     raise NotImplementedError('packed matrix not supported')
 
                 num_dims = readNums(file_handle, 'int32', 1)[0]
                 if debug:
-                    logger.debug('# of dimensions, according to header: %s', num_dims)
+                    logger.debug('# of dimensions, according to header: %s', 
+                      num_dims)
 
                 if from_gzip:
                     shape = readNums(file_handle,
@@ -254,7 +255,8 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                                            count=max(num_dims, 3))[:num_dims]
 
                 if debug:
-                    logger.debug('Tensor shape, as listed in header: %s', shape)
+                    logger.debug('Tensor shape, as listed in header: %s', 
+                      shape)
 
                 return elem_type, elem_size, shape
 
