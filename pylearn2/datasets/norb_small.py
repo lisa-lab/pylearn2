@@ -8,6 +8,15 @@ from pylearn2.datasets import retina
 class NORBSmall(dense_design_matrix.DenseDesignMatrix):
     """
     A pylearn2 dataset object for the small NORB dataset (v1.0).
+
+    Parameters
+    ----------
+    which_set : WRITEME
+        one of ['train','test']
+    center : WRITEME
+        data is in range [0,256], center=True subtracts 127.5.
+    multi_target : WRITEME
+        load extra information as additional labels.
     """
 
     @classmethod
@@ -28,11 +37,6 @@ class NORBSmall(dense_design_matrix.DenseDesignMatrix):
         return data
 
     def __init__(self, which_set, center=False, multi_target = False):
-        """
-        :param which_set: one of ['train','test']
-        :param center: data is in range [0,256], center=True subtracts 127.5.
-        :param multi_target: load extra information as additional labels.
-        """
         assert which_set in ['train','test']
 
         X = NORBSmall.load(which_set, 'dat')
@@ -56,6 +60,25 @@ class NORBSmall(dense_design_matrix.DenseDesignMatrix):
 
 
 class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
+    """
+    .. todo::
+
+        WRITEME
+
+    Parameters
+    ----------
+    which_set : WRITEME
+        One of ['train','test']
+    center : WRITEME
+        Data is in range [0,256], center=True subtracts 127.5.
+        # TODO: check this comment, sure it means {0, ..., 255}
+    scale : WRITEME
+    start : WRITEME
+    stop : WRITEME
+    one_hot : WRITEME
+    restrict_instances : WRITEME
+    preprocessor : WRITEME
+    """
 
     @classmethod
     def load(cls, which_set):
@@ -72,12 +95,6 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center=False, scale = False,
             start = None, stop = None, one_hot = False, restrict_instances=None,
             preprocessor=None):
-        """
-        :param which_set: one of ['train','test']
-        :param center: data is in range [0,256], center=True subtracts 127.5.
-        # TODO: check this comment, sure it means {0, ..., 255}
-        :param multi_target: load extra information as additional labels.
-        """
 
         self.args = locals()
 
