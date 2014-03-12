@@ -1,5 +1,7 @@
 """
 Utilities for working with data format specifications.
+
+See :ref:`data_specs` for a high level overview of the relevant concepts.
 """
 from pylearn2.space import CompositeSpace, NullSpace, Space
 from pylearn2.utils import safe_zip
@@ -13,15 +15,13 @@ class DataSpecsMapping(object):
     (space, sources) pair, where space can be a composite space (possibly
     of other composite spaces), and sources is a tuple of string identifiers
     or other sources. Both space and sources must have the same structure.
+
+    Parameters
+    ----------
+    data_specs: WRITEME
+        WRITEME
     """
     def __init__(self, data_specs):
-        """
-        Builds the internal mapping
-
-        Parameters
-        ----------
-        data_specs : WRITEME
-        """
         # Maps one elementary (not composite) data_specs pair to its index in
         # the flattened space
         # Not sure if this one should be a member, or passed as a parameter to
