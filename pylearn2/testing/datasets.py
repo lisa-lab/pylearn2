@@ -10,9 +10,14 @@ import numpy as np
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 
 class ArangeDataset(DenseDesignMatrix):
-    """ A dataset where example i is just the number i.
-    Makes it easy to track which sets of examples are visited."""
+    """
+    A dataset where example i is just the number i. Makes it easy to track
+    which sets of examples are visited.
 
+    Parameters
+    ----------
+    num_examples : WRITEME
+    """
     def __init__(self, num_examples):
         X = np.zeros((num_examples,1))
         X[:,0] = np.arange(num_examples)

@@ -116,18 +116,14 @@ class Block(object):
 class StackedBlocks(Block):
     """
     A stack of Blocks, where the output of a block is the input of the next.
+
+    Parameters
+    ----------
+    layers : list of Blocks
+        The layers to be stacked, ordered from bottom (input) to top \
+        (output)
     """
     def __init__(self, layers):
-        """
-        Build a stack of layers.
-
-        Parameters
-        ----------
-        layers : list of Blocks
-            The layers to be stacked, ordered from bottom (input) to top \
-            (output)
-        """
-
         super(StackedBlocks, self).__init__()
 
         self._layers = layers

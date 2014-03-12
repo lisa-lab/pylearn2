@@ -19,11 +19,6 @@ class RBM_EnergyFunction(EnergyFunction):
         WRITEME
     """
     def __init__(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         pass
 
 class GRBM_EnergyFunction(RBM_EnergyFunction):
@@ -97,14 +92,16 @@ class GRBM_Type_1(GRBM_EnergyFunction):
     of GRBMs up as a way of testing SMD, so don't try to use it to exactly
     reproduce any published GRBM results, as they probably use one of the
     other parameterizations)
+
+    Parameters
+    ----------
+    transformer : WRITEME
+    bias_hid : WRITEME
+    bias_vis : WRITEME
+    sigma : WRITEME
     """
 
     def __init__(self, transformer, bias_hid, bias_vis, sigma):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(GRBM_Type_1,self).__init__()
 
         self.transformer = transformer

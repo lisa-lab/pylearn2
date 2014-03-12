@@ -2,8 +2,14 @@
 
 
 class ReadVerifyPrereq(object):
-    """ Part of tests/test_monitor.py.
-        Just put here so it be serialized. """
+    """
+    Part of tests/test_monitor.py. Just put here so it be serialized.
+
+    Parameters
+    ----------
+    counter_idx : WRITEME
+    counter : WRITEME
+    """
     def __init__(self, counter_idx, counter):
         self.counter_idx = counter_idx
         self.counter = counter

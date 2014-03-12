@@ -33,14 +33,13 @@ class MatrixMul(LinearTransform):
     are always inserted whether they're needed or not, this can cause annoying
     things like the reshape breaking if you change the shape of W, bugs in
     Theano's optimization system being harder to avoid, etc.
+
+    Parameters
+    ----------
+    W : WRITEME
     """
 
     def __init__(self, W):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self._W = W
 
     @functools.wraps(LinearTransform.get_params)
