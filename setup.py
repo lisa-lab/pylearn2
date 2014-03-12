@@ -4,9 +4,10 @@ from setuptools import setup, find_packages
 
 if 'develop' not in sys.argv:
     raise NotImplementedError("since Pylearn2 is under rapid, active "
-                              "development, setup.py install is intentionally "
-                              "disabled to prevent other problems. Run "
-                              "`python setup.py develop` to install Pylearn2.")
+                              "development, `python setup.py install` is "
+                              "intentionally disabled to prevent other "
+                              "problems. Run `python setup.py develop` to "
+                              "install Pylearn2.")
     # Detailed notes:
     # This modification of setup.py is designed to prevent two problems
     # novice users frequently encountered:
