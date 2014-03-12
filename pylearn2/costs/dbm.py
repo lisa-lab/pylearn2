@@ -2,9 +2,6 @@
 This module contains cost functions to use with deep Boltzmann machines
 (pylearn2.models.dbm).
 """
-from pylearn2.models.dbm.layer import BinaryVector
-from pylearn2.models.dbm import BinaryVectorMaxPool
-from pylearn2.models.dbm import Softmax
 
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012, Universite de Montreal"
@@ -26,7 +23,11 @@ from pylearn2.costs.cost import Cost
 from pylearn2.costs.cost import (
     FixedVarDescr, DefaultDataSpecsMixin, NullDataSpecsMixin
 )
+from pylearn2.models import dbm
+from pylearn2.models.dbm import BinaryVectorMaxPool
 from pylearn2.models.dbm import flatten
+from pylearn2.models.dbm.layer import BinaryVector
+from pylearn2.models.dbm import Softmax
 from pylearn2 import utils
 from pylearn2.utils import make_name
 from pylearn2.utils import safe_izip
@@ -536,7 +537,8 @@ class VariationalPCD_VarianceReduction(DefaultDataSpecsMixin, Cost):
             X, Y = data
             assert Y is not None
             # note: if the Y layer changes to something without linear energy,
-            # we'll need to make the expected energy clamp Y in the positive phase
+            # we'll need to make the expected energy clamp Y in the positive
+            # phase
             assert isinstance(model.hidden_layers[-1], dbm.Softmax)
         else:
             X = data
@@ -548,31 +550,34 @@ class VariationalPCD_VarianceReduction(DefaultDataSpecsMixin, Cost):
 
 
         """
-            Use the non-negativity of the KL divergence to construct a lower bound
-            on the log likelihood. We can drop all terms that are constant with
-            repsect to the model parameters:
+        Use the non-negativity of the KL divergence to construct a lower bound
+        on the log likelihood. We can drop all terms that are constant with
+        respect to the model parameters:
 
-            log P(v) = L(v, q) + KL(q || P(h|v))
-            L(v, q) = log P(v) - KL(q || P(h|v))
-            L(v, q) = log P(v) - sum_h q(h) log q(h) + q(h) log P(h | v)
-            L(v, q) = log P(v) + sum_h q(h) log P(h | v) + const
-            L(v, q) = log P(v) + sum_h q(h) log P(h, v) - sum_h q(h) log P(v) + const
-            L(v, q) = sum_h q(h) log P(h, v) + const
-            L(v, q) = sum_h q(h) -E(h, v) - log Z + const
+        log P(v) = L(v, q) + KL(q || P(h|v))
+        L(v, q) = log P(v) - KL(q || P(h|v))
+        L(v, q) = log P(v) - sum_h q(h) log q(h) + q(h) log P(h | v)
+        L(v, q) = log P(v) + sum_h q(h) log P(h | v) + const
+        L(v, q) = log P(v) + sum_h q(h) log P(h, v) - sum_h q(h) log P(v) + C
+        L(v, q) = sum_h q(h) log P(h, v) + C
+        L(v, q) = sum_h q(h) - E(h, v) - log Z + C
 
-            so the cost we want to minimize is
-            expected_energy + log Z + const
+        so the cost we want to minimize is
+        expected_energy + log Z + C
 
 
-            Note: for the RBM, this bound is exact, since the KL divergence goes to 0.
+        Note: for the RBM, this bound is exact, since the KL divergence
+        goes to 0.
         """
 
         variational_params = flatten(q)
 
-        # The gradients of the expected energy under q are easy, we can just do that in theano
+        # The gradients of the expected energy under q are easy, we can just
+        # do that in theano
         expected_energy_q = model.expected_energy(X, q).mean()
         params = list(model.get_params())
-        gradients = OrderedDict(safe_zip(params, T.grad(expected_energy_q, params,
+        gradients = OrderedDict(safe_zip(params, T.grad(expected_energy_q,
+            params,
             consider_constant = variational_params,
             disconnected_inputs = 'ignore')))
 
@@ -602,8 +607,6 @@ class VariationalPCD_VarianceReduction(DefaultDataSpecsMixin, Cost):
                 self.theano_rng, num_steps=self.num_gibbs_steps,
                 return_layer_to_updated = True)
 
-
-
         # Variance reduction is hardcoded for this exact model
         assert isinstance(model.visible_layer, dbm.BinaryVector)
         assert isinstance(model.hidden_layers[0], dbm.BinaryVectorMaxPool)
@@ -614,24 +617,34 @@ class VariationalPCD_VarianceReduction(DefaultDataSpecsMixin, Cost):
         assert len(model.hidden_layers) == 3
 
         V_samples = layer_to_chains[model.visible_layer]
-        H1_samples, H2_samples, Y_samples = [layer_to_chains[layer] for layer in model.hidden_layers]
+        H1_samples, H2_samples, Y_samples = [layer_to_chains[layer] for layer
+                in model.hidden_layers]
 
-        V_mf = model.visible_layer.inpaint_update(layer_above = model.hidden_layers[0],
-                state_above = model.hidden_layers[0].downward_state(H1_samples))
-        H1_mf = model.hidden_layers[0].mf_update(state_below=model.visible_layer.upward_state(V_samples),
-                                                state_above=model.hidden_layers[1].downward_state(H2_samples),
-                                                layer_above=model.hidden_layers[1])
-        H2_mf = model.hidden_layers[1].mf_update(state_below=model.hidden_layers[0].upward_state(H1_samples),
-                                                state_above=model.hidden_layers[2].downward_state(Y_samples),
-                                                layer_above=model.hidden_layers[2])
-        Y_mf = model.hidden_layers[2].mf_update(state_below=model.hidden_layers[1].upward_state(H2_samples))
+        V_mf = model.visible_layer.inpaint_update(layer_above=\
+                model.hidden_layers[0],
+                state_above=\
+                model.hidden_layers[0].downward_state(H1_samples))
+        H1_mf = model.hidden_layers[0].mf_update(state_below=\
+                model.visible_layer.upward_state(V_samples),
+                state_above=model.hidden_layers[1].downward_state(H2_samples),
+                layer_above=model.hidden_layers[1])
+        H2_mf = model.hidden_layers[1].mf_update(state_below=\
+                model.hidden_layers[0].upward_state(H1_samples),
+                state_above=model.hidden_layers[2].downward_state(Y_samples),
+                layer_above=model.hidden_layers[2])
+        Y_mf = model.hidden_layers[2].mf_update(state_below=\
+                model.hidden_layers[1].upward_state(H2_samples))
 
-        expected_energy_p = 0.5 * model.energy(V_samples, [H1_mf, H2_samples, Y_mf]).mean() + \
-                            0.5 * model.energy(V_mf, [H1_samples, H2_mf, Y_samples]).mean()
+        expected_energy_p = 0.5 * model.energy(V_samples, [H1_mf,
+            H2_samples, Y_mf]).mean() + \
+                            0.5 * model.energy(V_mf, [H1_samples,
+                                H2_mf, Y_samples]).mean()
 
-        constants = flatten([V_samples, V_mf, H1_samples, H1_mf, H2_samples, H2_mf, Y_mf, Y_samples])
+        constants = flatten([V_samples, V_mf, H1_samples, H1_mf, H2_samples,
+            H2_mf, Y_mf, Y_samples])
 
-        neg_phase_grads = OrderedDict(safe_zip(params, T.grad(-expected_energy_p, params, consider_constant = constants)))
+        neg_phase_grads = OrderedDict(safe_zip(params, T.grad(
+            -expected_energy_p, params, consider_constant = constants)))
 
 
         for param in list(gradients.keys()):
