@@ -36,9 +36,11 @@ class DBM(Model):
         visible_layer : WRITEME
             The visible layer of the DBM.
         hidden_layers : list
-            WRITEME
+            The hidden layers. A list of HiddenLayer objects. The first \
+            layer in the list is connected to the visible layer. 
         niter : int
-            WRITEME
+            Number of mean field iterations for variational inference \
+            for the positive phase. 
         sampling_procedure : WRITEME
         inference_procedure : WRITEME
         """
