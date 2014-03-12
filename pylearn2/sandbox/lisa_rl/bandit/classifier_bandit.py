@@ -9,6 +9,10 @@ class ClassifierBandit(Environment):
     Each of the n-arms corresponds to a different class. If the agent
     selects the correct class for the given context, the environment
     gives reward 1. Otherwise, the environment gives reward 0.
+
+    .. todo::
+
+        WRITEME : parameter list
     """
 
     def __init__(self, dataset, batch_size):

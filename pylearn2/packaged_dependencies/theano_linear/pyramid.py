@@ -25,15 +25,14 @@ def cv_available():
 class GaussianPyramid(Op):
     """
     Returns `n_levels` images
+
+    Parameters
+    ----------
+    n_levels : WRITEME
     """
     default_output = slice(0,None,1) #always return a list, even when there's only one element in it
 
     def __init__(self, n_levels):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.n_levels = n_levels
 
     def props(self):

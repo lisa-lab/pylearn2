@@ -25,16 +25,20 @@ class ClassifierAgent(Agent):
     to the classification task, so that any loss in performance
     comes only from needing to explore to discover the correct
     action for for each input.
+
+    .. todo::
+
+        WRITEME : parameter list
+
+    Parameters
+    ----------
+    stochastic: bool
+        If True, samples actions from P(y | x) otherwise, uses argmax_y P(y |x)
     """
 
     def __init__(self, mlp, learning_rule, init_learning_rate, cost,
             update_callbacks, stochastic=False, epsilon=None, neg_target=False,
             ignore_wrong=False, epsilon_stochastic=None):
-        """
-
-            stochastic: if True, samples actions from P(y | x)
-                otherwise, uses argmax_y P(y |x)
-        """
         self.__dict__.update(locals())
         del self.self
 

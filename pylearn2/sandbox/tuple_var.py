@@ -10,6 +10,15 @@ from theano.gof.type import Type
 from theano.tensor.basic import hashtype
 
 class TupleType(Type):
+    """
+    .. todo::
+
+        WRITEME
+
+    Parameters
+    ----------
+    component_types : WRITEME
+    """
 
     def __init__(self, component_types):
         if not isinstance(component_types, tuple):
@@ -30,6 +39,16 @@ class TupleType(Type):
 
 
 class TupleVariable(Variable):
+    """
+    .. todo::
+
+        WRITEME
+
+    Parameters
+    ----------
+    component_variables : WRITEME
+    name : WRITEME
+    """
 
     def __init__(self, component_variables, name = None):
 
