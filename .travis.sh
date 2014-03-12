@@ -4,22 +4,6 @@ set -x -e
 
 if [ "x$TEST_DOC" = "xYES" ]; then
     export PYTHONPATH=${PYTHONPATH}:`pwd`
-
-    ls `pwd`
-    # does PYTHONPATH work?
-    echo "CD experiment"
-    mkdir a
-    cd a
-    mkdir b
-    cd b
-    python -c "import sys; print sys.path"
-    python -c "import pylearn2"
-    python -c "import pylearn2.config"
-    python -c "import pylearn2.config.yaml_parse"
-    python -c "import pylearn2.config.yaml_parse" || exit 1
-    cd ../..
-    echo "CD experiment concluded"
-
     python ./doc/scripts/docgen.py --test || exit 1
 else
     # We can't build the test dataset as the original is not
