@@ -39,12 +39,12 @@ except ImportError:
     try:
         from scipy.sparse.linalg import eigsh as eigen_symmetric
     except ImportError:
-        logger.error("couldn't import eigsh / eigen_symmetric from "
-                     "scipy.linalg.sparse, some of your pca functions "
-                     "may randomly fail later")
-        logger.error("the fact that somebody is using this doesn't bode well "
-                     "since it's unlikely that the "
-                     "covariance matrix is sparse")
+        logger.exception("couldn't import eigsh / eigen_symmetric from "
+                         "scipy.linalg.sparse, some of your pca functions "
+                         "may randomly fail later")
+        logger.exception("the fact that somebody is using this "
+                         "doesn't bode well since it's unlikely that the "
+                         "covariance matrix is sparse")
 
 
 # Local imports

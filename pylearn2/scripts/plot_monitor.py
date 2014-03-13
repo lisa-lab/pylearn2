@@ -106,7 +106,7 @@ def main():
         logger.info('set x_axis to example')
 
         if len(channels.values()) == 0:
-            logger.info("there are no channels to plot")
+            logger.error("there are no channels to plot")
             break
 
         # If there is more than one channel in the monitor ask which ones to

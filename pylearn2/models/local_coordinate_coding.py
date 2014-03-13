@@ -21,7 +21,7 @@ class LocalCoordinateCoding(object):
     .. todo::
 
         WRITEME
-    
+
     Parameters
     ----------
     nvis : WRITEME
@@ -157,5 +157,5 @@ class LocalCoordinateCoding(object):
             err += Jf(batch_X[i, :], gamma[i, :])
         assert not N.isnan(err)
         assert not N.isinf(err)
-        logger.error('err: ' + str(err))
+        logger.info('err: ' + str(err))
         return True

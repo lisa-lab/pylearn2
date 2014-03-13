@@ -185,10 +185,11 @@ def load(filepath, recurse_depth=0, retry = True):
                             "' due to: " + str(type(e)) + ', ' + str(e) +
                             ". Orig traceback:\n" + tb)
         else:
-            logger.error("Couldn't open '%s' and exception has no string. " +
-                         "Opening it again outside the try/catch " +
-                         "so you can see whatever error it prints on " +
-                         "its own.", filepath)
+            logger.exception("Couldn't open '%s' " +
+                             "and exception has no string. " +
+                             "Opening it again outside the try/catch " +
+                             "so you can see whatever error it prints on " +
+                             "its own.", filepath)
             f = open(filepath, 'rb')
             obj = cPickle.load(f)
             f.close()

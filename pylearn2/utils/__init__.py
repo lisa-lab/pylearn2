@@ -398,7 +398,7 @@ def get_choice(choice_to_explanation):
     choice = ''
     while first or choice not in d.keys():
         if not first:
-            logger.error('unrecognized choice')
+            logger.warning('unrecognized choice')
         first = False
         choice = raw_input(prompt)
     return choice

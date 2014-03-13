@@ -51,11 +51,11 @@ def checks(path):
         else:
             if mode=='m':
                 # fatal
-                logger.error("error: '%s' not found but mandatory", this_check)
+                logger.error("'%s' not found but mandatory", this_check)
                 return False
             elif mode=='s':
                 # benign
-                logger.error("warning: no '%s' found", this_check)
+                logger.warning("no '%s' found", this_check)
             else:
                 # whatever
                 pass
