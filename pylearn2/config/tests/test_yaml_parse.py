@@ -10,6 +10,7 @@ from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
+
 def test_load_path():
     fd, fname = tempfile.mkstemp()
     with os.fdopen(fd, 'wb') as f:
@@ -86,4 +87,3 @@ def test_unpickle_key():
     assert_(loaded.keys()[0] == d)
     assert_(loaded.values()[0] == 50)
     os.remove(fname)
-

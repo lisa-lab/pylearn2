@@ -46,7 +46,7 @@ def checks(path):
         if os.path.exists(this_check):
             if os.path.isdir(this_check):
                 if len(os.listdir(this_check))==0:
-                    logger.error("warning: directory '%s' is empty.", this_check)
+                    logger.warning("directory '%s' is empty.", this_check)
             found+=1;
         else:
             if mode=='m':

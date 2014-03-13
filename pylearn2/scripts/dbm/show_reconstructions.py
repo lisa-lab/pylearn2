@@ -142,5 +142,3 @@ while True:
             logger.info('Invalid input, try again')
 
     vis_batch = dataset.get_batch_topo(m)
-
-

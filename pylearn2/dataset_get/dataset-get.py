@@ -25,6 +25,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 ########################################
 class package_info:
     """
@@ -342,7 +343,7 @@ def read_packages_sources():
         read_from_file(path)
     if len(packages_sources)==0:
         raise RuntimeError( "[cf] fatal: could not find/read sources.lst (unexpected!)" )
-    
+
 
 ########################################
 def read_installed_packages_list():
@@ -413,7 +414,8 @@ def read_installed_packages_list():
     for path in paths:
         read_from_file(path)
     if len(installed_packages_list)==0:
-        logger.warning("[cf] warning: no install.lst found (will be created on install/upgrade)")
+        logger.warning("no install.lst found "
+                       "(will be created on install/upgrade)")
 
 
 ########################################
@@ -689,11 +691,9 @@ def show_packages():
             state="-"
 
         logger.info("%c %-20s %-8s %-30s %s",
-                    state,
-                    this_package.name,
-                    this_package.readable_size,
-                    time.strftime("%a, %d %b %Y %H:%M:%S",time.gmtime(this_package.timestamp)),
-                    this_package.source
+                    state, this_package.name, this_package.readable_size,
+                    time.strftime("%a, %d %b %Y %H:%M:%S",
+                    time.gmtime(this_package.timestamp)), this_package.source
                     )
     print
 
@@ -716,7 +716,7 @@ def install_upgrade( package, upgrade=False,progress_hook=None ):
         action = "[in] installing"
     logger.info("'%s' '%s' to %s", action, package.name, dataset_data_path)
 
-    
+
     remote_src=package.source
 
     # install location is determined by super-powers
@@ -794,11 +794,13 @@ def upgrade_packages(packages_to_upgrade, hook=None ):
                     # no newer version, nothing to update
                     pass
             else:
-                logger.info("[up] warning: '%s' is unknown (installed from file?).", this_package)
+                logger.warning("[up]: '%s' is unknown (installed from file?).",
+                               this_package)
         else:
             # not installed?
             if not all_packages:
-                logger.info("[up] warning: '%s' is not installed, cannot upgrade.", this_package)
+                logger.warning("[up]: '%s' is not installed, cannot upgrade.",
+                               this_package)
                 pass
 
 
@@ -810,7 +812,8 @@ def upgrade_packages(packages_to_upgrade, hook=None ):
         logger.info("[up] the following package(s) will be upgraded:")
         print
         for this_package in packages_really_to_upgrade:
-            logger.info("%s (%s)", this_package, packages_sources[this_package].readable_size)
+            logger.info("%s (%s)", this_package,
+                        packages_sources[this_package].readable_size)
         print
 
         r=raw_input("Proceed? [yes/N] ")
@@ -857,15 +860,18 @@ def install_packages( packages_to_install, force_install=False, hook=None ):
             if force_install or not this_package in installed_packages_list:
                 packages_really_to_install.append(this_package)
             else:
-                logger.warning("[in] warning: package '%s' is already installed", this_package)
+                logger.warning("[in]: package '%s' is already installed",
+                               this_package)
         else:
-            logger.warning("[in] warning: unknown package '%s'", this_package)
+            logger.warning("[in]: unknown package '%s'",
+                           this_package)
 
     if packages_really_to_install!=[]:
         logger.info("[in] The following package(s) will be installed:")
         print
         for this_package in packages_really_to_install:
-            logger.info("%s (%s)", this_package, packages_sources[this_package].readable_size)
+            logger.info("%s (%s)", this_package,
+                        packages_sources[this_package].readable_size)
         print
         print
 
@@ -901,7 +907,7 @@ def install_packages_from_file( packages_to_install ):
         if os.path.exists(this_package):
             packages_really_to_install.append(this_package)
         else:
-            logger.warning("[in] warning: package '%s' not found", this_package)
+            logger.warning("[in]: package '%s' not found", this_package)
 
     if packages_really_to_install!=[]:
         logger.info("[in] The following package(s) will be installed:")
@@ -921,7 +927,8 @@ def install_packages_from_file( packages_to_install ):
                     r=raw_input("[in] '%s' already installed, overwrite? [yes/N] " % corename(this_package))
 
                     if r!='y' and r!='yes':
-                        logger.info("[in] skipping package '%s'", corename(this_package))
+                        logger.info("[in] skipping package '%s'",
+                                    corename(this_package))
                         continue
                 install_package( corename(this_package), this_package, dataset_data_path)
                 #update_installed_list("i",(make a package object here),dataset_data_path)
@@ -976,13 +983,16 @@ def remove_packages( packages_to_remove ):
                         # ok, you may have rights to delete it
                         packages_really_to_remove.append(this_package)
                     else:
-                        logger.warning("[rm] warning: insufficient rights to remove '%s'", this_package)
+                        logger.warning("[rm]: insufficient rights " +
+                                       "to remove '%s'", this_package)
                 else:
-                    logger.warning("[rm] warning: package '%s' found in config file but not installed", this_package)
+                    logger.warning("[rm]: package '%s' found in config file " +
+                                   "but not installed", this_package)
             else:
-                logger.warning("[rm] warning: package '%s' not installed", this_package)
+                logger.warning("[rm]: package '%s' not installed",
+                               this_package)
         else:
-            logger.warning("[rm] warning: unknown package '%s'", this_package)
+            logger.warning("[rm]: unknown package '%s'", this_package)
 
     if packages_really_to_remove!=[]:
         logger.info("[rm] the following packages will be removed permanently:")

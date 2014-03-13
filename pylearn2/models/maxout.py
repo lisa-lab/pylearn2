@@ -48,6 +48,7 @@ if cuda.cuda_available:
     from pylearn2.sandbox.cuda_convnet.pool import max_pool_c01b
 from pylearn2.sandbox.cuda_convnet import check_cuda
 
+
 logger = logging.getLogger(__name__)
 
 

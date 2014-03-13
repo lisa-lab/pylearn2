@@ -312,14 +312,12 @@ class FeatureExtractor:
         assert isinstance(pipeline.items[0], ExtractPatches)
         pipeline.items[0] = patchifier
 
-
         logger.info('defining features')
         V = T.matrix('V')
 
         mu = model.mu
 
         feat = triangle_code(V, mu)
-
 
         assert feat.dtype == 'float32'
         logger.info('compiling theano function')

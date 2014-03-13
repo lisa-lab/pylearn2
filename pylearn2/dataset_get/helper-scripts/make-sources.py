@@ -65,16 +65,16 @@ def human_readable_size(size):
 def print_table(where):
     """
     Generates the sources.lst table from path 'where'
-    
+
     :param where: a (simple) path where to look for archives
     """
     for this_file in os.listdir(where):
         if ".tar.bz2" in this_file:
             full_file = os.path.join(where,this_file)
-            logger.info('%s %d %s %s', corename(this_file), 
-                os.path.getctime(full_file),
-                human_readable_size(os.stat(full_file).st_size),
-                os.path.join(repos_root,this_file))
+            logger.info('%s %d %s %s',
+                        corename(this_file), os.path.getctime(full_file),
+                        human_readable_size(os.stat(full_file).st_size),
+                        os.path.join(repos_root, this_file))
 
 ########################################
 if __name__=="__main__":

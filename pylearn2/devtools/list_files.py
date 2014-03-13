@@ -13,6 +13,7 @@ __email__ = "goodfeli@iro"
 
 logger = logging.getLogger(__name__)
 
+
 def list_files(suffix=""):
     """
     Parameters

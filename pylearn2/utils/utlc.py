@@ -17,6 +17,7 @@ from pylearn2.utils import subdict, sharedX
 
 logger = logging.getLogger(__name__)
 
+
 ##################################################
 # Shortcuts and auxiliary functions
 ##################################################

@@ -56,7 +56,7 @@ class dataset_resolver:
                         l[1], # timestamp
                         l[2], # human-readable size
                         urllib.unquote(l[3]), # source on the web
-                        urllib.unquote(l[4]))  # where installed                        
+                        urllib.unquote(l[4]))  # where installed
                 else:
                     pass# skip blank lines (there shouldn't be any)
 

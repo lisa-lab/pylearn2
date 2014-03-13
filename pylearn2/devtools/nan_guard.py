@@ -16,6 +16,7 @@ from pylearn2.models.dbm import flatten
 
 logger = logging.getLogger(__name__)
 
+
 class NanGuardMode(Mode):
     """
     A Theano compilation Mode that makes the compiled function automatically

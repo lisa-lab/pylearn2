@@ -14,6 +14,7 @@ from pylearn2.models.dbm import block, flatten
 from pylearn2.models.dbm.layer import Softmax
 from pylearn2.utils import safe_izip, block_gradient, safe_zip
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -937,7 +938,8 @@ class BiasInit(InferenceProcedure):
                 if elem is V:
                     logger.error("this variational parameter *is* V")
                 else:
-                    logger.error("this variational parameter is not the same as V")
+                    logger.error("this variational parameter "
+                                 "is not the same as V")
                 logger.error("V is %s", V)
                 assert False
             if Y is not None:
@@ -1398,4 +1400,3 @@ class UpDown(InferenceProcedure):
             if Y is not None:
                 return V_hat, Y_hat
             return V_hat
-

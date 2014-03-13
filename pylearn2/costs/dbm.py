@@ -1354,8 +1354,8 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
 
                 fake_s = T.dot(below, hack_W) + hack_b
                 if fake_s.ndim != real_grads.ndim:
-                    logger.info('%d', fake_s.ndim)
-                    logger.info('%d', real_grads.ndim)
+                    logger.error('%d', fake_s.ndim)
+                    logger.error('%d', real_grads.ndim)
                     assert False
                 sources = [ (fake_s, real_grads) ]
 

@@ -31,7 +31,6 @@ for name in chunk_names:
             quit(-1)
 
 
-
 #Do the conversion
 logger.info('loading %s', chunk_names[0])
 first_chunk = np.load(chunk_names[0])

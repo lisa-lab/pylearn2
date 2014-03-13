@@ -84,5 +84,3 @@ out = open(out_path, 'w')
 for i in xrange(y.shape[0]):
     out.write('%d\n' % y[i])
 out.close()
-
-

@@ -10,6 +10,7 @@ from pylearn2.sandbox.lisa_rl.bandit.agent import Agent
 from pylearn2.utils import sharedX
 from pylearn2.utils.rng import make_theano_rng
 
+
 logger = logging.getLogger(__name__)
 
 

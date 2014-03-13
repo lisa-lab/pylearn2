@@ -348,7 +348,8 @@ class Test_S3C_Inference:
 
                 mask = high_mask * low_mask
 
-                logger.info('masked failures: %d err %d', mask.shape[0], g_abs_max)
+                logger.info('masked failures: %d err %d',
+                            mask.shape[0], g_abs_max)
 
                 if mask.sum() > 0:
                     logger.exception('failing h passing the range mask')
@@ -425,7 +426,8 @@ class Test_S3C_Inference:
             increase = new_kl - prev_kl
 
 
-            logger.info('failures after iteration %d : %d', i, (increase > self.tol).sum())
+            logger.info('failures after iteration %d : %d',
+                        i, (increase > self.tol).sum())
 
             mx = increase.max()
 

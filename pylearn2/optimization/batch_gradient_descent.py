@@ -25,6 +25,7 @@ from pylearn2.utils import grad
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -429,7 +430,8 @@ class BatchGradientDescent:
                 for alpha in alpha_list:
                     if not (alpha > results[-1][0]):
                         logger.error('alpha: %d', alpha)
-                        logger.error('most recent alpha (should be smaller): %d', results[-1][0])
+                        logger.error('most recent alpha ' +
+                                     '(should be smaller): %d', results[-1][0])
                         assert False
                     self._goto_alpha(alpha)
                     obj = self.obj(*inputs)

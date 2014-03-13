@@ -63,4 +63,3 @@ test.use_design_loc(output_dir+'/test.npy')
 serial.save(output_dir+'/test.pkl', test)
 
 serial.save(output_dir + '/preprocessor.pkl',preprocessor)
-

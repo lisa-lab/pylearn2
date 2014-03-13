@@ -186,15 +186,15 @@ class LibVersion(object):
         logger.info(self.__str__())
 
     def print_exp_env_info(self, print_theano_config=False):
-	"""
+        """
         Return basic information about the experiment setup such as the hostname
         of the machine the experiment was run on, the operating system installed
         on the machine.
         If the switch print_theano_config is set to True, then information about
         the theano configuration will be displayed.
         """
-    logger.info('HOST: %s', self.exp_env_info['host'])
-    logger.info('CPU: %s', self.exp_env_info['cpu'])
-    logger.info('OS: %s', self.exp_env_info['os'])
-	if print_theano_config:
-        logger.debug(self.exp_env_info['theano_config'])
+        logger.info('HOST: %s', self.exp_env_info['host'])
+        logger.info('CPU: %s', self.exp_env_info['cpu'])
+        logger.info('OS: %s', self.exp_env_info['os'])
+        if print_theano_config:
+            logger.debug(self.exp_env_info['theano_config'])

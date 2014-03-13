@@ -12,6 +12,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def get_weights_report(model_path=None,
                        model=None,
                        rescale='individual',
@@ -169,12 +170,12 @@ Original exception: """+str(e))
         patch = weights_view[idx[i],...]
         pv.add_patch(patch, rescale=patch_rescale, activation=act)
 
-    logger.info('smallest enc weight magnitude: ' + 
-        str(np.abs(weights_view).min()))
-    logger.info('mean enc weight magnitude: ' + 
-        str(np.abs(weights_view).mean()))
-    logger.info('max enc weight magnitude: ' + 
-        str(np.abs(weights_view).max()))
+    logger.info('smallest enc weight magnitude: ' +
+                str(np.abs(weights_view).min()))
+    logger.info('mean enc weight magnitude: ' +
+                str(np.abs(weights_view).mean()))
+    logger.info('max enc weight magnitude: ' +
+                str(np.abs(weights_view).max()))
 
 
     if W is not None:
@@ -344,12 +345,12 @@ Original exception: """+str(e))
         pv.add_patch(patch[:,:,1], rescale=False, activation=act)
         pv.add_patch(patch[:,:,0], rescale=False, activation=act)
 
-    logger.info('smallest enc weight magnitude: ' + 
-        str(np.abs(weights_view).min()))
-    logger.info('mean enc weight magnitude: ' + 
-        str(np.abs(weights_view).mean()))
-    logger.info('max enc weight magnitude: ' + 
-        str(np.abs(weights_view).max()))
+    logger.info('smallest enc weight magnitude: ' +
+                str(np.abs(weights_view).min()))
+    logger.info('mean enc weight magnitude: ' +
+                str(np.abs(weights_view).mean()))
+    logger.info('max enc weight magnitude: ' +
+                str(np.abs(weights_view).max()))
 
 
     if W is not None:

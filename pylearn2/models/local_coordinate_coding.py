@@ -12,6 +12,7 @@ import numpy as N
 import theano.tensor as T
 from pylearn2.utils.rng import make_np_rng
 
+
 logger = logging.getLogger(__name__)
 
 

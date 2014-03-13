@@ -75,7 +75,7 @@ def _read_header(f, debug=False, fromgzip=None):
     #magic = numpy.fromstring(magic_s, dtype='int32')
     magic = _read_int32(f)
     magic_t, elsize = _magic_dtype[magic]
-    if debug: 
+    if debug:
         logger.debug('header magic %s %s %s', magic, magic_t, elsize)
     if magic_t == 'packed matrix':
         raise NotImplementedError('packed matrix not supported')
@@ -162,7 +162,9 @@ class arraylike(object):
         #padding = tuple() if rank <= self.ndim else (1,) * (rank - self.ndim)
         self.returnshape = padding + self.readshape
         self.readsize = _prod(self.readshape)
-        if debug: logger.debug('READ PARAM %s %s %s', self.readshape, self.returnshape, self.readsize)
+        if debug:
+            logger.debug('READ PARAM %s %s %s',
+                         self.readshape, self.returnshape, self.readsize)
 
     def __len__(self):
         return _prod(self.dim[:self.ndim-len(self.readshape)])
@@ -261,4 +263,3 @@ def write(f, mat):
     for sh in shape:
         _write_int32(f, sh)
     mat.tofile(f)
-

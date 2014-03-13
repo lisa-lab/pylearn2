@@ -26,6 +26,7 @@ from pylearn2.utils import sharedX
 from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import DataSpecsMapping
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -614,13 +615,15 @@ def test_bvmp_mf_energy_consistent():
         # Check that they match
         if not np.allclose(expected_p, 1. - off_prob):
             logger.error('mean field expectation of p: %s', expected_p)
-            logger.error('expectation of p based on enumerating energy function values: %s', 1. - off_prob)
+            logger.error('expectation of p based on enumerating ' +
+                         'energy function values: %s', 1. - off_prob)
             logger.error('pool_size_1: %s', pool_size_1)
 
             assert False
         if not np.allclose(expected_h, on_probs):
             logger.error('mean field expectation of h: %s', expected_h)
-            logger.error('expectation of h based on enumerating energy function values: %s', on_probs)
+            logger.error('expectation of h based on enumerating ' +
+                         'energy function values: %s', on_probs)
             assert False
 
     # 1 is an important corner case
@@ -739,13 +742,15 @@ def test_bvmp_mf_energy_consistent_center():
         # Check that they match
         if not np.allclose(expected_p, 1. - off_prob):
             logger.error('mean field expectation of p: %s', expected_p)
-            logger.error('expectation of p based on enumerating energy function values: %s', 1. - off_prob)
+            logger.error('expectation of p based on enumerating ' +
+                         'energy function values: %s', 1. - off_prob)
             logger.error('pool_size_1: %s', pool_size_1)
 
             assert False
         if not np.allclose(expected_h, on_probs):
             logger.error('mean field expectation of h: %s', expected_h)
-            logger.error('expectation of h based on enumerating energy function values: %s', on_probs)
+            logger.error('expectation of h based on enumerating ' +
+                         'energy function values: %s', on_probs)
             assert False
 
     # 1 is the only pool size for which centering is implemented
@@ -967,7 +972,8 @@ def test_softmax_mf_energy_consistent():
 
     if not np.allclose(expected_y, probs):
         logger.error('mean field expectation of h: %s', expected_y)
-        logger.error('expectation of h based on enumerating energy function values: %s', probs)
+        logger.error('expectation of h based on enumerating ' +
+                     'energy function values: %s', probs)
         assert False
 
 def test_softmax_mf_energy_consistent_centering():
@@ -1053,7 +1059,8 @@ def test_softmax_mf_energy_consistent_centering():
 
     if not np.allclose(expected_y, probs):
         logger.error('mean field expectation of h: %s', expected_y)
-        logger.error('expectation of h based on enumerating energy function values: %s', probs)
+        logger.error('expectation of h based on enumerating ' +
+                     'energy function values: %s', probs)
         assert False
 
 def test_softmax_mf_sample_consistent():

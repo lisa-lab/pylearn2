@@ -57,7 +57,7 @@ to function correctly.
 README.close()
 
 logger.info("Learning the preprocessor and " +
-			"preprocessing the unsupervised train data...")
+            "preprocessing the unsupervised train data...")
 preprocessor = preprocessing.ZCA()
 data.apply_preprocessor(preprocessor = preprocessor, can_fit = True)
 

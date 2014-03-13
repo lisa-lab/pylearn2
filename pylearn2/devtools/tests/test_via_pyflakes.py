@@ -9,6 +9,7 @@ __email__ = "goodfeli@iro"
 
 logger = logging.getLogger(__name__)
 
+
 def test_via_pyflakes():
     d = run_pyflakes(True)
     if len(d.keys()) != 0:

@@ -100,5 +100,3 @@ class Classifier:
         """
 
         return np.argmax(self.b + np.dot(X,self.W), 1)
-
-

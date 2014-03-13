@@ -33,6 +33,7 @@ sys.setrecursionlimit(50000)
 from pylearn2.expr.basic import (full_min,
         full_max, numpy_norms, theano_norms)
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -1513,7 +1514,7 @@ class S3C(Model, Block):
         W = self.W.get_value(borrow=True)
         assert not np.any(np.isnan(W))
         assert not np.any(np.isinf(W))
-        logger.info('W: %s', (W.min(),W.mean(),W.max()))
+        logger.info('W: %s', (W.min(), W.mean(), W.max()))
         norms = numpy_norms(W)
         logger.info('W norms: %s', (norms.min(), norms.mean(), norms.max()))
 

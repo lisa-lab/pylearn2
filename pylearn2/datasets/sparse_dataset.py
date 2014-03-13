@@ -12,6 +12,7 @@ import logging
 floatX = theano.config.floatX
 logger = logging.getLogger(__name__)
 
+
 class SparseDataset(Dataset):
     """
     SparseDataset is by itself an iterator.

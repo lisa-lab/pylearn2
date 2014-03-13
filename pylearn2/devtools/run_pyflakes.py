@@ -22,6 +22,7 @@ from pylearn2.utils.shell import run_shell_command
 
 logger = logging.getLogger(__name__)
 
+
 def run_pyflakes(no_warnings = False):
     """
     Return a description of all errors pyflakes finds in Pylearn2.

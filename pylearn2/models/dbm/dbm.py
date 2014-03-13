@@ -16,6 +16,7 @@ from pylearn2.models.dbm.sampling_procedure import GibbsEvenOdd
 from pylearn2.utils import safe_zip, safe_izip
 from pylearn2.utils.rng import make_np_rng
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,10 +37,10 @@ class DBM(Model):
         The visible layer of the DBM.
     hidden_layers : list
         The hidden layers. A list of HiddenLayer objects. The first \
-        layer in the list is connected to the visible layer. 
+        layer in the list is connected to the visible layer.
     niter : int
         Number of mean field iterations for variational inference \
-        for the positive phase. 
+        for the positive phase.
     sampling_procedure : WRITEME
     inference_procedure : WRITEME
     """
@@ -608,7 +609,7 @@ class DBM(Model):
             for new, old in safe_zip(flat_q, flat_prev_q):
                 cur_mx = abs(new - old).max()
                 if new is old:
-                    logger.error(new, 'is', old)
+                    logger.error('%s is %s', new, old)
                     assert False
                 if mx is None:
                     mx = cur_mx

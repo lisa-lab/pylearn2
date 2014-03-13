@@ -5,6 +5,7 @@ from pylearn2.devtools.list_files import list_files
 
 logger = logging.getLogger(__name__)
 
+
 def test_shebangs():
     # Make sure all scripts that use shebangs use /usr/bin/env
     # (instead of the non-standard /bin/env or hardcoding the path to

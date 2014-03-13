@@ -17,7 +17,9 @@ from pylearn2.utils import safe_union
 from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.utils.data_specs import DataSpecsMapping
 
+
 logger = logging.getLogger(__name__)
+
 
 class DefaultDataSpecsMixin(object):
     """
@@ -402,8 +404,8 @@ class SumOfCosts(Cost):
                 rval.update(channels)
             except TypeError:
                 logger.error('SumOfCosts.get_monitoring_channels encountered '
-                       'TypeError while calling ' +
-                       str(type(cost)) + '.get_monitoring_channels')
+                             'TypeError while calling ' +
+                             str(type(cost)) + '.get_monitoring_channels')
                 raise
 
             value = cost.expr(model, cost_data, ** kwargs)
@@ -644,4 +646,3 @@ def merge(left, right):
                                         right.on_load_batch)
 
     return merged
-

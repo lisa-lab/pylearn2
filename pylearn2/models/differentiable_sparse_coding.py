@@ -18,6 +18,7 @@ from theano import function, shared, config
 floatX = config.floatX
 from pylearn2.utils.rng import make_np_rng
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -292,7 +293,7 @@ class DifferentiableSparseCoding(object):
         assert self.error_record_mode == self.ERROR_RECORD_MODE_MONITORING
 
         w = self.W.get_value(borrow=True)
-        logger.info('weights summary: ' + str( (w.min(),w.mean(),w.max())))
+        logger.info('weights summary: ' + str((w.min(), w.mean(), w.max())))
 
         errors = []
 

@@ -6,6 +6,7 @@ import numpy
 from matplotlib import pyplot
 from pylearn2.datasets import norb
 
+
 logger = logging.getLogger(__name__)
 
 

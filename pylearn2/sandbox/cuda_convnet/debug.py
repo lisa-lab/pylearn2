@@ -16,6 +16,7 @@ from theano.sandbox.cuda import host_from_gpu
 from theano.tensor.nnet.conv import conv2d
 from theano import function
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -97,5 +98,3 @@ while True:
     else:
         prev_err = new_err
         accepted_steps += 1
-
-

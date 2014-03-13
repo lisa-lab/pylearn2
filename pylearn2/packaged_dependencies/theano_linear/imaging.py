@@ -8,6 +8,7 @@ import numpy
 import logging
 from pylearn2.utils.image import Image, ensure_Image
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -62,7 +63,8 @@ def tile_raster_images(X, img_shape,
     if len(img_shape)==3 and img_shape[2]==3:
         # make this save an rgb image
         if scale_rows_to_unit_interval:
-            logger.warning("tile_raster_images' scaling routine messes up colour - try tile_slices_to_image")
+            logger.warning("tile_raster_images' scaling routine "
+                           "messes up colour - try tile_slices_to_image")
         return tile_raster_images(
                 (X[:,0::3], X[:,1::3], X[:,2::3], None),
                 img_shape=img_shape[:2],

@@ -250,10 +250,12 @@ class TestS3C_Misc:
         grad_analytical = function([H_var, S_var], analytical)(H,S)
 
         if not np.allclose(grad_theano, grad_analytical):
-            logger.error('grad theano: %s', (grad_theano.min(), grad_theano.mean(), grad_theano.max()))
-            logger.error('grad analytical: %s', (grad_analytical.min(), grad_analytical.mean(), grad_analytical.max()))
+            logger.error('grad theano: %s', (grad_theano.min(),
+                         grad_theano.mean(), grad_theano.max()))
+            logger.error('grad analytical: %s', (grad_analytical.min(),
+                         grad_analytical.mean(), grad_analytical.max()))
             ad = np.abs(grad_theano-grad_analytical)
-            logger.error('abs diff: %s', (ad.min(),ad.mean(),ad.max()))
+            logger.error('abs diff: %s', (ad.min(), ad.mean(), ad.max()))
             assert False
 
     def test_d_negent_d_h(self):
@@ -313,10 +315,12 @@ class TestS3C_Misc:
         grad_analytical = function([H_var, S_var], analytical, on_unused_input = 'ignore')(H,S)
 
         if not np.allclose(grad_theano, grad_analytical):
-            logger.error('grad theano: %s', (grad_theano.min(), grad_theano.mean(), grad_theano.max()))
-            logger.error('grad analytical: %s', (grad_analytical.min(), grad_analytical.mean(), grad_analytical.max()))
+            logger.error('grad theano: %s', (grad_theano.min(),
+                         grad_theano.mean(), grad_theano.max()))
+            logger.error('grad analytical: %s', (grad_analytical.min(),
+                         grad_analytical.mean(), grad_analytical.max()))
             ad = np.abs(grad_theano-grad_analytical)
-            logger.error('abs diff: %s', (ad.min(),ad.mean(),ad.max()))
+            logger.error('abs diff: %s', (ad.min(), ad.mean(), ad.max()))
             assert False
 
     def test_d_negent_h_d_h(self):
@@ -372,10 +376,12 @@ class TestS3C_Misc:
         grad_analytical = function([H_var, S_var], analytical, on_unused_input = 'ignore')(H,S)
 
         if not np.allclose(grad_theano, grad_analytical):
-            logger.error('grad theano: %s', (grad_theano.min(), grad_theano.mean(), grad_theano.max()))
-            logger.error('grad analytical: %s', (grad_analytical.min(), grad_analytical.mean(), grad_analytical.max()))
+            logger.error('grad theano: %s', (grad_theano.min(),
+                         grad_theano.mean(), grad_theano.max()))
+            logger.error('grad analytical: %s', (grad_analytical.min(),
+                         grad_analytical.mean(), grad_analytical.max()))
             ad = np.abs(grad_theano-grad_analytical)
-            logger.error('abs diff: %s', (ad.min(),ad.mean(),ad.max()))
+            logger.error('abs diff: %s', (ad.min(), ad.mean(), ad.max()))
             assert False
 
 
@@ -441,8 +447,10 @@ class TestS3C_Misc:
         grad_analytical = function([H_var, S_var], analytical, on_unused_input = 'ignore')(H,S)
 
         if not np.allclose(grad_theano, grad_analytical):
-            logger.error('grad theano: %s', (grad_theano.min(), grad_theano.mean(), grad_theano.max()))
-            logger.error('grad analytical: %s', (grad_analytical.min(), grad_analytical.mean(), grad_analytical.max()))
+            logger.error('grad theano: %s', (grad_theano.min(),
+                         grad_theano.mean(), grad_theano.max()))
+            logger.error('grad analytical: %s', (grad_analytical.min(),
+                         grad_analytical.mean(), grad_analytical.max()))
             ad = np.abs(grad_theano-grad_analytical)
             logger.error('abs diff: %s', (ad.min(),ad.mean(),ad.max()))
             assert False

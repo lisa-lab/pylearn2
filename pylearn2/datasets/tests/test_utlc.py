@@ -9,6 +9,7 @@ import pylearn2.datasets.utlc as utlc
 
 logger = logging.getLogger(__name__)
 
+
 def test_ule():
     skip_if_no_data()
     # Test loading of transfer data
@@ -23,7 +24,8 @@ def test_all_utlc():
         logger.info("Loading %s", name)
         train, valid, test = utlc.load_ndarray_dataset(name, normalize=True)
         logger.info("dtype, max, min, mean, std")
-        logger.info("%d %d %d %d %d", train.dtype, train.max(), train.min(), train.mean(), train.std())
+        logger.info("%d %d %d %d %d", train.dtype, train.max(),
+                    train.min(), train.mean(), train.std())
         assert isinstance(train, numpy.ndarray), "train is not an ndarray in %s dataset" % name
         assert isinstance(valid, numpy.ndarray), "valid is not an ndarray in %s dataset" % name
         assert isinstance(test, numpy.ndarray), "test is not an ndarray in %s dataset" % name
@@ -47,12 +49,15 @@ def test_all_sparse_utlc():
         ma = max(0, ma)
         su = train.data.sum()
         mean = float(su)/nb_elem
-        logger.info("%s dtype, max, min, mean, nb non-zero, nb element, sparse", name)
-        logger.info("%d %d %d %d %d %d %d", train.dtype, ma, mi, mean, train.nnz, nb_elem, (nb_elem-float(train.nnz))/nb_elem)
-        logger.info("%s max, min, mean, std (all stats on non-zero element)", name)
-        logger.info("%d %d %d %d", train.data.max(), train.data.min(), train.data.mean(), train.data.std())
+        logger.info("%s dtype, max, min, mean, nb non-zero, nb element, " +
+                    "sparse", name)
+        logger.info("%d %d %d %d %d %d %d", train.dtype, ma, mi, mean,
+                    train.nnz, nb_elem, (nb_elem-float(train.nnz))/nb_elem)
+        logger.info("%s max, min, mean, std (all stats on non-zero element)",
+                    name)
+        logger.info("%d %d %d %d", train.data.max(), train.data.min(),
+                    train.data.mean(), train.data.std())
         assert scipy.sparse.issparse(train), "train is not sparse for %s dataset" % name
         assert scipy.sparse.issparse(valid), "valid is not sparse for %s dataset" % name
         assert scipy.sparse.issparse(test), "test is not sparse for %s dataset" % name
         assert train.shape[1]==test.shape[1]==valid.shape[1], "shapes of sparse %s dataset do  not match" % name
-

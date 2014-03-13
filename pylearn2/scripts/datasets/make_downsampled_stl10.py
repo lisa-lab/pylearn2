@@ -89,7 +89,7 @@ logger.info('Loading training set...')
 train = STL10(which_set = 'train', center = True)
 
 logger.info('Preprocessing training set...')
-logger.info('before %s', (train.X.min(),train.X.max()))
+logger.info('before %s', (train.X.min(), train.X.max()))
 train.apply_preprocessor(preprocessor)
 logger.info('after %s', (train.X.min(), train.X.max()))
 
@@ -99,4 +99,3 @@ train.use_design_loc(downsampled_dir + '/train.npy')
 serial.save(downsampled_dir+'/train.pkl',train)
 
 del train
-

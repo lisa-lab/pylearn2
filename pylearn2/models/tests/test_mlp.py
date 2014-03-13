@@ -6,6 +6,7 @@ from pylearn2.models.mlp import (MLP, Linear, Softmax, Sigmoid,
                                  exhaustive_dropout_average,
                                  sampled_dropout_average)
 
+
 logger = logging.getLogger(__name__)
 
 

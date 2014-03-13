@@ -5,6 +5,7 @@ import numpy as np
 
 from pylearn2.utils import serial
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,5 +35,3 @@ class Simulator(object):
             if i % 1000 == 0:
                 serial.save(self.save_path, self.agent)
                 logger.info('saved!')
-
-

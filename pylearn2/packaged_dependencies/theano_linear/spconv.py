@@ -128,7 +128,7 @@ def sp_extract_patches(IR, IC, KR, KC, CH,
                                 j = orow*OC*T + ocol*T + t
                                 rval[i, j] = 1
                             except IndexError:
-                                logger.error('%s %s %s %s %s %s %s %s %s', 
+                                logger.error('%s %s %s %s %s %s %s %s %s',
                                     rval.shape, i, j, IR, IC, KR, KC, OR, OC)
                                 raise
     return rval
