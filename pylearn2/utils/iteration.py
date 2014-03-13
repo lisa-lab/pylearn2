@@ -139,7 +139,7 @@ class SubsetIterator(object):
     @property
     def num_examples(self):
         """
-        The total number of examples over whicVyh the iterator operates.
+        The total number of examples over which the iterator operates.
 
         Returns
         -------
@@ -473,7 +473,7 @@ class FiniteDatasetIterator(object):
     dataset : `Dataset` object
         The dataset over which to iterate.
     data_specs : tuple
-        A `(space, source)` tuple. See :doc:`data_specs` for a full
+        A `(space, source)` tuple. See :ref:`data_specs` for a full
         description. Must not contain nested composite spaces.
     subset_iterator : object
         An iterator object that returns slice objects or lists of
