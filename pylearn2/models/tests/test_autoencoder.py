@@ -86,7 +86,6 @@ def test_cae_basic():
         algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
             batch_size: 10,
             learning_rate: .1,
-            init_momentum: .5,
             monitoring_dataset:
                 {
                     'train' : *train
@@ -136,7 +135,6 @@ def test_hcae_basic():
         algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
             batch_size: 10,
             learning_rate: .1,
-            init_momentum: .5,
             monitoring_dataset:
                 {
                     'train' : *train
