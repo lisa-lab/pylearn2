@@ -901,7 +901,7 @@ class BinaryVectorMaxPool(HiddenLayer):
         W = W.T
 
         W = W.reshape((self.detector_layer_dim, self.input_space.shape[0],
-            self.input_space.shape[1], self.input_space.nchannels))
+            self.input_space.shape[1], self.input_space.num_channels))
 
         W = Conv2DSpace.convert(W, self.input_space.axes, ('b', 0, 1, 'c'))
 
