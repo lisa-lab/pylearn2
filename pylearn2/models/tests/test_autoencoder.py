@@ -56,7 +56,7 @@ def test_high_order_autoencoder_init():
             act_dec = 'sigmoid')
 
     X = tensor.matrix()
-    data = np.random.randn(50, 20).astype(config.floatX)
+    data = np.random.randn(10, 5).astype(config.floatX)
     ff = theano.function([X], model.higher_order_penalty(X))
     assert type(ff(data)) == np.ndarray
 
