@@ -487,10 +487,10 @@ class FiniteDatasetIterator(object):
         in `data_specs`, that will be called on the individual
         source batches prior to any further processing.
 
-    Attributes
-    ----------
-    See the documentation for :py:class:`SubsetIterator`; the
-    list of attributes is identical.
+    Notes
+    -----
+    See the documentation for :py:class:`SubsetIterator` for
+    attribute documentation.
     """
     def __init__(self, dataset, subset_iterator, data_specs=None,
                  return_tuple=False, convert=None):
