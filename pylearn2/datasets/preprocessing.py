@@ -59,9 +59,9 @@ class Preprocessor(object):
         """
         Parameters
         ----------
-        dataset: Dataset
+        dataset : Dataset
             The dataset to act on.
-        can_fit: bool
+        can_fit : bool
             If True, the Preprocessor can adapt internal parameters
             based on the contents of dataset. Otherwise it must not
             fit any parameters, or must re-use old ones.
@@ -127,14 +127,22 @@ class ExamplewisePreprocessor(Preprocessor):
 
 
 class BlockPreprocessor(ExamplewisePreprocessor):
-    """
-        An ExamplewisePreprocessor implemented by a Block.
-    """
+    """An ExamplewisePreprocessor implemented by a Block."""
 
     def __init__(self, block):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.block = block
 
     def apply(self, dataset, can_fit=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert not can_fit
         dataset.X = self.block.perform(dataset.X)
 
@@ -144,10 +152,21 @@ class Pipeline(Preprocessor):
         A Preprocessor that sequentially applies a list
         of other Preprocessors.
     """
+
     def __init__(self, items=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.items = items if items is not None else []
 
     def apply(self, dataset, can_fit=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         for item in self.items:
             item.apply(dataset, can_fit)
 
@@ -159,10 +178,20 @@ class ExtractGridPatches(Preprocessor):
     preserved.
     """
     def __init__(self, patch_shape, patch_stride):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.patch_shape = patch_shape
         self.patch_stride = patch_stride
 
     def apply(self, dataset, can_fit=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         X = dataset.get_topological_view()
         num_topological_dimensions = len(X.shape) - 2
         if num_topological_dimensions != len(self.patch_shape):
@@ -235,11 +264,20 @@ class ReassembleGridPatches(Preprocessor):
         This is the inverse of ExtractGridPatches for patch_stride=patch_shape
     """
     def __init__(self, orig_shape, patch_shape):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.patch_shape = patch_shape
         self.orig_shape = orig_shape
 
     def apply(self, dataset, can_fit=False):
+        """
+        .. todo::
 
+            WRITEME
+        """
         patches = dataset.get_topological_view()
 
         num_topological_dimensions = len(patches.shape) - 2
@@ -323,12 +361,22 @@ class ExtractPatches(Preprocessor):
     """ Converts an image dataset into a dataset of patches
         extracted at random from the original dataset. """
     def __init__(self, patch_shape, num_patches, rng=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.patch_shape = patch_shape
         self.num_patches = num_patches
 
         self.start_rng = make_np_rng(copy.copy(rng), [1,2,3], which_method="randint")
 
     def apply(self, dataset, can_fit=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rng = copy.copy(self.start_rng)
 
         X = dataset.get_topological_view()
@@ -373,10 +421,20 @@ class ExamplewiseUnitNormBlock(Block):
     """
 
     def __init__(self, input_space=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         super(ExamplewiseUnitNormBlock, self).__init__()
         self.input_space = input_space
 
     def __call__(self, batch):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.input_space:
             self.input_space.validate(batch)
         squared_batch = batch ** 2
@@ -385,9 +443,19 @@ class ExamplewiseUnitNormBlock(Block):
         return batch / norm
 
     def set_input_space(self, space):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.input_space = space
 
     def get_input_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.input_space is not None:
             return self.input_space
         raise ValueError("No input space was specified for this Block (%s). "
@@ -395,17 +463,38 @@ class ExamplewiseUnitNormBlock(Block):
                          str(self))
 
     def get_output_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.get_input_space()
 
 
 class MakeUnitNorm(ExamplewisePreprocessor):
+    """
+    .. todo::
+
+        WRITEME
+    """
+
     def apply(self, dataset, can_fit=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         X = dataset.get_design_matrix()
         X_norm = numpy.sqrt(numpy.sum(X ** 2, axis=1))
         X /= X_norm[:, None]
         dataset.set_design_matrix(X)
 
     def as_block(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ExamplewiseUnitNormBlock()
 
 
@@ -414,6 +503,7 @@ class ExamplewiseAddScaleTransform(Block):
     A block that encodes an per-feature addition/scaling transform.
     The addition/scaling can be done in either order.
     """
+
     def __init__(self, add=None, multiply=None, multiply_first=False,
                  input_space=None):
         """
@@ -447,16 +537,31 @@ class ExamplewiseAddScaleTransform(Block):
         self.input_space = input_space
 
     def _multiply(self, batch):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self._multiply is not None:
             batch *= self._multiply
         return batch
 
     def _add(self, batch):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self._add is not None:
             batch += self._add
         return batch
 
     def __call__(self, batch):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.input_space:
             self.input_space.validate(batch)
         cur = batch
@@ -467,6 +572,11 @@ class ExamplewiseAddScaleTransform(Block):
         return batch
 
     def inverse(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self._multiply is not None and self._has_zeros:
             raise ZeroDivisionError("%s transformation not invertible "
                                     "due to (near-) zeros in multiplicand" %
@@ -477,9 +587,19 @@ class ExamplewiseAddScaleTransform(Block):
                                   multiply_first=not self._multiply_first)
 
     def set_input_space(self, space):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.input_space = space
 
     def get_input_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.input_space is not None:
             return self.input_space
         raise ValueError("No input space was specified for this Block (%s). "
@@ -487,6 +607,11 @@ class ExamplewiseAddScaleTransform(Block):
                          str(self))
 
     def get_output_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.get_input_space()
 
 
@@ -495,6 +620,7 @@ class RemoveMean(ExamplewisePreprocessor):
     Subtracts the mean along a given axis, or from every element
     if `axis=None`.
     """
+
     def __init__(self, axis=0):
         """
         Initialize a RemoveMean preprocessor.
@@ -509,6 +635,11 @@ class RemoveMean(ExamplewisePreprocessor):
         self._mean = None
 
     def apply(self, dataset, can_fit=True):
+        """
+        .. todo::
+
+            WRITEME
+        """
         X = dataset.get_design_matrix()
         if can_fit:
             self._mean = X.mean(axis=self._axis)
@@ -520,6 +651,11 @@ class RemoveMean(ExamplewisePreprocessor):
         dataset.set_design_matrix(X)
 
     def as_block(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self._mean is None:
             raise ValueError("can't convert %s to block without fitting"
                              % self.__class__.__name__)
@@ -528,6 +664,7 @@ class RemoveMean(ExamplewisePreprocessor):
 
 class Standardize(ExamplewisePreprocessor):
     """Subtracts the mean and divides by the standard deviation."""
+
     def __init__(self, global_mean=False, global_std=False, std_eps=1e-4):
         """
         Initialize a Standardize preprocessor.
@@ -556,6 +693,11 @@ class Standardize(ExamplewisePreprocessor):
         self._std = None
 
     def apply(self, dataset, can_fit=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         X = dataset.get_design_matrix()
         if can_fit:
             self._mean = X.mean() if self._global_mean else X.mean(axis=0)
@@ -568,6 +710,11 @@ class Standardize(ExamplewisePreprocessor):
         dataset.set_design_matrix(new)
 
     def as_block(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self._mean is None or self._std is None:
             raise ValueError("can't convert %s to block without fitting"
                              % self.__class__.__name__)
@@ -577,51 +724,116 @@ class Standardize(ExamplewisePreprocessor):
 
 class ColumnSubsetBlock(Block):
     def __init__(self, columns, total):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self._columns = columns
         self._total = total
 
     def __call__(self, batch):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if batch.ndim != 2:
             raise ValueError("Only two-dimensional tensors are supported")
         return batch.dimshuffle(1, 0)[self._columns].dimshuffle(1, 0)
 
     def inverse(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ZeroColumnInsertBlock(self._columns, self._total)
 
     def get_input_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return VectorSpace(dim=self._total)
 
     def get_output_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return VectorSpace(dim=self._columns)
 
 
 class ZeroColumnInsertBlock(Block):
     def __init__(self, columns, total):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self._columns = columns
         self._total = total
 
     def __call__(self, batch):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if batch.ndim != 2:
             raise ValueError("Only two-dimensional tensors are supported")
         return insert_columns(batch, self._total, self._columns)
 
     def inverse(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ColumnSubsetBlock(self._columns, self._total)
 
     def get_input_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return VectorSpace(dim=self._columns)
 
     def get_output_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return VectorSpace(dim=self._total)
 
 
 class RemoveZeroColumns(ExamplewisePreprocessor):
+    """
+    .. todo::
+
+        WRITEME
+    """
     _eps = 1e-8
 
     def __init__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self._block = None
 
     def apply(self, dataset, can_fit=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         design_matrix = dataset.get_design_matrix()
         mean = design_matrix.mean(axis=0)
         var = design_matrix.var(axis=0)
@@ -629,6 +841,11 @@ class RemoveZeroColumns(ExamplewisePreprocessor):
         self._block = ColumnSubsetBlock
 
     def as_block(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self._block is None:
             raise ValueError("can't convert %s to block without fitting"
                              % self.__class__.__name__)
@@ -636,14 +853,30 @@ class RemoveZeroColumns(ExamplewisePreprocessor):
 
 
 class RemapInterval(ExamplewisePreprocessor):
+    """
+        .. todo::
+
+        WRITEME
+    """
     # TODO: Implement as_block
+
     def __init__(self, map_from, map_to):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert map_from[0] < map_from[1] and len(map_from) == 2
         assert map_to[0] < map_to[1] and len(map_to) == 2
         self.map_from = [numpy.float(x) for x in map_from]
         self.map_to = [numpy.float(x) for x in map_to]
 
     def apply(self, dataset, can_fit=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         X = dataset.get_design_matrix()
         X = (X - self.map_from[0]) / numpy.diff(self.map_from)
         X = X * numpy.diff(self.map_to) + self.map_to[0]
@@ -651,7 +884,17 @@ class RemapInterval(ExamplewisePreprocessor):
 
 
 class PCA_ViewConverter(object):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, to_pca, to_input, to_weights, orig_view_converter):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.to_pca = to_pca
         self.to_input = to_input
         self.to_weights = to_weights
@@ -663,20 +906,45 @@ class PCA_ViewConverter(object):
         self.orig_view_converter = orig_view_converter
 
     def view_shape(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.orig_view_converter.shape
 
     def design_mat_to_topo_view(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         to_input = self.to_input(X)
         return self.orig_view_converter.design_mat_to_topo_view(to_input)
 
     def design_mat_to_weights_view(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         to_weights = self.to_weights(X)
         return self.orig_view_converter.design_mat_to_weights_view(to_weights)
 
     def topo_view_to_design_mat(self, V):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.to_pca(self.orig_view_converter.topo_view_to_design_mat(V))
 
     def get_formatted_batch(self, batch, dspace):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if isinstance(dspace, VectorSpace):
             # Return the batch in the original storage space
             dspace.np_validate(batch)
@@ -689,7 +957,18 @@ class PCA_ViewConverter(object):
 
 
 class PCA(object):
+    """
+    .. todo::
+
+        WRITEME
+    """
+
     def __init__(self, num_components):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self._num_components = num_components
         self._pca = None
         # TODO: Is storing these really necessary? This computation
@@ -699,6 +978,11 @@ class PCA(object):
         self._output = tensor.matrix()
 
     def apply(self, dataset, can_fit=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self._pca is None:
             if not can_fit:
                 raise ValueError("can_fit is False, but PCA preprocessor "
@@ -736,19 +1020,31 @@ class PCA(object):
 
 
 class Downsample(object):
+    """
+    .. todo::
+
+        WRITEME
+    """
+
     def __init__(self, sampling_factor):
         """
-            downsamples the topological view
+        Downsamples the topological view
 
-            parameters
-            ----------
-            sampling_factor: a list or array with one element for
-                            each topological dimension of the data
+        Parameters
+        ----------
+        sampling_factor : list or array
+            One element for each topological 
+            dimension of the data
         """
 
         self.sampling_factor = sampling_factor
 
     def apply(self, dataset, can_fit=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         X = dataset.get_topological_view()
         d = len(X.shape) - 2
         assert d in [2, 3]
@@ -780,6 +1076,11 @@ class Downsample(object):
 
 
 class GlobalContrastNormalization(Preprocessor):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, subtract_mean=True,
                  scale=1., sqrt_bias=0., use_std=False, min_divisor=1e-8,
                  batch_size=None):
@@ -787,13 +1088,19 @@ class GlobalContrastNormalization(Preprocessor):
         See the docstring for `global_contrast_normalize` in
         `pylearn2.expr.preprocessing`.
 
+        .. todo::
+
+            WRITEME properly
+
         Parameters
         ----------
         batch_size : int or None, optional
-                     If specified, read, apply and write the transformed data
-                     in batches no larger than `batch_size`.
-        use_std : defaults to False and sqrt_bias defaults to 0 if nothing is
-                  specified.
+            If specified, read, apply and write the transformed data
+            in batches no larger than `batch_size`.
+        sqrt_bias : float, optional
+            Defaults to 0 if nothing is specified
+        use_std : bool, optional
+		    Defaults to False if nothing is specified
         """
 
         self._subtract_mean = subtract_mean
@@ -807,6 +1114,11 @@ class GlobalContrastNormalization(Preprocessor):
         self._batch_size = batch_size
 
     def apply(self, dataset, can_fit=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self._batch_size is None:
             X = global_contrast_normalize(dataset.get_design_matrix(),
                                           scale=self._scale,
@@ -836,11 +1148,19 @@ class GlobalContrastNormalization(Preprocessor):
 class ZCA(Preprocessor):
     """
     Performs ZCA whitening.
-    TODO: add reference
+
+    .. TODO::
+
+        add reference
     """
+
     def __init__(self, n_components=None, n_drop_components=None,
                  filter_bias=0.1, store_inverse=True):
         """
+        .. todo::
+
+            WRITEME properly
+
         n_components: TODO: WRITEME
         n_drop_components: TODO: WRITEME
         filter_bias: Filters are scaled by 1/sqrt(filter_bias + variance)
@@ -1092,7 +1412,11 @@ class ZCA(Preprocessor):
             self.inv_P_ = None
 
     def apply(self, dataset, can_fit=False):
+        """
+        .. todo::
 
+            WRITEME
+        """
         # Compiles apply.x_minus_mean_times_p(), a numeric Theano function that
         # evauates dot(X - mean, P)
         if not hasattr(ZCA, '_x_minus_mean_times_p'):
@@ -1115,17 +1439,25 @@ class ZCA(Preprocessor):
         dataset.set_design_matrix(new_X)
 
     def inverse(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert X.ndim == 2
         return self._gpu_matrix_dot(X, self.inv_P_) + self.mean_
 
 
 class LeCunLCN(ExamplewisePreprocessor):
-    """ Yann LeCun local contrast normalization
-    """
+    """Yann LeCun local contrast normalization"""
 
     def __init__(self, img_shape, kernel_size=7, batch_size=5000,
                  threshold=1e-4, channels=None):
         """
+        .. todo::
+
+            WRITEME properly
+
         img_shape: image shape
         kernel_size: local contrast kernel size
         batch_size: batch size. If dataset is based on PyTables use a
@@ -1151,6 +1483,10 @@ class LeCunLCN(ExamplewisePreprocessor):
 
     def transform(self, x):
         """
+        .. todo::
+
+            WRITEME properly
+
         X: data with axis [b, 0, 1, c]
         """
         for i in self._channels:
@@ -1164,6 +1500,11 @@ class LeCunLCN(ExamplewisePreprocessor):
             return x
 
     def apply(self, dataset, can_fit=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         axes = ['b', 0, 1, 'c']
         data_size = dataset.X.shape[0]
 
@@ -1205,22 +1546,34 @@ class LeCunLCN(ExamplewisePreprocessor):
 
 
 class RGB_YUV(ExamplewisePreprocessor):
+    """
+    .. todo::
+
+        WRITEME
+    """
 
     def __init__(self, rgb_yuv=True, batch_size=5000):
         """
         Converts image color channels from rgb to yuv and vice versa
 
-        Parameters:
-
-            rgb_yuv: If true converts from rgb to yuv, if false
-            converts from yuv to rgb
-            batch_size: batch_size to make conversions in batches
+        Parameters
+        ----------
+        rgb_yuv : bool, optional
+            If true converts from rgb to yuv, 
+            if false converts from yuv to rgb
+        batch_size : int
+            batch_size to make conversions in batches
         """
 
         self._batch_size = batch_size
         self._rgb_yuv = rgb_yuv
 
     def yuv_rgb(self, x):
+        """
+        .. todo::
+
+            WRITEME
+        """
         y = x[:, :, :, 0]
         u = x[:, :, :, 1]
         v = x[:, :, :, 2]
@@ -1236,6 +1589,11 @@ class RGB_YUV(ExamplewisePreprocessor):
         return x
 
     def rgb_yuv(self, x):
+        """
+        .. todo::
+
+            WRITEME
+        """
         r = x[:, :, :, 0]
         g = x[:, :, :, 1]
         b = x[:, :, :, 2]
@@ -1251,7 +1609,11 @@ class RGB_YUV(ExamplewisePreprocessor):
         return x
 
     def transform(self, x, dataset_axes):
+        """
+        .. todo::
 
+            WRITEME
+        """
         axes = ['b', 0, 1, 'c']
         x = convert_axes(x, dataset_axes, axes)
         if self._rgb_yuv:
@@ -1262,7 +1624,11 @@ class RGB_YUV(ExamplewisePreprocessor):
         return x
 
     def apply(self, dataset, can_fit=False):
+        """
+        .. todo::
 
+            WRITEME
+        """
         X = dataset.X
         data_size = X.shape[0]
         last = (numpy.floor(data_size / float(self._batch_size)) *
@@ -1293,17 +1659,23 @@ class RGB_YUV(ExamplewisePreprocessor):
 
 
 class CentralWindow(Preprocessor):
-    """
-    Preprocesses an image dataset to contain only the central window.
-    """
+    """Preprocesses an image dataset to contain only the central window."""
 
     def __init__(self, window_shape):
+        """
+        .. todo::
 
+            WRITEME
+        """
         self.__dict__.update(locals())
         del self.self
 
     def apply(self, dataset, can_fit=False):
+        """
+        .. todo::
 
+            WRITEME
+        """
         w_rows, w_cols = self.window_shape
 
         arr = dataset.get_topological_view()
@@ -1337,7 +1709,7 @@ class CentralWindow(Preprocessor):
 def lecun_lcn(input, img_shape, kernel_shape, threshold=1e-4):
     """
     Yann LeCun's local contrast normalization
-    Orginal code in Theano by: Guillaume Desjardins
+    Original code in Theano by: Guillaume Desjardins
     """
     input = input.reshape(input.shape[0], input.shape[1], input.shape[2], 1)
     X = tensor.matrix(dtype=input.dtype)
@@ -1376,7 +1748,11 @@ def lecun_lcn(input, img_shape, kernel_shape, threshold=1e-4):
 
 
 def gaussian_filter(kernel_shape):
+    """
+    .. todo::
 
+        WRITEME
+    """
     x = numpy.zeros((kernel_shape, kernel_shape),
                     dtype=theano.config.floatX)
 
@@ -1393,6 +1769,11 @@ def gaussian_filter(kernel_shape):
 
 
 class ShuffleAndSplit(Preprocessor):
+    """
+    .. todo::
+
+        WRITEME
+    """
 
     def __init__(self, seed, start, stop):
         """
@@ -1404,11 +1785,15 @@ class ShuffleAndSplit(Preprocessor):
         or after applying it.
         Shuffles the data, then takes examples in range (start, stop)
         """
-
         self.__dict__.update(locals())
         del self.self
 
     def apply(self, dataset, can_fit=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         start = self.start
         stop = self.stop
         rng = make_np_rng(self.seed, which_method="randint")

@@ -24,7 +24,6 @@ class TL_Challenge(dense_design_matrix.DenseDesignMatrix):
     """
 
     def __init__(self, which_set, center=False, custom_path=None):
-
         assert which_set in ['train', 'test', 'unlabeled', 'custom']
 
         path = "${PYLEARN2_DATA_PATH}/TLChallenge"
