@@ -19,6 +19,7 @@ class MissingTargetCost(Cost):
     ----------
     dropout_args : WRITEME
     """
+
     supervised = True
 
     def __init__(self, dropout_args=None):
