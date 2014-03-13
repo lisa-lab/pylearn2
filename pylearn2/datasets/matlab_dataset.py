@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import numpy as N
 import warnings
 try:
@@ -9,7 +14,17 @@ from theano import config
 
 
 class MatlabDataset(dense_design_matrix.DenseDesignMatrix):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, path, which_set):
+        """
+        .. todo::
+
+            WRITEME
+        """
         Xs = io.loadmat(path)
         X = Xs[which_set]
         super(MatlabDataset, self).__init__(X=N.cast[config.floatX](X))

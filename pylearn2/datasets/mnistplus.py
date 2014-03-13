@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import numpy as np
 from theano import config
 from pylearn2.datasets import dense_design_matrix
@@ -10,20 +15,22 @@ class MNISTPlus(dense_design_matrix.DenseDesignMatrix):
 
     Parameters
     ----------
-    which_set : WRITEME
+    which_set : str
         Dataset to load. One of ['train','valid','test'].
-    label_type : WRITEME
+    label_type : str or None, optional
         String specifies which contents of dictionary are used as "labels"
-    azimuth : WRITEME
+    azimuth : bool, optional
         Load version where lighting is a factor of variation
-    rotation : WRITEME
+    rotation : bool, optional
         Load version where MNIST digits are rotated
-    texture : WRITEME
+    texture : bool,optional
         Load version where MNIST is jointly embossed on a textured background.
-    center : WRITEME
+    center : bool, optional
         If True, remove mean (across examples) for each pixel
-    contrast_normalize : WRITEME
+    contrast_normalize : bool, optional
         If True, for each image, remove mean and divide by standard deviation.
+    seed : int, optional
+        WRITEME
     """
 
     idx = {'train': slice(0,50000),

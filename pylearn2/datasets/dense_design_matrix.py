@@ -379,9 +379,10 @@ class DenseDesignMatrix(Dataset):
         If called, when pickled the dataset will be saved using only
         8 bits per element.
 
-        TODO: Not sure this should be implemented as something a base dataset
-        does. Perhaps as a mixin that specific datasets (i.e. CIFAR10) inherit
-        from.
+        .. todo::
+            Not sure this should be implemented as something a base dataset
+            does. Perhaps as a mixin that specific datasets (i.e. CIFAR10) inherit
+            from.
         """
         self.compress = True
 
@@ -732,16 +733,16 @@ class DenseDesignMatrix(Dataset):
         Sets the dataset to represent V, where V is a batch
         of topological views of examples.
 
+        .. todo::
+
+            Why is this parameter named 'V'?
+
         Parameters
         ----------
         V : ndarray
             An array containing a design matrix representation of
             training examples.
         axes : WRITEME
-
-        .. todo::
-
-            Why is this parameter named 'V'?
         """
         assert not np.any(np.isnan(V))
         rows = V.shape[axes.index(0)]
@@ -1121,6 +1122,10 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         Sets the dataset to represent V, where V is a batch
         of topological views of examples.
 
+        .. todo::
+
+            Why is this parameter named 'V'?
+
         Parameters
         ----------
         V : ndarray
@@ -1130,10 +1135,6 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         axes : WRITEME
             WRITEME
         start : WRITEME
-
-        .. todo::
-
-            Why is this parameter named 'V'?
         """
         assert not np.any(np.isnan(V))
         rows = V.shape[axes.index(0)]

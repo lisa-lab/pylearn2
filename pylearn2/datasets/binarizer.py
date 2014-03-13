@@ -26,9 +26,9 @@ class Binarizer(TransformerDataset):
 
             WRITEME properly
             
-            raw: a pylearn2 Dataset that provides examples with features
+            raw : a pylearn2 Dataset that provides examples with features
                 in the interval [0, 1]
-            seed: the seed passed to MRG_RandomStreams to make the Bernoulli
+            seed : the seed passed to MRG_RandomStreams to make the Bernoulli
                   samples. If not specified, all class instances default to
                   the same seed so two instances can be run synchronized side
                   by side.
