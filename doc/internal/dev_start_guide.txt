@@ -29,10 +29,7 @@ To obtain developer access: register with `GitHub
 Coding style
 ------------
 
-We use the
-`following
-<http://deeplearning.net/software/pylearn/v2_planning/API_coding_style.html>`_
-coding style for Pylearn2.
+See the coding style guideline  :doc:`here <api_coding_style>`.
 
 We do not plan to change all existing code to follow this coding
 style, but as we modify the code, we update it accordingly.
@@ -120,9 +117,8 @@ typo) to keep the history clean, you can do it like this:
 Coding Style Auto Check
 -----------------------
 
-In Pylearn2, we use the same coding style as the `Pylearn
-<http://deeplearning.net/software/pylearn/v2_planning/API_coding_style.html>`_
-project. The principal thing to know is that we follow the
+See the coding style guideline  :doc:`here <api_coding_style>`.
+The principal thing to know is that we follow the
 `pep8 <http://www.python.org/dev/peps/pep-0008/>`_ coding style.
 
 We use git hooks provided in the project `pygithooks
