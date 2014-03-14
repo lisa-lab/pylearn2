@@ -766,7 +766,8 @@ class MF_L1_ActCost(DefaultDataSpecsMixin, Cost):
 
         layer_costs = []
         for layer, mf_state, targets, coeffs, eps in \
-            safe_zip(hidden_layers, H_hat, self.targets, self.coeffs, self.eps):
+            safe_zip(hidden_layers, H_hat, self.targets, self.coeffs,
+                    self.eps):
             cost = None
             try:
                 cost = layer.get_l1_act_cost(mf_state, targets, coeffs, eps)
