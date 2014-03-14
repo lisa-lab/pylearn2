@@ -73,7 +73,7 @@ def load_path(path, overrides=None, environ=None, **kwargs):
         to the desired parameter, e.g. "model.corruptor.corruption_level".
     environ : dict, optional
         A dictionary used for ${FOO} substitutions in addition to
-        environment variables. If a key appears both in `os.environ`
+        environment variables. If a key appears both in `os.environ` \
         and this dictionary, the value in this dictionary is used.
 
     Returns
@@ -325,7 +325,7 @@ def initialize():
     is_initialized = True
 
 
-################################################################################3
+###############################################################################
 # Callbacks used by PyYAML
 
 def multi_constructor_obj(loader, tag_suffix, node):
@@ -336,6 +336,12 @@ def multi_constructor_obj(loader, tag_suffix, node):
     """
     yaml_src = yaml.serialize(node)
     mapping = loader.construct_mapping(node)
+
+    assert hasattr(mapping, 'keys')
+    assert hasattr(mapping, 'values')
+    if not(all(isinstance(x, str) for x in mapping.keys())):
+        raise TypeError("Received not string objects as keys in mapping.")
+
     if '.' not in tag_suffix:
         classname = tag_suffix
         rval = ObjectProxy(classname, mapping, yaml_src)
@@ -352,7 +358,7 @@ def multi_constructor_pkl(loader, tag_suffix, node):
     global additional_environ
     if tag_suffix != "" and tag_suffix != u"":
         raise AssertionError('Expected tag_suffix to be "" but it is "' + tag_suffix +
-                    '": Put space between !pkl: and the filename.')
+                             '": Put space between !pkl: and the filename.')
 
     mapping = loader.construct_yaml_str(node)
     rval = ObjectProxy(None, {}, yaml.serialize(node))
@@ -394,7 +400,7 @@ if __name__ == "__main__":
         "corruptor" : !obj:pylearn2.corruption.GaussianCorruptor &corr {
             "corruption_level" : 0.9
         },
-        "dae" : !obj:pylearn2.autoencoder.DenoisingAutoencoder {
+        "dae" : !obj:pylearn2.models.autoencoder.DenoisingAutoencoder {
             "nhid" : 20,
             "nvis" : 30,
             "act_enc" : null,

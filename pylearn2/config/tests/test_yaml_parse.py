@@ -84,3 +84,20 @@ def test_unpickle_key():
     assert_(loaded.values()[0] == 50)
     os.remove(fname)
 
+
+def test_multi_constructor_obj():
+    """
+    Tests whether multi_constructor_obj throws an exception when
+    the keys in mapping are not of type string.
+    """
+    try:
+        loaded = load("a: !obj:decimal.Decimal { 1 : }")
+    except TypeError as e:
+        assert str(e) == "Received not string objects as keys in mapping."
+        pass
+    except Exception, e:
+        error_msg = "Got the unexpected error: %s" % (e)
+        raise ValueError(error_msg)
+
+if __name__ == "__main__":
+    test_multi_constructor_obj()
