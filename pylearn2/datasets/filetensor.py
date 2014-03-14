@@ -19,8 +19,11 @@ For rank >= 3, the number of dimensions matches the rank exactly.
 """
 import bz2
 import gzip
+import logging
 
 import numpy
+
+logger = logging.getLogger(__name__)
 
 def _prod(lst):
     p = 1
@@ -73,13 +76,13 @@ def _read_header(f, debug=False, fromgzip=None):
     magic = _read_int32(f)
     magic_t, elsize = _magic_dtype[magic]
     if debug:
-        print 'header magic', magic, magic_t, elsize
+        logger.debug('header magic %s %s %s', magic, magic_t, elsize)
     if magic_t == 'packed matrix':
         raise NotImplementedError('packed matrix not supported')
 
     #what is the rank of the tensor?
     ndim = _read_int32(f)
-    if debug: print 'header ndim', ndim
+    if debug: logger.debug('header ndim %d', ndim)
 
     #what are the dimensions of the tensor?
     if fromgzip:
@@ -88,7 +91,7 @@ def _read_header(f, debug=False, fromgzip=None):
     else:
         dim = numpy.fromfile(f, dtype='int32', count=max(ndim,3))[:ndim]
     dim_size = _prod(dim)
-    if debug: print 'header dim', dim, dim_size
+    if debug: logger.debug('header dim %s %s', dim, dim_size)
 
     return magic_t, elsize, ndim, dim, dim_size
 
@@ -159,7 +162,9 @@ class arraylike(object):
         #padding = tuple() if rank <= self.ndim else (1,) * (rank - self.ndim)
         self.returnshape = padding + self.readshape
         self.readsize = _prod(self.readshape)
-        if debug: print 'READ PARAM', self.readshape, self.returnshape, self.readsize
+        if debug:
+            logger.debug('READ PARAM %s %s %s',
+                         self.readshape, self.returnshape, self.readsize)
 
     def __len__(self):
         return _prod(self.dim[:self.ndim-len(self.readshape)])
@@ -242,7 +247,7 @@ def write(f, mat):
     """
     def _write_int32(f, i):
         i_array = numpy.asarray(i, dtype='int32')
-        if 0: print 'writing int32', i, i_array
+        if 0: logger.debug('writing int32 %s %s', i, i_array)
         i_array.tofile(f)
 
     try:
@@ -254,8 +259,7 @@ def write(f, mat):
     shape = mat.shape
     if len(shape) < 3:
         shape = list(shape) + [1] * (3 - len(shape))
-    if 0: print 'writing shape =', shape
+    if 0: logger.debug('writing shape = %s', shape)
     for sh in shape:
         _write_int32(f, sh)
     mat.tofile(f)
-

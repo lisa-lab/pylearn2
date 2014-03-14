@@ -3,6 +3,7 @@
 
     WRITEME
 """
+import logging
 import cPickle
 import pickle
 import numpy as np
@@ -17,6 +18,9 @@ hdf_reader = None
 import struct
 from pylearn2.utils.string_utils import match
 import shutil
+
+logger = logging.getLogger(__name__)
+
 
 def raise_cannot_open(path):
     """
@@ -114,9 +118,9 @@ def load(filepath, recurse_depth=0, retry = True):
 
     def exponential_backoff():
         if recurse_depth > 9:
-            print ('Max number of tries exceeded while trying to open ' +
-                   filepath)
-            print 'attempting to open via reading string'
+            logger.info('Max number of tries exceeded while trying to open ' +
+                        filepath)
+            logger.info('attempting to open via reading string')
             f = open(filepath, 'rb')
             lines = f.readlines()
             f.close()
@@ -124,7 +128,7 @@ def load(filepath, recurse_depth=0, retry = True):
             return cPickle.loads(content)
         else:
             nsec = 0.5 * (2.0 ** float(recurse_depth))
-            print "Waiting " + str(nsec) + " seconds and trying again"
+            logger.info("Waiting " + str(nsec) + " seconds and trying again")
             time.sleep(nsec)
             return load(filepath, recurse_depth + 1, retry)
 
@@ -150,23 +154,23 @@ def load(filepath, recurse_depth=0, retry = True):
         raise MemoryError("You do not have enough memory to open " +
                 filepath)
     except BadPickleGet, e:
-        print ('Failed to open ' + str(filepath) +
-               ' due to BadPickleGet with exception string ' + str(e))
+        logger.exception('Failed to open %s due to BadPickleGet ' +
+                         'with exception string %s', filepath, e)
 
         if not retry:
             raise
         obj =  exponential_backoff()
     except EOFError, e:
 
-        print ('Failed to open ' + str(filepath) +
-               ' due to EOFError with exception string ' + str(e))
+        logger.exception('Failed to open ' + str(filepath) +
+                         ' due to EOFError with exception string ' + str(e))
 
         if not retry:
             raise
         obj =  exponential_backoff()
     except ValueError, e:
-        print ('Failed to open ' + str(filepath) +
-               ' due to ValueError with string ' + str(e))
+        logger.exception('Failed to open ' + str(filepath) +
+                         ' due to ValueError with string ' + str(e))
 
         if not retry:
             raise
@@ -181,10 +185,11 @@ def load(filepath, recurse_depth=0, retry = True):
                             "' due to: " + str(type(e)) + ', ' + str(e) +
                             ". Orig traceback:\n" + tb)
         else:
-            print ("Couldn't open '" + str(filepath) +
-                   "' and exception has no string. Opening it again outside "
-                   "the try/catch so you can see whatever error it prints on "
-                   "its own.")
+            logger.exception("Couldn't open '%s' " +
+                             "and exception has no string. " +
+                             "Opening it again outside the try/catch " +
+                             "so you can see whatever error it prints on " +
+                             "its own.", filepath)
             f = open(filepath, 'rb')
             obj = cPickle.load(f)
             f.close()
@@ -324,34 +329,29 @@ def _save(filepath, obj):
             with open(filepath, 'wb') as filehandle:
                 cPickle.dump(obj, filehandle, get_pickle_protocol())
     except Exception, e:
-        # TODO: logging, or warning
-        print "cPickle has failed to write an object to " + filepath
+        logger.exception("cPickle has failed to write an object to %s",
+                         filepath)
         if str(e).find('maximum recursion depth exceeded') != -1:
             raise
         try:
-            # TODO: logging, or warning
-            print 'retrying with pickle'
+            logging.info('retrying with pickle')
             with open(filepath, "wb") as f:
                 pickle.dump(obj, f)
         except Exception, e2:
             if str(e) == '' and str(e2) == '':
-                # TODO: logging, or warning
-                print (
-                    'neither cPickle nor pickle could write to %s' % filepath
-                )
-                print (
-                    'moreover, neither of them raised an exception that '
-                    'can be converted to a string'
-                )
-                print (
-                    'now re-attempting to write with cPickle outside the '
-                    'try/catch loop so you can see if it prints anything '
-                    'when it dies'
-                )
+                logger.exception("""
+                neither cPickle nor pickle could write to %s,
+                moreover, neither of them raised an exception that can be
+                converted to a string.
+                Now re-attempting to write with cPickle outside the
+                try/catch loop so you can see if it prints anything
+                when it dies
+                """, filepath)
+
                 with open(filepath, 'wb') as f:
                     cPickle.dump(obj, f, get_pickle_protocol())
-                print ('Somehow or other, the file write worked once '
-                       'we quit using the try/catch.')
+                logger.exception('Somehow or other, the file write '
+                                 'worked once we quit using the try/catch.')
             else:
                 if str(e2) == 'env':
                     raise
@@ -364,10 +364,8 @@ def _save(filepath, obj):
                               ' by cPickle due to ' + str(e) +
                               ' nor by pickle due to ' + str(e2) +
                               '. \nTraceback '+ tb)
-        print ('Warning: ' + str(filepath) +
-               ' was written by pickle instead of cPickle, due to '
-               + str(e) +
-               ' (perhaps your object is really big?)')
+        logger.warning('%s was written by pickle instead of cPickle, due to %s'
+                       ' (perhaps your object is really big?)', filepath, e)
 
 def clone_via_serialize(obj):
     """

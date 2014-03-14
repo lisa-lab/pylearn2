@@ -16,8 +16,12 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
+import logging
 from pylearn2.devtools.list_files import list_files
 from pylearn2.utils.shell import run_shell_command
+
+logger = logging.getLogger(__name__)
+
 
 def run_pyflakes(no_warnings = False):
     """
@@ -106,6 +110,6 @@ if __name__ == '__main__':
     d = run_pyflakes( no_warnings = no_warnings)
 
     for key in d:
-        print key +':'
+        logger.info(key + ':')
         for l in d[key].split('\n'):
-            print '\t'+l
+            logger.info('\t' + l)

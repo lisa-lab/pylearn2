@@ -7,9 +7,14 @@ Prints the number of parameters in a saved model (total number of scalar
 elements in all the arrays parameterizing the model).
 """
 
+import logging
 import sys
 
 from pylearn2.utils import serial
+
+
+logger = logging.getLogger(__name__)
+
 
 def num_parameters(model):
     params = model.get_params()
@@ -18,4 +23,4 @@ def num_parameters(model):
 if __name__ == '__main__':
     _, model_path = sys.argv
     model = serial.load(model_path)
-    print num_parameters(model)
+    logger.info(num_parameters(model))

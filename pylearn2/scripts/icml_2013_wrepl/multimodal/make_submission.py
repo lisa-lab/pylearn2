@@ -1,5 +1,6 @@
 import numpy as np
 import sys
+import logging
 
 from theano import function
 from theano import tensor as T
@@ -7,17 +8,21 @@ from theano import tensor as T
 from pylearn2.utils import serial
 from pylearn2.utils.string_utils import preprocess
 
+
+logger = logging.getLogger(__name__)
+
+
 def usage():
-    """
+    logger.info("""
 Run
 python make_submission.py <model> <test set>
 where <test set> is public_test or private_test
 (private_test will be released 72 hours before the end of the contest)
-"""
+""")
 
 if len(sys.argv) != 3:
     usage()
-    print "(You used the wrong number of arguments)"
+    logger.error("(You used the wrong number of arguments)")
     quit(-1)
 
 _, model_path, test_set = sys.argv

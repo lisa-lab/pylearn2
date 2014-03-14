@@ -562,7 +562,7 @@ class MonitorBasedLRAdjuster(TrainExtension):
 
         rval = current_learning_rate
 
-        print "monitoring channel is %s" %self.channel_name
+        log.info("monitoring channel is %s", self.channel_name)
 
         if v[-1] > self.high_trigger * v[-2]:
             rval *= self.shrink_amt

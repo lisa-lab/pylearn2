@@ -24,11 +24,16 @@ instead of displaying them. This can be useful when working over ssh.
 """
 
 import sys
+import logging
+
 from pylearn2.utils import serial
 import numpy as np
 from pylearn2.gui.patch_viewer import PatchViewer
 from pylearn2.gui.patch_viewer import make_viewer
 from pylearn2.config import yaml_parse
+
+
+logger = logging.getLogger(__name__)
 
 if len(sys.argv) == 2:
     _, model_path = sys.argv
@@ -42,8 +47,8 @@ layer_1, layer_2 = model.hidden_layers[0:2]
 
 W1 = layer_1.get_weights()
 W2 = layer_2.get_weights()
-print W1.shape
-print W2.shape
+logger.info(W1.shape)
+logger.info(W2.shape)
 
 prod = np.dot(W1,W2)
 pv = make_viewer(prod.T)
@@ -53,7 +58,7 @@ else:
     pv.save(out_prefix+"_prod.png")
 
 
-print 'Sorting so largest-norm layer 2 weights are plotted at the top'
+logger.info('Sorting so largest-norm layer 2 weights are plotted at the top')
 norms = np.square(W2).sum(axis=0)
 idxs = [elem[1] for elem in sorted( zip( -norms, range(norms.shape[0]) ) ) ]
 
@@ -99,16 +104,17 @@ for i in xrange(N):
     total_counts += count
 ave = total_counts / float(N)
 
-print 'average needed filters',ave
+logger.info('average needed filters %d', ave)
 
 count = max_count
 
-print 'It takes',count,'of',N1,'elements to account for ',(thresh*100.),'\% of the weight in at least one filter'
+logger.info('It takes %d of %d elements to account for %s\% of the weight ' +
+            'in at least one filter', count, N1, (thresh*100.))
 
 lim = 10
 if count > lim:
     count = lim
-    print 'Only displaying ',count,' elements though.'
+    logger.info('Only displaying %d elements though.', count)
 
 if count > N1:
     count = N1

@@ -1,5 +1,6 @@
 import cPickle as pickle
 import itertools
+import logging
 
 import numpy as np
 import theano.tensor as T
@@ -17,6 +18,9 @@ from pylearn2.termination_criteria import EpochCounter
 from pylearn2.train import Train
 from pylearn2.training_algorithms.sgd import SGD, MonitorBasedLRAdjuster
 from pylearn2.utils import image, safe_zip
+
+
+logger = logging.getLogger(__name__)
 
 # define some common parameters
 HIDDEN_SIZE = 1000
@@ -66,7 +70,7 @@ def test_train_ae():
     trainer = Train(ds, gsn, algorithm=alg, save_path="gsn_ae_example.pkl",
                     save_freq=5)
     trainer.main_loop()
-    print "done training"
+    logger.info("done training")
 
 def test_sample_ae():
     """
@@ -93,7 +97,7 @@ def test_sample_ae():
     # code to get log likelihood from kernel density estimator
     # this crashed on GPU (out of memory), but works on CPU
     pw = ParzenWindows(MNIST(which_set='test').X, .20)
-    print pw.get_ll(history)
+    logger.info(pw.get_ll(history))
 
 def test_train_supervised():
     """
@@ -144,7 +148,7 @@ def test_train_supervised():
                     save_path="gsn_sup_example.pkl", save_freq=10,
                     extensions=[MonitorBasedLRAdjuster()])
     trainer.main_loop()
-    print "done training"
+    logger.info("done training")
 
 def test_classify():
     """
@@ -169,7 +173,7 @@ def test_classify():
         # error indices
         #np.sum(np.abs(y_hat - y), axis=1) != 0
 
-        print i, errors, errors / mb_data.shape[0]
+        logger.info("%d %d %d", i, errors, errors / mb_data.shape[0])
 
 def test_sample_supervised(idxs=None, noisy=True):
     """
@@ -246,7 +250,7 @@ def vis_samples(samples):
 
 # some utility methods for viewing MNIST characters without any GUI
 def print_char(A):
-    print a_to_s(A.round().reshape((28, 28)))
+    logger.info(a_to_s(A.round().reshape((28, 28))))
 
 def a_to_s(A):
     """Prints binary array"""

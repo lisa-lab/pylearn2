@@ -15,9 +15,12 @@ __email__ = "goodfeli@iro"
 
 import warnings
 import numpy as np
+import logging
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.config import yaml_parse
 from pylearn2.datasets import control
+
+logger = logging.getLogger(__name__)
 
 
 class ZCA_Dataset(DenseDesignMatrix):
@@ -93,9 +96,9 @@ class ZCA_Dataset(DenseDesignMatrix):
                           "some time. For efficiency, it is recommended that "
                           "in the future you compute the inverse in ZCA.fit() "
                           "instead, by passing it compute_inverse=True.")
-            print 'inverting...'
+            logger.info('inverting...')
             preprocessor.inv_P_ = np.linalg.inv(preprocessor.P_)
-            print '...done inverting'
+            logger.info('...done inverting')
 
         self.view_converter.set_axes(axes)
 

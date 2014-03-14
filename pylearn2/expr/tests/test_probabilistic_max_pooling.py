@@ -1,5 +1,6 @@
 import numpy as np
 import warnings
+import logging
 
 from theano import config
 from theano import function
@@ -17,6 +18,8 @@ from pylearn2.expr.probabilistic_max_pooling import max_pool_softmax_op
 from pylearn2.expr.probabilistic_max_pooling import \
     max_pool_softmax_with_bias_op
 from pylearn2.testing import no_debug_mode
+
+logger = logging.getLogger(__name__)
 
 
 def check_correctness_channelwise(f):
@@ -53,14 +56,14 @@ def check_correctness_channelwise(f):
     assert p_np.shape == pv.shape
     assert h_np.shape == hv.shape
     if not np.allclose(h_np, hv):
-        print (h_np.min(), h_np.max())
-        print (hv.min(), hv.max())
+        logger.error((h_np.min(), h_np.max()))
+        logger.error((hv.min(), hv.max()))
         assert False
     if not np.allclose(p_np, pv):
         diff = abs(p_np - pv)
-        print 'max diff ', diff.max()
-        print 'min diff ', diff.min()
-        print 'ave diff ', diff.mean()
+        logger.error('max diff %s', diff.max())
+        logger.error('min diff %s', diff.min())
+        logger.error('ave diff %s', diff.mean())
         assert False
 
 
@@ -93,14 +96,14 @@ def check_correctness_sigmoid_channelwise(f):
     assert p_s.shape == pv.shape
     assert h_s.shape == hv.shape
     if not np.allclose(h_s, hv):
-        print (h_s.min(), h_s.max())
-        print (hv.min(), hv.max())
+        logger.error((h_s.min(), h_s.max()))
+        logger.error((hv.min(), hv.max()))
         assert False
     if not np.allclose(p_s, pv):
         diff = abs(p_s - pv)
-        print 'max diff ', diff.max()
-        print 'min diff ', diff.min()
-        print 'ave diff ', diff.mean()
+        logger.error('max diff %s', diff.max())
+        logger.error('min diff %s', diff.min())
+        logger.error('ave diff %s', diff.mean())
         assert False
 
 
@@ -130,8 +133,8 @@ def check_correctness(f):
     assert p_np.shape == pv.shape
     assert h_np.shape == hv.shape
     if not np.allclose(h_np, hv):
-        print (h_np.min(), h_np.max())
-        print (hv.min(), hv.max())
+        logger.error((h_np.min(), h_np.max()))
+        logger.error((hv.min(), hv.max()))
         assert False
     assert np.allclose(p_np, pv)
 
@@ -180,14 +183,14 @@ def check_correctness_bc01(f):
     assert p_np.shape == pv.shape
     assert h_np.shape == hv.shape
     if not np.allclose(h_np, hv):
-        print (h_np.min(), h_np.max())
-        print (hv.min(), hv.max())
+        logger.error((h_np.min(), h_np.max()))
+        logger.error((hv.min(), hv.max()))
         assert False
     if not np.allclose(p_np, pv):
         diff = abs(p_np - pv)
-        print 'max diff ', diff.max()
-        print 'min diff ', diff.min()
-        print 'ave diff ', diff.mean()
+        logger.error('max diff %s', diff.max())
+        logger.error('min diff %s', diff.min())
+        logger.error('ave diff %s', diff.mean())
         assert False
 
 
@@ -241,14 +244,14 @@ def check_correctness_c01b(f):
         raise AssertionError(str((p_np.shape, pv.shape)))
     assert h_np.shape == hv.shape
     if not np.allclose(h_np, hv):
-        print (h_np.min(), h_np.max())
-        print (hv.min(), hv.max())
+        logger.error((h_np.min(), h_np.max()))
+        logger.error((hv.min(), hv.max()))
         assert False
     if not np.allclose(p_np, pv):
         diff = abs(p_np - pv)
-        print 'max diff ', diff.max()
-        print 'min diff ', diff.min()
-        print 'ave diff ', diff.mean()
+        logger.error('max diff %s', diff.max())
+        logger.error('min diff %s', diff.min())
+        logger.error('ave diff %s', diff.mean())
         assert False
     warnings.warn("TODO: make sampling tests run on c01b format of pooling.")
 
@@ -638,12 +641,12 @@ def check_sample_correctishness_channelwise(f):
     # many different activation probs for both detector and pooling layer
     buckets = 10
     bucket_width = 1. / float(buckets)
-    print pv.min(), pv.max()
-    print hv.min(), hv.max()
+    logger.info('%s %s', pv.min(), pv.max())
+    logger.info('%s %s', hv.min(), hv.max())
     for i in xrange(buckets):
         lower_lim = i * bucket_width
         upper_lim = (i+1) * bucket_width
-        print lower_lim, upper_lim
+        logger.info('%s %s', lower_lim, upper_lim)
 
         assert np.any((pv >= lower_lim) * (pv < upper_lim))
         assert np.any((hv >= lower_lim) * (hv < upper_lim))

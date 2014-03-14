@@ -1,6 +1,10 @@
 __author__ = "Ian Goodfellow"
 
+import logging
 from pylearn2.devtools.list_files import list_files
+
+logger = logging.getLogger(__name__)
+
 
 def test_shebangs():
     # Make sure all scripts that use shebangs use /usr/bin/env
@@ -19,6 +23,6 @@ def test_shebangs():
         fd.close()
         if l.startswith("#!"):
             if not l[2:].strip().startswith("/usr/bin/env"):
-                print l
-                print f
+                logger.info(l)
+                logger.info(f)
                 raise AssertionError("Bad shebang")

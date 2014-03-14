@@ -3,6 +3,9 @@
 #loads the pkl file and figures out which fields are CudaNDArrays
 
 import sys
+import logging
+
+logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     path = sys.argv[1]
@@ -20,8 +23,8 @@ if __name__ == "__main__":
         global visited
 
         if isinstance(cur_obj, CudaNdarray):
-            print cur_name
-        print cur_name
+            logger.info(cur_name)
+        logger.info(cur_name)
         for field, new_obj in inspect.getmembers(cur_obj):
 
             if new_obj in visited:
@@ -29,7 +32,7 @@ if __name__ == "__main__":
 
             visited = visited.union([new_obj])
 
-            print visited
+            logger.info(visited)
 
             find(new_obj,cur_name+'.'+field)
 

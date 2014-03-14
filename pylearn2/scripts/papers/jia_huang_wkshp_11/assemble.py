@@ -1,11 +1,14 @@
 import numpy as np
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 #check that the right files are present
 names = os.listdir('.')
 
 if 'features.npy' in names:
-    print "Not doing anything, features.npy already exists."
+    logger.error("Not doing anything, features.npy already exists.")
     quit(0)
 
 chunk_names = [ 'features_A.npy',
@@ -20,22 +23,23 @@ for name in chunk_names:
 for name in chunk_names:
     if name.startswith('features') and name.endswith('.npy'):
         if name not in chunk_names:
-            print "I'm not sure what to do with "+name
-            print "The existence of this file makes me think extract_features.yaml has changed"
-            print "I don't want to do something incorrect so I'm going to give up."
+            logger.error(
+                """I'm not sure what to do with %s The existence of this file
+                makes me think extract_features.yaml has changed I don't want
+                to do something incorrect so I'm going to give up.
+                """, name)
             quit(-1)
 
 
-
 #Do the conversion
-print 'loading '+chunk_names[0]
+logger.info('loading %s', chunk_names[0])
 first_chunk = np.load(chunk_names[0])
 
 final_shape = list(first_chunk.shape)
 
 final_shape[0] = 50000
 
-print 'making output'
+logger.info('making output')
 X = np.zeros(final_shape,dtype='float32')
 
 idx = first_chunk.shape[0]
@@ -45,7 +49,7 @@ X[0:idx,:] = first_chunk
 for i in xrange(1, len(chunk_names)):
 
     arg = chunk_names[i]
-    print 'loading '+arg
+    logger.info('loading %s', arg)
 
     chunk = np.load(arg)
 
@@ -55,10 +59,9 @@ for i in xrange(1, len(chunk_names)):
 
     idx += chunk_span
 
-print "Saving features.npy..."
+logger.info("Saving features.npy...")
 np.save('features.npy',X)
 
-print "Deleting the chunks..."
+logger.info("Deleting the chunks...")
 for chunk_name in chunk_names:
     os.remove(chunk_name)
-

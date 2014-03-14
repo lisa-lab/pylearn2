@@ -9,7 +9,7 @@ the model should be an MLP
 see http://fastml.com/how-to-get-predictions-from-pylearn2/
 author: Zygmunt Zając
 """
-
+import logging
 import sys
 import os
 import numpy as np
@@ -19,45 +19,48 @@ from pylearn2.utils import serial
 from theano import tensor as T
 from theano import function
 
+
+logger = logging.getLogger(__name__)
+
 if __name__ == "__main__":
     try:
         model_path = sys.argv[1]
         test_path = sys.argv[2]
         out_path = sys.argv[3]
     except IndexError:
-        print "Usage: predict.py <model file> <test file> <output file>"
-        print "       predict.py saved_model.pkl test_x.csv predictions.csv\n"
+        logger.error("Usage: predict.py <model file> <test file> " +
+                     "<output file>")
+        logger.error("       predict.py saved_model.pkl test_x.csv " +
+                     "predictions.csv\n")
         quit()
 
-    print "loading model..."
+    logger.info("loading model...")
 
     try:
         model = serial.load(model_path)
     except Exception, e:
-        print "error loading {}:".format(model_path)
-        print e
+        logger.exception("error loading {}:".format(model_path))
+        logger.exception(e)
         quit(-1)
 
-    print "setting up symbolic expressions..."
+    logger.info("setting up symbolic expressions...")
 
     X = model.get_input_space().make_theano_batch()
     Y = model.fprop(X)
 
-# drop this when performing regression
+    # drop this when performing regression
     Y = T.argmax(Y, axis=1)
 
     f = function([X], Y)
 
-    print "loading data and predicting..."
+    logger.info("loading data and predicting...")
 
-# x is a numpy array
-# x = pickle.load(open(test_path, 'rb'))
+    # x is a numpy array
+    # x = pickle.load(open(test_path, 'rb'))
     x = np.loadtxt(test_path, delimiter=',')	# no labels in the file
 
     y = f(x)
 
-    print "writing predictions..."
+    logger.info("writing predictions...")
 
     np.savetxt(out_path, y, fmt='%d')
-
-

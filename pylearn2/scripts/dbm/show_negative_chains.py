@@ -8,11 +8,16 @@ __maintainer__ = "Ian Goodfellow"
 
 
 import sys
+import logging
+
 from pylearn2.utils import serial
 from pylearn2.datasets import control
 from pylearn2.config import yaml_parse
 import numpy as np
 from pylearn2.gui.patch_viewer import PatchViewer
+
+
+logger = logging.getLogger(__name__)
 
 ignore, model_path = sys.argv
 model = serial.load(model_path)
@@ -24,7 +29,7 @@ dataset = yaml_parse.load(model.dataset_yaml_src)
 try:
     layer_to_chains = model.layer_to_chains
 except AttributeError:
-    print "This model doesn't have negative chains."
+    logger.error("This model doesn't have negative chains.")
     quit(-1)
 
 vis_chains = layer_to_chains[model.visible_layer]

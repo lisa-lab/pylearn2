@@ -1,7 +1,7 @@
 """
 K-means as a postprocessing Block subclass.
 """
-
+import logging
 import numpy
 from pylearn2.blocks import Block
 from pylearn2.models.model import Model
@@ -16,6 +16,9 @@ except:
     warnings.warn(""" Install milk ( http://packages.python.org/milk/ )
                     It has a better k-means implementation. Falling back to
                     our own really slow implementation. """)
+
+logger = logging.getLogger(__name__)
+
 
 class KMeans(Block, Model):
     """
@@ -95,8 +98,8 @@ class KMeans(Block, Model):
             try:
                 dists = numpy.zeros((n, k))
             except MemoryError:
-                print ("dying trying to allocate dists matrix ",
-                       "for %d examples and %d means" % (n, k))
+                logger.exception("dying trying to allocate dists matrix ",
+                                 "for %d examples and %d means", n, k)
                 raise
 
             old_kills = {}
@@ -105,12 +108,12 @@ class KMeans(Block, Model):
             mmd = prev_mmd = float('inf')
             while True:
                 if self.verbose:
-                    print 'kmeans iter ' + str(iter)
+                    logger.debug('kmeans iter ' + str(iter))
 
                 #print 'iter:',iter,' conv crit:',abs(mmd-prev_mmd)
                 #if numpy.sum(numpy.isnan(mu)) > 0:
                 if numpy.any(numpy.isnan(mu)):
-                    print 'nan found'
+                    logger.warning('nan found')
                     return X
 
                 #computing distances
@@ -125,7 +128,7 @@ class KMeans(Block, Model):
                 #mean minimum distance:
                 mmd = min_dists.mean()
 
-                print 'cost: ',mmd
+                logger.info('cost: %d', mmd)
 
                 if iter > 0 and (iter >= self.max_iter or \
                                         abs(mmd - prev_mmd) < self.convergence_th):
@@ -172,7 +175,7 @@ class KMeans(Block, Model):
                     else:
                         mu[i, :] = numpy.mean(X[b, :], axis=0)
                         if numpy.any(numpy.isnan(mu)):
-                            print 'nan found at', i
+                            logger.warning('nan found at %d', i)
                             return X
                         i += 1
 

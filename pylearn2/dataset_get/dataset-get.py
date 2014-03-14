@@ -21,6 +21,9 @@ import warnings
 import urllib,urllib2
 import tarfile
 import subprocess
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 ########################################
@@ -340,7 +343,7 @@ def read_packages_sources():
         read_from_file(path)
     if len(packages_sources)==0:
         raise RuntimeError( "[cf] fatal: could not find/read sources.lst (unexpected!)" )
-    
+
 
 ########################################
 def read_installed_packages_list():
@@ -411,7 +414,8 @@ def read_installed_packages_list():
     for path in paths:
         read_from_file(path)
     if len(installed_packages_list)==0:
-        print "[cf] warning: no install.lst found (will be created on install/upgrade)"
+        logger.warning("no install.lst found "
+                       "(will be created on install/upgrade)")
 
 
 ########################################
@@ -678,7 +682,7 @@ def show_packages():
     List all available packages, both
     installed or from remove sources
     """
-    print "These packages are available:"
+    logger.info("These packages are available:")
     print
     for this_package in packages_sources.values():
         if this_package.name in installed_packages_list:
@@ -686,12 +690,11 @@ def show_packages():
         else:
             state="-"
 
-        print "%c %-20s %-8s %-30s %s" % \
-            ( state,
-              this_package.name,
-              this_package.readable_size,
-              time.strftime("%a, %d %b %Y %H:%M:%S",time.gmtime(this_package.timestamp)),
-              this_package.source )
+        logger.info("%c %-20s %-8s %-30s %s",
+                    state, this_package.name, this_package.readable_size,
+                    time.strftime("%a, %d %b %Y %H:%M:%S",
+                    time.gmtime(this_package.timestamp)), this_package.source
+                    )
     print
 
 
@@ -708,12 +711,12 @@ def install_upgrade( package, upgrade=False,progress_hook=None ):
     global hook_download_filename # hook-related
 
     if upgrade:
-        print "[up] upgrading",
+        action = "[up] upgrading"
     else:
-        print "[in] installing",
-    print "'%s' to %s" % (package.name,dataset_data_path)
+        action = "[in] installing"
+    logger.info("'%s' '%s' to %s", action, package.name, dataset_data_path)
 
-    
+
     remote_src=package.source
 
     # install location is determined by super-powers
@@ -734,7 +737,7 @@ def install_upgrade( package, upgrade=False,progress_hook=None ):
         pass
 
     print
-    print "[in] running install scripts for package '%s'" % package.name
+    logger.info("[in] running install scripts for package '%s'", package.name)
 
     # runs through the .../package_name/scripts/
     # directory and executes the scripts in a
@@ -785,17 +788,19 @@ def upgrade_packages(packages_to_upgrade, hook=None ):
 
                 if installed_date < repo_date:
                     # ok, there's a newer version
-                    print this_package
+                    logger.info(this_package)
                     packages_really_to_upgrade.append(this_package)
                 else:
                     # no newer version, nothing to update
                     pass
             else:
-                print "[up] warning: '%s' is unknown (installed from file?)." % this_package
+                logger.warning("[up]: '%s' is unknown (installed from file?).",
+                               this_package)
         else:
             # not installed?
             if not all_packages:
-                print "[up] warning: '%s' is not installed, cannot upgrade." % this_package
+                logger.warning("[up]: '%s' is not installed, cannot upgrade.",
+                               this_package)
                 pass
 
 
@@ -804,10 +809,11 @@ def upgrade_packages(packages_to_upgrade, hook=None ):
     # user for him to confirm
     #
     if packages_really_to_upgrade!=[]:
-        print "[up] the following package(s) will be upgraded:"
+        logger.info("[up] the following package(s) will be upgraded:")
         print
         for this_package in packages_really_to_upgrade:
-            print  this_package,"(%s)" % packages_sources[this_package].readable_size
+            logger.info("%s (%s)", this_package,
+                        packages_sources[this_package].readable_size)
         print
 
         r=raw_input("Proceed? [yes/N] ")
@@ -815,7 +821,7 @@ def upgrade_packages(packages_to_upgrade, hook=None ):
             for  this_package in packages_really_to_upgrade:
                 install_upgrade( packages_sources[this_package], upgrade=True, progress_hook=hook )
         else:
-            print "[up] Taking '%s' for no, so there." % r
+            logger.info("[up] Taking '%s' for no, so there.", r)
     else:
         # ok, nothing to upgrade,
         # move along.
@@ -845,7 +851,7 @@ def install_packages( packages_to_install, force_install=False, hook=None ):
         raise RuntimeError("[in] fatal: need packages names to install.")
 
     if force_install:
-        print "[in] warning: using the force"
+        logger.warning("[in] warning: using the force")
 
     packages_really_to_install=[]
     for this_package in packages_to_install:
@@ -854,15 +860,18 @@ def install_packages( packages_to_install, force_install=False, hook=None ):
             if force_install or not this_package in installed_packages_list:
                 packages_really_to_install.append(this_package)
             else:
-                print "[in] warning: package '%s' is already installed" % this_package
+                logger.warning("[in]: package '%s' is already installed",
+                               this_package)
         else:
-            print "[in] warning: unknown package '%s'" % this_package
+            logger.warning("[in]: unknown package '%s'",
+                           this_package)
 
     if packages_really_to_install!=[]:
-        print "[in] The following package(s) will be installed:"
+        logger.info("[in] The following package(s) will be installed:")
         print
         for this_package in packages_really_to_install:
-            print "%s (%s)" % (this_package, packages_sources[this_package].readable_size)
+            logger.info("%s (%s)", this_package,
+                        packages_sources[this_package].readable_size)
         print
         print
 
@@ -871,7 +880,7 @@ def install_packages( packages_to_install, force_install=False, hook=None ):
             for  this_package in packages_really_to_install:
                 install_upgrade( packages_sources[this_package], upgrade=False, progress_hook=hook )
         else:
-            print "[in] Taking '%s' for no, so there." % r
+            logger.info("[in] Taking '%s' for no, so there.", r)
     else:
         # ok, nothing to upgrade,
         # move along.
@@ -898,13 +907,15 @@ def install_packages_from_file( packages_to_install ):
         if os.path.exists(this_package):
             packages_really_to_install.append(this_package)
         else:
-            print "[in] warning: package '%s' not found" % this_package
+            logger.warning("[in]: package '%s' not found", this_package)
 
     if packages_really_to_install!=[]:
-        print "[in] The following package(s) will be installed:"
+        logger.info("[in] The following package(s) will be installed:")
         print
+        packages = []
         for this_package in packages_really_to_install:
-            print corename(this_package),
+            packages.append(corename(this_package))
+        logger.info(' '.join(packages))
         print
         print
 
@@ -916,13 +927,14 @@ def install_packages_from_file( packages_to_install ):
                     r=raw_input("[in] '%s' already installed, overwrite? [yes/N] " % corename(this_package))
 
                     if r!='y' and r!='yes':
-                        print"[in] skipping package '%s'" % corename(this_package)
+                        logger.info("[in] skipping package '%s'",
+                                    corename(this_package))
                         continue
                 install_package( corename(this_package), this_package, dataset_data_path)
                 #update_installed_list("i",(make a package object here),dataset_data_path)
 
         else:
-            print "[in] Taking '%s' for no, so there." % r
+            logger.info("[in] Taking '%s' for no, so there.", r)
 
 
 
@@ -971,19 +983,24 @@ def remove_packages( packages_to_remove ):
                         # ok, you may have rights to delete it
                         packages_really_to_remove.append(this_package)
                     else:
-                        print "[rm] warning: insufficient rights to remove '%s'" % this_package
+                        logger.warning("[rm]: insufficient rights " +
+                                       "to remove '%s'", this_package)
                 else:
-                    print "[rm] warning: package '%s' found in config file but not installed" % this_package
+                    logger.warning("[rm]: package '%s' found in config file " +
+                                   "but not installed", this_package)
             else:
-                print "[rm] warning: package '%s' not installed" % this_package
+                logger.warning("[rm]: package '%s' not installed",
+                               this_package)
         else:
-            print "[rm] warning: unknown package '%s'" % this_package
+            logger.warning("[rm]: unknown package '%s'", this_package)
 
     if packages_really_to_remove!=[]:
-        print "[rm] the following packages will be removed permanently:"
+        logger.info("[rm] the following packages will be removed permanently:")
         print
+        packages = []
         for this_package in packages_really_to_remove:
-            print this_package,
+            packages.append(this_package)
+        logger.info(' '.join(packages))
         print
         print
 
@@ -992,7 +1009,7 @@ def remove_packages( packages_to_remove ):
             for  this_package in packages_really_to_remove:
                 remove_package( installed_packages_list[this_package], dataset_data_path )
         else:
-            print "[up] Taking '%s' for no, so there." % r
+            logger.info("[up] Taking '%s' for no, so there.", r)
     else:
         # ok, nothing to remove, filenames where bad.
         pass
@@ -1090,7 +1107,7 @@ def process_arguments():
 
 
         elif sys.argv[1]=="version":
-            print __version__
+            logger.info(__version__)
 
         else:
             raise RuntimeError("[cl] unknown command '%s'" % sys.argv[1])
