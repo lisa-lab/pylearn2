@@ -380,9 +380,10 @@ class DenseDesignMatrix(Dataset):
         8 bits per element.
 
         .. todo::
+
             Not sure this should be implemented as something a base dataset
-            does. Perhaps as a mixin that specific datasets (i.e. CIFAR10) inherit
-            from.
+            does. Perhaps as a mixin that specific datasets (i.e. CIFAR10)
+            inherit from.
         """
         self.compress = True
 
