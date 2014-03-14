@@ -61,17 +61,17 @@ class LibVersion(object):
         self._get_exp_env_info()
 
     def _get_exp_env_info(self):
-        """
-        Get information about the experimental environment such as the cpu, os and
+	"""
+	Get information about the experimental environment such as the cpu, os and
         the hostname of the machine on which the experiment is running.
-        """
-        self.exp_env_info['host'] = socket.gethostname()
-        self.exp_env_info['cpu'] = platform.processor()
-        self.exp_env_info['os'] = platform.platform()
-        if 'theano' in sys.modules:
-            self.exp_env_info['theano_config'] = sys.modules['theano'].config
-        else:
-            self.exp_env_info['theano_config'] = None
+	"""
+	self.exp_env_info['host'] = socket.gethostname()
+	self.exp_env_info['cpu'] = platform.processor()
+	self.exp_env_info['os'] = platform.platform()
+	if 'theano' in sys.modules:
+	    self.exp_env_info['theano_config'] = sys.modules['theano'].config
+	else:
+	    self.exp_env_info['theano_config'] = None
 
     def _get_lib_versions(self):
         """
@@ -82,20 +82,20 @@ class LibVersion(object):
         repos = default_repos + ":" + repos
         repos = set(repos.split(':'))
         for repo in repos:
-            try:
-                if repo == '':
-                    continue
-                __import__(repo)
-                if hasattr(sys.modules[repo], '__version__'):
-                    v = sys.modules[repo].__version__
-                    if v != 'unknown':
-                        self.versions[repo] = v
-                        continue
-                self.versions[repo] = self._get_git_version(self._get_module_parent_path(sys.modules[repo]))
-            except ImportError:
-                self.versions[repo] = None
+	    try:
+		if repo == '':
+		    continue
+		__import__(repo)
+		if hasattr(sys.modules[repo], '__version__'):
+		    v = sys.modules[repo].__version__
+		    if v != 'unknown':
+			self.versions[repo] = v
+			continue
+		self.versions[repo] = self._get_git_version(self._get_module_parent_path(sys.modules[repo]))
+	    except ImportError:
+		self.versions[repo] = None
 
-        known = copy.copy(self.versions)
+	known = copy.copy(self.versions)
         # Put together all modules with unknown versions.
         unknown = []
         for k, v in known.items():
@@ -135,16 +135,14 @@ class LibVersion(object):
             sub_p = subprocess.Popen(['git', 'rev-parse', 'HEAD'],
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE)
-            version = sub_p.communicate()[0][0:10].strip()
-            sub_p = subprocess.Popen(['git', 'diff', '--name-only'],
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE)
-            modified = sub_p.communicate()[0]
-            if len(modified):
-                version += ' M'
-            return version
-        except:
-            return None
+	    version = sub_p.communicate()[0][0:10].strip()
+	    sub_p = subprocess.Popen(['git', 'diff', '--name-only'],
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)
+	    modified = sub_p.communicate()[0]
+	    if len(modified):
+		version += ' M'
+	    return version
         finally:
             os.chdir(cwd_backup)
 
@@ -188,7 +186,7 @@ class LibVersion(object):
         logger.info(self.__str__())
 
     def print_exp_env_info(self, print_theano_config=False):
-        """
+	"""
         Return basic information about the experiment setup such as the hostname
         of the machine the experiment was run on, the operating system installed
         on the machine.
