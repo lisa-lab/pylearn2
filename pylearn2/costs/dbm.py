@@ -720,6 +720,78 @@ class VariationalCD(DefaultDataSpecsMixin, BaseCD):
 
         return neg_phase_grads, OrderedDict()
 
+class MF_L1_ActCost(DefaultDataSpecsMixin, Cost):
+    """
+    L1 activation cost on the mean field parameters.
+
+    Adds a cost of:
+
+    coeff * max( abs(mean_activation - target) - eps, 0)
+
+    averaged over units
+
+    for each layer.
+
+    """
+
+    def __init__(self, targets, coeffs, eps, supervised):
+        """
+        targets: a list, one element per layer, specifying the activation
+                each layer should be encouraged to have
+                    each element may also be a list depending on the
+                    structure of the layer.
+                See each layer's get_l1_act_cost for a specification of
+                    what the state should be.
+        coeffs: a list, one element per layer, specifying the coefficient
+                to put on the L1 activation cost for each layer
+        supervised: If true, runs mean field on both X and Y, penalizing
+                the layers in between only
+        """
+        self.__dict__.update(locals())
+        del self.self
+
+    def expr(self, model, data, ** kwargs):
+
+        if self.supervised:
+            X, Y = data
+            H_hat = model.mf(X, Y= Y)
+        else:
+            X = data
+            H_hat = model.mf(X)
+
+        hidden_layers = model.hidden_layers
+        if self.supervised:
+            hidden_layers = hidden_layers[:-1]
+            H_hat = H_hat[:-1]
+
+        layer_costs = []
+        for layer, mf_state, targets, coeffs, eps in \
+            safe_zip(hidden_layers, H_hat, self.targets, self.coeffs, self.eps):
+            cost = None
+            try:
+                cost = layer.get_l1_act_cost(mf_state, targets, coeffs, eps)
+            except NotImplementedError:
+                assert isinstance(coeffs, float) and coeffs == 0.
+                assert cost is None # if this gets triggered, there might
+                    # have been a bug, where costs from lower layers got
+                    # applied to higher layers that don't implement the cost
+                cost = None
+            if cost is not None:
+                layer_costs.append(cost)
+
+
+        assert T.scalar() != 0. # make sure theano semantics do what I want
+        layer_costs = [ cost for cost in layer_costs if cost != 0.]
+
+        if len(layer_costs) == 0:
+            return T.as_tensor_variable(0.)
+        else:
+            total_cost = reduce(lambda x, y: x + y, layer_costs)
+        total_cost.name = 'MF_L1_ActCost'
+
+        assert total_cost.ndim == 0
+
+        return total_cost
 
 class MF_L2_ActCost(DefaultDataSpecsMixin, Cost):
     """
