@@ -238,13 +238,12 @@ class Identity(Block):
     """
     A Block that computes the identity transformation. Mostly useful as a
     placeholder.
+
+    Parameters
+    ----------
+    input_space : WRITEME
     """
     def __init__(self, input_space=None):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(Identity, self).__init__()
         self.input_space = input_space
 

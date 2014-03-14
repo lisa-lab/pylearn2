@@ -216,25 +216,20 @@ class Space(object):
       theano.gof.Variable
       None (for NullSpace)
       A (nested) tuple of the above, possibly empty (for CompositeSpace).
-    """
 
+    Parameters
+    ----------
+    validate_callbacks : list
+        Callbacks that are run at the start of a call to validate.
+        Each should be a callable with the same signature as validate.
+        An example use case is installing an instance-specific error
+        handler that provides extra instructions for how to correct an
+        input that is in a bad space.
+    np_validate_callacks : list
+        similar to validate_callbacks, but run on calls to np_validate
+    """
     def __init__(self, validate_callbacks=None,
                  np_validate_callbacks=None):
-        """
-        Initialize a Space.
-
-        Parameters
-        ----------
-        validate_callbacks : list
-            Callbacks that are run at the start of a call to validate.
-            Each should be a callable with the same signature as validate.
-            An example use case is installing an instance-specific error
-            handler that provides extra instructions for how to correct an
-            input that is in a bad space.
-        np_validate_callacks : list
-            similar to validate_callbacks, but run on calls to np_validate
-        """
-
         if validate_callbacks is None:
             validate_callbacks = []
 
@@ -740,27 +735,23 @@ class IndexSpace(SimplyTypedSpace):
     or they are converted into a single vector where 1s indicate labels
     present i.e. for 4 possible labels we have [0, 2] -> [1 0 1 0] or
     [0, 2] -> [1 0 0 0 0 0 1 0].
+
+    Parameters
+    ----------
+    max_labels : int
+        The number of possible classes/labels. This means that
+        all labels should be < max_labels. Example: For MNIST
+        there are 10 numbers and hence max_labels = 10.
+    dim : int
+        The number of indices in one space e.g. for MNIST there is
+        one target label and hence dim = 1. If we have an n-gram
+        of word indices as input to a neurel net language model, dim = n.
+    dtype : str
+        A numpy dtype string indicating this space's dtype.
+        Must be an integer type e.g. int32 or int64.
+    kwargs: passes on to superclass constructor
     """
     def __init__(self, max_labels, dim, dtype='int64', **kwargs):
-        """
-        Initialize an IndexSpace.
-
-        Parameters
-        ----------
-        max_labels : int
-            The number of possible classes/labels. This means that
-            all labels should be < max_labels. Example: For MNIST
-            there are 10 numbers and hence max_labels = 10.
-        dim : int
-            The number of indices in one space e.g. for MNIST there is
-            one target label and hence dim = 1. If we have an n-gram
-            of word indices as input to a neurel net language model, dim = n.
-        dtype : str
-            A numpy dtype string indicating this space's dtype.
-            Must be an integer type e.g. int32 or int64.
-        kwargs: passes on to superclass constructor
-        """
-
         if not 'int' in dtype:
             raise ValueError("The dtype of IndexSpace must be an integer type")
 
@@ -895,28 +886,27 @@ class IndexSpace(SimplyTypedSpace):
 
 
 class VectorSpace(SimplyTypedSpace):
-    """A space whose points are defined as fixed-length vectors."""
+    """
+    A space whose points are defined as fixed-length vectors.
+
+    Parameters
+    ----------
+    dim : int
+        Dimensionality of a vector in this space.
+    sparse: bool
+        Sparse vector or not
+    dtype : str
+        A numpy dtype string (e.g. 'float32') indicating this space's
+        dtype, or None for a dtype-agnostic space.
+    kwargs : dict
+        Passed on to superclass constructor.
+    """
 
     def __init__(self,
                  dim,
                  sparse=False,
                  dtype='floatX',
                  **kwargs):
-        """
-        Initialize a VectorSpace.
-
-        Parameters
-        ----------
-        dim : int
-            Dimensionality of a vector in this space.
-        sparse: bool
-            Sparse vector or not
-        dtype : str
-            A numpy dtype string (e.g. 'float32') indicating this space's
-            dtype, or None for a dtype-agnostic space.
-        kwargs : dict
-            Passed on to superclass constructor.
-        """
         super(VectorSpace, self).__init__(dtype, **kwargs)
 
         self.dim = dim
@@ -1157,7 +1147,32 @@ class Conv2DSpace(SimplyTypedSpace):
     """
     A space whose points are 3-D tensors representing (potentially
     multi-channel) images.
+
+    Parameters
+    ----------
+    shape : sequence, length 2
+        The shape of a single image, i.e. (rows, cols).
+    num_channels : int (synonym: channels)
+        Number of channels in the image, i.e. 3 if RGB.
+    axes : tuple
+        A tuple indicating the semantics of each axis, containing the
+        following elements in some order:
+
+        - 'b' : this axis is the batch index of a minibatch.
+        - 'c' : this axis the channel index of a minibatch.
+        - 0 : topological axis 0 (rows)
+        - 1 : topological axis 1 (columns)
+
+        For example, a PIL image has axes (0, 1, 'c') or (0, 1).
+        The pylearn2 image displaying functionality uses
+        ('b', 0, 1, 'c') for batches and (0, 1, 'c') for images.
+        theano's conv2d operator uses ('b', 'c', 0, 1) images.
+    dtype : str
+        A numpy dtype string (e.g. 'float32') indicating this space's
+        dtype, or None for a dtype-agnostic space.
+    kwargs : passed on to superclass constructor
     """
+
 
     # Assume pylearn2's get_topological_view format, since this is how
     # data is currently served up. If we make better iterators change
@@ -1171,32 +1186,6 @@ class Conv2DSpace(SimplyTypedSpace):
                  axes=None,
                  dtype='floatX',
                  **kwargs):
-        """
-        Initialize a Conv2DSpace.
-
-        Parameters
-        ----------
-        shape : sequence, length 2
-            The shape of a single image, i.e. (rows, cols).
-        num_channels: int     (synonym: channels)
-            Number of channels in the image, i.e. 3 if RGB.
-        axes : tuple
-            A tuple indicating the semantics of each axis.
-            'b' : this axis is the batch index of a minibatch.
-            'c' : this axis the channel index of a minibatch.
-            <i> : this is topological axis i (i.e., 0 for rows, 1 for
-                  cols)
-
-            For example, a PIL image has axes (0, 1, 'c') or (0, 1).
-            The pylearn2 image displaying functionality uses
-                ('b', 0, 1, 'c') for batches and (0, 1, 'c') for images.
-            theano's conv2d operator uses ('b', 'c', 0, 1) images.
-        dtype : str
-            A numpy dtype string (e.g. 'float32') indicating this space's
-            dtype, or None for a dtype-agnostic space.
-        kwargs: passed on to superclass constructor
-        """
-
         super(Conv2DSpace, self).__init__(dtype, **kwargs)
 
         assert (channels is None) + (num_channels is None) == 1
@@ -1457,13 +1446,12 @@ class CompositeSpace(Space):
     """
     A Space whose points are tuples of points in other spaces.
     May be nested, in which case the points are nested tuples.
+
+    Parameters
+    ----------
+    components : WRITEME
     """
     def __init__(self, components, **kwargs):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(CompositeSpace, self).__init__(**kwargs)
 
         assert isinstance(components, (list, tuple))

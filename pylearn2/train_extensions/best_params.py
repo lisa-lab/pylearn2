@@ -15,20 +15,19 @@ class KeepBestParams(TrainExtension):
     """
     A callback which keeps track of a model's best parameters based on its
     performance for a given cost on a given dataset.
+
+    Parameters
+    ----------
+    model : pylearn2.models.model.Model
+        the model whose best parameters we want to keep track of
+    cost : tensor_like
+        cost function used to evaluate the model's performance
+    monitoring_dataset : pylearn2.datasets.dataset.Dataset
+        dataset on which to compute the cost
+    batch_size : int
+        size of the batches used to compute the cost
     """
     def __init__(self, model, cost, monitoring_dataset, batch_size):
-        """
-        Parameters
-        ----------
-        model : pylearn2.models.model.Model
-            the model whose best parameters we want to keep track of
-        cost : tensor_like
-            cost function used to evaluate the model's performance
-        monitoring_dataset : pylearn2.datasets.dataset.Dataset
-            dataset on which to compute the cost
-        batch_size : int
-            size of the batches used to compute the cost
-        """
         self.model = model
         self.cost = cost
         self.dataset = monitoring_dataset
@@ -91,17 +90,15 @@ class MonitorBasedSaveBest(TrainExtension):
     """
     A callback that saves a copy of the model every time it achieves
     a new minimal value of a monitoring channel.
+
+    Parameters
+    ----------
+    channel_name : str
+        The name of the channel we want to minimize
+    save_path : str
+        Path to save the best model to
     """
     def __init__(self, channel_name, save_path,higher_is_better=False):
-        """
-        Parameters
-        ----------
-        channel_name : str
-            The name of the channel we want to minimize
-        save_path : str
-            Path to save the best model to
-        """
-
         self.__dict__.update(locals())
         del self.self
         if higher_is_better:

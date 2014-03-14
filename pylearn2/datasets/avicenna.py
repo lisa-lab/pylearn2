@@ -11,13 +11,13 @@ class Avicenna(object):
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    which_set : WRITEME
+    standardize : WRITEME
     """
     def __init__(self, which_set, standardize):
-        """
-        .. todo::
-
-            WRITEME
-        """
         train, valid, test = utlc.load_ndarray_dataset('avicenna')
 
         if which_set == 'train':

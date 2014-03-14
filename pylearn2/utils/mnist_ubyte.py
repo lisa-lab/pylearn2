@@ -23,13 +23,13 @@ class open_if_filename(object):
 
         WRITEME
 
+    Parameters
+    ----------
+    f : WRITEME
+    mode : WRITEME
+    buffering : WRITEME
     """
     def __init__(self, f, mode='r', buffering=-1):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self._f = f
         self._mode = mode
         self._buffering = buffering

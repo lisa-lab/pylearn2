@@ -27,7 +27,7 @@ if __name__ == "__main__":
     except IndexError:
         print "Usage: predict.py <model file> <test file> <output file>"
         print "       predict.py saved_model.pkl test_x.csv predictions.csv\n"
-        quit()
+        quit(-1)
 
     print "loading model..."
 

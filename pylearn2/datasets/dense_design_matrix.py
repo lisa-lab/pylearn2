@@ -160,8 +160,6 @@ class DenseDesignMatrix(Dataset):
                  view_converter=None, axes=('b', 0, 1, 'c'),
                  rng=_default_seed, preprocessor=None, fit_preprocessor=False,
                  max_labels=None):
-        """
-        """
         self.X = X
         self.y = y
         self.max_labels = max_labels
@@ -1003,6 +1001,29 @@ class DenseDesignMatrix(Dataset):
 class DenseDesignMatrixPyTables(DenseDesignMatrix):
     """
     DenseDesignMatrix based on PyTables
+
+    Parameters
+    ----------
+    X : ndarray, 2-dimensional, optional
+        Should be supplied if `topo_view` is not. A design matrix of shape
+        (number examples, number features) that defines the dataset.
+    topo_view : ndarray, optional
+        Should be supplied if X is not.  An array whose first dimension is of
+        length number examples. The remaining dimensions are xamples with
+        topological significance, e.g. for images the remaining axes are rows,
+        columns, and channels.
+    y : ndarray, 1-dimensional(?), optional
+        Labels or targets for each example. The semantics here are not quite
+        nailed down for this yet.
+    view_converter : object, optional
+        An object for converting between design matrices and topological views.
+        Currently DefaultViewConverter is the only type available but later we
+        may want to add one that uses the retina encoding that the U of T group
+        uses.
+    axes : WRITEME
+    rng : object, optional
+        A random number generator used for picking random indices into the
+        design matrix when choosing minibatches.
     """
 
     _default_seed = (17, 2, 946)
@@ -1014,33 +1035,6 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
                  view_converter=None,
                  axes=('b', 0, 1, 'c'),
                  rng=_default_seed):
-        """
-        Parameters
-        ----------
-        X : ndarray, 2-dimensional, optional
-            Should be supplied if `topo_view` is not. A design \
-            matrix of shape (number examples, number features) \
-            that defines the dataset.
-        topo_view : ndarray, optional
-            Should be supplied if X is not.  An array whose first \
-            dimension is of length number examples. The remaining \
-            dimensions are xamples with topological significance, \
-            e.g. for images the remaining axes are rows, columns, \
-            and channels.
-        y : ndarray, 1-dimensional(?), optional
-            Labels or targets for each example. The semantics here \
-            are not quite nailed down for this yet.
-        view_converter : object, optional
-            An object for converting between design matrices and \
-            topological views. Currently DefaultViewConverter is \
-            the only type available but later we may want to add \
-            one that uses the retina encoding that the U of T group \
-            uses.
-        rng : object, optional
-            A random number generator used for picking random \
-            indices into the design matrix when choosing minibatches.
-        """
-
         super_self = super(DenseDesignMatrixPyTables, self)
         super_self.__init__(X=X,
                             topo_view=topo_view,
@@ -1197,13 +1191,13 @@ class DefaultViewConverter(object):
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    shape : WRITEME
+    axes : WRITEME
     """
     def __init__(self, shape, axes=('b', 0, 1, 'c')):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.shape = shape
         self.pixels_per_channel = 1
         for dim in self.shape[:-1]:

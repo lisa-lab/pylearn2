@@ -39,21 +39,17 @@ class LogisticRegressionLayer(Block, Model):
 
     This class contains only the part that computes the output (prediction),
     not the classification cost; see `cost.OneHotCrossEntropy` for that.
+
+    Parameters
+    ----------
+    nvis : int
+        number of input units, the dimension of the space in which the
+        datapoints lie.
+    nclasses : int
+        number of output units, the dimension of the space in which the labels
+        lie.
     """
     def __init__(self, nvis, nclasses):
-        """
-        Initialize the parameters of the logistic regression instance.
-
-        Parameters
-        ----------
-        nvis : int
-            number of input units, the dimension of the space in which \
-            the datapoints lie.
-        nclasses : int
-            number of output units, the dimension of the space in which \
-            the labels lie.
-        """
-
         super(LogisticRegressionLayer, self).__init__()
 
         assert nvis >= 0, "Number of visible units must be non-negative"
@@ -147,21 +143,18 @@ class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
     :math:`P(Y = i \\mid x) = 0` may appear. This can cause problems with
     regular negative log-likelihood. It is therefore recommended that the cost
     function used for this layer relies on :math:`p(Y \\leq i \\mid x)`.
+
+    Parameters
+    ----------
+    nvis : int
+        number of input units, the dimension of the space in which the
+        datapoints lie.
+    nclasses : int
+        number of output units, the dimension of the space in which the labels
+        lie.
     """
 
     def __init__(self, nvis, nclasses):
-        """
-        Initialize the parameters, with W being shared between all units.
-
-        Parameters
-        ----------
-        nvis : int
-            number of input units, the dimension of the space in which the \
-            datapoints lie.
-        nclasses : int
-            number of output units, the dimension of the space in which the \
-            labels lie.
-        """
         super(CumulativeProbabilitiesLayer, self).__init__(nvis, nclasses)
 
         self.W = sharedX(numpy.zeros((nvis, 1)), name='W', borrow=True)

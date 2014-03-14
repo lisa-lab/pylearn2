@@ -16,6 +16,21 @@ from pylearn2.utils.rng import make_np_rng
 
 
 class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
+    """
+    Only for faster access there is a copy of hdf5 file in PYLEARN2_DATA_PATH
+    but it mean to be only readable.  If you wish to modify the data, you
+    should pass a local copy to the path argument.
+
+    Parameters
+    ----------
+    which_set : WRITEME
+    path : WRITEME
+    center : WRITEME
+    scale : WRITEME
+    start : WRITEME
+    stop : WRITEME
+    axes : WRITEME
+    """
 
     mapper = {'train': 0, 'test': 1, 'extra': 2, 'train_all': 3,
                 'splitted_train': 4, 'valid': 5}
@@ -25,12 +40,6 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
     def __init__(self, which_set, path = None, center = False, scale = False,
             start = None, stop = None, axes = ('b', 0, 1, 'c'),
             preprocessor = None):
-        """
-        Only for faster access there is a copy of hdf5 file in
-        PYLEARN2_DATA_PATH but it mean to be only readable.
-        If you wish to modify the data, you should pass a local copy
-        to the path argument.
-        """
 
         assert which_set in self.mapper.keys()
 
@@ -244,6 +253,20 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
 
 class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
+    """
+    A version of SVHN dataset that loads everything into the memory instead of
+    using pytables.
+
+    Parameters
+    ----------
+    which_set : WRITEME
+    center : WRITEME
+    scale : WRITEME
+    start : WRITEME
+    stop : WRITEME
+    axes : WRITEME
+    preprocessor : WRITEME
+    """
 
     mapper = {'train': 0, 'test': 1, 'extra': 2, 'train_all': 3,
                 'splitted_train': 4, 'valid': 5}
@@ -251,10 +274,6 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False, scale = False,
             start = None, stop = None, axes = ('b', 0, 1, 'c'),
             preprocessor = None):
-        """
-        A version of SVHN dataset that loads everything into the memory
-        instead of using pytables.
-        """
 
         assert which_set in self.mapper.keys()
 

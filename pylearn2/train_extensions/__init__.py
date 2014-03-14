@@ -95,14 +95,13 @@ class SharedSetter(TrainExtension):
     means run x.set_value(cast(y))
 
     after i epochs have passed.
+
+    Parameters
+    ----------
+    epoch_updates : WRITEME
     """
 
     def __init__(self, epoch_updates):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self._count = 0
         self._epoch_to_updates = {}
         self._vars = set([])
@@ -147,14 +146,15 @@ class ChannelSmoother(TrainExtension):
     support this kind of channel directly instead of hacking it in.
     Note that the Monitor will print this channel as having a value of -1, and
     then the extension will print the right value.
+
+    Parameters
+    ----------
+    channel_to_smooth : WRITEME
+    channel_to_publish : WRITEME
+    k : WRITEME
     """
 
     def __init__(self, channel_to_smooth, channel_to_publish, k=5):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.__dict__.update(locals())
         del self.self
 

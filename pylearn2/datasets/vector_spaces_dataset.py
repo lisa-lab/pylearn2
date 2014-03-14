@@ -38,38 +38,32 @@ class VectorSpacesDataset(Dataset):
 
     This can be seen as a generalization of DenseDesignMatrix where
     there can be any number of sources, not just X and possibly y.
+
+    Parameters
+    ----------
+    data: ndarray, or tuple of ndarrays, containing the data.
+        It is formatted as specified in `data_specs`. For instance, if
+        `data_specs` is (VectorSpace(nfeat), 'features'), then `data` has to be
+        a 2-d ndarray, of shape (nb examples, nfeat), that defines an unlabeled
+        dataset. If `data_specs` is (CompositeSpace(Conv2DSpace(...),
+        VectorSpace(1)), ('features', 'target')), then `data` has to be an
+        (X, y) pair, with X being an ndarray containing images stored in the
+        topological view specified by the `Conv2DSpace`, and y being a 2-D
+        ndarray of width 1, containing the labels or targets for each example.
+    data_specs: A (space, source) pair, where space is an instance of
+        `Space` (possibly a `CompositeSpace`), and `source` is a string (or
+        tuple of strings, if `space` is a `CompositeSpace`), defining the format
+        and labels associated to `data`.
+    rng : object, optional
+        A random number generator used for picking random indices into the
+        design matrix when choosing minibatches.
+    preprocessor: WRITEME
+    fit_preprocessor: WRITEME
     """
     _default_seed = (17, 2, 946)
 
     def __init__(self, data=None, data_specs=None, rng=_default_seed,
                  preprocessor=None, fit_preprocessor=False):
-        """
-        Parameters
-        ----------
-        data: ndarray, or tuple of ndarrays, containing the data.
-            It is formatted as specified in `data_specs`.
-            For instance, if `data_specs` is (VectorSpace(nfeat), 'features'),
-            then `data` has to be a 2-d ndarray, of shape (nb examples,
-            nfeat), that defines an unlabeled dataset. If `data_specs`
-            is (CompositeSpace(Conv2DSpace(...), VectorSpace(1)),
-            ('features', 'target')), then `data` has to be an (X, y) pair,
-            with X being an ndarray containing images stored in the topological
-            view specified by the `Conv2DSpace`, and y being a 2-D ndarray
-            of width 1, containing the labels or targets for each example.
-
-        data_specs: A (space, source) pair, where space is an instance of
-            `Space` (possibly a `CompositeSpace`), and `source` is a
-            string (or tuple of strings, if `space` is a `CompositeSpace`),
-            defining the format and labels associated to `data`.
-
-        rng : object, optional
-            A random number generator used for picking random
-            indices into the design matrix when choosing minibatches.
-
-        preprocessor: WRITEME
-
-        fit_preprocessor: WRITEME
-        """
         # data_specs should be flat, and there should be no
         # duplicates in source, as we keep only one version
         assert is_flat_specs(data_specs)

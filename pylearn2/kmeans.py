@@ -21,23 +21,20 @@ class KMeans(Block, Model):
     """
     Block that outputs a vector of probabilities that a sample belong to means
     computed during training.
+
+    Parameters
+    ----------
+    k : int
+        Number of clusters
+    nvis : int
+        Dimension of input
+    convergence_th : float
+        Threshold of distance to clusters under which k-means stops iterating.
+    max_iter : int
+        Maximum number of iterations. Defaults to infinity.
     """
     def __init__(self, k, nvis, convergence_th=1e-6, max_iter=None,
                  verbose=False):
-        """
-        Parameters
-        ----------
-        k : int
-            Number of clusters
-        nvis : int
-            Dimension of input
-        convergence_th : float
-            Threshold of distance to clusters under which k-means stops \
-            iterating.
-        max_iter : int
-            Maximum number of iterations. Defaults to infinity.
-        """
-
         Block.__init__(self)
         Model.__init__(self)
 

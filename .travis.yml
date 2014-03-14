@@ -39,7 +39,7 @@ install:
   - "pip install -q tables==2.4.0 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "pip install -q pyyaml --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "pip install -q sphinx --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "pip install -q numpydoc --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "pip install git+git://github.com/numpy/numpydoc.git@e433d273afe278162b07535f54ab182bff4f2565 || (cat /home/travis/.pip/pip.log; false)"
   - "pip install scipy==0.8 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "pip install argparse --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
 #More recent version then the one in the os

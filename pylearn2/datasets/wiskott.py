@@ -8,6 +8,11 @@ import numpy as N
 from pylearn2.datasets import dense_design_matrix
 
 class Wiskott(dense_design_matrix.DenseDesignMatrix):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self):
 
         X = 1. - N.load("/data/lisa/data/wiskott/wiskott_fish_layer0_15_standard_64x64_shuffled.npy")
