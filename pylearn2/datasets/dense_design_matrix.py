@@ -493,25 +493,44 @@ class DenseDesignMatrix(Dataset):
         WRITEME
         """
 
-        train = None
-        valid = None
+        """
+        This function splits the dataset according to the number of
+        train_size if defined by the user with respect to the mode provided
+        by the user. Otherwise it will use the
+        train_prop to divide the dataset into a training and holdout
+        validation set. This function returns the training and validation
+        dataset.
+
+        Parameters
+        -----------
+        _mode : WRITEME
+        train_size : int
+            Number of examples that will be assigned to the training dataset.
+        train_prop : float
+            Proportion of training dataset split.
+
+        Returns
+        -------
+        WRITEME
+        """
         if train_size != 0:
-            batch_size = self.num_examples - train_size
-            dataset_iter = self.iterator(mode=_mode,
-                                         batch_size=batch_size,
-                                         num_batches=2)
-            train = dataset_iter.next()
-            valid = dataset_iter.next()
+            size = train_size
         elif train_prop != 0:
-            size = np.ceil(self.num_examples * train_prop)
-            dataset_iter = self.iterator(mode=_mode,
-                                         batch_size=(self.num_examples - size))
-            train = dataset_iter.next()
-            valid = dataset_iter.next()
+            size = np.round(self.num_examples * train_prop)
         else:
             raise ValueError("Initialize either split ratio and split size to "
                              "non-zero value.")
-
+        if size < self.num_examples-size:
+            dataset_iter = self.iterator(mode=_mode,
+                                         batch_size=(self.num_examples - size))
+            valid = dataset_iter.next()
+            train = dataset_iter.next()[:self.num_examples-valid.shape[0]]
+        else:
+            dataset_iter = self.iterator(mode=_mode,
+                                         batch_size=size)
+            train = dataset_iter.next()
+            valid = dataset_iter.next()[:self.num_examples-train.shape[0]]
+            
         return (train, valid)
 
     def split_dataset_nfolds(self, nfolds=0):
