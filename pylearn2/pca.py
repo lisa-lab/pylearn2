@@ -1,5 +1,4 @@
 # Standard library imports
-import logging
 import sys
 
 # Third-party imports
@@ -29,9 +28,6 @@ from theano.sparse import SparseType, structured_dot
 from scipy import linalg
 from scipy.sparse.csr import csr_matrix
 
-
-logger = logging.getLogger(__name__)
-
 try:
     from scipy.sparse.linalg import eigen_symmetric
 except ImportError:
@@ -39,12 +35,12 @@ except ImportError:
     try:
         from scipy.sparse.linalg import eigsh as eigen_symmetric
     except ImportError:
-        logger.exception("couldn't import eigsh / eigen_symmetric from "
-                         "scipy.linalg.sparse, some of your pca functions "
-                         "may randomly fail later")
-        logger.exception("the fact that somebody is using this "
-                         "doesn't bode well since it's unlikely that the "
-                         "covariance matrix is sparse")
+        # TODO: change this to use warn()
+        print ("couldn't import eigsh / eigen_symmetric from "
+               "scipy.linalg.sparse, some of your pca functions "
+               "may randomly fail later")
+        print ("the fact that somebody is using this doesn't bode well "
+               " since it's unlikely that the covariance matrix is sparse")
 
 
 # Local imports
@@ -288,7 +284,7 @@ class SparseMatPCA(_PCABase):
         batch_size = self.minibatch_size
 
         for i in xrange(0, n, batch_size):
-            logger.info('\tprocessing example %d', i)
+            print '\tprocessing example', str(i)
             end = min(n, i + batch_size)
             x = X[i:end, :].todense() - self.mean_
             assert x.shape[0] == end - i
@@ -300,7 +296,7 @@ class SparseMatPCA(_PCABase):
 
         cov /= n
 
-        logger.info('computing eigens')
+        print 'computing eigens'
         v, W = linalg.eigh(cov, eigvals=(d - self.num_components, d - 1))
 
         # The resulting components are in *ascending* order of eigenvalue, and
@@ -327,7 +323,7 @@ class SparseMatPCA(_PCABase):
         assert sparse.issparse(X)
 
         # Compute feature means.
-        logger.info('computing mean')
+        print 'computing mean'
         self.mean_ = numpy.asarray(X.mean(axis=0))[0, :]
 
         super(SparseMatPCA, self).train(X, mean=self.mean_)
@@ -395,11 +391,12 @@ class OnlinePCA(_PCABase):
             centering=False
         )
 
-        logger.info('*' * 50)
+        print >> sys.stderr, '*' * 50
         for i in range(X.shape[0]):
             if (i + 1) % (X.shape[0] / 50) == 0:
-                logger.info('|')  # suppresses newline/whitespace.
+                sys.stderr.write('|')  # suppresses newline/whitespace.
             pca_estimator.observe(X[i, :])
+        print >> sys.stderr
 
         v, W = pca_estimator.getLeadingEigen()
 
@@ -514,9 +511,9 @@ class SparsePCA(_PCABase):
 
             WRITEME
         """
-        logger.warning('You should probably be using '
-                       'SparseMatPCA, unless your design matrix fits '
-                       'in memory.')
+        print >> sys.stderr, ('WARNING: You should probably be using '
+                              'SparseMatPCA, unless your design matrix fits '
+                              'in memory.')
 
         n, d = X.shape
         # Can't subtract a sparse vector from a sparse matrix, apparently,
@@ -855,8 +852,8 @@ if __name__ == "__main__":
     # comprehensions
     train_data, valid_data, test_data = map(lambda(x):
                                             x.get_value(borrow=True), data)
-    logger.info("Dataset shapes: %s", map(lambda(x):
-                                             x.get_value().shape, data))
+    print >> sys.stderr, "Dataset shapes:", map(lambda(x):
+                                                x.get_value().shape, data)
     # PCA base-class constructor arguments.
     conf = {
         'num_components': args.num_components,
@@ -880,7 +877,7 @@ if __name__ == "__main__":
     if args.load_file:
         pca = Block.load(args.load_file)
     else:
-        logger.info("... computing PCA")
+        print "... computing PCA"
         pca = PCAImpl(**conf)
         pca.train(train_data)
         # Save the computed transformation.
@@ -891,6 +888,6 @@ if __name__ == "__main__":
     pca_transform = theano.function([inputs], pca(inputs))
     valid_pca = pca_transform(valid_data)
     test_pca = pca_transform(test_data)
-    logger.info("New shapes: %s", map(numpy.shape, [valid_pca, test_pca]))
+    print >> sys.stderr, "New shapes:", map(numpy.shape, [valid_pca, test_pca])
 
     # TODO: Compute ALC here when the code using the labels is ready.

@@ -7,7 +7,6 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
-import logging
 import numpy as np
 import random
 assert hasattr(np, 'exp')
@@ -25,10 +24,6 @@ from pylearn2.space import VectorSpace
 from pylearn2.utils import sharedX
 from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import DataSpecsMapping
-
-
-logger = logging.getLogger(__name__)
-
 
 def check_binary_samples(value, expected_shape, expected_mean, tol):
     """
@@ -382,7 +377,7 @@ def check_bvmp_samples(value, num_samples, n, pool_size, mean, tol):
         assert sub_h.shape == (num_samples, pool_size)
         if not np.all(sub_p == sub_h.max(axis=1)):
             for j in xrange(num_samples):
-                logger.error('%s %s', sub_p[j], sub_h[j,:])
+                print sub_p[j], sub_h[j,:]
                 assert sub_p[j] == sub_h[j,:]
             assert False
         assert np.max(sub_h.sum(axis=1)) == 1
@@ -395,9 +390,9 @@ def check_bvmp_samples(value, num_samples, n, pool_size, mean, tol):
 
     max_diff = np.abs(p - emp_p).max()
     if max_diff > tol:
-        logger.error('expected value of pooling units: %s', p)
-        logger.error('empirical expectation: %s', emp_p)
-        logger.error('maximum difference: %d', max_diff)
+        print 'expected value of pooling units: ',p
+        print 'empirical expectation: ',emp_p
+        print 'maximum difference: ',max_diff
         raise ValueError("Pooling unit samples have an unlikely mean.")
     max_diff = np.abs(h - emp_h).max()
     if max_diff > tol:
@@ -614,16 +609,14 @@ def test_bvmp_mf_energy_consistent():
 
         # Check that they match
         if not np.allclose(expected_p, 1. - off_prob):
-            logger.error('mean field expectation of p: %s', expected_p)
-            logger.error('expectation of p based on enumerating ' +
-                         'energy function values: %s', 1. - off_prob)
-            logger.error('pool_size_1: %s', pool_size_1)
+            print 'mean field expectation of p:',expected_p
+            print 'expectation of p based on enumerating energy function values:',1. - off_prob
+            print 'pool_size_1:',pool_size_1
 
             assert False
         if not np.allclose(expected_h, on_probs):
-            logger.error('mean field expectation of h: %s', expected_h)
-            logger.error('expectation of h based on enumerating ' +
-                         'energy function values: %s', on_probs)
+            print 'mean field expectation of h:',expected_h
+            print 'expectation of h based on enumerating energy function values:',on_probs
             assert False
 
     # 1 is an important corner case
@@ -741,16 +734,14 @@ def test_bvmp_mf_energy_consistent_center():
 
         # Check that they match
         if not np.allclose(expected_p, 1. - off_prob):
-            logger.error('mean field expectation of p: %s', expected_p)
-            logger.error('expectation of p based on enumerating ' +
-                         'energy function values: %s', 1. - off_prob)
-            logger.error('pool_size_1: %s', pool_size_1)
+            print 'mean field expectation of p:',expected_p
+            print 'expectation of p based on enumerating energy function values:',1. - off_prob
+            print 'pool_size_1:',pool_size_1
 
             assert False
         if not np.allclose(expected_h, on_probs):
-            logger.error('mean field expectation of h: %s', expected_h)
-            logger.error('expectation of h based on enumerating ' +
-                         'energy function values: %s', on_probs)
+            print 'mean field expectation of h:',expected_h
+            print 'expectation of h based on enumerating energy function values:',on_probs
             assert False
 
     # 1 is the only pool size for which centering is implemented
@@ -855,11 +846,11 @@ def check_multinomial_samples(value, expected_shape, expected_mean, tol):
     mean = value.mean(axis=0)
     max_error = np.abs(mean-expected_mean).max()
     if max_error > tol:
-        logger.error('Actual mean:')
-        logger.error(mean)
-        logger.error('Expected mean:')
-        logger.error(expected_mean)
-        logger.error('Maximal error: %d', max_error)
+        print 'Actual mean:'
+        print mean
+        print 'Expected mean:'
+        print expected_mean
+        print 'Maximal error:', max_error
         raise ValueError("Samples don't seem to have the right mean.")
 
 def test_softmax_make_state():
@@ -971,9 +962,8 @@ def test_softmax_mf_energy_consistent():
     probs = wtf_numpy
 
     if not np.allclose(expected_y, probs):
-        logger.error('mean field expectation of h: %s', expected_y)
-        logger.error('expectation of h based on enumerating ' +
-                     'energy function values: %s', probs)
+        print 'mean field expectation of h:',expected_y
+        print 'expectation of h based on enumerating energy function values:',probs
         assert False
 
 def test_softmax_mf_energy_consistent_centering():
@@ -1058,9 +1048,8 @@ def test_softmax_mf_energy_consistent_centering():
     probs = wtf_numpy
 
     if not np.allclose(expected_y, probs):
-        logger.error('mean field expectation of h: %s', expected_y)
-        logger.error('expectation of h based on enumerating ' +
-                     'energy function values: %s', probs)
+        print 'mean field expectation of h:',expected_y
+        print 'expectation of h based on enumerating energy function values:',probs
         assert False
 
 def test_softmax_mf_sample_consistent():

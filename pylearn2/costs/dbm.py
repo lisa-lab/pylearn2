@@ -11,7 +11,6 @@ __maintainer__ = "Ian Goodfellow"
 
 import numpy as np
 import warnings
-import logging
 
 from theano.compat.python2x import OrderedDict
 from theano import config
@@ -35,8 +34,6 @@ from pylearn2.utils import safe_izip
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
 from pylearn2.utils.rng import make_theano_rng
-
-logger = logging.getLogger(__name__)
 
 
 class BaseCD(Cost):
@@ -860,7 +857,7 @@ class TorontoSparsity(Cost):
             if term == 0.:
                 continue
             else:
-                logger.info('term is %d', term)
+                print 'term is ',term
 
             if i == 0:
                 state_below = X
@@ -947,6 +944,7 @@ class WeightDecay(NullDataSpecsMixin, Cost):
         total_cost.name = 'weight_decay'
 
         return total_cost
+
 
 class MultiPrediction(DefaultDataSpecsMixin, Cost):
     """
@@ -1354,8 +1352,8 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
 
                 fake_s = T.dot(below, hack_W) + hack_b
                 if fake_s.ndim != real_grads.ndim:
-                    logger.error('%d', fake_s.ndim)
-                    logger.error('%d', real_grads.ndim)
+                    print fake_s.ndim
+                    print real_grads.ndim
                     assert False
                 sources = [ (fake_s, real_grads) ]
 

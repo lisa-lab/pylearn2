@@ -1,10 +1,5 @@
 import os
-import logging
-
 from pylearn2.utils.string_utils import preprocess
-
-logger = logging.getLogger(__name__)
-
 base = '${PYLEARN2_DATA_PATH}/esp_game/ESPGame100k/labels/'
 base = preprocess(base)
 paths = sorted(os.listdir(base))
@@ -15,7 +10,7 @@ words = {}
 for i, path in enumerate(paths):
 
     if i % 1000 == 0:
-        logger.info(i)
+        print i
     path = base+path
     f = open(path,'r')
     lines = f.readlines()

@@ -23,14 +23,11 @@ By default, the following modules are tracked: pylearn2, theano, numpy, scipy
 """
 
 import copy
-import logging
 import os
 import platform
 import socket
 import subprocess
 import sys
-
-logger = logging.getLogger(__name__)
 
 
 class MetaLibVersion(type):
@@ -48,7 +45,7 @@ class LibVersion(object):
     def __init__(self):
         """
         Initialize a LibVersion object that will store the version of python
-        packages in a dictionary (versions).  The python packages that are
+        packages in a dictionary (versions).  The python packages that are 
         supported are: pylearn, pylearn2, theano, jobman, numpy and scipy.
 
         The key for the versions dict is the name of the package and the
@@ -59,7 +56,7 @@ class LibVersion(object):
         self.exp_env_info = {}
         self._get_lib_versions()
         self._get_exp_env_info()
-
+        
     def _get_exp_env_info(self):
 	"""
 	Get information about the experimental environment such as the cpu, os and
@@ -183,18 +180,18 @@ class LibVersion(object):
         Print version of the Python packages as a string.
         e.g. numpy:1.6.1 | pylearn:a6e634b83d | pylearn2:57a156beb0
         """
-        logger.info(self.__str__())
-
+        print self.__str__()
+        
     def print_exp_env_info(self, print_theano_config=False):
-        """
+	"""
         Return basic information about the experiment setup such as the hostname
         of the machine the experiment was run on, the operating system installed
         on the machine.
         If the switch print_theano_config is set to True, then information about
         the theano configuration will be displayed.
         """
-        logger.info('HOST: %s', self.exp_env_info['host'])
-        logger.info('CPU: %s', self.exp_env_info['cpu'])
-        logger.info('OS: %s', self.exp_env_info['os'])
-        if print_theano_config:
-            logger.debug(self.exp_env_info['theano_config'])
+	print 'HOST: ', self.exp_env_info['host']
+	print 'CPU: ', self.exp_env_info['cpu']
+	print 'OS: ', self.exp_env_info['os']	
+	if print_theano_config:
+	    print self.exp_env_info['theano_config']

@@ -30,9 +30,6 @@ from pylearn2.train import Train
 from optparse import OptionParser
 
 import numpy
-import logging
-
-logger = logging.getLogger(__name__)
 
 
 class ToyDataset(DenseDesignMatrix):
@@ -60,7 +57,7 @@ def get_dataset_toy():
 
 def get_dataset_cifar10():
 
-    logger.info('loading CIFAR-10 dataset...')
+    print 'loading CIFAR-10 dataset...'
 
     # We create the dataset by parsing YAML strings describing the dataset.
     # The yaml parser will automatically tag trainset and testset with a
@@ -78,13 +75,13 @@ one_hot: 1
     trainset = yaml_parse.load(template % "train")
     testset = yaml_parse.load(template % "test")
 
-    logger.info('...done loading CIFAR-10.')
+    print '...done loading CIFAR-10.'
 
     return trainset, testset
 
 def get_dataset_mnist():
 
-    logger.info('loading MNIST dataset...')
+    print 'loading MNIST dataset...'
 
     # We create the dataset by parsing YAML strings describing the dataset.
     # The yaml parser will automatically tag trainset and testset with a
@@ -100,7 +97,7 @@ one_hot: 1
     trainset = yaml_parse.load(template % "train")
     testset = yaml_parse.load(template % "test")
 
-    logger.info('...done loading MNIST.')
+    print '...done loading MNIST.'
 
     return trainset, testset
 
@@ -262,17 +259,17 @@ def main(args=None):
 
     # unsupervised pretraining
     for i, layer_trainer in enumerate(layer_trainers[0:3]):
-        logger.info('-----------------------------------')
-        logger.info('Unsupervised training layer %d, %s',
-                    i, layers[i].__class__)
-        logger.info('-----------------------------------')
+        print '-----------------------------------'
+        print ' Unsupervised training layer %d, %s'%(i, layers[i].__class__)
+        print '-----------------------------------'
         layer_trainer.main_loop()
 
-    logger.info('\n')
-    logger.info('------------------------------------------------------')
-    logger.info(' Unsupervised training done! Start supervised training...')
-    logger.info('------------------------------------------------------')
-    logger.info('\n')
+
+    print '\n'
+    print '------------------------------------------------------'
+    print ' Unsupervised training done! Start supervised training...'
+    print '------------------------------------------------------'
+    print '\n'
 
     # supervised training
     layer_trainers[-1].main_loop()

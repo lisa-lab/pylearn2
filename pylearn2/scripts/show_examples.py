@@ -5,14 +5,10 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
-import logging
 import numpy as N
 from pylearn2.gui import patch_viewer
 from pylearn2.config import yaml_parse
 from optparse import OptionParser
-
-
-logger = logging.getLogger(__name__)
 
 
 def main(options, positional_args):
@@ -39,9 +35,9 @@ def main(options, positional_args):
         from pylearn2.utils import serial
         obj = serial.load(path)
     elif path.endswith('.yaml'):
-        logger.info('Building dataset from yaml...')
+        print 'Building dataset from yaml...'
         obj =yaml_parse.load_path(path)
-        logger.info('...done')
+        print '...done'
     else:
         obj = yaml_parse.load(path)
 
@@ -61,11 +57,11 @@ def main(options, positional_args):
         design_examples_var = model.random_design_matrix(batch_size =
                 rows * cols, theano_rng = theano_rng)
         from theano import function
-        logger.info('compiling sampling function')
+        print 'compiling sampling function'
         f = function([],design_examples_var)
-        logger.info('sampling')
+        print 'sampling'
         design_examples = f()
-        logger.info('loading dataset')
+        print 'loading dataset'
         dataset = yaml_parse.load(model.dataset_yaml_src)
         examples = dataset.get_topological_view(design_examples)
 
@@ -73,14 +69,14 @@ def main(options, positional_args):
             N.sqrt(N.sum(N.square(examples[i,:])))
                         for i in xrange(examples.shape[0])
                         ])
-    logger.info('norms of examples: ')
-    logger.info('\tmin: %d', norms.min())
-    logger.info('\tmean: %d', norms.mean())
-    logger.info('\tmax: %d', norms.max())
+    print 'norms of examples: '
+    print '\tmin: ',norms.min()
+    print '\tmean: ',norms.mean()
+    print '\tmax: ',norms.max()
 
-    logger.info('range of elements of examples %s',
-                (examples.min(), examples.max()))
-    logger.info('dtype: %s', examples.dtype)
+    print 'range of elements of examples', \
+            (examples.min(),examples.max())
+    print 'dtype: ', examples.dtype
 
     examples = dataset.adjust_for_viewer(examples)
 
@@ -88,10 +84,10 @@ def main(options, positional_args):
         examples /= N.abs(examples).max()
 
     if len(examples.shape) != 4:
-        logger.error('sorry, view_examples.py only supports image examples' +
-                     'for now.')
-        logger.error('this dataset has ' +
-                     str(len(examples.shape) - 2) + ' topological dimensions')
+        print 'sorry, view_examples.py only supports image examples' + \
+                'for now.'
+        print 'this dataset has ' + \
+                str(len(examples.shape)-2)+' topological dimensions'
         quit(-1)
 
     if examples.shape[3] == 1:
@@ -99,13 +95,12 @@ def main(options, positional_args):
     elif examples.shape[3] == 3:
         is_color = True
     else:
-        logger.error('got unknown image format with ' +
-                     str(examples.shape[3]) + ' channels')
-        logger.error('supported formats are 1 channel greyscale ' +
-                     'or three channel RGB')
+        print 'got unknown image format with ' + str(examples.shape[3]) + \
+                ' channels'
+        print 'supported formats are 1 channel greyscale or three channel RGB'
         quit(-1)
 
-    logger.info(examples.shape[1:3])
+    print examples.shape[1:3]
 
     pv = patch_viewer.PatchViewer((rows, cols), examples.shape[1:3],
             is_color = is_color)

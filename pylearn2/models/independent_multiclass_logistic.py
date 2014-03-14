@@ -13,9 +13,6 @@ try:
 except ImportError:
     LogisticRegression = None
 import numpy as np
-import logging
-
-logger = logging.getLogger(__name__)
 
 
 class IndependentMulticlassLogistic:
@@ -62,7 +59,7 @@ class IndependentMulticlassLogistic:
 
         for c in xrange(num_classes):
 
-            logger.info('fitting class %d', c)
+            print 'fitting class ',c
             cur_y = (y == c).astype('int32')
 
             logistics.append(LogisticRegression(C = self.C).fit(X,cur_y))
@@ -100,3 +97,5 @@ class Classifier:
         """
 
         return np.argmax(self.b + np.dot(X,self.W), 1)
+
+

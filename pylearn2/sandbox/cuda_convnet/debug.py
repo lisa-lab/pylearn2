@@ -7,7 +7,6 @@ __email__ = "goodfeli@iro"
 
 from pylearn2.testing.skip import skip_if_no_gpu
 skip_if_no_gpu()
-import logging
 import numpy as np
 from theano import shared
 from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
@@ -15,9 +14,6 @@ from theano.sandbox.cuda import gpu_from_host
 from theano.sandbox.cuda import host_from_gpu
 from theano.tensor.nnet.conv import conv2d
 from theano import function
-
-
-logger = logging.getLogger(__name__)
 
 
 # Tests that running FilterActs with no padding is the same as running
@@ -66,7 +62,7 @@ prev_err = err()
 accepted_steps = 0
 
 while True:
-    logger.info('Current error: %d', prev_err)
+    print 'Current error: ',prev_err
     change_filters =  rng.randint(2)
 
     if change_filters:
@@ -93,8 +89,10 @@ while True:
     new_err = err()
 
     if new_err <= prev_err:
-        logger.info('Failed to move beyond step %s', accepted_steps)
+        print 'Failed to move beyond step',accepted_steps
         target.set_value(old_val)
     else:
         prev_err = new_err
         accepted_steps += 1
+
+

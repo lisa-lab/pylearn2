@@ -22,12 +22,8 @@ import sys
 from theano.printing import _TagGenerator
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
 import argparse
-import logging
 
-
-logger = logging.getLogger(__name__)
 channels = {}
-
 
 def unique_substring(s, other, min_size=1):
     size = min(len(s), min_size)
@@ -61,21 +57,21 @@ def main():
       matplotlib.use('Agg')
     import matplotlib.pyplot as plt
 
-    logger.info('generating names...')
+    print 'generating names...'
     model_names = [model_path.replace('.pkl', '!') for model_path in
             model_paths]
     model_names = unique_substrings(model_names, min_size=10)
     model_names = [model_name.replace('!','') for model_name in
             model_names]
-    logger.info('...done')
+    print '...done'
 
     for i, arg in enumerate(model_paths):
         try:
             model = serial.load(arg)
         except:
             if arg.endswith('.yaml'):
-                logger.error(arg + " is a yaml config file," +
-                             "you need to load a trained model.")
+                print >> sys.stderr, arg + " is a yaml config file," + \
+                "you need to load a trained model."
                 quit(-1)
             raise
         this_model_channels = model.monitor.channels
@@ -103,10 +99,10 @@ def main():
             sorted_codes.append(code)
 
         x_axis = 'example'
-        logger.info('set x_axis to example')
+        print 'set x_axis to example'
 
         if len(channels.values()) == 0:
-            logger.error("there are no channels to plot")
+            print "there are no channels to plot"
             break
 
         # If there is more than one channel in the monitor ask which ones to
@@ -117,20 +113,19 @@ def main():
 
             # Display the codebook
             for code in sorted_codes:
-                logger.info(code + '. ' + codebook[code])
+                print code + '. ' + codebook[code]
 
             print
 
-            logger.info("Put e, b, s or h in the list somewhere to plot " +
-                        "epochs, batches, seconds, or hours, respectively.")
+            print "Put e, b, s or h in the list somewhere to plot " + \
+                    "epochs, batches, seconds, or hours, respectively."
             response = raw_input('Enter a list of channels to plot ' + \
                     '(example: A, C,F-G, h, <test_err>) or q to quit' + \
                     'or o for options: ')
 
             if response == 'o':
-                logger.info('1: smooth all channels')
-                logger.info('any other response: ' +
-                            'do nothing, go back to plotting')
+                print '1: smooth all channels'
+                print 'any other response: do nothing, go back to plotting'
                 response = raw_input('Enter your choice: ')
                 if response == '1':
                     for channel in channels.values():
@@ -176,7 +171,7 @@ def main():
                     rng = code.split('-')
 
                     if len(rng) != 2:
-                        logger.error("Input not understood: " + code)
+                        print "Input not understood: "+code
                         quit(-1)
 
                     found = False
@@ -186,7 +181,7 @@ def main():
                             break
 
                     if not found:
-                        logger.error("Invalid code: " + rng[0])
+                        print "Invalid code: "+rng[0]
                         quit(-1)
 
                     found = False
@@ -196,7 +191,7 @@ def main():
                             break
 
                     if not found:
-                        logger.error("Invalid code: " + rng[1])
+                        print "Invalid code: "+rng[1]
                         quit(-1)
 
                     final_codes = final_codes.union(set(sorted_codes[i:j+1]))
@@ -224,10 +219,10 @@ def main():
             y = np.asarray(channel.val_record)
 
             if np.any(np.isnan(y)):
-                logger.info(channel_name + ' contains NaNs')
+                print channel_name + ' contains NaNs'
 
             if np.any(np.isinf(y)):
-                logger.info(channel_name + 'contains infinite values')
+                print channel_name + 'contains infinite values'
 
             if x_axis == 'example':
                 x = np.asarray(channel.example_record)

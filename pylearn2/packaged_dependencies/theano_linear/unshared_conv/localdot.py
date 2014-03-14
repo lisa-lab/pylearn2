@@ -9,15 +9,11 @@ if cuda.cuda_available:
     import gpu_unshared_conv # register optimizations
 
 import numpy as np
-import logging
 
 try:
     import matplotlib.pyplot as plt
 except ImportError:
     pass
-
-logger = logging.getLogger(__name__)
-
 
 class LocalDot(LinearTransform):
     """
@@ -164,7 +160,7 @@ class LocalDot(LinearTransform):
         """
         filters = self._filters.get_value()
         modR, modC, colors, rows, cols, grps, fs_per_grp = filters.shape
-        logger.info(filters.shape)
+        print filters.shape
 
         rval = np.zeros((
             modR * (rows + 1) - 1,

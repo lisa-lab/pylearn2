@@ -37,9 +37,6 @@ found them all.
 """
 import sys
 import types
-import logging
-
-logger = logging.getLogger(__name__)
 
 if __name__ == '__main__':
     _, in_path, out_path = sys.argv
@@ -81,11 +78,11 @@ if __name__ == '__main__':
         prefix = ''.join(['.']*stacklevel)
         oid = id(obj)
         canary_oid = oid
-        logger.info(prefix + 'fixing ' + str(oid))
+        print prefix + 'fixing '+str(oid)
         if oid in already_fixed:
             return already_fixed[oid]
         if oid in currently_fixing:
-            logger.info('returning placeholder for ' + str(oid))
+            print 'returning placeholder for '+str(oid)
             return Placeholder(oid)
         currently_fixing.append(oid)
         if hasattr(obj, 'set_value'):
@@ -96,16 +93,16 @@ if __name__ == '__main__':
         elif obj is None:
             rval = None
         elif isinstance(obj, list):
-            logger.info(prefix + 'fixing a list')
+            print prefix + 'fixing a list'
             rval = []
             for i, elem in enumerate(obj):
-                logger.info(prefix + '.fixing elem %d', i)
+                print prefix + '.fixing elem %d' % i
                 fixed_elem = fix(elem, stacklevel + 2)
                 if isinstance(fixed_elem, Placeholder):
                     raise NotImplementedError()
                 rval.append(fixed_elem)
         elif isinstance(obj, dict):
-            logger.info(prefix + 'fixing a dict')
+            print prefix + 'fixing a dict'
             rval = obj
             """
             rval = {}
@@ -125,10 +122,10 @@ if __name__ == '__main__':
                 rval[fixed_key] = fixed_value
             """
         elif isinstance(obj, tuple):
-            logger.info(prefix + 'fixing a tuple')
+            print prefix + 'fixing a tuple'
             rval = []
             for i, elem in enumerate(obj):
-                logger.info(prefix + '.fixing elem %d', i)
+                print prefix + '.fixing elem %d' % i
                 fixed_elem = fix(elem, stacklevel + 2)
                 if isinstance(fixed_elem, Placeholder):
                     raise NotImplementedError()
@@ -137,29 +134,28 @@ if __name__ == '__main__':
         elif isinstance(obj, (int, float, str)):
             rval = obj
         else:
-            logger.info(prefix + 'fixing a generic object')
+            print prefix + 'fixing a generic object'
             field_names = dir(obj)
             for field in field_names:
                 if isinstance(getattr(obj, field), types.MethodType):
-                    logger.info(prefix + '.%s is an instancemethod', field)
+                    print prefix + '.%s is an instancemethod' % field
                     continue
                 if field in blacklist or (field.startswith('__')):
-                    logger.info(prefix + '.%s is blacklisted', field)
+                    print prefix + '.%s is blacklisted' % field
                     continue
-                logger.info(prefix + '.fixing field %s', field)
+                print prefix + '.fixing field %s' % field
                 updated_field = fix(getattr(obj, field), stacklevel + 2)
-                logger.info(prefix + '.applying fix to field %s', field)
+                print prefix + '.applying fix to field %s' % field
                 if isinstance(updated_field, Placeholder):
                     postponed_fixes.append(FieldFixer(obj, field, updated_field))
                 else:
                     try:
                         setattr(obj, field, updated_field)
                     except Exception, e:
-                        logger.exception("Couldn't do that " +
-                                         "because of exception: " + str(e))
+                        print "Couldn't do that because of exception: "+str(e)
             rval = obj
         already_fixed[oid] = rval
-        logger.info(prefix + 'stored fix for ' + str(oid))
+        print prefix+'stored fix for '+str(oid)
         assert canary_oid == oid
         del currently_fixing[currently_fixing.index(oid)]
         return rval
@@ -172,3 +168,4 @@ if __name__ == '__main__':
         fixer.apply()
 
     serial.save(out_path, model)
+

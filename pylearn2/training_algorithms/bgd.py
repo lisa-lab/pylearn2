@@ -11,7 +11,6 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-import logging
 import numpy as np
 from theano import config
 from theano.compat.python2x import OrderedDict
@@ -27,9 +26,6 @@ from pylearn2.utils import sharedX
 from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.utils.data_specs import DataSpecsMapping
 from pylearn2.utils.rng import make_np_rng
-
-
-logger = logging.getLogger(__name__)
 
 
 class BGD(TrainingAlgorithm):
@@ -365,30 +361,30 @@ class StepShrinker(TrainExtension, TerminationCriterion):
         if len(v) == 1:
             return
         latest = v[-1]
-        logger.info("Latest %s: %d", self.channel, latest)
+        print "Latest "+self.channel+": "+str(latest)
         # Only compare to the previous step, not the best step so far
         # Another extension can be in charge of saving the best parameters ever
         # seen.We want to keep learning as long as we're making progress. We
         # don't want to give up on a step size just because it failed to undo
         # the damage of the bigger one that preceded it in a single epoch
-        logger.info("Previous is " + str(self.prev))
+        print "Previous is "+str(self.prev)
         cur = algorithm.scale_step
         if latest >= self.prev:
-            logger.info("Looks like using " + str(cur) +
-                        " isn't working out so great for us.")
+            print "Looks like using " + str(cur) + \
+                    " isn't working out so great for us."
             cur *= self.scale
             if cur < self.giveup_after:
-                logger.info("Guess we just have to give up.")
+                print "Guess we just have to give up."
                 self.continue_learning = False
                 cur = self.giveup_after
-            logger.info("Let's see how " + str(cur) + " does.")
+            print "Let's see how "+str(cur)+" does."
         elif latest <= self.prev and self.scale_up != 1.:
-            logger.info("Looks like we're making progress on " +
-                        "the validation set, let's try speeding up")
+            print "Looks like we're making progress on the validation set," +\
+                    "let's try speeding up"
             cur *= self.scale_up
             if cur > self.max_scale:
                 cur = self.max_scale
-            logger.info("New scale is %s", cur)
+            print "New scale is",cur
         algorithm.scale_step = cur
         self.monitor_channel.set_value(np.cast[config.floatX](cur))
         self.prev = latest
@@ -471,34 +467,34 @@ class BacktrackingStepShrinker(TrainExtension, TerminationCriterion):
         if len(v) == 1:
             return
         latest = v[-1]
-        logger.info("Latest %s: %d", self.channel, latest)
+        print "Latest "+self.channel+": "+str(latest)
         # Only compare to the previous step, not the best step so far
         # Another extension can be in charge of saving the best parameters ever
         # seen.We want to keep learning as long as we're making progress. We
         # don't want to give up on a step size just because it failed to undo
         # the damage of the bigger one that preceded it in a single epoch
-        logger.info("Previous is " + str(self.prev))
+        print "Previous is "+str(self.prev)
         cur = algorithm.scale_step
         if latest >= self.prev:
-            logger.info("Looks like using " + str(cur) +
-                        " isn't working out so great for us.")
+            print "Looks like using " + str(cur) + \
+                    " isn't working out so great for us."
             cur *= self.scale
             if cur < self.giveup_after:
-                logger.info("Guess we just have to give up.")
+                print "Guess we just have to give up."
                 self.continue_learning = False
                 cur = self.giveup_after
-            logger.info("Let's see how " + str(cur) + " does.")
-            logger.info("Reloading saved params from last call")
+            print "Let's see how "+str(cur)+" does."
+            print "Reloading saved params from last call"
             for p, v in safe_zip(model.get_params(), self.stored_values):
                 p.set_value(v)
             latest = self.prev
         elif latest <= self.prev and self.scale_up != 1.:
-            logger.info("Looks like we're making progress on " +
-                        "the validation set, let's try speeding up")
+            print "Looks like we're making progress on the validation set," +\
+                    "let's try speeding up"
             cur *= self.scale_up
             if cur > self.max_scale:
                 cur = self.max_scale
-            logger.info("New scale is %s", cur)
+            print "New scale is",cur
         algorithm.scale_step = cur
         self.monitor_channel.set_value(np.cast[config.floatX](cur))
         self.prev = latest

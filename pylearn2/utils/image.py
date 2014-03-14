@@ -3,7 +3,6 @@
 
     WRITEME
 """
-import logging
 import numpy as np
 plt = None
 axes = None
@@ -26,8 +25,6 @@ from tempfile import NamedTemporaryFile
 from multiprocessing import Process
 
 import subprocess
-
-logger = logging.getLogger(__name__)
 
 
 def ensure_Image():
@@ -185,10 +182,10 @@ def pil_from_ndarray(ndarray):
         rval = Image.fromarray(ndarray)
         return rval
     except Exception, e:
-        logger.exception('original exception: ')
-        logger.exception(e)
-        logger.exception('ndarray.dtype: %s', ndarray.dtype)
-        logger.exception('ndarray.shape: %s', ndarray.shape)
+        print 'original exception: '
+        print e
+        print 'ndarray.dtype: ', ndarray.dtype
+        print 'ndarray.shape: ', ndarray.shape
         raise
 
     assert False
@@ -364,9 +361,9 @@ def load(filepath, rescale_image=True, dtype='float64'):
     numpy_rval = np.array(rval)
 
     if numpy_rval.ndim not in [2,3]:
-        logger.info(dir(rval))
-        logger.info(rval)
-        logger.info(rval.size)
+        print dir(rval)
+        print rval
+        print rval.size
         rval.show()
         raise AssertionError("Tried to load an image, got an array with " +
                 str(numpy_rval.ndim)+" dimensions. Expected 2 or 3."

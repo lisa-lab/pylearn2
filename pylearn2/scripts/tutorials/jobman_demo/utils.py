@@ -1,10 +1,6 @@
 import numpy
-import logging
 from jobman import tools
 from jobman.tools import DD
-
-
-logger = logging.getLogger(__name__)
 
 
 def log_uniform(low, high):
@@ -27,7 +23,7 @@ def log_uniform(low, high):
     """
     log_low = numpy.log(low)
     log_high = numpy.log(high)
-
+    
     log_rval = numpy.random.uniform(log_low, log_high)
     rval = float(numpy.exp(log_rval))
 
@@ -54,7 +50,7 @@ def parse_results(cwd):
                 optimal_measure = dd['results.train_y_misclass']
                 optimal_dd = dd
 
-    logger.info("Optimal results.train_y_misclass: " + str(optimal_measure))
+    print "Optimal " + "results.train_y_misclass" + ": " + str(optimal_measure)
     for key, value in optimal_dd.items():
         if 'hyper_parameters' in key:
-            logger.info(key + ": " + str(value))
+            print key + ": " + str(value)

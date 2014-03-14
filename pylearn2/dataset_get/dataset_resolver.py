@@ -3,9 +3,7 @@
 """A simple resolution mechanism to find datasets"""
 
 import re,os,urllib
-import logging
 
-logger = logging.getLogger(__name__)
 
 
 class dataset_resolver:
@@ -56,7 +54,7 @@ class dataset_resolver:
                         l[1], # timestamp
                         l[2], # human-readable size
                         urllib.unquote(l[3]), # source on the web
-                        urllib.unquote(l[4]))  # where installed
+                        urllib.unquote(l[4]))  # where installed                        
                 else:
                     pass# skip blank lines (there shouldn't be any)
 
@@ -99,5 +97,5 @@ class dataset_resolver:
 if __name__=="__main__":
     # simplest tests
     x=dataset_resolver()
-    logger.info(x.resolve_dataset("toaster-oven"))
-    logger.info(x.resolve_dataset("fake-dataset"))
+    print x.resolve_dataset("toaster-oven")
+    print x.resolve_dataset("fake-dataset")

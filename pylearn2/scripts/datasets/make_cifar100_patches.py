@@ -5,21 +5,18 @@ from the CIFAR-100 train dataset.
 This script is intended to reproduce the preprocessing used by Adam Coates et. al. in their work from
 the first half of 2011 on the CIFAR-10 and STL-10 datasets.
 """
-import logging
 
 from pylearn2.utils import serial
 from pylearn2.datasets import preprocessing
 from pylearn2.datasets.cifar100 import CIFAR100
 from pylearn2.utils import string_utils
 
-
-logger = logging.getLogger(__name__)
 data_dir = string_utils.preprocess('${PYLEARN2_DATA_PATH}')
 
-logger.info('Loading CIFAR-100 train dataset...')
+print 'Loading CIFAR-100 train dataset...'
 data = CIFAR100(which_set = 'train')
 
-logger.info("Preparing output directory...")
+print "Preparing output directory..."
 patch_dir = data_dir + '/cifar100/cifar100_patches'
 serial.mkdir( patch_dir )
 README = open(patch_dir + '/README','w')
@@ -48,7 +45,7 @@ to function correctly.
 
 README.close()
 
-logger.info("Preprocessing the data...")
+print "Preprocessing the data..."
 pipeline = preprocessing.Pipeline()
 pipeline.items.append(preprocessing.ExtractPatches(patch_shape=(6,6),num_patches=2*1000*1000))
 pipeline.items.append(preprocessing.GlobalContrastNormalization(sqrt_bias=10., use_std=True))

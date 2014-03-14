@@ -6,7 +6,6 @@ minibatches from a dataset, or to merge three data with given proportions
 import os
 import functools
 from itertools import repeat
-import logging
 import warnings
 
 # Third-party imports
@@ -22,10 +21,6 @@ except ImportError:
 # Local imports
 from pylearn2.utils import sharedX
 from pylearn2.utils.rng import make_np_rng
-
-
-logger = logging.getLogger(__name__)
-
 
 ##################################################
 # 3D Visualization
@@ -67,7 +62,7 @@ def save_plot(repr, path, name="figure.pdf", title="features"):
     # Save the produces figure
     filename = os.path.join(path, name)
     pyplot.savefig(filename, format="pdf")
-    logger.info('... figure saved: %s', filename)
+    print '... figure saved: %s' % filename
 
 ##################################################
 # Features or examples filtering
