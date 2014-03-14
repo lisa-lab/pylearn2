@@ -1,4 +1,3 @@
-import logging
 import warnings
 
 from .general import is_iterable
@@ -16,7 +15,6 @@ from functools import partial
 WRAPPER_ASSIGNMENTS = ('__module__', '__name__')
 WRAPPER_CONCATENATIONS = ('__doc__',)
 WRAPPER_UPDATES = ('__dict__',)
-logger = logging.getLogger(__name__)
 
 
 def make_name(variable, anon="anonymous_variable"):
@@ -391,14 +389,14 @@ def get_choice(choice_to_explanation):
     d = choice_to_explanation
 
     for key in d:
-        logger.info('\t' + key + ': '+ d[key])
+        print '\t'+key + ': '+d[key]
     prompt = '/'.join(d.keys())+'? '
 
     first = True
     choice = ''
     while first or choice not in d.keys():
         if not first:
-            logger.warning('unrecognized choice')
+            print 'unrecognized choice'
         first = False
         choice = raw_input(prompt)
     return choice

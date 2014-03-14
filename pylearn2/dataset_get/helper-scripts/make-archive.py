@@ -9,9 +9,6 @@ __licence__   = "BSD 3-Clause http://www.opensource.org/licenses/BSD-3-Clause "
 
 
 import os,re,sys,tarfile
-import logging
-
-logger = logging.getLogger(__name__)
 
 ########################################
 def checks(path):
@@ -46,16 +43,16 @@ def checks(path):
         if os.path.exists(this_check):
             if os.path.isdir(this_check):
                 if len(os.listdir(this_check))==0:
-                    logger.warning("directory '%s' is empty.", this_check)
+                    print >>sys.stderr,"warning: directory '%s' is empty." % this_check
             found+=1;
         else:
             if mode=='m':
                 # fatal
-                logger.error("'%s' not found but mandatory", this_check)
+                print >>sys.stderr,"error: '%s' not found but mandatory"  % this_check
                 return False
             elif mode=='s':
                 # benign
-                logger.warning("no '%s' found", this_check)
+                print >>sys.stderr,"warning: no '%s' found" % this_check
             else:
                 # whatever
                 pass
@@ -67,20 +64,20 @@ def create_archive( source, archive_name ):
     if os.path.exists(archive_name):
         r= raw_input("'%s' exists, overwrite? [yes/N] " % archive_name)
         if (r!="y") and (r!="yes"):
-            logger.info("taking '%s' for no, so there.", r)
+            print "taking '%s' for no, so there." % r
             #bail out
             return
 
     try:
         tar=tarfile.open(archive_name,mode="w:bz2")
     except Exception, e:
-        logger.exception(e)
+        print e
         return
     else:
         for root, dirs, files in os.walk(source):
             for filename in files:
                 this_file = os.path.join(root,filename)
-                logger.info("adding '%s'", this_file)
+                print "adding '%s'" % this_file
                 tar.add(this_file)
         tar.close()
 
@@ -91,7 +88,7 @@ if __name__=="__main__":
         basename=os.path.basename(filename)
         ext=".tar.bz2"
         archive_name=basename+ext
-        logger.info("Creating Archive '%s'", archive_name)
+        print "Creating Archive '%s'" % archive_name
         create_archive(filename,archive_name)
     else:
-        logger.info("nothing found, aborting.")
+        print "nothing found, aborting."

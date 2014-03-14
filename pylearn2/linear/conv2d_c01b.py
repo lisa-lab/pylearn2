@@ -18,7 +18,6 @@ __email__ = "goodfeli@iro"
 import functools
 import numpy as np
 import warnings
-import logging
 
 from theano.compat.python2x import OrderedDict
 from theano.sandbox import cuda
@@ -38,10 +37,6 @@ from pylearn2.space import Conv2DSpace
 from pylearn2.utils.call_check import checked_call
 from pylearn2.utils import sharedX
 from pylearn2.utils.rng import make_np_rng
-
-
-logger = logging.getLogger(__name__)
-
 
 class Conv2D(LinearTransform):
     """
@@ -469,5 +464,6 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange= "not specified"):
         self.b = sharedX(self.detector_space.get_origin() + self.init_bias)
     self.b.name = self.layer_name + '_b'
 
-    logger.info('Input shape: %s', self.input_space.shape)
-    logger.info('Detector space: %s', self.detector_space.shape)
+    print 'Input shape: ', self.input_space.shape
+    print 'Detector space: ', self.detector_space.shape
+

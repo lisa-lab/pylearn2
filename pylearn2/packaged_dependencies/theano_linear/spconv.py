@@ -10,16 +10,12 @@ To read about different sparse formats, see U{http://www-users.cs.umn.edu/~saad/
 import numpy
 from scipy import sparse as scipy_sparse
 
-import logging
 import theano
 import theano.sparse
 from theano import sparse, gof, Op, tensor
 from theano.printing import Print
 
 raise ImportError("THIS OLD CODE'S TESTS ARE BIT-ROTTEN")
-
-logger = logging.getLogger(__name__)
-
 
 class RasterOrders(object):
     """
@@ -128,8 +124,7 @@ def sp_extract_patches(IR, IC, KR, KC, CH,
                                 j = orow*OC*T + ocol*T + t
                                 rval[i, j] = 1
                             except IndexError:
-                                logger.error('%s %s %s %s %s %s %s %s %s',
-                                    rval.shape, i, j, IR, IC, KR, KC, OR, OC)
+                                print rval.shape, i, j, IR, IC, KR, KC, OR, OC
                                 raise
     return rval
 
@@ -359,10 +354,10 @@ def max_pool(images, imgshp, maxpoolshp):
     indices, indptr, spmat_shape, sptype, outshp = \
             convolution_indices.conv_eval(imgshp, maxpoolshp, maxpoolshp, mode='valid')
 
-    logger.info('XXXXXXXXXXXXXXXX MAX POOLING LAYER XXXXXXXXXXXXXXXXXXXX')
-    logger.info('imgshp = %s', imgshp)
-    logger.info('maxpoolshp = %s', maxpoolshp)
-    logger.info('outshp = %s', outshp)
+    print 'XXXXXXXXXXXXXXXX MAX POOLING LAYER XXXXXXXXXXXXXXXXXXXX'
+    print 'imgshp = ', imgshp
+    print 'maxpoolshp = ', maxpoolshp
+    print 'outshp = ', outshp
 
     # build sparse matrix, then generate stack of image patches
     csc = theano.sparse.CSM(sptype)(N.ones(indices.size), indices, indptr, spmat_shape)

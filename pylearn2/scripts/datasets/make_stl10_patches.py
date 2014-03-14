@@ -8,29 +8,26 @@ It assumes that you have already run make_downsampled_stl10.py, which downsample
 This script is intended to reproduce the preprocessing used by Adam Coates et. al. in their work from
 the first half of 2011.
 """
-import logging
 
 from pylearn2.utils import serial
 from pylearn2.datasets import preprocessing
 from pylearn2.utils import string_utils as string
 import numpy as np
 
-
-logger = logging.getLogger(__name__)
 data_dir = string.preprocess('${PYLEARN2_DATA_PATH}/stl10')
 
-logger.info('Loading STL10-10 unlabeled and train datasets...')
+print 'Loading STL10-10 unlabeled and train datasets...'
 downsampled_dir = data_dir + '/stl10_32x32'
 
 data = serial.load(downsampled_dir + '/unlabeled.pkl')
 supplement = serial.load(downsampled_dir + '/train.pkl')
 
-logger.info('Concatenating datasets...')
+print 'Concatenating datasets...'
 data.set_design_matrix(np.concatenate((data.X,supplement.X),axis=0))
 del supplement
 
 
-logger.info("Preparing output directory...")
+print "Preparing output directory..."
 patch_dir = data_dir + '/stl10_patches'
 serial.mkdir( patch_dir )
 README = open(patch_dir + '/README','w')
@@ -60,7 +57,7 @@ to function correctly.
 
 README.close()
 
-logger.info("Preprocessing the data...")
+print "Preprocessing the data..."
 pipeline = preprocessing.Pipeline()
 pipeline.items.append(preprocessing.ExtractPatches(patch_shape=(6,6),num_patches=2*1000*1000))
 pipeline.items.append(preprocessing.GlobalContrastNormalization(use_std=True, sqrt_bias=10.))

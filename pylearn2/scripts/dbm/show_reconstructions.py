@@ -12,16 +12,11 @@ Then shows how the DBM reconstructs it if you run mean field
 to estimate the hidden units, then do one mean field downward
 pass from hidden_layers[0] to the visible layer.
 """
-import logging
-
 from pylearn2.utils import serial
 import sys
 from pylearn2.config import yaml_parse
 from pylearn2.gui.patch_viewer import PatchViewer
 from theano import function
-
-
-logger = logging.getLogger(__name__)
 
 rows = 5
 cols = 10
@@ -29,14 +24,14 @@ m = rows * cols
 
 _, model_path = sys.argv
 
-logger.info('Loading model...')
+print 'Loading model...'
 model = serial.load(model_path)
 model.set_batch_size(m)
 
 
 dataset_yaml_src = model.dataset_yaml_src
 
-logger.info('Loading data...')
+print 'Loading data...'
 dataset = yaml_parse.load(dataset_yaml_src)
 
 x = raw_input('use test set? (y/n) ')
@@ -126,11 +121,11 @@ def show():
 if hasattr(model.visible_layer, 'beta'):
     beta = model.visible_layer.beta.get_value()
     #model.visible_layer.beta.set_value(beta * 100.)
-    logger.info('beta: %s', (beta.min(), beta.mean(), beta.max()))
+    print 'beta: ',(beta.min(), beta.mean(), beta.max())
 
 while True:
     show()
-    logger.info('Displaying reconstructions. (q to quit, ENTER = show more)')
+    print 'Displaying reconstructions. (q to quit, ENTER = show more)'
     while True:
         x = raw_input()
         if x == 'q':
@@ -139,6 +134,8 @@ while True:
             x = 1
             break
         else:
-            logger.info('Invalid input, try again')
+            print 'Invalid input, try again'
 
     vis_batch = dataset.get_batch_topo(m)
+
+

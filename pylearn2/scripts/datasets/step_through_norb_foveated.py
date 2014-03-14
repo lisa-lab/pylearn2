@@ -3,17 +3,14 @@ __author__ = "Ian Goodfellow"
 A script for sequentially stepping through FoveatedNORB, viewing each image
 and its label.
 """
-import logging
+
 import numpy as np
 
 from pylearn2.datasets.norb_small import FoveatedNORB
 from pylearn2.gui.patch_viewer import PatchViewer
 from pylearn2.utils import get_choice
 
-
-logger = logging.getLogger(__name__)
-
-logger.info('Use test set?')
+print 'Use test set?'
 choices = {'y': 'test', 'n': 'train'}
 which_set = choices[get_choice(choices)]
 
@@ -37,7 +34,7 @@ while True:
 
     pv.show()
 
-    logger.info(dataset.y[i])
+    print dataset.y[i]
 
     choices = {'g': 'goto image', 'q': 'quit'}
 

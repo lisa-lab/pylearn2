@@ -20,11 +20,8 @@ __email__ = "mkg alum mit edu (@..)"
 
 import os, gzip, bz2, warnings
 import numpy, theano
-import logging
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.space import VectorSpace, Conv2DSpace, CompositeSpace
-
-logger = logging.getLogger(__name__)
 
 
 class SmallNORB(dense_design_matrix.DenseDesignMatrix):
@@ -235,15 +232,14 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                 type_key = readNums(file_handle, 'int32', 1)[0]
                 elem_type, elem_size = key_to_type[type_key]
                 if debug:
-                    logger.debug("header's type key, type, type size: " +
-                                 "%s %s %s", type_key, elem_type, elem_size)
+                    print "header's type key, type, type size: ", \
+                        type_key, elem_type, elem_size
                 if elem_type == 'packed matrix':
                     raise NotImplementedError('packed matrix not supported')
 
                 num_dims = readNums(file_handle, 'int32', 1)[0]
                 if debug:
-                    logger.debug('# of dimensions, according to header: %s',
-                                 num_dims)
+                    print '# of dimensions, according to header: ', num_dims
 
                 if from_gzip:
                     shape = readNums(file_handle,
@@ -255,8 +251,7 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                                            count=max(num_dims, 3))[:num_dims]
 
                 if debug:
-                    logger.debug('Tensor shape, as listed in header: %s',
-                                 shape)
+                    print 'Tensor shape, as listed in header:', shape
 
                 return elem_type, elem_size, shape
 
@@ -314,7 +309,7 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
             mono_shape = shape[:s_index] + (1, ) + shape[(s_index+1):]
 
             for i, res in enumerate(result):
-                logger.info("result %d shape: %s" , i, str(res.shape))
+                print "result %d shape: %s" % (i, str(res.shape))
 
             result = tuple(t.reshape(mono_shape) for t in result)
             result = numpy.concatenate(result, axis=s_index)

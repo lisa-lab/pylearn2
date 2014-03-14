@@ -8,10 +8,6 @@ from pylearn2.gui import patch_viewer
 from pylearn2.config import yaml_parse
 from pylearn2.datasets import control
 import numpy as np
-import logging
-
-logger = logging.getLogger(__name__)
-
 
 def get_weights_report(model_path=None,
                        model=None,
@@ -44,10 +40,10 @@ def get_weights_report(model_path=None,
     """
 
     if model is None:
-        logger.info('making weights report')
-        logger.info('loading model')
+        print 'making weights report'
+        print 'loading model'
         model = serial.load(model_path)
-        logger.info('loading done')
+        print 'loading done'
     else:
         assert model_path is None
     assert model is not None
@@ -76,18 +72,18 @@ def get_weights_report(model_path=None,
         if len(keys) > 2:
             key = None
             while key not in keys:
-                logger.info('Which is the weights?')
+                print 'Which is the weights?'
                 for key in keys:
-                    logger.info('\t %s', key)
+                    print '\t', key
                 key = raw_input()
         else:
             key, = keys
         weights = model[key]
 
         norms = np.sqrt(np.square(weights).sum(axis=1))
-        logger.info('min norm: %d', norms.min())
-        logger.info('mean norm: %d', norms.mean())
-        logger.info('max norm: %d', norms.max())
+        print 'min norm: ',norms.min()
+        print 'mean norm: ',norms.mean()
+        print 'max norm: ',norms.max()
 
         return patch_viewer.make_viewer(weights,
                                         is_color=weights.shape[1] % 3 == 0)
@@ -101,11 +97,11 @@ def get_weights_report(model_path=None,
     except NotImplementedError:
 
         if dataset is None:
-            logger.info('loading dataset...')
+            print 'loading dataset...'
             control.push_load_data(False)
             dataset = yaml_parse.load(model.dataset_yaml_src)
             control.pop_load_data()
-            logger.info('...done')
+            print '...done'
 
         try:
             W = model.get_weights()
@@ -156,7 +152,7 @@ Original exception: """+str(e))
         weights_view /= np.abs(weights_view).max()
 
     if norm_sort:
-        logger.info('sorting weights by decreasing norm')
+        print 'sorting weights by decreasing norm'
         idx = sorted( range(h), key=lambda l : - norm_prop[l] )
     else:
         idx = range(h)
@@ -170,20 +166,17 @@ Original exception: """+str(e))
         patch = weights_view[idx[i],...]
         pv.add_patch(patch, rescale=patch_rescale, activation=act)
 
-    logger.info('smallest enc weight magnitude: ' +
-                str(np.abs(weights_view).min()))
-    logger.info('mean enc weight magnitude: ' +
-                str(np.abs(weights_view).mean()))
-    logger.info('max enc weight magnitude: ' +
-                str(np.abs(weights_view).max()))
+    print 'smallest enc weight magnitude: '+str(np.abs(weights_view).min())
+    print 'mean enc weight magnitude: '+str(np.abs(weights_view).mean())
+    print 'max enc weight magnitude: '+str(np.abs(weights_view).max())
 
 
     if W is not None:
         norms = np.sqrt(np.square(W).sum(axis=1))
         assert norms.shape == (h,)
-        logger.info('min norm: %d', norms.min())
-        logger.info('mean norm: %d', norms.mean())
-        logger.info('max norm: %d', norms.max())
+        print 'min norm: ',norms.min()
+        print 'mean norm: ',norms.mean()
+        print 'max norm: ',norms.max()
 
     return pv
 
@@ -219,10 +212,10 @@ def get_binocular_greyscale_weights_report(model_path=None,
     """
 
     if model is None:
-        logger.info('making weights report')
-        logger.info('loading model')
+        print 'making weights report'
+        print 'loading model'
         model = serial.load(model_path)
-        logger.info('loading done')
+        print 'loading done'
     else:
         assert model_path is None
     assert model is not None
@@ -249,9 +242,9 @@ def get_binocular_greyscale_weights_report(model_path=None,
         weights ,= model.values()
 
         norms = np.sqrt(np.square(weights).sum(axis=1))
-        logger.info('min norm: %d', norms.min())
-        logger.info('mean norm: %d', norms.mean())
-        logger.info('max norm: %d', norms.max())
+        print 'min norm: ',norms.min()
+        print 'mean norm: ',norms.mean()
+        print 'max norm: ',norms.max()
 
         return patch_viewer.make_viewer(weights,
                                         is_color=weights.shape[1] % 3 == 0)
@@ -265,11 +258,11 @@ def get_binocular_greyscale_weights_report(model_path=None,
     except NotImplementedError:
 
         if dataset is None:
-            logger.info('loading dataset...')
+            print 'loading dataset...'
             control.push_load_data(False)
             dataset = yaml_parse.load(model.dataset_yaml_src)
             control.pop_load_data()
-            logger.info('...done')
+            print '...done'
 
         try:
             W = model.get_weights()
@@ -328,7 +321,7 @@ Original exception: """+str(e))
         weights_view /= np.abs(weights_view).max()
 
     if norm_sort:
-        logger.info('sorting weights by decreasing norm')
+        print 'sorting weights by decreasing norm'
         idx = sorted(range(h), key=lambda l : - norm_prop[l])
     else:
         idx = range(h)
@@ -345,19 +338,16 @@ Original exception: """+str(e))
         pv.add_patch(patch[:,:,1], rescale=False, activation=act)
         pv.add_patch(patch[:,:,0], rescale=False, activation=act)
 
-    logger.info('smallest enc weight magnitude: ' +
-                str(np.abs(weights_view).min()))
-    logger.info('mean enc weight magnitude: ' +
-                str(np.abs(weights_view).mean()))
-    logger.info('max enc weight magnitude: ' +
-                str(np.abs(weights_view).max()))
+    print 'smallest enc weight magnitude: '+str(np.abs(weights_view).min())
+    print 'mean enc weight magnitude: '+str(np.abs(weights_view).mean())
+    print 'max enc weight magnitude: '+str(np.abs(weights_view).max())
 
 
     if W is not None:
         norms = np.sqrt(np.square(W).sum(axis=1))
         assert norms.shape == (h,)
-        logger.info('min norm: %d', norms.min())
-        logger.info('mean norm: %d', norms.mean())
-        logger.info('max norm: %d', norms.max())
+        print 'min norm: ',norms.min()
+        print 'mean norm: ',norms.mean()
+        print 'max norm: ',norms.max()
 
     return pv

@@ -6,17 +6,13 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-import logging
 import sys
 from pylearn2.utils import serial
-
-
-logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     for model_path in sys.argv[1:]:
         if len(sys.argv) > 2:
-            logger.info(model_path)
+            print model_path
         model = serial.load(model_path)
         monitor = model.monitor
         channels = monitor.channels
@@ -24,11 +20,11 @@ if __name__ == "__main__":
             print key
             value = channels[key]
             if not hasattr(value, 'doc'):
-                logger.warning("\tOld pkl file, written before doc system.")
+                print "\tOld pkl file, written before doc system."
             else:
                 doc = value.doc
                 if doc is None:
-                    logger.info("No doc available.")
+                    print "No doc available."
                 else:
-                    logger.info(doc)
+                    print doc
             print

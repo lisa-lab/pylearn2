@@ -1,7 +1,6 @@
 __author__ = "Ian Goodfellow"
 
 import time
-import logging
 
 from theano import function
 import theano.tensor as T
@@ -9,10 +8,6 @@ import theano.tensor as T
 from pylearn2.sandbox.lisa_rl.bandit.agent import Agent
 from pylearn2.utils import sharedX
 from pylearn2.utils.rng import make_theano_rng
-
-
-logger = logging.getLogger(__name__)
-
 
 class ClassifierAgent(Agent):
     """
@@ -77,12 +72,12 @@ class ClassifierAgent(Agent):
                     self.epsilon_stochastic * y_hat,
                     dtype = 'float32')
 
-        logger.info("Compiling classifier agent learning function")
+        print "Compiling classifier agent learning function"
         t1 = time.time()
         f = function([X], a)
         t2 = time.time()
 
-        logger.info("...done, took %d", t2 - t1)
+        print "...done, took", t2 - t1
 
         return f
 

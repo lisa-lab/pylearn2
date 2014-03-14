@@ -1,13 +1,9 @@
 import numpy as np
-import logging
 import theano
 from theano import tensor
 from pylearn2.models.mlp import (MLP, Linear, Softmax, Sigmoid,
                                  exhaustive_dropout_average,
                                  sampled_dropout_average)
-
-
-logger = logging.getLogger(__name__)
 
 
 class IdentityLayer(Linear):
@@ -132,7 +128,7 @@ def test_batchwise_dropout():
     f = theano.function([inp], mlp.dropout_fprop(inp, per_example=True),
                         allow_input_downcast=True)
     d = f([[3.0, 4.5]] * 3)
-    logger.info(d)
+    print d
     np.testing.assert_(np.any(d[0] != d[1]) or np.any(d[0] != d[2]))
 
 def test_str():

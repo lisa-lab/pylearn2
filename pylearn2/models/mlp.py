@@ -10,7 +10,6 @@ __maintainer__ = "Ian Goodfellow"
 import math
 import sys
 import warnings
-import logging
 
 import numpy as np
 from theano import config
@@ -53,8 +52,6 @@ warnings.warn("MLP changing the recursion limit.")
 # python interpreter should provide an option to raise the error
 # precisely when you're going to exceed the stack segment.
 sys.setrecursionlimit(40000)
-
-logger = logging.getLogger(__name__)
 
 
 class Layer(Model):
@@ -522,7 +519,7 @@ class MLP(Layer):
         for layer in self.layers:
             for param in layer.get_params():
                 if param.name is None:
-                    logger.info(type(layer))
+                    print type(layer)
             layer_params = layer.get_params()
             assert not isinstance(layer_params, set)
             for param in layer_params:
@@ -2434,8 +2431,8 @@ class ConvRectifiedLinear(Layer):
         self.b = sharedX(self.detector_space.get_origin() + self.init_bias)
         self.b.name = 'b'
 
-        logger.info('Input shape: %s', self.input_space.shape)
-        logger.info('Detector space: %s', self.detector_space.shape)
+        print 'Input shape: ', self.input_space.shape
+        print 'Detector space: ', self.detector_space.shape
 
         assert self.pool_type in ['max', 'mean']
 
@@ -2460,7 +2457,7 @@ class ConvRectifiedLinear(Layer):
                                         num_channels=self.output_channels,
                                         axes=('b', 'c', 0, 1))
 
-        logger.info('Output space: %s', self.output_space.shape)
+        print 'Output space: ', self.output_space.shape
 
     @wraps(Layer.censor_updates)
     def censor_updates(self, updates):

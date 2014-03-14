@@ -5,21 +5,18 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
-import logging
 import sys
 from pylearn2.gui import get_weights_report
 import warnings
-
-logger = logging.getLogger(__name__)
 
 warnings.warn("make_weights_image.py is deprecated. Use show_weights.py with"
         " the --out flag. make_weights_image.py may be removed on or after "
         "2014-08-28.")
 
 if __name__ == "__main__":
-    logger.info('loading model')
+    print 'loading model'
     path = sys.argv[1]
-    logger.info('loading done')
+    print 'loading done'
 
     rescale = True
 

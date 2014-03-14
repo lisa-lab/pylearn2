@@ -21,12 +21,9 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
 
-import logging
 import sys
 from pylearn2.utils import serial
 import numpy as np
-
-logger = logging.getLogger(__name__)
 
 # equal -> compare val record entries with np.all(x == y)
 # allclose -> compare val record entries with np.allclose(x, y)
@@ -46,20 +43,19 @@ if __name__ == "__main__":
     intersect = []
     for channel in channels_0:
         if channel not in channels_1:
-            logger.info(channel + ' is in model 0 but not model 1')
+            print channel+' is in model 0 but not model 1'
         else:
             intersect.append(channel)
     for channel in channels_1:
         if channel not in channels_0:
-            logger.info(channel + ' is in model 1 but not model 0')
+            print channel+' is in model 1 but not model 0'
 
     # Print the difference in length between the records
     for channel in intersect:
         channel_0, channel_1 = [d[channel] for d in [channels_0, channels_1]]
         len_0, len_1 = [len(ch.batch_record) for ch in [channel_0, channel_1]]
         if len_0 != len_1:
-            logger.info('Length of %s differs: %d vs %d',
-                        channel, len_0, len_1)
+            print 'Length of',channel,'differs:',len_0,'vs',len_1
         channel_0.length = min(len_0, len_1)
 
 
@@ -82,28 +78,22 @@ if __name__ == "__main__":
             eq = ch0 == ch1
             both_nan = np.isnan(ch0) and np.isnan(ch1)
             if not (eq or both_nan):
-                logger.info('%s.batch_record differs at record entry %s',
-                            channel, record)
-                logger.info('\t %s vs %s', channel_0.batch_record[record],
-                            channel_1.batch_record[record])
+                print channel+'.batch_record differs at record entry',record
+                print '\t',channel_0.batch_record[record], 'vs', channel_1.batch_record[record]
                 bad_channel.append(channel)
                 continue
 
             if not (channel_0.example_record[record] ==
                     channel_1.example_record[record]):
-                logger.info('%s.example_record differs at record entry %s',
-                            channel, record)
-                logger.info('\t %s vs %s', channel_0.example_record[record],
-                            channel_1.example_record[record])
+                print channel+'.example_record differs at record entry',record
+                print '\t',channel_0.example_record[record], 'vs', channel_1.example_record[record]
                 bad_channel.append(channel)
                 continue
 
             if not (channel_0.epoch_record[record] ==
                     channel_1.epoch_record[record]):
-                logger.info('%s.epoch_record differs at record entry %s',
-                            channel, record)
-                logger.info('\t %s vs %s', channel_0.epoch_record[record],
-                            channel_1.epoch_record[record])
+                print channel+'.epoch_record differs at record entry',record
+                print '\t',channel_0.epoch_record[record], 'vs', channel_1.epoch_record[record]
                 bad_channel.append(channel)
                 continue
 
@@ -122,13 +112,12 @@ if __name__ == "__main__":
                     assert False # unrecognized cmp_mode
 
             if not match:
-                logger.info('%s.val_record differs at record entry',
-                            channel, record)
-                logger.info('\t %s vs %s', channel_0.val_record[record],
-                            channel_1.val_record[record])
+                print channel+'.val_record differs at record entry',record
+                print '\t',channel_0.val_record[record], 'vs', channel_1.val_record[record]
                 bad_channel.append(channel)
                 continue
 
         for channel in bad_channel:
             del clean[clean.index(channel)]
         record += 1
+
