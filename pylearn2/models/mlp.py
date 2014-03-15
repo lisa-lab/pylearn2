@@ -2343,7 +2343,7 @@ class ConvRectifiedLinear(Layer):
                  left_slope=0.0,
                  max_kernel_norm=None,
                  pool_type='max',
-                 tied_b=False
+                 tied_b=False,
                  detector_normalization=None,
                  output_normalization=None,
                  kernel_stride=(1, 1)):
