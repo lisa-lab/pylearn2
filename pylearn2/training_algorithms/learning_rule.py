@@ -3,7 +3,6 @@ A module containing different learning rules for use with the SGD training
 algorithm.
 """
 import numpy as np
-
 from theano import config
 from theano import tensor as T
 
