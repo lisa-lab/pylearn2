@@ -25,10 +25,8 @@ class TestConv2D(unittest.TestCase):
 
     def test_value_errors(self):
         bad_filters = sharedX(numpy.zeros((1, 3, 2)))
-        with self.assertRaises(TypeError):
-            Conv2D(bad_filters, 1, self.input_space)
-        with self.assertRaises(AssertionError):
-            Conv2D(self.filters, 0, self.input_space)
+        self.assertRaises(ValueError, Conv2D, bad_filters, 1, self.input_space)
+        self.assertRaises(AssertionError, Conv2D, self.filters, 0, self.input_space)
 
     def test_get_params(self):
         assert self.conv2d.get_params() == [self.filters]
