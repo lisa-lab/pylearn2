@@ -46,8 +46,50 @@ def scale(s, a):
 class BatchGradientDescent:
     """
     A class for minimizing a function via the method of steepest descent.
-    """
 
+    Parameters
+    ----------
+    objective : tensor_like
+        A theano expression to be minimized should be a function of params and,
+        if provided, inputs
+    params : list
+        A list of theano shared variables. These are the optimization variables
+    inputs : list, optional
+        A list of theano variables to serve as inputs to the graph.
+    param_constrainers : list
+        A list of callables to be called on all updates dictionaries to be
+        applied to params. This is how you implement constrained
+        optimization.
+    reset_alpha : bool
+        If True, reverts to using init_alpha after each call. If False, the
+        final set of alphas is used at the start of the next call to minimize.
+    conjugate : bool
+        If True, tries to pick conjugate gradient directions. For the
+        directions to be truly conjugate, you must use line_search_mode =
+        'exhaustive' and the objective function must be quadratic. Using
+        line_search_mode = 'exhaustive' on a non-quadratic objective function
+        implements nonlinear conjugate gradient descent.
+    reset_conjugate : bool
+        Has no effect unless conjugate == True. If reset_conjugate ==
+        True, reverts to direction of steepest descent for the first
+        step in each call to minimize. Otherwise, tries to make the new
+        search direction conjugate to the last one (even though the
+        objective function might be totally different on each call to
+        minimize)
+    gradients : WRITEME
+        If None, compute the gradients of obj using T.grad otherwise, a
+        dictionary mapping from params to expressions for their gradients
+        (this allows you to use approximate gradients computed with
+        something other than T.grad)
+    gradient_updates : dict
+        A dictionary of shared variable updates to run each time the
+        gradient is computed
+
+    Notes
+    -----
+    Calling the `minimize` method with values for for `inputs` will
+    update `params` to minimize `objective`.
+    """
     def __init__(self, objective, params, inputs = None,
             param_constrainers = None, max_iter = -1,
             lr_scalers = None, verbose = 0, tol = None,
@@ -56,52 +98,6 @@ class BatchGradientDescent:
             reset_conjugate = True, gradients = None,
             gradient_updates = None, line_search_mode = None,
             accumulate = False, theano_function_mode=None):
-        """
-        Parameters
-        ----------
-        objective : tensor_like
-            A theano expression to be minimized should be a function of \
-            params and, if provided, inputs
-        params : list
-            A list of theano shared variables. These are the optimization \
-            variables
-        inputs : list, optional
-            A list of theano variables to serve as inputs to the graph.
-        param_constrainers : list
-            A list of callables to be called on all updates dictionaries to \
-            be applied to params. This is how you implement constrained \
-            optimization.
-        reset_alpha : bool
-            If True, reverts to using init_alpha after each call. If False, \
-            the final set of alphas is used at the start of the next call to \
-            minimize.
-        conjugate : bool
-            If True, tries to pick conjugate gradient directions. For the \
-            directions to be truly conjugate, you must use line_search_mode = \
-            'exhaustive' and the objective function must be quadratic. \
-            Using line_search_mode = 'exhaustive' on a non-quadratic \
-            objective function implements nonlinear conjugate gradient descent.
-        reset_conjugate : bool
-            Has no effect unless conjugate == True. If reset_conjugate == \
-            True, reverts to direction of steepest descent for the first \
-            step in each call to minimize. Otherwise, tries to make the new \
-            search direction conjugate to the last one (even though the \
-            objective function might be totally different on each call to \
-            minimize)
-        gradients : WRITEME
-            If None, compute the gradients of obj using T.grad otherwise, a \
-            dictionary mapping from params to expressions for their gradients \
-            (this allows you to use approximate gradients computed with \
-            something other than T.grad)
-        gradient_updates : dict
-            A dictionary of shared variable updates to run each time the \
-            gradient is computed
-
-        Notes
-        -----
-        Calling the ``minimize'' method with values for for ``inputs'' will
-        update ``params'' to minimize ``objective''.
-        """
 
         self.__dict__.update(locals())
         del self.self

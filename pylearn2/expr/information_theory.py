@@ -15,10 +15,8 @@ def entropy_binary_vector(P):
 
         WRITEME properly
 
-    if P[i,j] represents the probability
-        of some binary random variable X[i,j] being 1
-    then rval[i] gives the entropy of the random vector
-    X[i,:]
+    If P[i,j] represents the probability of some binary random variable X[i,j]
+    being 1, then rval[i] gives the entropy of the random vector X[i,:]
     """
 
     for Pv in get_debug_values(P):

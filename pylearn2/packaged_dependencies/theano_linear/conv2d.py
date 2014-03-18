@@ -55,14 +55,18 @@ class Conv2d(LinearTransform):
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    filters : WRITEME
+    img_shape : WRITEME
+    subsample : WRITEME
+    border_mode : WRITEME
+    filters_shape : WRITEME
+    message : WRITEME
     """
     def __init__(self, filters, img_shape, subsample=(1,1), border_mode='valid',
             filters_shape=None, message=""):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(Conv2d, self).__init__([filters])
         self._filters = filters
         if filters_shape is None:
@@ -77,9 +81,9 @@ class Conv2d(LinearTransform):
         else:
             self._message = filters.name
         if not len(self._img_shape)==4:
-            raise TypeError('need 4-tuple shape', self._img_shape)
+            raise ValueError('need 4-tuple shape', self._img_shape)
         if not len(self._filters_shape)==4:
-            raise TypeError('need 4-tuple shape', self._filters_shape)
+            raise ValueError('need 4-tuple shape', self._filters_shape)
 
     def lmul(self, x):
         """

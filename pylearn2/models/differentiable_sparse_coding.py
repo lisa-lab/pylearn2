@@ -23,15 +23,19 @@ class DifferentiableSparseCoding(object):
     .. todo::
 
         WRITEME
+    
+    Parameters
+    ----------
+    nvis : WRITEME
+    nhid : WRITEME
+    init_lambda : WRITEME
+    init_p : WRITEME
+    init_alpha : WRITEME
+    learning_rate : WRITEME
     """
     def __init__(self, nvis, nhid,
             init_lambda,
             init_p, init_alpha, learning_rate):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.nvis = int(nvis)
         self.nhid = int(nhid)
         self.init_lambda = float(init_lambda)

@@ -1,7 +1,5 @@
 """
-.. todo::
-
-    WRITEME
+Spike-and-slab sparse coding (S3C)
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2011, Universite de Montreal"
@@ -21,7 +19,7 @@ from theano.gof.op import get_debug_values, debug_error_message, debug_assert
 import theano.tensor as T
 
 from pylearn2.utils import make_name, sharedX, as_floatX
-from pylearn2.base import Block
+from pylearn2.blocks import Block
 from pylearn2.expr.information_theory import entropy_binary_vector
 from pylearn2.models import Model
 from pylearn2.space import VectorSpace
@@ -40,19 +38,27 @@ def rotate_towards(old_W, new_W, new_coeff):
 
         WRITEME properly
 
-    old_W: every column is a unit vector
+    Parameters
+    ----------
+    old_W : WRITME
+        every column is a unit vector
 
-    for each column, rotates old_w toward
-        new_w by new_coeff * theta where
-        theta is the angle between them
+    Notes
+    ------
+
+    .. code-block:: none
+
+        for each column, rotates old_w toward
+            new_w by new_coeff * theta where
+            theta is the angle between them
     """
 
     norms = theano_norms(new_W)
 
-    #update, scaled back onto unit sphere
+    # update, scaled back onto unit sphere
     scal_points = new_W / norms.dimshuffle('x',0)
 
-    #dot product between scaled update and current W
+    # dot product between scaled update and current W
     dot_update = (old_W * scal_points).sum(axis=0)
 
     theta = T.arccos(dot_update)
@@ -87,13 +93,12 @@ class SufficientStatistics:
     terms of the second moment matrix are now written with a different order of
     operations that avoids O(nhid^2) operations but whose dependence on the
     dataset cannot be expressed in terms only of sufficient statistics.
+
+    Parameters
+    ----------
+    d : WRITEME
     """
     def __init__(self, d):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self. d = {}
         for key in d:
             self.d[key] = d[key]
@@ -107,16 +112,23 @@ class SufficientStatistics:
 
             WRITEME properly
 
-        needed_stats: a set of string names of the statistics to include
-
-        V: a num_examples x nvis matrix of input examples
-        H_hat: a num_examples x nhid matrix of \hat{h} variational parameters
-        S_hat: variational parameters for expectation of s given h=1
-        var_s0_hat: variational parameters for variance of s given h=0
-                    (only a vector of length nhid, since this is the same for
-                    all inputs)
-        var_s1_hat: variational parameters for variance of s given h=1
-                    (again, a vector of length nhid)
+        Parameters
+        ----------
+        needed_stats: WRITEME
+            a set of string names of the statistics to include
+        V : WRITEME
+            a num_examples x nvis matrix of input examples
+        H_hat : WRITEME
+            a num_examples x nhid matrix of \hat{h} variational parameters
+        S_hat : WRITEME
+            variational parameters for expectation of s given h=1
+        var_s0_hat : WRITEME
+            variational parameters for variance of s given h=0
+            (only a vector of length nhid, since this is the same for
+            all inputs)
+        var_s1_hat : WRITEME
+            variational parameters for variance of s given h=1
+            (again, a vector of length nhid)
         """
 
         m = T.cast(V.shape[0],config.floatX)
@@ -193,11 +205,95 @@ class S3C(Model, Block):
     """
     If you use S3C in published work, please cite:
 
-        Large-Scale Feature Learning With Spike-and-Slab Sparse Coding.
-        Goodfellow, I., Courville, A., & Bengio, Y. ICML 2012.
+    Large-Scale Feature Learning With Spike-and-Slab Sparse Coding.
+    Goodfellow, I., Courville, A., & Bengio, Y. ICML 2012.
+
+    Parameters
+    ----------
+    nvis : WRITEME
+        # of visible units
+    nhid : WRITEME
+        # of hidden units
+    irange : WRITEME
+        (scalar) weights are initinialized ~U( [-irange,irange] )
+    init_bias_hid : WRITEME
+        initial value of hidden biases (scalar or vector)
+    init_B : WRITEME
+        initial value of B (scalar or vector)
+    min_B : WRITEME
+        See `max_B`
+    max_B : WRITEME
+        (scalar) learning updates to B are clipped to [min_B, max_B]
+    init_alpha : WRITEME
+        initial value of alpha (scalar or vector)
+    min_alpha : WRITEME
+        See `max_alpha`
+    max_alpha : WRITEME
+        (scalar) learning updates to alpha are clipped to [min_alpha, max_alpha]
+    init_mu : WRITEME
+        initial value of mu (scalar or vector)
+    min_mu : WRITEME
+        See `max_mu`
+    max_mu : WRITEME
+        clip mu updates to this range.
+    e_step : WRITEME
+        An E_Step object that determines what kind of E-step to do
+        if None, assumes that the S3C model is being driven by
+        a larger model, and does not generate theano functions
+        necessary for autonomous operation
+    m_step : WRITEME
+        An M_Step object that determines what kind of M-step to do
+    tied_B : WRITEME
+        if True, use a scalar times identity for the precision on visible units.
+        otherwise use a diagonal matrix for the precision on visible units
+    constrain_W_norm : bool
+        if true, norm of each column of W must be 1 at all times
+    init_unit_W : bool
+        if true, each column of W is initialized to have unit norm
+    monitor_stats : WRITEME
+        a list of sufficient statistics to monitor on the monitoring dataset
+    monitor_params : WRITEME
+        a list of parameters to monitor TODO: push this into Model base class
+    monitor_functional : WRITEME
+        if true, monitors the EM functional on the monitoring dataset
+    monitor_norms : bool
+        if true, monitors the norm of W at the end of each solve step, but before
+        blending with old W by new_coeff
+        This lets us see how much distortion is introduced by norm clipping
+        Note that unless new_coeff = 1, the post-solve norm monitored by this
+        flag will not be equal to the norm of the final parameter value, even
+        if no norm clipping is activated.
+    recycle_q : WRITEME
+        if nonzero, initializes the e-step with the output of the previous iteration's
+        e-step. obviously this should only be used if you are using the same data
+        in each batch. when recycle_q is nonzero, it should be set to the batch size.
+    disable_W_update : WRITEME
+        if true, doesn't update W (useful for experiments where you only learn the prior)
+    random_patches_src : WRITEME
+        if not None, should be a dataset
+        will set W to a batch
+    local_rf_src : Dataset, optional
+        if not None, should be a dataset
+        requires the following other params:
+
+        - local_rf_shape : a 2 tuple
+        - One of:
+
+            - local_rf_stride: a 2 tuple or None
+                if specified, pull out patches on a regular grid
+            - local_rf_max_shape: a 2 tuple or None
+                if specified, pull out patches of random shape and
+                    location
+            - local_rf_draw_patches : if true, local receptive fields
+                are patches from local_rf_src
+                otherwise, they're random patches
+                will initialize the weights to have only local receptive fields. (won't make a sparse
+                matrix or anything like that)
+
+        incompatible with random_patches_src for now
+    init_unit_W : bool
+        if True, initializes weights with unit norm
     """
-
-
     def __init__(self, nvis, nhid, irange, init_bias_hid,
                        init_B, min_B, max_B,
                        init_alpha, min_alpha, max_alpha, init_mu,
@@ -230,62 +326,6 @@ class S3C(Model, Block):
                        init_momentum = None,
                        final_momentum = None,
                        momentum_saturation_example = None):
-        """
-        .. todo::
-
-            WRITEME properly
-
-        nvis: # of visible units
-        nhid: # of hidden units
-        irange: (scalar) weights are initinialized ~U( [-irange,irange] )
-        init_bias_hid: initial value of hidden biases (scalar or vector)
-        init_B: initial value of B (scalar or vector)
-        min_B, max_B: (scalar) learning updates to B are clipped to [min_B, max_B]
-        init_alpha: initial value of alpha (scalar or vector)
-        min_alpha, max_alpha: (scalar) learning updates to alpha are clipped to [min_alpha, max_alpha]
-        init_mu: initial value of mu (scalar or vector)
-        min_mu/max_mu: clip mu updates to this range.
-        e_step:      An E_Step object that determines what kind of E-step to do
-                        if None, assumes that the S3C model is being driven by
-                        a larger model, and does not generate theano functions
-                        necessary for autonomous operation
-        m_step:      An M_Step object that determines what kind of M-step to do
-        tied_B:         if True, use a scalar times identity for the precision on visible units.
-                        otherwise use a diagonal matrix for the precision on visible units
-        constrain_W_norm: if true, norm of each column of W must be 1 at all times
-        init_unit_W:      if true, each column of W is initialized to have unit norm
-        monitor_stats:  a list of sufficient statistics to monitor on the monitoring dataset
-        monitor_params: a list of parameters to monitor TODO: push this into Model base class
-        monitor_functional: if true, monitors the EM functional on the monitoring dataset
-        monitor_norms: if true, monitors the norm of W at the end of each solve step, but before
-                        blending with old W by new_coeff
-                        This lets us see how much distortion is introduced by norm clipping
-                        Note that unless new_coeff = 1, the post-solve norm monitored by this
-                        flag will not be equal to the norm of the final parameter value, even
-                        if no norm clipping is activated.
-        recycle_q: if nonzero, initializes the e-step with the output of the previous iteration's
-                    e-step. obviously this should only be used if you are using the same data
-                    in each batch. when recycle_q is nonzero, it should be set to the batch size.
-        disable_W_update: if true, doesn't update W (useful for experiments where you only learn the prior)
-        random_patches_src: if not None, should be a dataset
-                            will set W to a batch
-        local_rf_src: if not None, should be a dataset
-                requires the following other params:
-                    local_rf_shape: a 2 tuple
-                    one of:
-                        local_rf_stride: a 2 tuple or None
-                            if specified, pull out patches on a regular grid
-                        local_rf_max_shape: a 2 tuple or None
-                            if specified, pull out patches of random shape and
-                                location
-                    local_rf_draw_patches: if true, local receptive fields are patches from local_rf_src
-                                            otherwise, they're random patches
-                 will initialize the weights to have only local receptive fields. (won't make a sparse
-                    matrix or anything like that)
-                 incompatible with random_patches_src for now
-        init_unit_W:   if True, initializes weights with unit norm
-        """
-
         Model.__init__(self)
         Block.__init__(self)
 
@@ -676,9 +716,7 @@ class S3C(Model, Block):
         This implementation returns specification corresponding to unlabeled
         inputs.
 
-        Returns
-        -------
-        WRITEME
+        WRITME: Returns section
         """
         return (self.get_input_space(), self.get_input_source())
 
@@ -897,9 +935,7 @@ class S3C(Model, Block):
         V : tensor_like
             A symbolic design matrix
 
-        Returns
-        -------
-        WRITEME
+        WRITEME: Returns section
         """
 
         #E step
@@ -1012,11 +1048,13 @@ class S3C(Model, Block):
 
             WRITEME
 
+        Parameters
+        ----------
         H_sample: a matrix of values of H
-                  if none is provided, samples one from the prior
-                  (H_sample is used if you want to see what samples due
-                    to specific hidden units look like, or when sampling
-                    from a larger model that s3c is part of)
+            if none is provided, samples one from the prior
+            (H_sample is used if you want to see what samples due
+            to specific hidden units look like, or when sampling
+            from a larger model that s3c is part of)
         """
 
         if theano_rng is None:
@@ -1586,7 +1624,7 @@ class E_Step(object):
 
     The structured variational approximation is:
 
-        P(v,h,s) = \Pi_i Q_i (h_i, s_i)
+    P(v,h,s) = \Pi_i Q_i (h_i, s_i)
 
     We alternate between updating the Q parameters over s in parallel and
     updating the q parameters over h in parallel.
@@ -1594,11 +1632,11 @@ class E_Step(object):
     The h parameters are updated with a damping coefficient that is the same
     for all units but changes each time step, specified by the yaml file. The
     slab variables are updated with:
-        optionally: a unit-specific damping designed to ensure stability
-                    by preventing reflections from going too far away
-                    from the origin.
-        optionally: additional damping that is the same for all units but
-                    changes each time step, specified by the yaml file
+
+    - optionally: a unit-specific damping designed to ensure stability
+        by preventing reflections from going too far away from the origin.
+    - optionally: additional damping that is the same for all units but
+        changes each time step, specified by the yaml file
 
     The update equations were derived based on updating h_i independently,
     then updating s_i independently, even though it is possible to solve for
@@ -1607,8 +1645,33 @@ class E_Step(object):
     This is because the damping is necessary for parallel updates to be
     reasonable, but damping the solution to s_i from the joint update makes the
     solution to h_i from the joint update no longer optimal.
-    """
 
+    Parameters
+    ----------
+    h_new_coeff_schedule : list
+        List of coefficients to put on the new value of h on each damped \
+        fixed point step (coefficients on s are driven by a special \
+        formula). Length of this list determines the number of fixed point
+        steps. If None, assumes that the model is not meant to run on its \
+        own (ie a larger model will specify how to do inference in this \
+        layer)
+    s_new_coeff_schedule : list
+        List of coefficients to put on the new value of s on each damped \
+        fixed point step. These are applied AFTER the reflection \
+        clipping, which can be seen as a form of per-unit damping. \
+        s_new_coeff_schedule must have same length as \
+        h_new_coeff_schedule. If s_new_coeff_schedule is not provided, it \
+        will be filled in with all ones, i.e. it will default to no \
+        damping beyond the reflection clipping
+    clip_reflections, rho : bool, float
+        If clip_reflections is True, the update to S_hat[i,j] is bounded \
+        on one side by - rho * S_hat[i,j] and unbounded on the other side
+    monitor_ranges : bool
+        If True, adds the channels h_range_<min,mean,max> and \
+        hs_range_<min,mean_max>  showing the amounts that different h_hat \
+        and s_hat variational parameters change across the monitoring \
+        dataset
+    """
     def get_monitoring_channels(self, V):
         """
         .. todo::
@@ -1683,34 +1746,6 @@ class E_Step(object):
                        monitor_s_mag = False,
                        rho = 0.5,
                        monitor_ranges = False):
-        """
-        Parameters
-        ----------
-        h_new_coeff_schedule : list
-            List of coefficients to put on the new value of h on each damped \
-            fixed point step (coefficients on s are driven by a special \
-            formula). Length of this list determines the number of fixed point
-            steps. If None, assumes that the model is not meant to run on its \
-            own (ie a larger model will specify how to do inference in this \
-            layer)
-        s_new_coeff_schedule : list
-            List of coefficients to put on the new value of s on each damped \
-            fixed point step. These are applied AFTER the reflection \
-            clipping, which can be seen as a form of per-unit damping. \
-            s_new_coeff_schedule must have same length as \
-            h_new_coeff_schedule. If s_new_coeff_schedule is not provided, it \
-            will be filled in with all ones, i.e. it will default to no \
-            damping beyond the reflection clipping
-        clip_reflections, rho : bool, float
-            If clip_reflections is True, the update to S_hat[i,j] is bounded \
-            on one side by - rho * S_hat[i,j] and unbounded on the other side
-        monitor_ranges : bool
-            If True, adds the channels h_range_<min,mean,max> and \
-            hs_range_<min,mean_max>  showing the amounts that different h_hat \
-            and s_hat variational parameters change across the monitoring \
-            dataset
-        """
-
         self.autonomous = True
 
         if h_new_coeff_schedule is None:
@@ -2181,17 +2216,15 @@ class Grad_M_Step:
     """
     A partial M-step based on gradient ascent. More aggressive M-steps are
     possible but didn't work particularly well in practice on STL-10/CIFAR-10
+
+    .. todo::
+
+        WRITEME : parameter list
     """
 
     def __init__(self, learning_rate = None, B_learning_rate_scale  = 1,
             alpha_learning_rate_scale = 1.,
             W_learning_rate_scale = 1, p_penalty = 0.0, B_penalty = 0.0, alpha_penalty = 0.0):
-        """
-        .. todo::
-
-            WRITEME
-        """
-
         self.autonomous = True
 
         if learning_rate is None:
@@ -2306,11 +2339,6 @@ class E_Step_Scan(E_Step):
     The heuristic E step implemented using scan rather than unrolled loops
     """
     def __init__(self, ** kwargs):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(E_Step_Scan, self).__init__( ** kwargs )
 
         self.h_new_coeff_schedule = sharedX( self.h_new_coeff_schedule)

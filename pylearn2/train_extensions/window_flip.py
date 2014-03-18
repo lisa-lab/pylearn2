@@ -49,47 +49,36 @@ def _zero_pad(array, amount, axes=(1, 2)):
 
 class WindowAndFlip(TrainExtension):
     """
-    .. todo::
+    An extension that allows an image dataset to be flipped and windowed after
+    each epoch of training.
 
-        WRITEME
+    Parameters
+    ----------
+    randomize : list, optional
+        If specified, a list of Datasets to randomly window and
+        flip at each epoch.
+    randomize_once : list, optional
+        If specified, a list of Dataasets to randomly window and
+        flip once at the start of training.
+    center : list, optional
+        If specified, a list of Datasets to centrally window
+        once at the start of training.
+    rng : numpy.random.RandomState object or seed, optional
+        A random number generator or seed used to create one.
+        Seeded deterministically by default.
+    pad_randomized : int, optional
+        Amount of padding to add to each side of the images
+        in `randomize` and `randomize_once`. Useful if you
+        want to do zero-padded windowing with `window_shape`
+        the actual size of the dataset, and validate/test on
+        full-size images instead of central patches. Default
+        is 0.
+    flip : bool, optional
+        Reflect images on the horizontal axis with probability
+        0.5. `True` by default.
     """
-
     def __init__(self, window_shape, randomize=None, randomize_once=None,
             center=None, rng=(2013, 02, 20), pad_randomized=0, flip=True):
-        """
-        An extension that allows an image dataset to be flipped
-        and windowed after each epoch of training.
-
-        Parameters
-        ----------
-        randomize : list, optional
-            If specified, a list of Datasets to randomly window and \
-            flip at each epoch.
-
-        randomize_once : list, optional
-            If specified, a list of Dataasets to randomly window and \
-            flip once at the start of training.
-
-        center : list, optional
-            If specified, a list of Datasets to centrally window \
-            once at the start of training.
-
-        rng : numpy.random.RandomState object or seed, optional
-            A random number generator or seed used to create one. \
-            Seeded deterministically by default.
-
-        pad_randomized : int, optional
-            Amount of padding to add to each side of the images \
-            in `randomize` and `randomize_once`. Useful if you \
-            want to do zero-padded windowing with `window_shape` \
-            the actual size of the dataset, and validate/test on \
-            full-size images instead of central patches. Default \
-            is 0.
-
-        flip : bool, optional
-            Reflect images on the horizontal axis with probability \
-            0.5. `True` by default.
-        """
         self._window_shape = tuple(window_shape)
         self._original = None
 
@@ -172,6 +161,10 @@ class WindowAndFlipC01B(WindowAndFlip):
     """
     A specialized version of WindowAndFlip accepting datasets with axes C01B.
     It exists due to backward compatibility.
+
+    .. todo::
+
+        WRITEME : parameters
     """
 
     def __init__(self, window_shape, randomize=None, randomize_once=None,

@@ -17,18 +17,24 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
 
     http://www.stanford.edu/~acoates//stl10/
 
-    When reporting results on this dataset, you are meant to use a somewhat unusal
-    evaluation procedure.
+    When reporting results on this dataset, you are meant to use a somewhat
+    unusal evaluation procedure.
 
-    Use STL10(which_set='train') to load the training set. Then restrict the training
-    set to one of the ten folds using the restrict function below. You must then train
-    only on the data from that fold.
+    Use STL10(which_set='train') to load the training set. Then restrict the
+    training set to one of the ten folds using the restrict function below. You
+    must then train only on the data from that fold.
 
-    For the test set, report the average test set performance over the ten trials obtained
-    by training on each of the ten folds.
+    For the test set, report the average test set performance over the ten
+    trials obtained by training on each of the ten folds.
 
-    The folds here do not define the splits you should use for cross validation. You are
-    free to make your own split within each fold.
+    The folds here do not define the splits you should use for cross
+    validation. You are free to make your own split within each fold.
+
+    Parameters
+    ----------
+    which_set : WRITEME
+    center : WRITEME
+    example_range : WRITEME
     """
     def __init__(self, which_set, center = False, example_range = None):
 

@@ -11,7 +11,6 @@ import theano.tensor as TT
 from theano.ifelse import ifelse
 from theano.sandbox.scan import scan
 import numpy
-import time
 
 one = TT.constant(numpy.asarray(1, dtype=theano.config.floatX))
 zero = TT.constant(numpy.asarray(0, dtype=theano.config.floatX))
@@ -150,41 +149,41 @@ def scalar_search_wolfe2(phi,
 
     Parameters
     ----------
-        phi : callable f(x)
-            Objective scalar function.
-        derphi : callable f'(x)
-            Objective function derivative (can be None)
-        phi0 : float, optional
-            Value of phi at s=0
-        old_phi0 : float, optional
-            Value of phi at previous point
-        derphi0 : float, optional
-            Value of derphi at s=0
-        c1 : float
-            Parameter for Armijo condition rule.
-        c2 : float
-            Parameter for curvature condition rule.
-        profile : flag (boolean)
-            True if you want printouts of profiling information
+    phi : callable f(x)
+        Objective scalar function.
+    derphi : callable f'(x)
+        Objective function derivative (can be None)
+    phi0 : float, optional
+        Value of phi at s=0
+    old_phi0 : float, optional
+        Value of phi at previous point
+    derphi0 : float, optional
+        Value of derphi at s=0
+    c1 : float
+        Parameter for Armijo condition rule.
+    c2 : float
+        Parameter for curvature condition rule.
+    profile : flag (boolean)
+        True if you want printouts of profiling information
 
     Returns
     -------
-        alpha_star : float
-            Best alpha
-        phi_star
-            phi at alpha_star
-        phi0
-            phi at 0
-        derphi_star
-            derphi at alpha_star
+    alpha_star : float
+        Best alpha
+    phi_star: WRITEME
+        phi at alpha_star
+    phi0: WRITEME
+        phi at 0
+    derphi_star: WRITEME
+        derphi at alpha_star
 
     Notes
     -----
-        Uses the line search algorithm to enforce strong Wolfe
-        conditions.  See Wright and Nocedal, 'Numerical Optimization',
-        1999, pg. 59-60.
+    Uses the line search algorithm to enforce strong Wolfe
+    conditions.  See Wright and Nocedal, 'Numerical Optimization',
+    1999, pg. 59-60.
 
-        For the zoom phase it uses an algorithm by [...].
+    For the zoom phase it uses an algorithm by [...].
 
     """
 
@@ -385,7 +384,7 @@ def _quadmin(a, fa, fpa, b, fb):
     """
     Finds the minimizer for a quadratic polynomial that goes through
     the points (a,fa), (b,fb) with derivative at a of fpa.
-    
+
     Parameters
     ----------
     a : WRITEME

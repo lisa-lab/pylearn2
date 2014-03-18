@@ -141,15 +141,14 @@ class CallbackOp(theano.gof.Op):
     """
     A Theano Op that implements the identity transform but also does an
     arbitrary (user-specified) side effect.
+
+    Parameters
+    ----------
+    callback : WRITEME
     """
     view_map = {0: [0]}
 
     def __init__(self, callback):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.callback = callback
 
     def make_node(self, xin):

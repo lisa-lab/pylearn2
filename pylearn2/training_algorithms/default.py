@@ -1,41 +1,43 @@
 """
-.. todo::
-
-    WRITEME
+A generic training algorithm that implements no real training code of its
+own but just calls the model.train_batch method on minibatches of data.
 """
+import functools
+
 from pylearn2.monitor import Monitor
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import DataSpecsMapping
-import theano.tensor as T
-
 
 class DefaultTrainingAlgorithm(TrainingAlgorithm):
     """
-    .. todo::
+    A generic training algorithm that implements no real training code of its
+    own but just calls the model.train_batch method on minibatches of data.
 
+    Parameters
+    ----------
+    batch_size : int
+        If batch_size is None, reverts to the `force_batch_size` field of
+        the model
+    batches_per_iter : int
         WRITEME
+    monitoring_batches : int
+        WRITEME
+    monitoring_dataset: Dataset or dict
+        A Dataset or a dictionary mapping string dataset names to Datasets
+    termination_criterion : WRITEME
+        If specified, can cause the algorithm to terminate before
+        `model.learn_batch` says to
+    set_batch_size : bool
+        If True, if `model` has a batch size but is not forced to use that
+        one, the training algorithm will set the model to use `batch_size`
+        instead.
     """
     def __init__(self, batch_size=None, batches_per_iter=1000,
                  monitoring_batches=-1, monitoring_dataset=None,
-                 termination_criterion=None):
-        """
-        Parameters
-        ----------
-        batch_size : int
-            If batch_size is None, reverts to the `force_batch_size` field of \
-            the model
-        batches_per_iter : int
-            WRITEME
-        monitoring_batches : int
-            WRITEME
-        monitoring_dataset: Dataset or dict
-            A Dataset or a dictionary mapping string dataset names to Datasets
-        termination_criterion : WRITEME
-            If specified, can cause the algorithm to terminate before \
-            `model.learn_batch` says to
-        """
-        self.batch_size, self.batches_per_iter = batch_size, batches_per_iter
+                 termination_criterion=None, set_batch_size=False):
+        self.__dict__.update(locals())
+        del self.self
         if monitoring_dataset is None:
             assert monitoring_batches == -1
 
@@ -60,6 +62,8 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
         dataset : pylearn2.datasets.dataset.Dataset
             Dataset object used to draw training data
         """
+        self._synchronize_batch_size(model)
+
         self.model = model
 
         self.monitor = Monitor.get_monitor(model)
@@ -115,21 +119,11 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
         self.first = True
         self.bSetup = True
 
+    @functools.wraps(TrainingAlgorithm.train)
     def train(self, dataset):
-        """
-        .. todo::
-
-            WRITEME
-        """
         assert self.bSetup
         model = self.model
-        if self.batch_size is None:
-            batch_size = model.force_batch_size
-        else:
-            batch_size = self.batch_size
-            if hasattr(model, 'force_batch_size'):
-                assert (model.force_batch_size <= 0 or batch_size ==
-                        model.force_batch_size)
+        batch_size = self.batch_size
 
         for i in xrange(self.batches_per_iter):
             # model.train_batch and self.train both return False when training

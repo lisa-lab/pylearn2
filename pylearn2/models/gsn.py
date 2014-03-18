@@ -2,6 +2,7 @@
 Generative Stochastic Networks
 
 This is described in:
+
 - "Generalized Denoising Auto-Encoders as Generative Models" Bengio, Yao, Alain,
    Vincent. arXiv:1305.6663
 - "Deep Generative Stochastic Networks Trainable by Backprop" Bengio,
@@ -16,7 +17,6 @@ __license__ = "3-clause BSD"
 
 import copy
 import functools
-import itertools
 import warnings
 
 import numpy as np
@@ -29,53 +29,56 @@ from pylearn2.models.autoencoder import Autoencoder
 from pylearn2.models.model import Model
 from pylearn2.utils import safe_zip
 
+# Enforce correct restructured text list format.
+# Be sure to re-run docgen.py and make sure there are no warnings if you
+# modify the module-level docstring.
+assert """:
+
+- """ in __doc__
 
 class GSN(StackedBlocks, Model):
     """
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    autoencoders : list
+        A list of autoencoder objects. As of now, only the functionality
+        from the base Autoencoder class is used.
+    preact_cors : list
+        A list of length len(autoencoders) + 1 where each element is a
+        callable (which includes Corruptor objects). The callable at
+        index i is called before activating the ith layer. Name stands
+        for "preactivation corruptors".
+    postact_cors : list
+        A list of length len(autoencoders) + 1 where each element is a
+        callable (which includes Corruptor objects). The callable at
+        index i is called directly after activating the ith layer. Name
+        stands for "postactivation corruptors". The valid values for this
+        parameter are the same as that for preact_cors.
+    layer_samplers: list
+        Describes how to sample from each layer. Sampling occurs directly
+        before the post activation corruption is applied. Valid values
+        for this argument are of the same form as valid parameters for
+        preact_cor and postact_cor (and if an element in the list is
+        None, no sampling will be applied at that layer). Note: as of
+        right now, we've only experimented with sampling at the visible
+        layer.
+
+    Notes
+    -----
+    Most of the time it will be much easier to construct a GSN using
+    GSN.new rather than GSN.__init__. This method exists to make the GSN
+    class very easy to modify.
+
+    The activation function for the visible layer is the "act_dec" function
+    on the first autoencoder, and the activation function for the i_th
+    hidden layer is the "act_enc" function on the (i - 1)th autoencoder.
     """
     def __init__(self, autoencoders, preact_cors=None, postact_cors=None,
                  layer_samplers=None):
-        """
-        Initialize an Generative Stochastic Network (GSN) object.
-
-        Parameters
-        ----------
-        autoencoders : list
-            A list of autoencoder objects. As of now, only the functionality \
-            from the base Autoencoder class is used.
-        preact_cors : list
-            A list of length len(autoencoders) + 1 where each element is a \
-            callable (which includes Corruptor objects). The callable at \
-            index i is called before activating the ith layer. Name stands \
-            for "preactivation corruptors".
-        postact_cors : list
-            A list of length len(autoencoders) + 1 where each element is a \
-            callable (which includes Corruptor objects). The callable at \
-            index i is called directly after activating the ith layer. Name \
-            stands for "postactivation corruptors". The valid values for this \
-            parameter are the same as that for preact_cors.
-        layer_samplers: list
-            Describes how to sample from each layer. Sampling occurs directly \
-            before the post activation corruption is applied. Valid values \
-            for this argument are of the same form as valid parameters for \
-            preact_cor and postact_cor (and if an element in the list is \
-            None, no sampling will be applied at that layer). Note: as of \
-            right now, we've only experimented with sampling at the visible \
-            layer.
-
-        Notes
-        -----
-        Most of the time it will be much easier to construct a GSN using
-        GSN.new rather than GSN.__init__. This method exists to make the GSN
-        class very easy to modify.
-
-        The activation function for the visible layer is the "act_dec" function
-        on the first autoencoder, and the activation function for the i_th
-        hidden layer is the "act_enc" function on the (i - 1)th autoencoder.
-        """
         super(GSN, self).__init__(autoencoders)
 
         # only for convenience

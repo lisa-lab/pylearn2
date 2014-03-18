@@ -13,16 +13,15 @@ from pylearn2.space import CompositeSpace
 class MissingTargetCost(Cost):
     """
     A cost when some targets are missing. The missing target is indicated by a
-    value of -1
+    value of -1.
+
+    Parameters
+    ----------
+    dropout_args : WRITEME
     """
     supervised = True
 
     def __init__(self, dropout_args=None):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.__dict__.update(locals())
         del self.self
 

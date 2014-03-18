@@ -269,15 +269,14 @@ remove0 = Remove0()
 class EnsureSortedIndices(Op):
     """
     Remove explicit zeros from a sparse matrix, and resort indices
+
+    Parameters
+    ----------
+    inplace : WRITEME
     """
     inplace=False
 
     def __init__(self, inplace):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.inplace=inplace
         if self.inplace:
             self.view_map = {0:[0]}

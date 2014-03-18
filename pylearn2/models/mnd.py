@@ -13,6 +13,14 @@ class DiagonalMND(Model):
     """
     A model based on the multivariate normal distribution. This variant is
     constrained to have diagonal covariance.
+
+    Parameters
+    ----------
+    nvis : WRITEME
+    init_beta : WRITEME
+    init_mu : WRITEME
+    min_beta : WRITEME
+    max_beta : WRITEME
     """
     # TODO: unify this with distribution.mnd
     def __init__(self, nvis,
@@ -20,12 +28,6 @@ class DiagonalMND(Model):
             init_mu,
             min_beta,
             max_beta):
-        """
-        .. todo::
-
-            WRITEME
-        """
-
         #copy all arguments to the object
         self.__dict__.update( locals() )
         del self.self

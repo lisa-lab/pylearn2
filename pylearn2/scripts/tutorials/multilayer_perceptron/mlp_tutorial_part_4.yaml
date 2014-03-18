@@ -6,11 +6,14 @@
         stop: %(train_stop)i
     },
     model: !obj:pylearn2.models.mlp.MLP {
-        layers: [
-                 !obj:pylearn2.models.mlp.Sigmoid {
+        layers: [ !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h0',
                      dim: %(dim_h0)i,
-                     sparse_init: 15,
+                     sparse_init: 15
+                 },  !obj:pylearn2.models.mlp.RectifiedLinear {
+                     layer_name: 'h1',
+                     dim: %(dim_h0)i,
+                     sparse_init: %(sparse_init_h1)i
                  }, !obj:pylearn2.models.mlp.Softmax {
                      layer_name: 'y',
                      n_classes: 10,
@@ -19,11 +22,9 @@
                 ],
         nvis: 784,
     },
-    algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
-        batch_size: 10000,
-        line_search_mode: 'exhaustive',
-        conjugate: 1,
-        updates_per_batch: 10,
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        batch_size: 100,
+        learning_rate: .01,
         monitoring_dataset:
             {
                 'train' : *train,
@@ -38,10 +39,22 @@
                               one_hot: 1,
                           }
             },
+        cost: !obj:pylearn2.costs.cost.SumOfCosts { costs: [
+            !obj:pylearn2.costs.mlp.Default {
+            }, !obj:pylearn2.costs.mlp.WeightDecay {
+                coeffs: [ .00005, .00005, .00005 ]
+            }
+            ]
+        },
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: .5
+        },
         termination_criterion: !obj:pylearn2.termination_criteria.And {
             criteria: [
                 !obj:pylearn2.termination_criteria.MonitorBased {
-                    channel_name: "valid_y_misclass"
+                    channel_name: "valid_y_misclass",
+                    prop_decrease: 0.,
+                    N: 10
                 },
                 !obj:pylearn2.termination_criteria.EpochCounter {
                     max_epochs: %(max_epochs)i
@@ -52,7 +65,11 @@
     extensions: [
         !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
              channel_name: 'valid_y_misclass',
-             save_path: "mlp_best.pkl"
-        },
+             save_path: "%(save_path)s/mlp_3_best.pkl"
+        }, !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
+            start: 1,
+            saturate: 10,
+            final_momentum: .99
+        }
     ]
 }

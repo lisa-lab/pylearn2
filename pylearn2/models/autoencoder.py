@@ -12,7 +12,7 @@ import theano
 from theano import tensor
 
 # Local imports
-from pylearn2.base import Block, StackedBlocks
+from pylearn2.blocks import Block, StackedBlocks
 from pylearn2.models import Model
 from pylearn2.utils import sharedX
 from pylearn2.utils.theano_graph import is_pure_elemwise
@@ -28,44 +28,41 @@ class Autoencoder(Block, Model):
 
     More exotic variants (denoising, contracting autoencoders) can inherit
     much of the necessary functionality and override what they need.
+
+    Parameters
+    ----------
+    nvis : int
+        Number of visible units (input dimensions) in this model. \
+        A value of 0 indicates that this block will be left partially \
+        initialized until later (e.g., when the dataset is loaded and \
+        its dimensionality is known).  Note: There is currently a bug \
+        when nvis is set to 0. For now, you should not set nvis to 0.
+    nhid : int
+        Number of hidden units in this model.
+    act_enc : callable or string
+        Activation function (elementwise nonlinearity) to use for the \
+        encoder. Strings (e.g. 'tanh' or 'sigmoid') will be looked up as \
+        functions in `theano.tensor.nnet` and `theano.tensor`. Use `None` \
+        for linear units.
+    act_dec : callable or string
+        Activation function (elementwise nonlinearity) to use for the \
+        decoder. Strings (e.g. 'tanh' or 'sigmoid') will be looked up as \
+        functions in `theano.tensor.nnet` and `theano.tensor`. Use `None` \
+        for linear units.
+    tied_weights : bool, optional
+        If `False` (default), a separate set of weights will be allocated \
+        (and learned) for the encoder and the decoder function. If \
+        `True`, the decoder weight matrix will be constrained to be equal \
+        to the transpose of the encoder weight matrix.
+    irange : float, optional
+        Width of the initial range around 0 from which to sample initial \
+        values for the weights.
+    rng : RandomState object or seed
+        NumPy random number generator object (or seed to create one) used \
+        to initialize the model parameters.
     """
     def __init__(self, nvis, nhid, act_enc, act_dec,
                  tied_weights=False, irange=1e-3, rng=9001):
-        """
-        Allocate an autoencoder object.
-
-        Parameters
-        ----------
-        nvis : int
-            Number of visible units (input dimensions) in this model. \
-            A value of 0 indicates that this block will be left partially \
-            initialized until later (e.g., when the dataset is loaded and \
-            its dimensionality is known).  Note: There is currently a bug \
-            when nvis is set to 0. For now, you should not set nvis to 0.
-        nhid : int
-            Number of hidden units in this model.
-        act_enc : callable or string
-            Activation function (elementwise nonlinearity) to use for the \
-            encoder. Strings (e.g. 'tanh' or 'sigmoid') will be looked up as \
-            functions in `theano.tensor.nnet` and `theano.tensor`. Use `None` \
-            for linear units.
-        act_dec : callable or string
-            Activation function (elementwise nonlinearity) to use for the \
-            decoder. Strings (e.g. 'tanh' or 'sigmoid') will be looked up as \
-            functions in `theano.tensor.nnet` and `theano.tensor`. Use `None` \
-            for linear units.
-        tied_weights : bool, optional
-            If `False` (default), a separate set of weights will be allocated \
-            (and learned) for the encoder and the decoder function. If \
-            `True`, the decoder weight matrix will be constrained to be equal \
-            to the transpose of the encoder weight matrix.
-        irange : float, optional
-            Width of the initial range around 0 from which to sample initial \
-            values for the weights.
-        rng : RandomState object or seed
-            NumPy random number generator object (or seed to create one) used \
-            to initialize the model parameters.
-        """
         super(Autoencoder, self).__init__()
         assert nvis > 0, "Number of visible units must be non-negative"
         assert nhid > 0, "Number of hidden units must be positive"
@@ -376,34 +373,31 @@ class DenoisingAutoencoder(Autoencoder):
     """
     A denoising autoencoder learns a representation of the input by
     reconstructing a noisy version of it.
+
+    Parameters
+    ----------
+    corruptor : object
+        Instance of a corruptor object to use for corrupting the \
+        input.
+    nvis : int
+        WRITEME
+    nhid : int
+        WRITEME
+    act_enc : WRITEME
+    act_dec : WRITEME
+    tied_weights : bool
+        WRITEME
+    irange : WRITEME
+    rng : WRITEME
+
+    Notes
+    -----
+    The remaining parameters are identical to those of the constructor
+    for the Autoencoder class; see the `Autoencoder.__init__` docstring
+    for details.
     """
     def __init__(self, corruptor, nvis, nhid, act_enc, act_dec,
                  tied_weights=False, irange=1e-3, rng=9001):
-        """
-        Allocate a denoising autoencoder object.
-
-        Parameters
-        ----------
-        corruptor : object
-            Instance of a corruptor object to use for corrupting the \
-            input.
-        nvis : int
-            WRITEME
-        nhid : int
-            WRITEME
-        act_enc : WRITEME
-        act_dec : WRITEME
-        tied_weights : bool
-            WRITEME
-        irange : WRITEME
-        rng : WRITEME
-
-        Notes
-        -----
-        The remaining parameters are identical to those of the constructor
-        for the Autoencoder class; see the `Autoencoder.__init__` docstring
-        for details.
-        """
         super(DenoisingAutoencoder, self).__init__(
             nvis,
             nhid,
@@ -445,11 +439,6 @@ class ContractiveAutoencoder(Autoencoder):
     """
     @functools.wraps(Autoencoder.__init__)
     def __init__(self, *args, **kwargs):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(ContractiveAutoencoder, self).__init__(*args, **kwargs)
         dummyinput = tensor.matrix()
         if not is_pure_elemwise(self.act_enc(dummyinput), [dummyinput]):
@@ -566,32 +555,31 @@ class ContractiveAutoencoder(Autoencoder):
 class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
     """
     Higher order contractive autoencoder. Adds higher orders regularization
+
+    Parameters
+    ----------
+    corruptor : object
+        Instance of a corruptor object to use for corrupting the input.
+    num_corruptions : integer
+        number of corrupted inputs to use
+    nvis : int
+        WRITEME
+    nhid : int
+        WRITEME
+    act_enc : WRITEME
+    act_dec : WRITEME
+    tied_weights : WRITEME
+    irange : WRITEME
+    rng : WRITEME
+
+    Notes
+    -----
+    The remaining parameters are identical to those of the constructor
+    for the Autoencoder class; see the `ContractiveAutoEncoder.__init__`
+    docstring for details.
     """
     def __init__(self, corruptor, num_corruptions, nvis, nhid, act_enc,
                     act_dec, tied_weights=False, irange=1e-3, rng=9001):
-        """
-        Parameters
-        ----------
-        corruptor : object
-            Instance of a corruptor object to use for corrupting the input.
-        num_corruptions : integer
-            number of corrupted inputs to use
-        nvis : int
-            WRITEME
-        nhid : int
-            WRITEME
-        act_enc : WRITEME
-        act_dec : WRITEME
-        tied_weights : WRITEME
-        irange : WRITEME
-        rng : WRITEME
-
-        Notes
-        -----
-        The remaining parameters are identical to those of the constructor
-        for the Autoencoder class; see the `ContractiveAutoEncoder.__init__`
-        docstring for details.
-        """
         super(HigherOrderContractiveAutoencoder, self).__init__(
             nvis,
             nhid,
@@ -642,13 +630,12 @@ class UntiedAutoencoder(Autoencoder):
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    base : WRITEME
     """
     def __init__(self, base):
-        """
-        .. todo::
-
-            WRITEME
-        """
         if not base.tied_weights:
             raise ValueError("%s is not a tied-weights autoencoder" %
                              str(base))
@@ -667,16 +654,13 @@ class DeepComposedAutoencoder(Autoencoder):
     """
     A deep autoencoder composed of several single-layer
     autoencoders.
+
+    Parameters
+    ----------
+    autoencoders : list
+        A list of autoencoder objects.
     """
     def __init__(self, autoencoders):
-        """
-        Construct a deep autoencoder from several single layer autoencoders.
-
-        Parameters
-        ----------
-        autoencoders : list
-            A list of autoencoder objects.
-        """
         self.fn = None
         self.cpu_only = False
 

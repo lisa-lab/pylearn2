@@ -34,6 +34,17 @@ class Conv2D(OrigConv2D):
     needed for a pylearn2 linear operator.
 
     Also extend it to handle different axis semantics.
+
+    Parameters
+    ----------
+    filters : WRITEME
+    batch_size : WRITEME
+    input_space : WRITEME
+    output_axes : WRITEME
+    subsample : WRITEME
+    border_mode : WRITEME
+    filters_shape : WRITEME
+    message : WRITEME
     """
 
     def __init__(self,

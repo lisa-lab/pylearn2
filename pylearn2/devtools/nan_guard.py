@@ -17,16 +17,15 @@ class NanGuardMode(Mode):
     """
     A Theano compilation Mode that makes the compiled function automatically
     detect NaNs and Infs and detect an error if they occur.
+
+    Parameters
+    ----------
+    nan_is_error : bool
+        If True, raise an error anytime a NaN is encountered
+    inf_is_error: bool
+        If True, raise an error anytime an Inf is encountered
     """
     def __init__(self, nan_is_error, inf_is_error):
-        """
-        Parameters
-        ----------
-        nan_is_error : bool
-            If True, raise an error anytime a NaN is encountered
-        inf_is_error: bool
-            If True, raise an error anytime an Inf is encountered
-        """
         def do_check_on(var, nd, f, is_input):
             """
             Checks `var` for NaNs / Infs. If detected, raises an exception

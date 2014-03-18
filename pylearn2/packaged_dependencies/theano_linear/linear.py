@@ -83,15 +83,14 @@ class LinearTransform(object):
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    params : list
+        List of theano shared variables that parametrize the linear
+        transformation
     """
     def __init__(self, params):
-        """
-        Parameters
-        ----------
-        params : list
-            List of theano shared variables that parametrize the linear \
-            transformation
-        """
         self.set_params(params)
 
     def set_params(self, params):
@@ -387,13 +386,12 @@ class TransposeTransform(LinearTransform):
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    base : WRITEMe
     """
     def __init__(self, base):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(TransposeTransform, self).__init__([])
         self.base = base
 
@@ -555,6 +553,11 @@ if 0: # needs to be brought up to date with LinearTransform method names
         The col_shape defaults to being the concatenation of flattened output from
         each of A,B,...Z, but a col_shape tuple specified via the constructor will
         reshape that vector.
+
+        Parameters
+        ----------
+        Wlist : WRITEME
+        col_shape : WRITEME
         """
         def __init__(self, Wlist, col_shape=None):
             super(Concat, self).__init__([])

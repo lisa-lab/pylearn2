@@ -7,6 +7,27 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
     """
     Pylearn2 wrapper for the Toronto Face Dataset.
     http://aclab.ca/users/josh/TFD.html
+
+    Parameters
+    ----------
+    which_set : WRITEME
+        Dataset to load. One of ['train','valid','test','unlabeled'].
+    fold : WRITEME
+        TFD contains 5 official folds for train, valid and test.
+    image_size : WRITEME
+        One of [48,96]. Load smaller or larger dataset variant.
+    example_range : WRITEME
+        Array_like. Load only examples in range
+        [example_range[0]:example_range[1]].
+    center : WRITEME
+        Move data from range [0.,255.] to [-127.5,127.5]
+    scale : WRITEME
+    shuffle : WRITEME
+    one_hot : WRITEME
+    rng : WRITEME
+    seed : WRITEME
+    preprocessor : WRITEME
+    axes : WRITEME
     """
 
     mapper = {'unlabeled': 0, 'train': 1, 'valid': 2, 'test': 3,
@@ -18,12 +39,19 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
                  preprocessor = None, axes = ('b', 0, 1, 'c')):
         """
         Creates a DenseDesignMatrix object for the Toronto Face Dataset.
-        :param which_set: dataset to load. One of ['train','valid','test','unlabeled'].
-        :param center: move data from range [0.,255.] to [-127.5,127.5]
-        :param example_range: array_like. Load only examples in range
-        [example_range[0]:example_range[1]].
-        :param fold: TFD contains 5 official folds for train, valid and test.
-        :param image_size: one of [48,96]. Load smaller or larger dataset variant.
+
+        Parameters
+        ----------
+        which_set : str
+            dataset to load. One of ['train','valid','test','unlabeled'].
+        center : Bool
+           if True, move data from range [0.,255.] to [-127.5,127.5]
+        example_range : array_like.
+           Load only examples in range [example_range[0]:example_range[1]].
+        fold : int in {0,1,2,3,4}
+           TFD contains 5 official folds for train, valid and test.
+        image_size : one of [48,96].
+           Load smaller or larger dataset variant.
         """
         if which_set not in self.mapper.keys():
             raise ValueError("Unrecognized which_set value: %s. Valid values are %s." % (str(which_set), str(self.mapper.keys())))
