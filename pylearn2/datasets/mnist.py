@@ -10,6 +10,8 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
+import commands
+import os.path
 import numpy as N
 import warnings
 np = N
@@ -124,7 +126,8 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
                 topo_view -= topo_view.mean(axis=0)
 
             if shuffle:
-                self.shuffle_rng = make_np_rng(None, [1, 2, 3], which_method="shuffle")
+                self.shuffle_rng = make_np_rng(None, [1, 2, 3],
+                                               which_method="shuffle")
                 for i in xrange(topo_view.shape[0]):
                     j = self.shuffle_rng.randint(m)
                     # Copy ensures that memory is not aliased.
@@ -217,13 +220,24 @@ class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
     """
 
     def __init__(self, which_set, center=False, one_hot=False):
-        path = "${PYLEARN2_DATA_PATH}/mnist/mnist_rotation_back_image/" \
-            + which_set
-
-        obj = serial.load(path)
-        X = obj['data']
+        if which_set == 'train':
+            set_path = 'mnist_all_background_images_'\
+                       'rotation_normalized_train_valid.amat'
+        elif which_set == 'test':
+            set_path = 'mnist_all_background_images_'\
+                       'rotation_normalized_test.amat'
+        else:
+            raise ValueError("which_set must be one of: 'test', 'train'")
+        pylearn2_data_path = commands.getoutput("echo $PYLEARN2_DATA_PATH")
+        print pylearn2_data_path
+        path = os.path.join(pylearn2_data_path,
+                            "mnist/mnist_rotation_back_image/",
+                            set_path)
+        print path
+        obj = N.loadtxt(path)
+        X = obj[:,:-1]
         X = N.cast['float32'](X)
-        y = N.asarray(obj['labels'])
+        y = N.cast['int'](obj[:,-1])
 
         self.one_hot = one_hot
         if one_hot:
@@ -237,6 +251,7 @@ class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
 
         view_converter = dense_design_matrix.DefaultViewConverter((28, 28, 1))
 
-        super(MNIST_rotated_background, self).__init__(X=X, y=y, view_converter=view_converter)
+        super(MNIST_rotated_background, self).__init__(
+            X=X, y=y, view_converter=view_converter)
 
         assert not N.any(N.isnan(self.X))
