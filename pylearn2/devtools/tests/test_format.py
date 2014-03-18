@@ -28,7 +28,6 @@ whitelist_pep8 = ["rbm_tools.py",
              "models/s3c.py",
              "models/autoencoder.py",
              "tests/test_monitor.py",
-             "tests/rbm/test_ais.py",
              "kmeans.py",
              "packaged_dependencies/theano_linear/conv2d.py",
              "packaged_dependencies/theano_linear/imaging.py",
@@ -49,7 +48,6 @@ whitelist_pep8 = ["rbm_tools.py",
              "expr/tests/test_stochastic_pool.py",
              "expr/stochastic_pool.py",
              "expr/sampling.py",
-             "expr/normalize.py",
              "expr/information_theory.py",
              "expr/basic.py",
              "testing/datasets.py",
@@ -158,7 +156,6 @@ whitelist_pep8 = ["rbm_tools.py",
              "scripts/datasets/make_stl10_whitened.py",
              "scripts/datasets/make_stl10_patches.py",
              "scripts/gsn_example.py",
-             "scripts/tutorials/tests/test_convnet.py",
              "scripts/tutorials/deep_trainer/run_deep_trainer.py",
              "scripts/tutorials/grbm_smd/make_dataset.py",
              "scripts/tutorials/grbm_smd/test_grbm_smd.py",
@@ -587,12 +584,10 @@ whitelist_docstrings.extend(['training_algorithms/tests/test_learning_rule.py',
 
 
 def test_format_pep8():
-    """test_format_docstrings()
-    Test if pep8 is respected
+    """
+    test_format_pep8()
 
-    Parameters
-    ----------
-    None
+    Test if pep8 is respected.
     """
     format_infractions = []
     for path in list_files(".py"):
@@ -610,12 +605,10 @@ def test_format_pep8():
 
 
 def test_format_docstrings():
-    """test_format_docstrings()
-    Test if docstrings are well formated
+    """
+    test_format_docstrings()
 
-    Parameters
-    ----------
-    None
+    Test if docstrings are well formated.
     """
     format_infractions = []
 
@@ -636,6 +629,7 @@ def test_format_docstrings():
 if __name__ == "__main__":
     print "Files that may be removed from whitelist: "
     for path in whitelist_pep8:
+        path = os.path.join(pylearn2.__path__[0], path)
         with open(path) as file:
             white = False
             for i, line in enumerate(file):
