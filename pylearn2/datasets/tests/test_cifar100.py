@@ -10,6 +10,12 @@ class TestCIFAR100(unittest.TestCase):
         skip_if_no_data()
         self.train_set = CIFAR100(which_set='train')
         self.test_set = CIFAR100(which_set='test')
+        assert not np.any(np.isnan(self.train_set))
+        assert not np.any(np.isinf(self.train_set))
+        assert not np.any(np.isnan(self.test_set))
+        assert not np.any(np.isinf(self.test_set))
+
+
 
     def test_adjust_for_viewer(self):
         self.train_set.adjust_for_viewer(self.train_set.X)
