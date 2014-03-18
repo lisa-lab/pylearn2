@@ -63,6 +63,10 @@ class FrameLookup(object):
     tuple, where nframes is the number of frames in the given file (mainly
     for checking that we're far enough from the end so that we can
     sample a big enough chunk).
+
+    Parameters
+    ----------
+    names_ang_lengths : WRITEME
     """
     def __init__(self, names_and_lengths):
         self.files, self.lengths = zip(*names_and_lengths)

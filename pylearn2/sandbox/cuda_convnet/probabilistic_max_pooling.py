@@ -70,41 +70,37 @@ class ProbMaxPool(GpuOp):
 
     Work only on square images wiht square pooling shape
     and the grad work only when channel % 16 == 0.
+
+    Parameters
+    ----------
+    ds : WRITEME
+        defines the size of the pooling region in the x (equivalently, y)
+        dimension. Squares of size (ds)2 get reduced to one value by this
+        layer.  There are no restrictions on the value of this parameter. It's
+        fine for a pooling square to fall off the boundary of the image. Named
+        SizeX in Alex's code.
+    stride : WRITEME
+        defines the stride size between successive pooling squares. Setting
+        this parameter smaller than sizeX produces overlapping pools. Setting
+        it equal to sizeX gives the usual, non-overlapping pools. Values
+        greater than sizeX are not allowed.
+    start : WRITEME
+        tells the net where in the input image to start the pooling (in x,y
+        coordinates). In principle, you can start anywhere you want. Setting
+        this to a positive number will cause the net to discard some pixels at
+        the top and at the left of the image. Setting this to a negative number
+        will cause it to include pixels that don't exist (which is fine).
+        start=0 is the usual setting.
+    outputs : WRITEME
+        allows you to control how many output values in the x (equivalently, y)
+        dimension this operation will produce. This parameter is analogous to
+        the start parameter, in that it allows you to discard some portion of
+        the image by setting it to a value small enough to leave part of the
+        image uncovered. Setting it to zero instructs the net to produce as
+        many outputs as is necessary to ensure that the whole image is covered.
+        default 0
     """
     def __init__(self, ds, start=0, outputs=0):
-        """
-        :param ds: defines the size of the pooling region in the x
-            (equivalently, y) dimension. Squares of size (ds)2 get reduced
-            to one value by this layer. There are no restrictions on the
-            value of this parameter. It's fine for a pooling square to
-            fall off the boundary of the image. Named SizeX in Alex's
-            code.
-
-        :param stride: defines the stride size between successive
-            pooling squares. Setting this parameter smaller than sizeX
-            produces overlapping pools. Setting it equal to sizeX
-            gives the usual, non-overlapping pools. Values greater
-            than sizeX are not allowed.
-
-        :param start: tells the net where in the input image to start
-            the pooling (in x,y coordinates). In principle, you can
-            start anywhere you want. Setting this to a positive number
-            will cause the net to discard some pixels at the top and
-            at the left of the image. Setting this to a negative
-            number will cause it to include pixels that don't exist
-            (which is fine). start=0 is the usual setting.
-
-        :param outputs: allows you to control how many output values
-            in the x (equivalently, y) dimension this operation will
-            produce. This parameter is analogous to the start
-            parameter, in that it allows you to discard some portion
-            of the image by setting it to a value small enough to
-            leave part of the image uncovered. Setting it to zero
-            instructs the net to produce as many outputs as is
-            necessary to ensure that the whole image is
-            covered. default 0
-
-        """
         self.ds = ds
         self.stride = ds
         self.start = start
@@ -346,6 +342,11 @@ class ProbMaxPool(GpuOp):
                 node, storage_map, compute_map, no_recycling)
 
 class ProbMaxPoolGrad(GpuOp):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, ds, stride, start):
         self.ds = ds
         self.stride = stride

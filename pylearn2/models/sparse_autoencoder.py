@@ -50,15 +50,20 @@ class SparseDenoisingAutoencoder(DenoisingAutoencoder):
     Y. Dauphin, X. Glorot, Y. Bengio. Large-Scale Learning of Embeddings with
     Reconstruction Sampling. In Proceedings of the 28th International
     Conference on Machine Learning (ICML 2011).
+
+    Parameters
+    ----------
+    corruptor : WRITEME
+    nvis : WRITEME
+    nhid : WRITEME
+    act_enc : WRITEME
+    act_dec : WRITEME
+    tied_weights : WRITEME
+    irange : WRITEME
+    rng : WRITEME
     """
     def __init__(self, corruptor, nvis, nhid, act_enc, act_dec,
                  tied_weights=False, irange=1e-3, rng=9001):
-        """
-        .. todo::
-
-            WRITEME
-        """
-
         # sampling dot only supports tied weights
         assert tied_weights == True
 

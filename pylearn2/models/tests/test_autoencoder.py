@@ -49,14 +49,14 @@ def test_high_order_autoencoder_init():
     corruptor = BinomialCorruptor(corruption_level = 0.5)
     model = HigherOrderContractiveAutoencoder(
             corruptor = corruptor,
-            num_corruptions = 5,
-            nvis = 20,
-            nhid = 30,
+            num_corruptions = 2,
+            nvis = 5,
+            nhid = 7,
             act_enc = 'sigmoid',
             act_dec = 'sigmoid')
 
     X = tensor.matrix()
-    data = np.random.randn(50, 20).astype(config.floatX)
+    data = np.random.randn(10, 5).astype(config.floatX)
     ff = theano.function([X], model.higher_order_penalty(X))
     assert type(ff(data)) == np.ndarray
 
@@ -72,9 +72,9 @@ def test_cae_basic():
     !obj:pylearn2.train.Train {
         dataset: &train !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix {
             rng: !obj:numpy.random.RandomState { seed: [2013, 3, 16] },
-            num_examples: 12,
+            num_examples: 10,
             dim: 5,
-            num_classes: 10
+            num_classes: 5
         },
         model: !obj:pylearn2.models.autoencoder.ContractiveAutoencoder {
             nvis: 5,
@@ -84,9 +84,8 @@ def test_cae_basic():
             act_dec: "sigmoid"
         },
         algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
-            batch_size: 6,
+            batch_size: 10,
             learning_rate: .1,
-            init_momentum: .5,
             monitoring_dataset:
                 {
                     'train' : *train
@@ -98,12 +97,8 @@ def test_cae_basic():
             ]
         },
            termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
-                max_epochs: 3,
+                max_epochs: 1,
             },
-            update_callbacks: !obj:pylearn2.training_algorithms.sgd.ExponentialDecay {
-                decay_factor: 1.000004,
-                min_lr: .000001
-            }
         },
     }
     """
@@ -122,9 +117,9 @@ def test_hcae_basic():
     !obj:pylearn2.train.Train {
         dataset: &train !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix {
             rng: !obj:numpy.random.RandomState { seed: [2013, 3, 16] },
-            num_examples: 12,
+            num_examples: 10,
             dim: 5,
-            num_classes: 10
+            num_classes: 5
         },
         model: !obj:pylearn2.models.autoencoder.HigherOrderContractiveAutoencoder {
             nvis: 5,
@@ -138,9 +133,8 @@ def test_hcae_basic():
             }
         },
         algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
-            batch_size: 6,
+            batch_size: 10,
             learning_rate: .1,
-            init_momentum: .5,
             monitoring_dataset:
                 {
                     'train' : *train
@@ -152,12 +146,8 @@ def test_hcae_basic():
             ]
         },
             termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
-                max_epochs: 3,
+                max_epochs: 1,
             },
-            update_callbacks: !obj:pylearn2.training_algorithms.sgd.ExponentialDecay {
-                decay_factor: 1.000004,
-                min_lr: .000001
-            }
         },
     }
     """

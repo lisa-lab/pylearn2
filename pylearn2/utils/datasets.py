@@ -12,8 +12,11 @@ import warnings
 import numpy
 import scipy
 import theano
-from matplotlib import pyplot
-from mpl_toolkits.mplot3d import Axes3D
+try:
+    from matplotlib import pyplot
+    from mpl_toolkits.mplot3d import Axes3D
+except ImportError:
+    warnings.warn("Could not import some dependencies.")
 
 # Local imports
 from pylearn2.utils import sharedX
@@ -167,13 +170,15 @@ class BatchIterator(object):
     """
     Builds an iterator object that can be used to go through the minibatches
     of a dataset, with respect to the given proportions in conf
+
+    Parameters
+    ----------
+    dataset : WRITEME
+    set_proba : WRITEME
+    batch_size : WRITEME
+    seed : WRITEME
     """
     def __init__(self, dataset, set_proba, batch_size, seed=300):
-        """
-        .. todo::
-
-            WRITEME
-        """
         # Local shortcuts for array operations
         flo = numpy.floor
         sub = numpy.subtract

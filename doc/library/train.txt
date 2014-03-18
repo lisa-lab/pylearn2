@@ -15,8 +15,8 @@ pylearn2.train.py
 #########################
 pylearn2.scripts.train.py
 #########################
-.. automodule:: pylearn2.scripts.train
-    :members:
+
+See :ref:`train-script`.
 
 
 ###################

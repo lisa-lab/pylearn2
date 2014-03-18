@@ -1,0 +1,7 @@
+FastML.com has a few articles on Pylearn2, among them this tutorial
+on how to get predictions for a classification task:
+
+http://fastml.com/how-to-get-predictions-from-pylearn2/
+
+It explains the process step by step. The corresponding code is in 
+scripts/mlp/predict_csv.py.

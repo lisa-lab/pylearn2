@@ -223,17 +223,13 @@ class Cost(object):
 class SumOfCosts(Cost):
     """
     Combines multiple costs by summing them.
+
+    Parameters
+    ----------
+    costs: list
+        List of Cost objects or (coeff, Cost) pairs
     """
     def __init__(self, costs):
-        """
-        Initialize the SumOfCosts object and make sure that the list of costs
-        contains only Cost instances.
-
-        Parameters
-        ----------
-        costs: list
-            List of Cost objects or (coeff, Cost) pairs
-        """
         assert isinstance(costs, list)
         assert len(costs) > 0
 
@@ -458,16 +454,15 @@ you may as well just change the learning rate.""")
 class LpPenalty(NullDataSpecsMixin, Cost):
     """
     L-p penalty of the tensor variables provided.
+
+    Parameters:
+    -----------
+    variables: list
+        list of tensor variables to be regularized
+    p: int
+        p in "L-p penalty"
     """
     def __init__(self, variables, p):
-        """
-        Parameters:
-        -----------
-        variables: list
-            list of tensor variables to be regularized
-        p: int
-            p in "L-p penalty"
-        """
         self.variables = variables
         self.p = p
 
@@ -497,10 +492,9 @@ class CrossEntropy(DefaultDataSpecsMixin, Cost):
     DEPRECATED
     """
     def __init__(self):
-        """
-        DEPRECATED
-        """
-        warnings.warn("CrossEntropy is deprecated. You should use a model-specific cross entropy cost function. CrossEntropy will be removed on or after August 3, 2014", stacklevel=2)
+        warnings.warn("CrossEntropy is deprecated. You should use a "
+                "model-specific cross entropy cost function. CrossEntropy"
+                "will be removed on or after August 3, 2014", stacklevel=2)
         self.supervised = True
 
     def expr(self, model, data, ** kwargs):
@@ -518,18 +512,17 @@ class CrossEntropy(DefaultDataSpecsMixin, Cost):
 class MethodCost(Cost):
     """
     A cost specified via the string name of a method of the model.
+
+    Parameters
+    ----------
+    method: a string specifying the name of the method of the model
+            that should be called to generate the objective function.
+    data_specs: a string specifying the name of a method/property of
+            the model that describe the data specs required by
+            method
     """
 
     def __init__(self, method, data_specs=None):
-        """
-        Parameters
-        ----------
-        method: a string specifying the name of the method of the model
-                that should be called to generate the objective function.
-        data_specs: a string specifying the name of a method/property of
-                the model that describe the data specs required by
-                method
-        """
         self.method = method
         self.data_specs = data_specs
 
@@ -572,39 +565,34 @@ class FixedVarDescr(object):
     should be held fixed for each minibatch, even if the learning algorithm
     makes multiple changes to the parameters on this minibatch, i.e., for a
     line search, etc.
+
+    Attributes
+
+    - fixed_vars : dict
+        maps string names to shared variables or some sort of data
+        structure surrounding shared variables.
+        Any learning algorithm that does multiple updates on the same
+        minibatch should pass fixed_vars to the cost's expr and
+        get_gradient methods as keyword arguments.
+    - on_load_batch : list
+        A list of callable objects that the learning algorithm should
+        call with input data.
+        All of these callables must take an argument with the same
+        (space, source) format as the cost used for training.
+        TODO: It can be hard for a human user to know the right format
+        ahead of time if you use SumOfCosts, make a better way of handling
+        this.
+        PL had added a data_specs field to this class which
+        was meant to define the (space, source) format for each of
+        the members of on_load_batch, but the doc was internally
+        inconsistent, none of the TrainingAlgorithms obeyed it,
+        and the Cost's handling of it was buggy. IG removed this
+        broken functionality so that at least singleton costs can
+        used FixedVarDescr but it would be good to restore functionality
+        to composite costs.
     """
 
     def __init__(self):
-        """
-        Initializes a FixedVarDescr instance.
-
-        Creates the following public fields that the user should modify:
-
-        fixed_vars : dict
-            maps string names to shared variables or some sort of data
-            structure surrounding shared variables.
-            Any learning algorithm that does multiple updates on the same
-            minibatch should pass fixed_vars to the cost's expr and
-            get_gradient methods as keyword arguments.
-
-        on_load_batch : list
-            A list of callable objects that the learning algorithm should
-            call with input data.
-            All of these callables must take an argument with the same
-            (space, source) format as the cost used for training.
-            TODO: It can be hard for a human user to know the right format
-            ahead of time if you use SumOfCosts, make a better way of handling
-            this.
-            PL had added a data_specs field to this class which
-            was meant to define the (space, source) format for each of
-            the members of on_load_batch, but the doc was internally
-            inconsistent, none of the TrainingAlgorithms obeyed it,
-            and the Cost's handling of it was buggy. IG removed this
-            broken functionality so that at least singleton costs can
-            used FixedVarDescr but it would be good to restore functionality
-            to composite costs.
-        """
-
         self.fixed_vars = {}
         self.on_load_batch = []
 
@@ -627,6 +615,7 @@ def merge(left, right):
     ----------
     left : FixedVarDescr
     right : FixedVarDescr
+
     Returns
     -------
     merged : FixedVarDescr

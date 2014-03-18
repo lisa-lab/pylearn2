@@ -16,6 +16,25 @@ from pylearn2.utils.rng import make_np_rng
 
 
 class MNIST(dense_design_matrix.DenseDesignMatrix):
+    """
+    .. todo::
+
+        WRITEME
+
+    Parameters
+    ----------
+    which_set : WRITEME
+    center : WRITEME
+    shuffle : WRITEME
+    one_hot : WRITEME
+    binarize : WRITEME
+    start : WRITEME
+    stop : WRITEME
+    axes : WRITEME
+    preprocessor : WRITEME
+    fit_preprocessor : WRITEME
+    fit_test_preprocessor : WRITEME
+    """
     def __init__(self, which_set, center=False, shuffle=False,
                  one_hot=False, binarize=False, start=None,
                  stop=None, axes=['b', 0, 1, 'c'],
@@ -153,7 +172,17 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
 
 
 class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
+    """
+    .. todo::
 
+        WRITEME
+
+    Parameters
+    ----------
+    which_set : WRITEME
+    center : WRITEME
+    one_hot : WRITEME
+    """
     def __init__(self, which_set, center=False, one_hot=False):
         path = "${PYLEARN2_DATA_PATH}/mnist/mnist_rotation_back_image/" \
             + which_set

@@ -4,15 +4,16 @@ Read and write the matrix file format described at
 
 The format is for dense tensors:
 
-    - magic number indicating type and endianness - 4bytes
-    - rank of tensor - int32
-    - dimensions - int32, int32, int32, ...
-    - <data>
+- magic number indicating type and endianness - 4bytes
+- rank of tensor - int32
+- dimensions - int32, int32, int32, ...
+- <data>
 
-The number of dimensions and rank is slightly tricky: 
-    - for scalar: rank=0, dimensions = [1, 1, 1]
-    - for vector: rank=1, dimensions = [?, 1, 1]
-    - for matrix: rank=2, dimensions = [?, ?, 1]
+The number of dimensions and rank is slightly tricky:
+
+- for scalar: rank=0, dimensions = [1, 1, 1]
+- for vector: rank=1, dimensions = [?, 1, 1]
+- for matrix: rank=2, dimensions = [?, ?, 1]
 
 For rank >= 3, the number of dimensions matches the rank exactly.
 """
@@ -55,7 +56,7 @@ def _read_header(f, debug=False, fromgzip=None):
     Parameters
     ----------
     f : file or gzip.GzipFile
-        An open file handle. 
+        An open file handle.
     fromgzip: bool or None
         If None determine the type of file handle.
 
@@ -71,7 +72,7 @@ def _read_header(f, debug=False, fromgzip=None):
     #magic = numpy.fromstring(magic_s, dtype='int32')
     magic = _read_int32(f)
     magic_t, elsize = _magic_dtype[magic]
-    if debug: 
+    if debug:
         print 'header magic', magic, magic_t, elsize
     if magic_t == 'packed matrix':
         raise NotImplementedError('packed matrix not supported')
@@ -92,22 +93,24 @@ def _read_header(f, debug=False, fromgzip=None):
     return magic_t, elsize, ndim, dim, dim_size
 
 class arraylike(object):
-    """ Provide an array-like interface to the filetensor in f.
+    """
+    Provide an array-like interface to the filetensor in f.
 
     The rank parameter to __init__ controls how this object interprets the underlying tensor.
     Its behaviour should be clear from the following example.
     Suppose the underlying tensor is MxNxK.
 
-    - If rank is 0, self[i] will be a scalar and len(self) == M*N*K.
-    - If rank is 1, self[i] is a vector of length K, and len(self) == M*N.
-    - If rank is 3, self[i] is a 3D tensor of size MxNxK, and len(self)==1.
-    - If rank is 5, self[i] is a 5D tensor of size 1x1xMxNxK, and len(self) == 1.
+        - If rank is 0, self[i] will be a scalar and len(self) == M*N*K.
+        - If rank is 1, self[i] is a vector of length K, and len(self) == M*N.
+        - If rank is 3, self[i] is a 3D tensor of size MxNxK, and len(self)==1.
+        - If rank is 5, self[i] is a 5D tensor of size 1x1xMxNxK, and len(self) == 1.
 
-    :note: Objects of this class generally require exclusive use of the underlying file handle, because
+
+    Note: Objects of this class generally require exclusive use of the underlying file handle, because
     they call seek() every time you access an element.
     """
 
-    f = None 
+    f = None
     """File-like object"""
 
     magic_t = None
@@ -132,8 +135,10 @@ class arraylike(object):
     """tuple of array dimensions of the block that we read"""
 
     readsize = None
-    """number of elements we must read for each block"""
-    
+    """
+    number of elements we must read for each block
+    """
+
     def __init__(self, f, rank=0, debug=False):
         self.f = f
         self.magic_t, self.elsize, self.ndim, self.dim, self.dim_size = _read_header(f,debug)
@@ -163,8 +168,8 @@ class arraylike(object):
         if idx >= len(self):
             raise IndexError(idx)
         self.f.seek(self.f_start + idx * self.elsize * self.readsize)
-        return numpy.fromfile(self.f, 
-                dtype=self.magic_t, 
+        return numpy.fromfile(self.f,
+                dtype=self.magic_t,
                 count=self.readsize).reshape(self.returnshape)
 
 
@@ -176,20 +181,23 @@ class arraylike(object):
 #  - allocating an output matrix at the beginning
 #  - seeking through the file, reading subtensors from multiple places
 def read(f, subtensor=None, debug=False):
-    """ Load all or part of file tensorfile 'f' into a numpy ndarray
+    """
+    Load all or part of file tensorfile 'f' into a numpy ndarray
 
     Parameters
     ----------
     f : file, gzip.Gzip or bz2.BZ2File like object
-        Open file descriptor to read data from 
+        Open file descriptor to read data from
     subtensor : None or a slice argument accepted __getitem__
         If subtensor is not None, it should be like the argument to
         numpy.ndarray.__getitem__.  The following two expressions should return
         equivalent ndarray objects, but the one on the left may be faster and more
         memory efficient if the underlying file f is big.
 
+        .. code-block:: none
+
             read(f, subtensor) <===> read(f)[*subtensor]
-    
+
         Support for subtensors is currently spotty, so check the code to see if your
         particular type of subtensor is supported.
 
@@ -218,7 +226,7 @@ def read(f, subtensor=None, debug=False):
         dim[0] = min(dim[0], subtensor.stop) - subtensor.start
         rval = numpy.fromfile(f, dtype=magic_t, count=_prod(dim)).reshape(dim)
     else:
-        raise NotImplementedError('subtensor access not written yet:', subtensor) 
+        raise NotImplementedError('subtensor access not written yet:', subtensor)
 
     return rval
 
@@ -229,7 +237,7 @@ def write(f, mat):
     ----------
     f : file
         Open file to write into
-    mat : ndarray 
+    mat : ndarray
         Array to save
     """
     def _write_int32(f, i):

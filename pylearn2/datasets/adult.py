@@ -14,14 +14,21 @@ from pylearn2.utils.string_utils import preprocess
 
 def adult(which_set):
     """
-    .. todo::
+    Parameters
+    ----------
+    which_set : str
+        'train' or 'test'
 
-        WRITEME properly
-    
-    Returns a DenseDesignMatrix containing the Adult dataset.
-    Note: this discards all examples with missing features. It would be trivial
-    to modify this code to not do so, provided with a convention for how to treat
-    the missing features.
+    Returns
+    -------
+    adult : DenseDesignMatrix
+        Contains the Adult dataset.
+
+    Notes
+    -----
+    This discards all examples with missing features. It would be trivial
+    to modify this code to not do so, provided with a convention for how to
+    treat the missing features.
     Categorical values are converted into a one-hot code.
     """
 

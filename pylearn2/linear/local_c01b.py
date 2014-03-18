@@ -25,27 +25,28 @@ from pylearn2.linear.linear_transform import LinearTransform
 
 class Local(LinearTransform, LocalDot):
     """
-    A pylearn2 linear operator based on local receptive fields
-    (convolution without parameter sharing)
-    implemented using Alex Krizhevsky's cuda-convnet library
-    + James Bergstra's TheanoLinear module
+    A pylearn2 linear operator based on local receptive fields (convolution
+    without parameter sharing) implemented using Alex Krizhevsky's cuda-convnet
+    library + James Bergstra's TheanoLinear module
+
+    Parameters
+    ----------
+    filters : WRITEME
+    image_shape : WRITEME
+    input_groups : WRITEME
+    input_axes : WRITEME
+    batch_size : WRITEME
+    output_axes : WRITEME
+    kernel_stride : WRITEME
+    pad : WRITEME
+    message : WRITEME
+    partial_sum : WRITEME
     """
 
-    def __init__(self,
-            filters,
-            image_shape,
-        input_groups,
-            input_axes = ('c', 0, 1, 'b'),
-            batch_size=None,
-            output_axes = ('c', 0, 1, 'b'),
-         kernel_stride=(1, 1), pad=0,
-         message = '', partial_sum=None):
-        """
-        .. todo::
-
-            WRITEME
-        """
-
+    def __init__(self, filters, image_shape, input_groups,
+                 input_axes=('c', 0, 1, 'b'), batch_size=None,
+                 output_axes=('c', 0, 1, 'b'), kernel_stride=(1, 1), pad=0,
+                 message='', partial_sum=None):
         self.input_groups = input_groups
 
         warnings.warn("Local ignores partial_sum argument, TODO figure out how James' code controls it")

@@ -3,28 +3,40 @@ Iterators providing indices for different kinds of iteration over
 datasets.
 
 Presets:
-    sequential: iterates through fixed slices of the dataset in sequence
-    shuffled_sequential: iterates through a shuffled version of the dataset
-                 in sequence
-    random_slice: on each call to next, returns a slice of the dataset,
-                  chosen uniformly at random over contiguous slices
-                  samples with replacement, but still reports that
-                  container is empty after num_examples / batch_size calls
-    random_uniform: on each call to next, returns a random subset of the
-                  dataset.
-                  samples with replacement, but still reports that
-                  container is empty after num_examples / batch_size calls
+
+- sequential: iterates through fixed slices of the dataset in sequence
+- shuffled_sequential: iterates through a shuffled version of the dataset
+    in sequence
+- random_slice: on each call to next, returns a slice of the dataset,
+    chosen uniformly at random over contiguous slices
+    samples with replacement, but still reports that
+    container is empty after num_examples / batch_size calls
+- random_uniform: on each call to next, returns a random subset of the
+    dataset.
+    samples with replacement, but still reports that
+    container is empty after num_examples / batch_size calls
 """
 from __future__ import division
 import numpy
 np = numpy
-from theano import config
 
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import is_flat_specs
 from pylearn2.utils.rng import make_np_rng
 
+# Make sure that the docstring uses restructured text list format.
+# If you change the module-level docstring, please re-run
+# pylearn2/doc/scripts/docgen.py and make sure sphinx doesn't issue any
+# warnings for this file.
+# This particular docstring was being frequently broken prior to the
+# addition of this test.
+# TODO: have nosetests run docgen.py in warning=error mode, remove
+# tests for specific conditions
+assert """Presets:
+
+- sequential: iterates through fixed slices of the dataset in sequence
+- s""" in __doc__
 
 class SubsetIterator(object):
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):

@@ -49,6 +49,17 @@ class LocalDot(LinearTransform):
         col_positions
         images
 
+    Parameters
+    ----------
+    filters : WRITEME
+    irows : WRITEME
+        Image rows
+    icols : WRITEME
+        Image columns
+    subsample : WRITEME
+    padding_start : WRITEME
+    filters_shape : WRITEME
+    message : WRITEME
     """
 
     def __init__(self, filters, irows, icols=None,
@@ -56,19 +67,6 @@ class LocalDot(LinearTransform):
             padding_start=None,
             filters_shape=None,
             message=""):
-        """
-        Parameters
-        ----------
-        filters : WRITEME
-        irows : WRITEME
-            Image rows
-        icols : WRITEME
-            Image columns
-        subsample : WRITEME
-        padding_start : WRITEME
-        filters_shape : WRITEME
-        message : WRITEME
-        """
         LinearTransform.__init__(self, [filters])
         self._filters = filters
         if filters_shape is None:

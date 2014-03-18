@@ -44,19 +44,17 @@ class WeightDecay(NullDataSpecsMixin, Cost):
 
     for each set of weights.
 
+    Parameters
+    ----------
+    coeffs : list
+        One element per layer, specifying the coefficient to multiply
+        with the cost defined by the squared L2 norm of the weights for
+        each layer.
+
+        Each element may in turn be a list, e.g., for CompositeLayers.
     """
 
     def __init__(self, coeffs):
-        """
-        Parameters
-        ----------
-        coeffs : list
-            One element per layer, specifying the coefficient to multiply
-            with the cost defined by the squared L2 norm of the weights for
-            each layer.
-
-            Each element may in turn be a list, e.g., for CompositeLayers.
-        """
         self.__dict__.update(locals())
         del self.self
 
@@ -85,7 +83,8 @@ class WeightDecay(NullDataSpecsMixin, Cost):
                 if coef==0.:
                     return 0.
                 else:
-                    raise NotImplementedError(str(type(layer))+" does not implement get_weight_decay.")
+                    raise NotImplementedError(str(type(layer)) +
+                            " does not implement get_weight_decay.")
 
         layer_costs = [ wrapped_layer_cost(layer, coeff)
             for layer, coeff in safe_izip(model.layers, self.coeffs) ]
@@ -113,19 +112,18 @@ class L1WeightDecay(NullDataSpecsMixin, Cost):
     coeff * sum(abs(weights))
 
     for each set of weights.
+
+    Parameters
+    ----------
+    coeffs : list
+        One element per layer, specifying the coefficient to multiply
+        with the cost defined by the L1 norm of the weights for each
+        layer.
+
+        Each element may in turn be a list, e.g., for CompositeLayers.
     """
 
     def __init__(self, coeffs):
-        """
-        Parameters
-        ----------
-        coeffs : list
-            One element per layer, specifying the coefficient to multiply
-            with the cost defined by the L1 norm of the weights for each
-            layer.
-
-            Each element may in turn be a list, e.g., for CompositeLayers.
-        """
         self.__dict__.update(locals())
         del self.self
 

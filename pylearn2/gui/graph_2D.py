@@ -12,13 +12,14 @@ class Graph2D:
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    shape : WRITEME
+    xlim : WRITEME
+    ycenter : WRITEME
     """
     def __init__(self, shape, xlim, ycenter):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.xmin = 0.
         self.xmax = 0.
         self.set_shape(shape)
@@ -92,25 +93,20 @@ class HeatMap:
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    f : WRITEME
+        A callable that takes a design matrix of 2D coordinates and returns a
+        vector containing the function value at those coordinates
+    normalizer : WRITEME
+        None or a callable that takes a 2D numpy array and returns a 2D numpy
+        array
+    render_mode : WRITEME
+        * 'o': opaque.
+        * 'r': render only to the (r)ed channel
     """
     def __init__(self, f, normalizer, render_mode = 'o'):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        """
-            f:
-                A callable that takes a design matrix of 2D coordinates
-                and returns a vector containing the function value at
-                those coordinates
-            normalizer:
-                None or a callable that takes a 2D numpy array and returns
-                a 2D numpy array
-            render_mode:
-                'o': opaque.
-                'r': render only to the (r)ed channel
-        """
         self.f = f
         self.normalizer = normalizer
         self.render_mode = render_mode

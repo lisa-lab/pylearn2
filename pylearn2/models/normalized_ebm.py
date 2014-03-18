@@ -18,13 +18,12 @@ class NormalizedEBM(object):
     An Energy-Based Model with an additional parameter representing log Z.
     In practice, this parameter is only approximately correct, though it
     can be learned through methods such as noise-contrastive estimation.
+
+    .. todo::
+
+        WRITEME : parameter list
     """
     def __init__(self, ebm, init_logZ, learn_logZ, logZ_lr_scale=1.0):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.ebm = ebm
         self.logZ_driver = shared(N.cast[config.floatX](
             init_logZ / logZ_lr_scale

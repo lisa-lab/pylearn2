@@ -17,13 +17,14 @@ class LocalCoordinateCoding(object):
     .. todo::
 
         WRITEME
+    
+    Parameters
+    ----------
+    nvis : WRITEME
+    nhid : WRITEME
+    coeff : WRITEME
     """
     def __init__(self, nvis, nhid, coeff):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.nvis = nvis
         self.nhid = nhid
         self.coeff = float(coeff)

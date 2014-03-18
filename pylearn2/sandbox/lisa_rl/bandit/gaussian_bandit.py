@@ -19,6 +19,10 @@ class GaussianBandit(Environment):
     at initialization time from N(0, <corresponding std arg>).
     (For the standard deviation we use the absolute value of the Gaussian
     sample)
+
+    .. todo::
+
+        WRITEME : parameter list
     """
 
     def __init__(self, num_arms, mean_std = 1.0, std_std = 1.0):

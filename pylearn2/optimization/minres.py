@@ -49,7 +49,7 @@ def minres(compute_Av,
     compute_Av : callable
         Callable returing the symbolic expression for \
         `Av` (the product of matrix A with some vector v). \
-        `v` should be a list of tensors, whre the vector v means \
+        `v` should be a list of tensors, where the vector v means \
         the vector obtain by concatenating and flattening all tensors in v
     bs : list
         List of Theano expressions. We are looking to compute `A^-1\dot bs`.
@@ -67,7 +67,7 @@ def minres(compute_Av,
     Acondlim : float, positive, optional
         Maximum bound on COND(A). Default is 1e15.
     show : bool
-        If True, show iternations, otherwise suppress outputs. Default is \
+        If True, show iterations, otherwise suppress outputs. Default is \
         False.
 
     Returns
@@ -76,30 +76,31 @@ def minres(compute_Av,
         List of Theano tensor representing the solution
     flag : tensor_like
         Theano int scalar - convergence flag
-            0 beta1 = 0.  The exact solution is  x = 0.
-            1 A solution to (poss. singular) Ax = b found, given rtol.
-            2 Pseudoinverse solution for singular LS problem, given rtol.
-            3 A solution to (poss. singular) Ax = b found, given eps.
-            4 Pseudoinverse solution for singular LS problem, given eps.
-            5 x has converged to an eigenvector.
-            6 xnorm has exceeded maxxnorm.
-            7 Acond has exceeded Acondlim.
-            8 The iteration limit was reached.
-            9/10 It is a least squares problem but no converged
-             solution yet.
+
+            * 0 beta1 = 0.  The exact solution is  x = 0.
+            * 1 A solution to (poss. singular) Ax = b found, given rtol.
+            * 2 Pseudoinverse solution for singular LS problem, given rtol.
+            * 3 A solution to (poss. singular) Ax = b found, given eps.
+            * 4 Pseudoinverse solution for singular LS problem, given eps.
+            * 5 x has converged to an eigenvector.
+            * 6 xnorm has exceeded maxxnorm.
+            * 7 Acond has exceeded Acondlim.
+            * 8 The iteration limit was reached.
+            * 9/10 It is a least squares problem but no converged
+                solution yet.
     iter : int
         Iteration number at which x was computed: `0 <= iter <= maxit`.
     relres : float
-        Real positive, the relative residual is defined as \
-                 NORM(b-A*x)/(NORM(A) * NORM(x) + NORM(b)), \
+        Real positive, the relative residual is defined as
+        NORM(b-A*x)/(NORM(A) * NORM(x) + NORM(b)),
         computed recurrently here.  If flag is 1 or 3,  relres <= TOL.
     relAres : float
-        Real positive, the relative-NORM(Ar) := NORM(Ar) / NORM(A) \
+        Real positive, the relative-NORM(Ar) := NORM(Ar) / NORM(A)
         computed recurrently here. If flag is 2 or 4, relAres <= TOL.
     Anorm : float
         Real positive, estimate of matrix 2-norm of A.
     Acond : float
-        Real positive, estimate of condition number of A with respect to \
+        Real positive, estimate of condition number of A with respect to
         2-norm.
     xnorm : float
         Non-negative positive, recurrently computed NORM(x)

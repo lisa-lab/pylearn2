@@ -10,7 +10,7 @@ Cuda-Convnet
 Intro
 #####
 
-These are wrappers around some of the GPU codes from Alex Krizhevsky cuda-convnet project.
+These are wrappers around some of the GPU code from Alex Krizhevsky cuda-convnet project.
 http://code.google.com/p/cuda-convnet/
 
 #######

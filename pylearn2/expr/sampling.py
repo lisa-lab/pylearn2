@@ -12,7 +12,7 @@ __email__ = "goodfeli@iro"
 
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 
-from pylearn2.base import Block
+from pylearn2.blocks import Block
 from pylearn2.utils.rng import make_theano_rng
 
 
@@ -21,13 +21,14 @@ class SampleBernoulli(Block):
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    theano_rng : WRITEME
+    seed : WRITEME
+    input_space : WRITEME
     """
     def __init__(self, theano_rng = None, seed=None, input_space=None):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(SampleBernoulli, self).__init__()
         assert theano_rng is None or seed is None
         theano_rng = make_theano_rng(theano_rng if theano_rng is not None else seed,

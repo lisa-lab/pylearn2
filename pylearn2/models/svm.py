@@ -6,6 +6,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
+import numpy as np
 import warnings
 
 try:
@@ -13,7 +14,20 @@ try:
     from sklearn.svm import SVC
 except ImportError:
     warnings.warn("Could not import sklearn.")
-import numpy as np
+
+    class OneVsRestClassifier(object):
+        """
+        See `sklearn.multiclass.OneVsRestClassifier`.
+
+        Notes
+        -----
+        This class is a dummy class included so that sphinx
+        can import DenseMulticlassSVM and document it even
+        when sklearn is not installed.
+        """
+
+        def __init__(self, estimator):
+            raise RuntimeError("sklearn not available.")
 
 class DenseMulticlassSVM(OneVsRestClassifier):
     """
@@ -28,28 +42,27 @@ class DenseMulticlassSVM(OneVsRestClassifier):
     To avoid duplicating the training data, use only numpy ndarrays
     whose tags.c_contigous flag is true, and which are in float64
     format.
+
+    Parameters
+    ----------
+    C : float
+        SVM regularization parameter.
+        See SVC.__init__ for details.
+    kernel : str
+        Type of kernel to use.
+        See SVC.__init__ for details.
+    gamma : float
+        Optional parameter of kernel.
+        See SVC.__init__ for details.
+    coef0 : float
+        Optional parameter of kernel.
+        See SVC.__init__ for details.
+    degree : int
+        Degree of kernel, if kernel is polynomial.
+        See SVC.__init__ for details.
     """
 
     def __init__(self, C, kernel='rbf', gamma = 1.0, coef0 = 1.0, degree = 3):
-        """
-        Parameters
-        ----------
-        C : float
-            SVM regularization parameter.
-            See SVC.__init__ for details.
-        kernel : str
-            Type of kernel to use.
-            See SVC.__init__ for details.
-        gamma : float
-            Optional parameter of kernel.
-            See SVC.__init__ for details.
-        coef0 : float
-            Optional parameter of kernel.
-            See SVC.__init__ for details.
-        degree : int
-            Degree of kernel, if kernel is polynomial.
-            See SVC.__init__ for details.
-        """
         estimator = SVC(C=C, kernel=kernel, gamma = gamma, coef0 = coef0,
                 degree = degree)
         super(DenseMulticlassSVM,self).__init__(estimator)

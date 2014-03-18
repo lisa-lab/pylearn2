@@ -1,0 +1,6 @@
+This folder contains an IPython notebook that will teach you the basics of how convolutional networks work, and show you how to use multilayer perceptrons in pylearn2.
+
+Guide on how to load IPython notebooks:
+http://deeplearning.net/software/pylearn2/tutorial/notebook_tutorials.html#notebook-tutorials
+
+The yaml files in this folder are yaml file templates that would be loaded inside the notebook. For details on how to load them, read the notebook.
