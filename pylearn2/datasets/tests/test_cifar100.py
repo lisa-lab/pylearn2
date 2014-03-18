@@ -29,7 +29,7 @@ class TestCIFAR100(unittest.TestCase):
         train_test_set = self.train_set.get_test_set()
         test_test_set = self.test_set.get_test_set()
         assert np.all(train_test_set.X == test_test_set.X)
-        assert np.all(train_test_set.X == test_set.X)
+        assert np.all(train_test_set.X == self.test_set.X)
 
     def test_topo(self):
         """Tests that a topological batch has 4 dimensions"""
