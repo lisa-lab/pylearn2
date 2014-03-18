@@ -10,6 +10,18 @@ from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.string_utils import preprocess
 
 class TL_Challenge(dense_design_matrix.DenseDesignMatrix):
+     """
+     .. todo::
+
+        WRITEME
+
+     
+     Parameters
+     ----------
+     which_set : WRITEME
+     center : WRITEME
+     custom_path : WRITEME
+     """
      def __init__(self, which_set, center = False, custom_path = None):
 
         assert which_set in ['train','unlabeled', 'custom']

@@ -17,25 +17,23 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    which_set : WRITEME
+    center : WRITEME
+    rescale : WRITEME
+    gcn : WRITEME
+    one_hot : WRITEME
+    start : WRITEME
+    stop : WRITEME
+    axes : WRITEME
+    toronto_prepro : WRITEME
+    preprocessor : WRITEME
     """
     def __init__(self, which_set, center = False, rescale = False, gcn = None,
             one_hot = False, start = None, stop = None, axes=('b', 0, 1, 'c'),
             toronto_prepro = False, preprocessor = None):
-        """
-        Parameters
-        ----------
-        which_set : str
-            One of 'train', 'test'
-        gcn : float, optional
-            Multiplicative constant to use for global contrast normalization.
-            No global contrast normalization is applied, if None
-
-        .. todo::
-
-            WRITEME
-        """
-
-
         # note: there is no such thing as the cifar10 validation set;
         # pylearn1 defined one but really it should be user-configurable
         # (as it is here)

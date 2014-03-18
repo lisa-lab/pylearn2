@@ -310,25 +310,23 @@ class BinaryVector(VisibleLayer):
     """
     A DBM visible layer consisting of binary random variables living
     in a VectorSpace.
-    """
 
+    Parameters
+    ----------
+    nvis : int
+        Dimension of the space
+    bias_from_marginals : pylearn2.datasets.dataset.Dataset
+        Dataset, whose marginals are used to initialize the visible biases
+    center : bool
+        WRITEME
+    copies : int
+        WRITEME
+    """
     def __init__(self,
             nvis,
             bias_from_marginals = None,
             center = False,
             copies = 1, learn_init_inpainting_state = False):
-        """
-        Parameters
-        ----------
-        nvis : int
-            Dimension of the space
-        bias_from_marginals : pylearn2.datasets.dataset.Dataset
-            Dataset, whose marginals are used to initialize the visible biases
-        center : bool
-            WRITEME
-        copies : int
-            WRITEME
-        """
 
         self.__dict__.update(locals())
         del self.self
@@ -611,6 +609,26 @@ class BinaryVectorMaxPool(HiddenLayer):
     It has two sublayers, the detector layer and the pooling
     layer. The detector layer is its downward state and the pooling
     layer is its upward state.
+
+    Parameters
+    ----------
+    detector_layer_dim : WRITEME
+    pool_size : WRITEME
+    layer_name : WRITEME
+    irange : WRITEME
+    sparse_init : WRITEME
+    sparse_stdev : WRITEME
+    include_prob : float
+        Probability of including a weight element in the set of weights \
+        initialized to U(-irange, irange). If not included it is \
+        initialized to 0.
+    init_bias : WRITEME
+    W_lr_scale : WRITEME
+    b_lr_scale : WRITEME
+    center : WRITEME
+    mask_weights : WRITEME
+    max_col_norm : WRITEME
+    copies : WRITEME
     """
     # TODO: this layer uses (pooled, detector) as its total state,
     #       which can be confusing when listing all the states in
@@ -633,27 +651,6 @@ class BinaryVectorMaxPool(HiddenLayer):
             mask_weights = None,
             max_col_norm = None,
             copies = 1):
-        """
-        Parameters
-        ----------
-        detector_layer_dim : WRITEME
-        pool_size : WRITEME
-        layer_name : WRITEME
-        irange : WRITEME
-        sparse_init : WRITEME
-        sparse_stdev : WRITEME
-        include_prob : float
-            Probability of including a weight element in the set of weights \
-            initialized to U(-irange, irange). If not included it is \
-            initialized to 0.
-        init_bias : WRITEME
-        W_lr_scale : WRITEME
-        b_lr_scale : WRITEME
-        center : WRITEME
-        mask_weights : WRITEME
-        max_col_norm : WRITEME
-        copies : WRITEME
-        """
         self.__dict__.update(locals())
         del self.self
 
@@ -904,7 +901,7 @@ class BinaryVectorMaxPool(HiddenLayer):
         W = W.T
 
         W = W.reshape((self.detector_layer_dim, self.input_space.shape[0],
-            self.input_space.shape[1], self.input_space.nchannels))
+            self.input_space.shape[1], self.input_space.num_channels))
 
         W = Conv2DSpace.convert(W, self.input_space.axes, ('b', 0, 1, 'c'))
 
@@ -1435,19 +1432,6 @@ class Softmax(HiddenLayer):
                  max_col_norm = None,
                  copies = 1, center = False,
                  learn_init_inpainting_state = True):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        """
-            copies: We regard the layer as being replicated so that there
-                   are <copies> instances of it.
-                   All sample and mean field states are the *average* of
-                   all of these copies, and the weights to each copy are
-                   tied.
-        """
-
         if isinstance(W_lr_scale, str):
             W_lr_scale = float(W_lr_scale)
 
@@ -1945,9 +1929,25 @@ class Softmax(HiddenLayer):
 
 class GaussianVisLayer(VisibleLayer):
     """
-    .. todo::
+    Implements a visible layer that is conditionally gaussian with
+    diagonal variance. The layer lives in a Conv2DSpace.
 
-        WRITEME
+    Parameters
+    ----------
+    rows, cols, channels: WRITEME
+        the shape of the space
+    init_beta: WRITEME
+        the initial value of the precision parameter
+    min_beta: WRITEME
+        clip beta so it is at least this big (default 1)
+    init_mu: WRITEME
+        the initial value of the mean parameter
+    tie_beta: WRITEME
+        None or a string specifying how to tie beta 'locations' = tie beta
+        across locations, ie beta should be a vector with one elem per channel
+    tie_mu: WRITEME
+        None or a string specifying how to tie mu 'locations' = tie mu across
+        locations, ie mu should be a vector with one elem per channel
     """
     def __init__(self,
             rows = None,
@@ -1963,32 +1963,6 @@ class GaussianVisLayer(VisibleLayer):
             bias_from_marginals = None,
             beta_lr_scale = 'by_sharing',
             axes = ('b', 0, 1, 'c')):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        """
-            Implements a visible layer that is conditionally gaussian with
-            diagonal variance. The layer lives in a Conv2DSpace.
-
-            rows, cols, channels: the shape of the space
-
-            init_beta: the initial value of the precision parameter
-            min_beta: clip beta so it is at least this big (default 1)
-
-            init_mu: the initial value of the mean parameter
-
-            tie_beta: None or a string specifying how to tie beta
-                      'locations' = tie beta across locations, ie
-                                    beta should be a vector with one
-                                    elem per channel
-            tie_mu: None or a string specifying how to tie mu
-                    'locations' = tie mu across locations, ie
-                                  mu should be a vector with one
-                                  elem per channel
-
-        """
 
         warnings.warn("GaussianVisLayer math very faith based, need to finish working through gaussian.lyx")
 
@@ -2004,17 +1978,22 @@ class GaussianVisLayer(VisibleLayer):
 
         if init_mu is None:
             init_mu = 0.
-
         if nvis is None:
             assert rows is not None
             assert cols is not None
             assert channels is not None
             self.space = Conv2DSpace(shape=[rows,cols], num_channels=channels, axes=axes)
+            # To make GaussianVisLayer compatible with any axis ordering
+            self.batch_axis=list(axes).index('b')  
+            self.axes_to_sum = range(len(axes))
+            self.axes_to_sum.remove(self.batch_axis)
         else:
             assert rows is None
             assert cols is None
             assert channels is None
             self.space = VectorSpace(nvis)
+            self.axes_to_sum = 1
+            self.batch_axis = None
         self.input_space = self.space
 
         origin = self.space.get_origin()
@@ -2034,6 +2013,8 @@ class GaussianVisLayer(VisibleLayer):
             mu_origin = np.zeros((self.space.num_channels,))
         self.mu = sharedX( mu_origin + init_mu, name = 'mu')
         assert self.mu.ndim == mu_origin.ndim
+        
+
 
     def get_monitoring_channels(self):
         """
@@ -2103,8 +2084,13 @@ class GaussianVisLayer(VisibleLayer):
             updates[self.beta] = T.clip(updated_beta,
                     self.min_beta,1e6)
 
+    def set_biases(self, bias):
+        """
+        set mean parameter
 
-
+        :param bias: Vector of size nvis
+        """
+        self.mu = sharedX(bias, name = 'mu')
 
     def broadcasted_mu(self):
         """
@@ -2221,19 +2207,13 @@ class GaussianVisLayer(VisibleLayer):
 
             WRITEME
         """
-        raise NotImplementedError("need to support axes")
-        raise NotImplementedError("wasn't implemeneted before axes either")
         assert state_below is None
         assert average_below is None
         self.space.validate(state)
         if average:
             raise NotImplementedError(str(type(self))+" doesn't support integrating out variational parameters yet.")
         else:
-            if self.nvis is None:
-                axis = (1,2,3)
-            else:
-                axis = 1
-            rval =  0.5 * (self.beta * T.sqr(state - self.mu)).sum(axis=axis)
+            rval =  0.5 * (self.beta * T.sqr(state - self.mu)).sum(axis=self.axes_to_sum)
         assert rval.ndim == 1
         return rval
 
@@ -2257,7 +2237,6 @@ class GaussianVisLayer(VisibleLayer):
         else:
             rval = z
 
-
         rval.name = 'inpainted_V[unknown_iter]'
 
         if return_unmasked:
@@ -2273,17 +2252,14 @@ class GaussianVisLayer(VisibleLayer):
 
             WRITEME
         """
-        raise NotImplementedError("need to support axes")
 
         assert state_below is None
         msg = layer_above.downward_message(state_above)
         mu = self.mu
 
         z = msg + mu
-
         rval = theano_rng.normal(size = z.shape, avg = z, dtype = z.dtype,
-                       std = 1. / T.sqrt(self.beta) )
-
+                       std = 1. / T.sqrt(self.beta))
         return rval
 
     def recons_cost(self, V, V_hat_unmasked, drop_mask = None, use_sum=False):
@@ -2341,7 +2317,6 @@ class GaussianVisLayer(VisibleLayer):
 
             WRITEME
         """
-        raise NotImplementedError("need to support axes")
 
         shape = [num_examples]
 
@@ -2358,7 +2333,6 @@ class GaussianVisLayer(VisibleLayer):
 
         sample *= 1./np.sqrt(self.beta.get_value())
         sample += self.mu.get_value()
-
         rval = sharedX(sample, name = 'v_sample_shared')
 
         return rval
@@ -2410,6 +2384,11 @@ class GaussianVisLayer(VisibleLayer):
 
 
 class ConvMaxPool(HiddenLayer):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self,
              output_channels,
             kernel_rows,
@@ -2424,11 +2403,6 @@ class ConvMaxPool(HiddenLayer):
             init_bias = 0.,
             border_mode = 'valid',
             output_axes = ('b', 'c', 0, 1)):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.__dict__.update(locals())
         del self.self
 
@@ -2944,19 +2918,6 @@ class ConvC01B_MaxPool(HiddenLayer):
             init_bias = 0.,
             pad = 0,
             partial_sum = 1):
-        """
-        .. todo::
-
-            WRITEME properly
-
-        Like ConvMaxPool but using cuda convnet for the backend.
-
-        kernel_shape: two-element list or tuple of ints specifying
-                    rows and columns of kernel
-                    currently the two must be the same
-        output_channels: the number of convolutional channels in the
-            output and pooling layer.
-        """
         self.__dict__.update(locals())
         del self.self
 
@@ -3438,6 +3399,10 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
     external factor influencing how this layer behaves.
     Gradient can still flow to beta, but it will only be included in
     the parameters list if some class other than this layer includes it.
+
+    .. todo::
+
+        WRITEME : parameter list
     """
 
     def __init__(self,
@@ -3456,16 +3421,6 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
             mask_weights = None,
             max_col_norm = None,
             copies = 1):
-        """
-        .. todo::
-
-            WRITEME properly
-
-        include_prob: probability of including a weight element in the set
-                of weights initialized to U(-irange, irange). If not included
-                it is initialized to 0.
-        """
-
         warnings.warn("BVMP_Gaussian math is very faith-based, need to complete gaussian.lyx")
 
         args = locals()
@@ -3758,26 +3713,28 @@ class CompositeLayer(HiddenLayer):
     """
         A Layer constructing by aligning several other Layer
         objects side by side
+
+        Parameters
+        ----------
+        components: WRITEME
+            A list of layers that are combined to form this layer
+        inputs_to_components: None or dict mapping int to list of int
+            Should be None unless the input space is a CompositeSpace
+            If inputs_to_components[i] contains j, it means input i will
+            be given as input to component j.
+            If an input dodes not appear in the dictionary, it will be given
+            to all components.
+
+            This field allows one CompositeLayer to have another as input
+            without forcing each component to connect to all members
+            of the CompositeLayer below. For example, you might want to
+            have both densely connected and convolutional units in all
+            layers, but a convolutional unit is incapable of taking a
+            non-topological input space.
     """
 
+
     def __init__(self, layer_name, components, inputs_to_components = None):
-        """
-            components: A list of layers that are combined to form this layer
-            inputs_to_components: None or dict mapping int to list of int
-                Should be None unless the input space is a CompositeSpace
-                If inputs_to_components[i] contains j, it means input i will
-                be given as input to component j.
-                If an input dodes not appear in the dictionary, it will be given
-                to all components.
-
-                This field allows one CompositeLayer to have another as input
-                without forcing each component to connect to all members
-                of the CompositeLayer below. For example, you might want to
-                have both densely connected and convolutional units in all
-                layers, but a convolutional unit is incapable of taking a
-                non-topological input space.
-        """
-
         self.layer_name = layer_name
 
         self.components = list(components)

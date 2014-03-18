@@ -37,6 +37,12 @@ coding style for Pylearn2.
 We do not plan to change all existing code to follow this coding
 style, but as we modify the code, we update it accordingly.
 
+Documentation
+-------------
+
+See the documentation guidline :ref:`here <metadocumentation>`.
+
+
 Mailing list
 ------------
 

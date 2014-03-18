@@ -32,10 +32,17 @@ def test():
     with open(os.path.join(dirname, 'sr_train.yaml'), 'r') as f:
         train = f.read()
 
+    save_path = os.path.dirname(os.path.realpath(__file__))
     train = train % locals()
 
     train = yaml_parse.load(train)
     train.main_loop()
+
+    try:
+        os.remove("{}/softmax_regression.pkl".format(save_path))
+        os.remove("{}/softmax_regression_best.pkl".format(save_path))
+    except:
+        pass
 
 if __name__ == '__main__':
     test()

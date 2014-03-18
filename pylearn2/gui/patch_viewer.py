@@ -100,17 +100,31 @@ def make_viewer(mat, grid_shape=None, patch_shape=None,
 
 class PatchViewer(object):
     """
-    .. todo::
+    A class for viewing collections of image patches arranged in a grid.
 
-        WRITEME
+    Parameters
+    ----------
+    grid_shape : tuple
+        A tuple in format (rows, cols), in units of patches. This determines
+        the size of the display. e.g. if you want to display 100 patches at
+        a time you might use (10, 10).
+    patch_shape : tuple
+        A tuple in format (rows, cols), in units of pixels. The patches must
+        be at most this large. It will be possible to display smaller patches
+        in this `PatchViewer`, but each patch will appear in the center of a
+        rectangle of this size.
+    is_color : bool
+        Whether the PatchViewer should be color (True) or grayscale (False)
+    pad : tuple
+        Tuple of ints in the form (pad vertical, pad horizontal). Number of
+        pixels to put between each patch in each direction.
+    background: float or 3-tuple
+        The color of the background of the display. Either a float in [0, 1]
+        if `is_color` is `False` or a 3-tuple/3d ndarray array of floats in
+        [0, 1] for RGB color if `is_color` is `True`.
     """
     def __init__(self, grid_shape, patch_shape, is_color=False, pad = None,
                  background = None ):
-        """
-        .. todo::
-
-            WRITEME
-        """
         if background is None:
             if is_color:
                 background = np.zeros((3,))
@@ -122,16 +136,16 @@ class PatchViewer(object):
         for shape in [grid_shape, patch_shape]:
             for elem in shape:
                 if not isinstance(elem, py_integer_types):
-                    raise ValueError("Expected grid_shape and patch_shape to be"
-                                     " pairs of ints, but they are %s and %s"
-                                     " respectively." % (str(grid_shape),
+                    raise ValueError("Expected grid_shape and patch_shape to"
+                                     "be pairs of ints, but they are %s and "
+                                     "%s respectively." % (str(grid_shape),
                                                          str(patch_shape)))
         self.is_color = is_color
         if pad is None:
             self.pad = (5, 5)
         else:
             self.pad = pad
-        #these are the colors of the activation shells
+        # these are the colors of the activation shells
         self.colors = [np.asarray([1, 1, 0]),
                        np.asarray([1, 0, 1]),
                        np.asarray([0, 1, 0])]
@@ -172,12 +186,44 @@ class PatchViewer(object):
     def add_patch(self, patch, rescale=True, recenter=True, activation=None,
                   warn_blank_patch = True):
         """
-        .. todo::
+        Adds an image patch to the `PatchViewer`.
 
-            WRITEME properly
+        Patches are added left to right, top to bottom. If this method is
+        called when the `PatchViewer` is already full, it will clear the
+        viewer and start adding patches at the upper left again.
 
-        :param recenter: if patch has smaller dimensions than self.patch,
-        recenter will pad the image to the appropriate size before displaying.
+        Parameters
+        ----------
+        patch : ndarray
+            If this `PatchViewer` is in color (controlled by the `is_color`
+            parameter of the constructor) `patch` should be a 3D ndarray, with
+            the first axis being the rows of the image, the second axis
+            being the columsn of the image, and the third being RGB color
+            channels.
+            If this `PatchViewer` is grayscale, `patch` should be either a
+            3D ndarray with the third axis having length 1, or a 2D ndarray.
+
+            The values of the ndarray should be floating point. 0 is displayed
+            as gray. Negative numbers are displayed as blacker. Positive
+            numbers are displayed as whiter. See the `rescale` parameter for
+            more detail. This color convention was chosen because it is useful
+            for displaying weight matrices.
+        rescale : bool
+            If True, the maximum absolute value of a pixel in `patch` sets the
+            scale, so that abs(patch).max() is absolute white and
+            -abs(patch).max() is absolute black.
+            If False, `patch` should lie in [-1, 1].
+        recenter : bool
+            If True (default), if `patch` has smaller dimensions than were
+            specified to the constructor's `patch_shape` argument, we will
+            display the patch in the center of the area allocated to it in
+            the display grid.
+            If False, we will raise an exception if `patch` is not exactly
+            the specified shape.
+        activation : WRITEME
+            WRITEME
+        warn_blank_patch : WRITEME
+            WRITEME
         """
         if warn_blank_patch and \
                (patch.min() == patch.max()) and \
@@ -188,8 +234,8 @@ class PatchViewer(object):
         if self.is_color:
             assert patch.ndim == 3
             if not (patch.shape[-1] == 3):
-                raise ValueError("Expected color image to have shape[-1]=3, but"
-                                 " shape[-1] is " + str(patch.shape[-1]))
+                raise ValueError("Expected color image to have shape[-1]=3, "
+                                 "but shape[-1] is " + str(patch.shape[-1]))
         else:
             assert patch.ndim in [2, 3]
             if patch.ndim == 3:

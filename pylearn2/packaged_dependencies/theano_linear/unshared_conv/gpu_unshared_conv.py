@@ -50,13 +50,13 @@ class Base(theano.Op):
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    module_stride : WRITEME
+    partial_sum : WRITEME
     """
     def __init__(self, module_stride, partial_sum):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.module_stride = module_stride
         self.partial_sum = partial_sum
 

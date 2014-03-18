@@ -219,11 +219,12 @@ def save(filepath, obj, on_overwrite = 'ignore'):
 
     on_overwrite: str
         A string specifying what to do if the file already exists.
-                ignore: just overwrite it
-                backup: make a copy of the file (<filepath>.bak) and
-                        delete it when done saving the new copy.
-                        this allows recovery of the old version of
-                        the file if saving the new one fails
+        Possible values include:
+
+        - "ignore" : Just overwrite the existing file.
+        - "backup" : Make a backup copy of the file (<filepath>.bak). Save the
+            new copy. Then delete the backup copy. This allows recovery of the
+            old version of the file if saving the new one fails.
     """
     filepath = preprocess(filepath)
 

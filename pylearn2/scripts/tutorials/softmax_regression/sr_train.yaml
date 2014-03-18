@@ -5,9 +5,9 @@
     extensions: [
         !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
              channel_name: 'valid_y_misclass',
-             save_path: "softmax_regression_best.pkl"
+             save_path: "%(save_path)s/softmax_regression_best.pkl"
         },
     ],
-    save_path: "softmax_regression.pkl",
+    save_path: "%(save_path)s/softmax_regression.pkl",
     save_freq: 1
 }

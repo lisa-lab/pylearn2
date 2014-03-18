@@ -20,10 +20,9 @@ import sys
 import warnings
 
 from theano.compat.python2x import OrderedDict
-from theano.sandbox.rng_mrg import MRG_RandomStreams
 
 from pylearn2.expr.nnet import inverse_sigmoid_numpy
-from pylearn2.base import Block
+from pylearn2.blocks import Block
 from pylearn2.utils import block_gradient
 from pylearn2.utils.rng import make_theano_rng
 
@@ -91,13 +90,12 @@ def init_sigmoid_bias_from_array(arr):
 class DBMSampler(Block):
     """
     A Block used to sample from the last layer of a DBM with one hidden layer.
+
+    Parameters
+    ----------
+    dbm : WRITEME
     """
     def __init__(self, dbm):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(DBMSampler, self).__init__()
         self.theano_rng = make_theano_rng(None, 2012+10+14, which_method="binomial")
         self.dbm = dbm

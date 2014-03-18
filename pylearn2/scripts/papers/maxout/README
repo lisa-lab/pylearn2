@@ -123,13 +123,13 @@ the art on CIFAR-100.
 The paper reports a test error of 2.45 on the SVHN dataset, which is the state
 of the art for a single model.
 
-Since the data is large and might not fit into the memory, we use PyTbales for storing
+Since the data is large and might not fit into the memory, we use PyTables for storing
 the dataset. For pre-processing the data you need to make a copy of data to a local
-path defined by SVHN_LOCAL environment variable. The reason behind is that with
+path defined by SVHN_LOCAL_PATH environment variable. The reason behind is that with
 PyTables any change to the data, will result in change to the data on the disk and
 we do not want to modify the original raw data.
 
-export SVHN_LOCAL=/tmp/SVHN/
+export SVHN_LOCAL_PATH=/tmp/SVHN/
 python svhn_preprocessing.py
 
 Afterwards we train our model using the svhn.yaml file

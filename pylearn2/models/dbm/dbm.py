@@ -22,26 +22,27 @@ class DBM(Model):
 
     See "Deep Boltzmann Machines" by Ruslan Salakhutdinov and Geoffrey Hinton
     for details.
+
+    Parameters
+    ----------
+    batch_size : int
+        The batch size the model should use. Some convolutional \
+        LinearTransforms require a compile-time hardcoded batch size, \
+        otherwise this would not be part of the model specification.
+    visible_layer : WRITEME
+        The visible layer of the DBM.
+    hidden_layers : list
+        The hidden layers. A list of HiddenLayer objects. The first \
+        layer in the list is connected to the visible layer. 
+    niter : int
+        Number of mean field iterations for variational inference \
+        for the positive phase. 
+    sampling_procedure : WRITEME
+    inference_procedure : WRITEME
     """
 
     def __init__(self, batch_size, visible_layer, hidden_layers, niter,
                  sampling_procedure=None, inference_procedure=None):
-        """
-        Parameters
-        ----------
-        batch_size : int
-            The batch size the model should use. Some convolutional \
-            LinearTransforms require a compile-time hardcoded batch size, \
-            otherwise this would not be part of the model specification.
-        visible_layer : WRITEME
-            The visible layer of the DBM.
-        hidden_layers : list
-            WRITEME
-        niter : int
-            WRITEME
-        sampling_procedure : WRITEME
-        inference_procedure : WRITEME
-        """
         self.__dict__.update(locals())
         del self.self
         assert len(hidden_layers) >= 1

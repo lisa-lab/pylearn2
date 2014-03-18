@@ -68,13 +68,14 @@ class InsertAlongAxis(theano.Op):
     constant values (and thus should not be fed into/predicted by a
     neural net) but are nonetheless necessary for some sort of
     post-processing and need to be re-added later in the pipeline.
+
+    Parameters
+    ----------
+    ndim : WRITEME
+    axis : WRITEME
+    fill : WRITEME
     """
     def __init__(self, ndim, axis, fill=0):
-        """
-        .. todo::
-
-            WRITEME
-        """
         assert axis < ndim, "axis >= ndim not allowed (doesn't make sense)"
         self.ndim = ndim
         self.axis = axis

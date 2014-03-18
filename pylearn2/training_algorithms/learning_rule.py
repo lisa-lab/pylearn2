@@ -45,28 +45,34 @@ class LearningRule():
         learning_rate : float
             Learning rate coefficient
         grads : dict
-            A dictionary mapping from the model's parameters to their \
+            A dictionary mapping from the model's parameters to their
             gradients.
         lr_scalers : dict
-            A dictionary mapping from the model's parameters to a learning \
+            A dictionary mapping from the model's parameters to a learning
             rate multiplier.
 
         Returns
         -------
-        A dictionary mapping from the old model parameters, to their new
-        values after a single iteration of the learning rule.
+        updates : OrderdDict
+            A dictionary mapping from the old model parameters, to their new
+            values after a single iteration of the learning rule.
 
+        Notes
+        -----
         e.g. for standard SGD, one would return `sgd_rule_updates` defined
-        below. Note that such a LearningRule object is not implemented, as
+        below. Note that such a `LearningRule` object is not implemented, as
         these updates are implemented by default when the `learning_rule`
         parameter of sgd.SGD.__init__ is None.
+
+        .. code-block::  python
 
             sgd_rule_updates = OrderedDict()
             for (param, grad) in grads.iteritems():
                 sgd_rule_updates[k] = param - learning_rate *
                 lr_scalers.get(param, 1.) * grad
         """
-        raise NotImplementedError()
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "get_updates.")
 
 
 class Momentum(LearningRule):
@@ -78,17 +84,16 @@ class Momentum(LearningRule):
     Parameters are updated by the formula:
     inc := momentum * inc - learning_rate * d cost / d param
     param := param + inc
+
+    Parameters
+    ----------
+    init_momentum : float
+        Initial value for the momentum coefficient. It remains fixed during
+        training unless used with a `training_algorithms.sgd.MomentumAdjustor`
+        extension.
     """
 
     def __init__(self, init_momentum):
-        """
-        Parameters
-        ----------
-        init_momentum : float
-            Initial value for the momentum coefficient. It remains fixed \
-            during training unless used with a \
-            training_algorithms.sgd.MomentumAdjustor extension.
-        """
         assert init_momentum >= 0.
         assert init_momentum < 1.
         self.momentum = sharedX(init_momentum, 'momentum')
@@ -129,19 +134,17 @@ class Momentum(LearningRule):
 class MomentumAdjustor(TrainExtension):
     """
     A TrainExtension that implements a linear momentum schedule.
+
+    Parameters
+    ----------
+    final_momentum : float
+        The momentum coefficient to use at the end of learning.
+    start : int
+        The epoch on which to start growing the momentum coefficient.
+    saturate : int
+        The epoch on which the moment should reach its final value
     """
     def __init__(self, final_momentum, start, saturate):
-        """
-        Parameters
-        ----------
-        final_momentum : float
-            The momentum coefficient to use at the end of learning.
-        start : int
-            The epoch on which to start growing the momentum coefficient.
-        saturate : int
-            The epoch on which the moment should reach its final value
-        """
-
         if saturate < start:
             raise TypeError("Momentum can't saturate at its maximum value " +
                             "before it starts increasing.")
@@ -192,16 +195,15 @@ class AdaDelta(LearningRule):
     """
     Implements the AdaDelta learning rule as described in:
     "AdaDelta: An Adaptive Learning Rate Method", Matthew D. Zeiler.
+
+    Parameters
+    ----------
+    decay : float
+        Decay rate :math:`\\rho` in Algorithm 1 of the afore-mentioned
+        paper.
     """
 
     def __init__(self, decay=0.95):
-        """
-        Parameters
-        ----------
-        decay : float
-            Decay rate :math:`\\rho` in Algorithm 1 of the afore-mentioned \
-            paper.
-        """
         assert decay >= 0.
         assert decay < 1.
         self.decay = decay

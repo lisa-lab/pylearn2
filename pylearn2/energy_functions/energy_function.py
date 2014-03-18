@@ -19,11 +19,6 @@ class EnergyFunction(object):
         WRITEME
     """
     def __init__(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         pass
 
     def score(self, X):

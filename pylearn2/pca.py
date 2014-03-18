@@ -44,7 +44,7 @@ except ImportError:
 
 
 # Local imports
-from pylearn2.base import Block
+from pylearn2.blocks import Block
 from pylearn2.utils import sharedX
 
 
@@ -54,23 +54,20 @@ class _PCABase(Block):
 
     This class is not intended to be instantiated directly. Use a subclass to
     select a particular PCA implementation.
+
+    Parameters
+    ----------
+    num_components : int
+        This many components will be preserved, in decreasing order of variance
+        (default None keeps all)
+    min_variance : float
+        Components with normalized variance [0-1] below this threshold will be
+        discarded
+    whiten : bool
+        Whether or not to divide projected features by their standard deviation
     """
 
     def __init__(self, num_components=None, min_variance=0.0, whiten=False):
-        """
-        Parameters
-        ----------
-        num_components : int
-            This many components will be preserved, in decreasing order of \
-            variance (default None keeps all)
-        min_variance : float
-            Components with normalized variance [0-1] below this threshold \
-            will be discarded
-        whiten : bool
-            Whether or not to divide projected features by their standard \
-            deviation
-        """
-
         super(_PCABase, self).__init__()
 
         self.num_components = num_components
@@ -254,13 +251,12 @@ class SparseMatPCA(_PCABase):
     Does PCA on sparse  matrices. Does not do online PCA. This is for the case
     where `X - X.mean()` does not fit in memory (because it's dense) but
     `N.dot((X-X.mean()).T, X-X.mean())` does.
+
+    Parameters
+    ----------
+    batch_size : WRITEME
     """
     def __init__(self, batch_size=50, **kwargs):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(SparseMatPCA, self).__init__(**kwargs)
         self.minibatch_size = batch_size
 
@@ -361,13 +357,12 @@ class SparseMatPCA(_PCABase):
 class OnlinePCA(_PCABase):
     """
     Online PCA implementation.
+
+    Parameters
+    ----------
+    minibatch_size : WRITEME
     """
     def __init__(self, minibatch_size=500, **kwargs):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(OnlinePCA, self).__init__(**kwargs)
         self.minibatch_size = minibatch_size
 
@@ -411,13 +406,12 @@ class Cov:
     A covariance estimator that computes the covariance in small batches
     instead of with one huge matrix multiply, in order to prevent memory
     problems. Its call method has the same functionality as `numpy.cov`.
+
+    Parameters
+    ----------
+    batch_size : WRITEME
     """
     def __init__(self, batch_size):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.batch_size = batch_size
 
     def __call__(self, X):
@@ -441,13 +435,12 @@ class CovEigPCA(_PCABase):
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    cov_batch_size : WRITEME
     """
     def __init__(self, cov_batch_size=None, **kwargs):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(CovEigPCA, self).__init__(**kwargs)
         if cov_batch_size is not None:
             self.cov = Cov(cov_batch_size)
@@ -612,16 +605,20 @@ class PcaOnlineEstimator(object):
         pca_esti.observe(samples[i])
 
       [eigvals, eigvecs] = pca_esti.getLeadingEigen()
+
+    Parameters
+    ----------
+    n_dim : WRITEME
+    n_eigen : WRITEME
+    minibatch_size : WRITEME
+    gamma : WRITEME
+    regularizer : WRITEME
+    centering : WRITEME
     """
 
 
     def __init__(self, n_dim, n_eigen=10, minibatch_size=25, gamma=0.999,
                  regularizer=1e-6, centering=True):
-        """
-        .. todo::
-
-            WRITEME
-        """
         # dimension of the observations
         self.n_dim = n_dim
         # rank of the low-rank estimate

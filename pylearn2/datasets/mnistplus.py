@@ -7,6 +7,23 @@ from pylearn2.utils.serial import load
 class MNISTPlus(dense_design_matrix.DenseDesignMatrix):
     """
     Pylearn2 wrapper for the MNIST-Plus dataset.
+
+    Parameters
+    ----------
+    which_set : WRITEME
+        Dataset to load. One of ['train','valid','test'].
+    label_type : WRITEME
+        String specifies which contents of dictionary are used as "labels"
+    azimuth : WRITEME
+        Load version where lighting is a factor of variation
+    rotation : WRITEME
+        Load version where MNIST digits are rotated
+    texture : WRITEME
+        Load version where MNIST is jointly embossed on a textured background.
+    center : WRITEME
+        If True, remove mean (across examples) for each pixel
+    contrast_normalize : WRITEME
+        If True, for each image, remove mean and divide by standard deviation.
     """
 
     idx = {'train': slice(0,50000),
@@ -16,26 +33,7 @@ class MNISTPlus(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, label_type=None,
                  azimuth=False, rotation=False, texture=False,
                  center = False, contrast_normalize=False, seed=132987):
-        """
-        Creates a DenseDesignMatrix object for the MNIST-Plus Dataset.
 
-        Parameters
-        ----------
-        which_set : str
-            Which dataset to load. One of ['train','valid','test'].
-        label_type : str, optional
-            A string that specifies which contents of dictionary are used as "labels"
-        azimuth : Bool, optional
-            if True, load version where lighting is a factor of variation
-        rotation : Bool, optional 
-            if True, load version where MNIST digits are rotated
-        texture : Bool, optional
-            if True, load version where MNIST is jointly embossed on a textured background.
-        center : Bool, optional
-            if True, remove mean (across examples) for each pixel
-        contrast_normalize : Bool, optional
-            if True, for each image, remove mean and divide by standard deviation.
-        """
         assert which_set in ['train','valid','test']
         assert label_type in [None,'label','azimuth','rotation','texture_id']
 

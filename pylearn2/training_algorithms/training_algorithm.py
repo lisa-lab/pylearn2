@@ -97,3 +97,39 @@ class TrainingAlgorithm(object):
         """
         raise NotImplementedError(str(type(self))+" does not implement " +
                                   "continue_learning.")
+
+    def _synchronize_batch_size(self, model):
+        """
+        Adapts `self.batch_size` to be consistent with `model`
+
+        Parameters
+        ----------
+        model : Model
+            The model to synchronize the batch size with
+        """
+        batch_size = self.batch_size
+        if hasattr(model, "force_batch_size"):
+            if model.force_batch_size > 0:
+                if batch_size is not None:
+                    if batch_size != model.force_batch_size:
+                        if self.set_batch_size:
+                            model.set_batch_size(batch_size)
+                        else:
+                            raise ValueError("batch_size argument to " +
+                                             str(type(self)) +
+                                             "conflicts with model's " +
+                                             "force_batch_size attribute")
+                else:
+                    self.batch_size = model.force_batch_size
+        if self.batch_size is None:
+            raise NoBatchSizeError()
+
+class NoBatchSizeError(ValueError):
+    """
+    An exception raised when the user does not specify a batch size anywhere.
+    """
+    def __init__(self):
+        super(NoBatchSizeError, self).__init__("Neither the "
+                "TrainingAlgorithm nor the model were given a specification "
+                "of the batch size.")
+

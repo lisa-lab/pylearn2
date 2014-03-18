@@ -33,13 +33,13 @@ class CustomFormatter(Formatter):
     """
     Conditionally displays log level names and source loggers, only if
     the log level is WARNING or greater.
+
+    Parameters
+    ----------
+    prefix : WRITEME
+    only_from : WRITEME
     """
     def __init__(self, prefix='', only_from=None):
-        """
-        .. todo::
-
-            WRITEME
-        """
         Formatter.__init__(self)
         self._info_fmt = prefix + "%(message)s"
         self._fmt = prefix + "%(levelname)s (%(name)s): %(message)s"
@@ -107,32 +107,27 @@ class CustomStreamHandler(Handler):
     formatted, to one of two streams. DEBUG and INFO messages
     get written to the provided `stdout`, all other messages to
     `stderr`.
+
+    If stream is not specified, sys.stderr is used.
+
+    Parameters
+    ----------
+    stdout : file-like object, optional
+        Stream to which DEBUG and INFO messages should be written. If `None`,
+        `sys.stdout` will be used.
+    stderr : file-like object, optional
+        Stream to which WARNING, ERROR, CRITICAL messages will be written. If
+        `None`, `sys.stderr` will be used.
+    formatter : `logging.Formatter` object, optional
+        Assigned to `self.formatter`, used to format outgoing log messages.
+
+    Notes
+    -----
+    N.B. it is **not** recommended to pass `sys.stdout` or `sys.stderr` as
+    constructor arguments explicitly, as certain things (like nosetests) can
+    reassign these during code execution! Instead, simply pass `None`.
     """
     def __init__(self, stdout=None, stderr=None, formatter=None):
-        """
-        Initialize the handler.
-
-        If stream is not specified, sys.stderr is used.
-
-        Parameters
-        ----------
-        stdout : file-like object, optional
-            Stream to which DEBUG and INFO messages should be written. \
-            If `None`, `sys.stdout` will be used.
-        stderr : file-like object, optional
-            Stream to which WARNING, ERROR, CRITICAL messages will be \
-            written. If `None`, `sys.stderr` will be used.
-        formatter : `logging.Formatter` object, optional
-            Assigned to `self.formatter`, used to format outgoing \
-            log messages.
-
-        Notes
-        -----
-        N.B. it is **not** recommended to pass `sys.stdout` or
-        `sys.stderr` as constructor arguments explicitly, as certain
-        things (like nosetests) can reassign these during code
-        execution! Instead, simply pass `None`.
-        """
         Handler.__init__(self)
         self._stdout = stdout
         self._stderr = stderr

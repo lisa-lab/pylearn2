@@ -3,9 +3,11 @@ import sys
 from setuptools import setup, find_packages
 
 if 'develop' not in sys.argv:
-    raise NotImplementedError("Pylearn2 currently supports only setup.py "
-            "develop. Since Pylearn2 is under rapid, active development, "
-            "setup.py install is not yet supported.")
+    raise NotImplementedError("since Pylearn2 is under rapid, active "
+                              "development, `python setup.py install` is "
+                              "intentionally disabled to prevent other "
+                              "problems. Run `python setup.py develop` to "
+                              "install Pylearn2.")
     # Detailed notes:
     # This modification of setup.py is designed to prevent two problems
     # novice users frequently encountered:
