@@ -15,8 +15,6 @@ class TestCIFAR100(unittest.TestCase):
         assert not np.any(np.isnan(self.test_set.X))
         assert not np.any(np.isinf(self.test_set.X))
 
-
-
     def test_adjust_for_viewer(self):
         self.train_set.adjust_for_viewer(self.train_set.X)
 
@@ -30,10 +28,11 @@ class TestCIFAR100(unittest.TestCase):
         test_test_set = self.test_set.get_test_set()
         assert np.all(train_test_set.X == test_test_set.X)
         assert np.all(train_test_set.X == self.test_set.X)
+        assert train_test_set == test_test_set == self.test_set
 
     def test_topo(self):
         """Tests that a topological batch has 4 dimensions"""
-        topo = self.train.get_batch_topo(1)
+        topo = self.train_set.get_batch_topo(1)
         assert topo.ndim == 4
 
     def test_topo_c01b(self):
@@ -55,11 +54,11 @@ class TestCIFAR100(unittest.TestCase):
         c01b_X = c01b_test.X[0:batch_size,:]
         c01b = c01b_test.get_topological_view(c01b_X)
         assert c01b.shape == (3, 32, 32, batch_size)
-        b01c = c01b.transpose(3,1,2,0)
-        b01c_X = self.test.X[0:batch_size,:]
+        b01c = c01b.transpose(3, 1, 2, 0)
+        b01c_X = self.test_set.X[0:batch_size, :]
         assert c01b_X.shape == b01c_X.shape
         assert np.all(c01b_X == b01c_X)
-        b01c_direct = self.test.get_topological_view(b01c_X)
+        b01c_direct = self.test_set.get_topological_view(b01c_X)
         assert b01c_direct.shape == b01c.shape
         assert np.all(b01c_direct == b01c)
 
