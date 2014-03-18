@@ -8,12 +8,25 @@ from pylearn2.testing.skip import skip_if_no_data
 class TestCIFAR100(unittest.TestCase):
     def setUp(self):
         skip_if_no_data()
-        self.train = CIFAR100(which_set = 'train')
-        self.test = CIFAR100(which_set = 'test')
+        self.train_set = CIFAR100(which_set='train')
+        self.test_set = CIFAR100(which_set='test')
+
+    def test_adjust_for_viewer(self):
+        self.train_set.adjust_for_viewer(self.train_set.X)
+
+    def test_adjust_to_be_viewed_with(self):
+        self.train_set.adjust_to_be_viewed_with(
+            self.train_set.X,
+            np.ones(self.train_set.X.shape))
+
+    def test_get_test_set(self):
+        train_test_set = self.train_set.get_test_set()
+        test_test_set = self.test_set.get_test_set()
+        assert train_test_set == test_test_set == self.test_set
 
     def test_topo(self):
         """Tests that a topological batch has 4 dimensions"""
-        topo = self.train.get_batch_topo(1)
+        topo = self.train_set.get_batch_topo(1)
         assert topo.ndim == 4
 
     def test_topo_c01b(self):
@@ -24,14 +37,14 @@ class TestCIFAR100(unittest.TestCase):
         """
         batch_size = 100
         c01b_test = CIFAR100(which_set='test', axes=('c', 0, 1, 'b'))
-        c01b_X = c01b_test.X[0:batch_size,:]
+        c01b_X = c01b_test.X[0:batch_size, :]
         c01b = c01b_test.get_topological_view(c01b_X)
         assert c01b.shape == (3, 32, 32, batch_size)
-        b01c = c01b.transpose(3,1,2,0)
-        b01c_X = self.test.X[0:batch_size,:]
+        b01c = c01b.transpose(3, 1, 2, 0)
+        b01c_X = self.test_set.X[0:batch_size, :]
         assert c01b_X.shape == b01c_X.shape
         assert np.all(c01b_X == b01c_X)
-        b01c_direct = self.test.get_topological_view(b01c_X)
+        b01c_direct = self.test_set.get_topological_view(b01c_X)
         assert b01c_direct.shape == b01c.shape
         assert np.all(b01c_direct == b01c)
 
@@ -40,9 +53,9 @@ class TestCIFAR100(unittest.TestCase):
         # data_specs are the same as the ones returned by calling
         # get_topological_view on the dataset with the corresponding order
         batch_size = 100
-        b01c_X = self.test.X[0:batch_size, :]
-        b01c_topo = self.test.get_topological_view(b01c_X)
-        b01c_b01c_it = self.test.iterator(
+        b01c_X = self.test_set.X[0:batch_size, :]
+        b01c_topo = self.test_set.get_topological_view(b01c_X)
+        b01c_b01c_it = self.test_set.iterator(
             mode='sequential',
             batch_size=batch_size,
             data_specs=(Conv2DSpace(shape=(32, 32),
@@ -67,7 +80,7 @@ class TestCIFAR100(unittest.TestCase):
 
         # Also check that samples from iterators with the same data_specs
         # with Conv2DSpace do not depend on the axes of the dataset
-        b01c_c01b_it = self.test.iterator(
+        b01c_c01b_it = self.test_set.iterator(
             mode='sequential',
             batch_size=batch_size,
             data_specs=(Conv2DSpace(shape=(32, 32),
