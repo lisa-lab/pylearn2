@@ -10,10 +10,10 @@ class TestCIFAR100(unittest.TestCase):
         skip_if_no_data()
         self.train_set = CIFAR100(which_set='train')
         self.test_set = CIFAR100(which_set='test')
-        assert not np.any(np.isnan(self.train_set))
-        assert not np.any(np.isinf(self.train_set))
-        assert not np.any(np.isnan(self.test_set))
-        assert not np.any(np.isinf(self.test_set))
+        assert not np.any(np.isnan(self.train_set.X))
+        assert not np.any(np.isinf(self.train_set.X))
+        assert not np.any(np.isnan(self.test_set.X))
+        assert not np.any(np.isinf(self.test_set.X))
 
 
 
@@ -28,7 +28,7 @@ class TestCIFAR100(unittest.TestCase):
     def test_get_test_set(self):
         train_test_set = self.train_set.get_test_set()
         test_test_set = self.test_set.get_test_set()
-        assert train_test_set == test_test_set == self.test_set
+        assert train_test_set == test_test_set
 
     def test_topo(self):
         """Tests that a topological batch has 4 dimensions"""
