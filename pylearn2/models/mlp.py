@@ -2307,6 +2307,10 @@ class ConvRectifiedLinear(Layer):
     pool_type : WRITEME
         The type of the pooling operation performed the the convolution.
         Default pooling type is max-pooling. WRITEME
+    tied_b : bool
+        If true, all biases in the same channel are constrained to be the
+        same as each other. Otherwise, each bias at each location is
+        learned independently.
     detector_normalization : callable
         See `output_normalization`
     output_normalization : callable
@@ -2339,6 +2343,7 @@ class ConvRectifiedLinear(Layer):
                  left_slope=0.0,
                  max_kernel_norm=None,
                  pool_type='max',
+                 tied_b=False
                  detector_normalization=None,
                  output_normalization=None,
                  kernel_stride=(1, 1)):
@@ -2428,7 +2433,11 @@ class ConvRectifiedLinear(Layer):
         W, = self.transformer.get_params()
         W.name = 'W'
 
-        self.b = sharedX(self.detector_space.get_origin() + self.init_bias)
+        if self.tied_b:
+            self.b = sharedX(np.zeros((self.detector_space.num_channels)) +
+                             self.init_bias)
+        else:
+            self.b = sharedX(self.detector_space.get_origin() + self.init_bias)
         self.b.name = 'b'
 
         print 'Input shape: ', self.input_space.shape
@@ -2560,7 +2569,16 @@ class ConvRectifiedLinear(Layer):
 
         self.input_space.validate(state_below)
 
-        z = self.transformer.lmul(state_below) + self.b
+        z = self.transformer.lmul(state_below)
+        if not hasattr(self, 'tied_b'):
+            self.tied_b = False
+        if self.tied_b:
+            b = self.b.dimshuffle('x', 0, 'x', 'x')
+        else:
+            b = self.b.dimshuffle('x', 0, 1, 2)
+ 
+        z = z + b
+
         if self.layer_name is not None:
             z.name = self.layer_name + '_z'
 
