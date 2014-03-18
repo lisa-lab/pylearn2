@@ -271,7 +271,7 @@ class Or(TerminationCriterion):
             with a return value of True indicating that gradient \
             descent should continue.
         """
-        asssert all(isinstance(x,TerminationCriterion) for x in list(criteria))
+        assert all(isinstance(x,TerminationCriterion) for x in list(criteria))
         self._criteria = list(criteria)
 
     @functools.wraps(TerminationCriterion.continue_learning)
