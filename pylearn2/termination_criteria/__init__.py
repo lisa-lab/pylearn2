@@ -236,6 +236,7 @@ class And(TerminationCriterion):
         should continue.
     """
     def __init__(self, criteria):
+        assert all(isinstance(x,TerminationCriterion) for x in list(criteria))
         self._criteria = list(criteria)
 
     @functools.wraps(TerminationCriterion.continue_learning)
@@ -259,6 +260,7 @@ class Or(TerminationCriterion):
         descent should continue.
     """
     def __init__(self, criteria):
+        assert all(isinstance(x,TerminationCriterion) for x in list(criteria))
         self._criteria = list(criteria)
 
     @functools.wraps(TerminationCriterion.continue_learning)
