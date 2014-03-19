@@ -619,9 +619,10 @@ def test_format_docstrings():
             continue
         try:
             format_infractions.extend(docstring_errors(path))
-        except StandardError:
-            format_infractions.append(["%s failed to run. "
-                                      "Format cannot be checked" % rel_path])
+        except StandardError as e:
+            format_infractions.append(["%s failed to run. Error message:\n %s"
+                                       "Format cannot be checked" %
+                                       (e, rel_path)])
 
     if len(format_infractions) > 0:
         msg = "\n".join(':'.join(line) for line in format_infractions)
