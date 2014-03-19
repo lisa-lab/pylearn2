@@ -2382,12 +2382,10 @@ class ConvElemwise(Layer):
         U(-irange, irange)
     border_mode : str
         A string indicating the size of the output:
-
         - "full" : The output is the full discrete linear convolution of the
             inputs.
         - "valid" : The output consists only of those elements that do not
             rely on the zero-padding. (Default)
-
     include_prob : float
         probability of including a weight element in the set of weights
         initialized to U(-irange, irange). If not included it is initialized
@@ -2400,23 +2398,20 @@ class ConvElemwise(Layer):
     b_lr_scale : float
         The learning rate on the biases for this layer is multiplied by this
         scaling factor
-    left_slope: float
-        The slope of the left half of the activation function
     max_kernel_norm : float
-        If specifed, each kernel is constrained to have at most this norm.
-    pool_type : WRITEME
-        The type of the pooling operation performed the the convolution.
-        Default pooling type is max-pooling. WRITEME
+        If specified, each kernel is constrained to have at most this norm.
+    pool_type : str
+        The type of the pooling operation performed the convolution.
+        Default pooling type is max-pooling.
     detector_normalization : callable
         See `output_normalization`
     output_normalization : callable
         if specified, should be a callable object. the state of the
         network is optionally replaced with normalization(state) at each
         of the 3 points in processing:
-
         - detector: the maxout units can be normalized prior to the
             spatial pooling
-        - output: the output of the layer, after sptial pooling, can
+        - output: the output of the layer, after spatial pooling, can
             be normalized as well
    nonlinearity : object
         An instance of a nonlinearity object which might be inherited
@@ -2426,6 +2421,7 @@ class ConvElemwise(Layer):
                  output_channels,
                  kernel_shape,
                  layer_name,
+                 nonlinearity,
                  irange=None,
                  border_mode='valid',
                  sparse_init=None,
@@ -2438,7 +2434,8 @@ class ConvElemwise(Layer):
                  tied_b=False,
                  detector_normalization=None,
                  output_normalization=None,
-                 kernel_stride=(1, 1)):
+                 kernel_stride=(1, 1),
+                 monitor_style="classification"):
 
         if (irange is None) and (sparse_init is None):
             raise AssertionError("You should specify either irange or "
@@ -2448,6 +2445,8 @@ class ConvElemwise(Layer):
             raise AssertionError("You should specify either irange or "
                                  "sparse_init when calling the constructor of "
                                  "ConvRectifiedLinear and not both.")
+
+        assert nonlinearity is not None
 
         self.__dict__.update(locals())
         assert monitor_style in ['classification',
@@ -2464,7 +2463,6 @@ class ConvElemwise(Layer):
                     input_space=self.input_space,
                     output_space=self.detector_space,
                     kernel_shape=self.kernel_shape,
-                    batch_size=self.mlp.batch_size,
                     subsample=self.kernel_stride,
                     border_mode=self.border_mode,
                     rng=rng)
@@ -2474,7 +2472,6 @@ class ConvElemwise(Layer):
                     input_space=self.input_space,
                     output_space=self.detector_space,
                     kernel_shape=self.kernel_shape,
-                    batch_size=self.mlp.batch_size,
                     subsample=self.kernel_stride,
                     border_mode=self.border_mode,
                     rng=rng)
@@ -2855,7 +2852,8 @@ class ConvRectifiedLinear(ConvElemwise):
                  output_normalization=None,
                  kernel_stride=(1, 1),
                  monitor_style="classification"):
-        nonlinearity = RectifierConvNonlinearity()
+
+        nonlinearity = RectifierConvNonlinearity(left_slope)
 
         if (irange is None) and (sparse_init is None):
             raise AssertionError("You should specify either irange or "
@@ -2871,7 +2869,25 @@ class ConvRectifiedLinear(ConvElemwise):
                                                         (self.__class__.__name__,
                                                         self.__class__.__name__))
 
-        super(ConvRectifiedLinear, self).__init__(locals())
+        super(ConvRectifiedLinear, self).__init__(output_channels,
+                                                  kernel_shape,
+                                                  layer_name,
+                                                  nonlinearity,
+                                                  irange=irange,
+                                                  border_mode=border_mode,
+                                                  sparse_init=sparse_init,
+                                                  include_prob=include_prob,
+                                                  init_bias=init_bias,
+                                                  W_lr_scale=W_lr_scale,
+                                                  b_lr_scale=b_lr_scale,
+                                                  pool_shape=pool_shape,
+                                                  pool_stride=pool_stride,
+                                                  max_kernel_norm=max_kernel_norm,
+                                                  pool_type=pool_type,
+                                                  detector_normalization=detector_normalization,
+                                                  output_normalization=output_normalization,
+                                                  kernel_stride=kernel_stride,
+                                                  monitor_style=monitor_style)
 
 
     @wraps(Layer.cost_matrix)

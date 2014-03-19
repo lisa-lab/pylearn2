@@ -256,9 +256,10 @@ class Conv2D(OrigConv2D):
         self._img_shape = tuple([batch_size] + list(self._img_shape[1:]))
 
 
-def make_random_conv2D(irange, input_space, output_space, kernel_shape,
-                       batch_size, subsample=(1, 1), border_mode='valid',
-                       message="", rng=None):
+def make_random_conv2D(irange, input_space, output_space,
+                       kernel_shape, batch_size=None, \
+                       subsample = (1,1), border_mode = 'valid',
+                       message = "", rng = None):
     """
     .. todo::
 

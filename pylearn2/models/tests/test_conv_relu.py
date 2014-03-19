@@ -4,9 +4,9 @@ from theano.sandbox import cuda
 from pylearn2.config import yaml_parse
 
 
-def test_conv_tanh_basic():
+def test_conv_relu_basic():
 
-    # Tests that we can load a convolutional tanh model
+    # Tests that we can load a convolutional rectifier model
     # and train it for a few epochs (without saving) on a dummy
     # dataset-- tiny model and dataset
 
@@ -17,13 +17,13 @@ def test_conv_tanh_basic():
             shape: &input_shape [10, 10],
             channels: 1,
             axes: ['c', 0, 1, 'b'],
-            num_examples: 15,
+            num_examples: 17,
             num_classes: 10
         },
         model: !obj:pylearn2.models.mlp.MLP {
-            batch_size: 3,
+            batch_size: 5,
             layers: [
-                     !obj:pylearn2.models.mlp.ConvElemwise {
+                     !obj:pylearn2.models.mlp.ConvRectifiedLinear {
                          layer_name: 'h0',
                          output_channels: 8,
                          pool_type: "max",
@@ -32,7 +32,6 @@ def test_conv_tanh_basic():
                          pool_stride: [2, 2],
                          irange: .005,
                          max_kernel_norm: .9,
-                         nonlinearity: !obj:pylearn2.models.mlp.TanhConvNonlinearity {}
                      },
                      !obj:pylearn2.models.mlp.Softmax {
                          max_col_norm: 1.9365,
@@ -57,7 +56,7 @@ def test_conv_tanh_basic():
                     'train': *train
                 },
             cost: !obj:pylearn2.costs.mlp.dropout.Dropout {
-                input_include_probs: { 'h0' : .5 },
+                input_include_probs: { 'h0' : .8 },
                 input_scales: { 'h0': 1. }
             },
             termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
@@ -83,4 +82,6 @@ def test_conv_tanh_basic():
     train.main_loop()
 
 if __name__=="__main__":
-    test_conv_tanh_basic()
+    test_conv_relu_basic()
+
+
