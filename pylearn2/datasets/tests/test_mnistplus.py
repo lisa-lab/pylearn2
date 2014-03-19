@@ -1,8 +1,6 @@
 """module for testing datasets.mnistplus"""
 from pylearn2.datasets.mnistplus import MNISTPlus
-import unittest
 from pylearn2.testing.skip import skip_if_no_data
-import numpy as np
 import string
 
 
