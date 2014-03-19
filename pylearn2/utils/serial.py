@@ -93,6 +93,14 @@ def load(filepath, recurse_depth=0, retry = True):
     if filepath.endswith('.npy') or filepath.endswith('.npz'):
         return np.load(filepath)
 
+    if filepath.endswith('.amat') or filepath.endswith('txt'):
+        try:
+            return np.loadtxt(filepath)
+        except Exception:
+            print filename + " cannot be loaded by serial.load (trying to"
+                           + " use np.loadtxt)"
+            raise
+
     if filepath.endswith('.mat'):
         global io
         if io is None:
