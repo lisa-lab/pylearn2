@@ -8,7 +8,11 @@ __version__   = "make-sources 0.1"
 __licence__   = "BSD 3-Clause http://www.opensource.org/licenses/BSD-3-Clause "
 
 
+import logging
 import sys,os
+
+logger = logging.getLogger(__name__)
+
 
 ########################################
 def corename( filename ):
@@ -62,16 +66,18 @@ def human_readable_size(size):
 def print_table(where):
     """
     Generates the sources.lst table from path 'where'
-    
+
     :param where: a (simple) path where to look for archives
     """
     for this_file in os.listdir(where):
         if ".tar.bz2" in this_file:
             full_file = os.path.join(where,this_file)
-            print corename(this_file), \
-                  ("%d" % os.path.getctime(full_file)), \
-                  human_readable_size(os.stat(full_file).st_size ), \
-                  os.path.join(repos_root,this_file)
+            size = human_readable_size(os.stat(full_file).st_size)
+            logger.info("{0} {1} {2} "
+                        "{3}".format(corename(this_file),
+                                     os.path.getctime(full_file),
+                                     size,
+                                     os.path.join(repos_root, this_file)))
 
 ########################################
 if __name__=="__main__":
