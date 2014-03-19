@@ -121,7 +121,7 @@ def main():
                     "epochs, batches, seconds, or hours, respectively."
             response = raw_input('Enter a list of channels to plot ' + \
                     '(example: A, C,F-G, h, <test_err>) or q to quit' + \
-                    'or o for options: ')
+                    ' or o for options: ')
 
             if response == 'o':
                 print '1: smooth all channels'
