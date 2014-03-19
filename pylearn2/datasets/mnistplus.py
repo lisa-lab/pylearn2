@@ -74,7 +74,7 @@ class MNISTPlus(dense_design_matrix.DenseDesignMatrix):
             data_y = data_y[MNISTPlus.idx[which_set]]
 
         # create view converting for retrieving topological view
-        view_converter = dense_design_matrix.DefaultViewConverter((48, 48))
+        view_converter = dense_design_matrix.DefaultViewConverter((48, 48, 1))
 
         # init the super class
         super(MNISTPlus, self).__init__(X = data_x, y = data_y, view_converter = view_converter)
