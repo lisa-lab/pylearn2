@@ -45,3 +45,7 @@ def test_mnistplus():
                     data = MNISTPlus(which_set=which_set,
                                      label_type=label_type,
                                      **p)
+                    #assert data.X.min() >= 0.0
+                    #assert data.X.max() <= 1.0
+                    topo = data.get_batch_topo(1)
+                    assert topo.ndim == 4
