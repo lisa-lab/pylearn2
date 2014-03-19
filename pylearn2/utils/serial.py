@@ -60,7 +60,7 @@ def load(filepath, recurse_depth=0, retry = True):
     ----------
     filepath : str
         A path to a file to load. Should be a pickle, Matlab, or NumPy
-        file.
+        file; or a .txt or .amat file that numpy.loadtxt can load.
     recurse_depth : int
         End users should not use this argument. It is used by the function
         itself to implement the `retry` option recursively.
