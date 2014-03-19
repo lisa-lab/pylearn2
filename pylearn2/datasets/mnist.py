@@ -229,11 +229,9 @@ class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
         else:
             raise ValueError("which_set must be one of: 'test', 'train'")
         pylearn2_data_path = commands.getoutput("echo $PYLEARN2_DATA_PATH")
-        print pylearn2_data_path
         path = os.path.join(pylearn2_data_path,
                             "mnist/mnist_rotation_back_image/",
                             set_path)
-        print path
         obj = N.loadtxt(path)
         X = obj[:,:-1]
         X = N.cast['float32'](X)
