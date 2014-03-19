@@ -917,7 +917,7 @@ class Softmax(Layer):
     """
     .. todo::
 
-    WRITEME (including parameters list)
+        WRITEME (including parameters list)
 
     Parameters
     ----------
@@ -2224,19 +2224,31 @@ class SpaceConverter(Layer):
 
         return self.input_space.format_as(state_below, self.output_space)
 
-class LinearConvNonlinearity(object):
+class ConvNonlinearity(object):
     """
-    Generic convolutional nonlinearity class by default this class
-    is linear activation.
+    Abstract convolutional nonlinearity class.
+    """
+    def apply(self, linear_response):
+        """
+        Parameters
+        ----------
+        linear_response: Variable
+            linear response of the layer.
+
+        Returns
+        -------
+        linear_response: Variable
+            Returns the linear activation of the layer.
+        """
+        return linear_response
+
+
+class LinearConvNonlinearity(ConvNonlinearity):
+    """
+    Linear convolutional nonlinearity class.
     """
     def __init__(self):
         self.non_lin_name = "linear"
-
-    def __call__(self, linear_response):
-        """
-            linear_response: linear response of the layer.
-        """
-        return linear_response
 
     def get_monitoring_channels_from_state(self, state, target,
                                            cost_fn=False, rval=None):
@@ -2246,7 +2258,7 @@ class LinearConvNonlinearity(object):
         rval["misclass"] = T.cast(incorrect, config.floatX).mean()
 
 
-class RectifierConvNonlinearity(LinearConvNonlinearity):
+class RectifierConvNonlinearity(ConvNonlinearity):
     """
     A simple rectifier nonlinearity class for convolutional layers.
     """
@@ -2254,16 +2266,24 @@ class RectifierConvNonlinearity(LinearConvNonlinearity):
         self.non_lin_name = "rectifier"
         self.left_slope = left_slope
 
-    def __call__(self, linear_response):
+    def apply(self, linear_response):
         """
-            linear_response: linear response of the layer.
+        Parameters
+        ----------
+        linear_response : Variable
+            linear response of the layer.
+
+        Returns
+        ------
+        p : Variable
+            activation applied over the linear response of the layer.
         """
         p = linear_response * (linear_response > 0.) + self.left_slope *\
             linear_response * (linear_response < 0.)
         return p
 
 
-class SigmoidConvNonlinearity(LinearConvNonlinearity):
+class SigmoidConvNonlinearity(ConvNonlinearity):
     """
     Sigmoid nonlinearity class for convolutional layers.
     """
@@ -2271,17 +2291,26 @@ class SigmoidConvNonlinearity(LinearConvNonlinearity):
         """
         Parameters
         ----------
-        monitor_style : by default monitor_style is classification.
+        monitor_style : str
+            By default monitor_style is classification.
             This determines whether to do classification or detection.
         """
         assert monitor_style in ['classification', 'detection']
         self.monitor_style = monitor_style
         self.non_lin_name = "sigmoid"
 
-    def __call__(self, linear_response):
+    def apply(self, linear_response):
         """
-            linear_response: linear response of the layer.
+        Parameters
+        ----------
+        linear_response : Variable
+            linear response of the layer.
+        Returns
+        -------
+        p : Variable
+            sigmoid activation applied over the linear_response.
         """
+        rval = OrderedDict()
         p = T.nnet.sigmoid(linear_response)
         return p
 
@@ -2292,7 +2321,7 @@ class SigmoidConvNonlinearity(LinearConvNonlinearity):
 
         Parameters
         ----------
-        orval: This is the rval coming from the parent layer.
+        orval : This is the rval coming from the parent layer.
         """
         rval = OrderedDict()
         y_hat = state > 0.5
@@ -2336,17 +2365,25 @@ class SigmoidConvNonlinearity(LinearConvNonlinearity):
         return rval
 
 
-class TanhConvNonlinearity(LinearConvNonlinearity):
+class TanhConvNonlinearity(ConvNonlinearity):
     """
-    Tanh nonlinearity class for convolutional layers.
+        Tanh nonlinearity class for convolutional layers.
     """
     def __init__(self):
         self.non_lin_name = "sigmoid"
 
-    def __call__(self, linear_response):
+    def apply(self, linear_response):
         """
-            linear_response: linear response of the layer.
+        Parameters
+        ----------
+        linear_response: linear response of the layer.
+
+        Returns
+        ------
+        p : Variable
+            activation after the tanh nonlinearity is applied.
         """
+        rval = OrderedDict()
         p = T.tanh(linear_response)
         return p
 
@@ -2403,6 +2440,10 @@ class ConvElemwise(Layer):
     pool_type : str
         The type of the pooling operation performed the convolution.
         Default pooling type is max-pooling.
+    tied_b : bool
+        If true, all biases in the same channel are constrained to be the
+        same as each other. Otherwise, each bias at each location is
+        learned independently.
     detector_normalization : callable
         See `output_normalization`
     output_normalization : callable
@@ -2416,6 +2457,8 @@ class ConvElemwise(Layer):
    nonlinearity : object
         An instance of a nonlinearity object which might be inherited
         from the LinearConvNonlinearity class.
+    kernel_stride: The stride of the convolution kernel. A two-tuple of
+        ints.
     """
     def __init__(self,
                  output_channels,
@@ -2430,8 +2473,10 @@ class ConvElemwise(Layer):
                  W_lr_scale=None,
                  b_lr_scale=None,
                  max_kernel_norm=None,
-                 pool_type='max',
-                 tied_b=False,
+                 pool_type=None,
+                 pool_shape=None,
+                 pool_stride=None,
+                 is_final_layer=True,
                  detector_normalization=None,
                  output_normalization=None,
                  kernel_stride=(1, 1),
@@ -2538,7 +2583,6 @@ class ConvElemwise(Layer):
         self.initialize_transformer(rng)
         W, = self.transformer.get_params()
         W.name = 'W'
-
         if self.tied_b:
             self.b = sharedX(np.zeros((self.detector_space.num_channels)) +
                              self.init_bias)
@@ -2707,15 +2751,9 @@ class ConvElemwise(Layer):
 
         self.input_space.validate(state_below)
 
-        z = self.transformer.lmul(state_below)
-        if not hasattr(self, 'tied_b'):
-            self.tied_b = False
-        if self.tied_b:
-            b = self.b.dimshuffle('x', 0, 'x', 'x')
-        else:
-            b = self.b.dimshuffle('x', 0, 1, 2)
+        z = self.transformer.lmul(state_below) + self.b
 
-        z = z + b
+
         d = self.nonlinearity.apply(z)
 
         if self.layer_name is not None:
@@ -2813,9 +2851,13 @@ class ConvRectifiedLinear(ConvElemwise):
         The slope of the left half of the activation function
     max_kernel_norm : float
         If specifed, each kernel is constrained to have at most this norm.
-    pool_type : WRITEME
+    pool_type :
         The type of the pooling operation performed the the convolution.
-        Default pooling type is max-pooling. WRITEME
+        Default pooling type is max-pooling.
+    tied_b : bool
+        If true, all biases in the same channel are constrained to be the
+        same as each other. Otherwise, each bias at each location is
+        learned independently.
     detector_normalization : callable
         See `output_normalization`
     output_normalization : callable
@@ -2823,14 +2865,13 @@ class ConvRectifiedLinear(ConvElemwise):
         network is optionally replaced with normalization(state) at each
         of the 3 points in processing:
 
-        - detector: the maxout units can be normalized prior to the
+        - detector: the rectifier units can be normalized prior to the
             spatial pooling
-        - output: the output of the layer, after sptial pooling, can
+        - output: the output of the layer, after spatial pooling, can
             be normalized as well
 
-        WRITEME: is there input_normalization for thiss class?
-    kernel_stride: The stride of the convolution kernel. A two-tuple of
-        ints.
+    kernel_stride : tuple
+        The stride of the convolution kernel. A two-tuple of ints.
     """
     def __init__(self,
                  output_channels,
@@ -2848,6 +2889,7 @@ class ConvRectifiedLinear(ConvElemwise):
                  left_slope=0.0,
                  max_kernel_norm=None,
                  pool_type='max',
+                 tied_b=False,
                  detector_normalization=None,
                  output_normalization=None,
                  kernel_stride=(1, 1),
@@ -2864,11 +2906,6 @@ class ConvRectifiedLinear(ConvElemwise):
                                  "sparse_init when calling the constructor of "
                                  "ConvRectifiedLinear and not both.")
 
-        warnings.warn("%s is deprecated. Use ConvElemwise instead. %s will be"
-                      "removed on or after October 18, 2014" %
-                                                        (self.__class__.__name__,
-                                                        self.__class__.__name__))
-
         super(ConvRectifiedLinear, self).__init__(output_channels,
                                                   kernel_shape,
                                                   layer_name,
@@ -2884,6 +2921,7 @@ class ConvRectifiedLinear(ConvElemwise):
                                                   pool_stride=pool_stride,
                                                   max_kernel_norm=max_kernel_norm,
                                                   pool_type=pool_type,
+                                                  tied_b=tied_b,
                                                   detector_normalization=detector_normalization,
                                                   output_normalization=output_normalization,
                                                   kernel_stride=kernel_stride,
