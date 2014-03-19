@@ -2625,7 +2625,7 @@ class ConvRectifiedLinear(Layer):
 
     @wraps(Layer.cost_from_cost_matrix)
     def cost_from_cost_matrix(self, cost_matrix):
-        return cost_matrix.sum(axis=1).mean()
+        return cost_matrix.sum(axis=(1,2,3)).mean()
 
     @wraps(Layer.cost_matrix)
     def cost_matrix(self, Y, Y_hat):
