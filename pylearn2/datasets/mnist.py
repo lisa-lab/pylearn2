@@ -5,7 +5,6 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-import commands
 import os.path
 import numpy as N
 np = N
@@ -15,7 +14,7 @@ from pylearn2.utils import serial
 from pylearn2.utils.mnist_ubyte import read_mnist_images
 from pylearn2.utils.mnist_ubyte import read_mnist_labels
 from pylearn2.utils.rng import make_np_rng
-
+from pylearn2.utils.string_utils import preprocess
 
 class MNIST(dense_design_matrix.DenseDesignMatrix):
     """
@@ -195,7 +194,7 @@ class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
                        'rotation_normalized_test.amat'
         else:
             raise ValueError("which_set must be one of: 'test', 'train'")
-        pylearn2_data_path = commands.getoutput("echo $PYLEARN2_DATA_PATH")
+        pylearn2_data_path = preprocess("${PYLEARN2_DATA_PATH}")
         path = os.path.join(pylearn2_data_path,
                             "mnist/mnist_rotation_back_image/",
                             set_path)
