@@ -104,9 +104,8 @@ def load(filepath, recurse_depth=0, retry = True):
             if str(nei).find('HDF reader') != -1:
                 global hdf_reader
                 if hdf_reader is None:
-                    import tables #we used to use h5py here, but it couldn't
-                                  #open matlab v7.3 files.
-                    hdf_reader = tables
+                    import h5py # can't open matlab v7.3 files.
+                    hdf_reader = h5py
                 return hdf_reader.File(filepath)
             else:
                 raise
