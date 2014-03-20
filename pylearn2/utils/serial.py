@@ -124,7 +124,7 @@ def load(filepath, recurse_depth=0, retry=True):
                     import tables #we used to use h5py here, but it couldn't
                                   #open matlab v7.3 files.
                     hdf_reader = tables
-                return hdf_reader.File(filepath).getNode("/X")
+                return hdf_reader.File(filepath)
             else:
                 raise
         #this code should never be reached
