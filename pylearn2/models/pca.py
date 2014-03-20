@@ -1,3 +1,8 @@
+import warnings
+
+warnings.warn("pylearn2.pca has been deprecated and will be removed "
+        "from the library on or after Aug 24, 2014.")
+
 # Standard library imports
 import sys
 
