@@ -97,7 +97,7 @@ def load(filepath, recurse_depth=0, retry = True):
         try:
             return np.loadtxt(filepath)
         except Exception:
-            print filename + " cannot be loaded by serial.load (trying to"
+            print filename + " cannot be loaded by serial.load (trying to"\
                            + " use np.loadtxt)"
             raise
 
