@@ -73,12 +73,12 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
         data_x = data_x.reshape(data_x.shape[0], image_size ** 2)
 
         if center and scale:
-            data.X[:] -= 127.5
-            data.X[:] /= 127.5
+            data_x[:] -= 127.5
+            data_x[:] /= 127.5
         elif center:
-            data.X[:] -= 127.5
+            data_x[:] -= 127.5
         elif scale:
-            data.X[:] /= 255.
+            data_x[:] /= 255.
 
         if shuffle:
             rng = make_np_rng(rng, seed, which_method='permutation')

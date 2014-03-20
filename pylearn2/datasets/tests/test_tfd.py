@@ -9,15 +9,15 @@ class TestTFD(unittest.TestCase):
     def setUp(self):
         skip_if_no_data()
         self.train = TFD(which_set='train')
-        self.valid = TFD(which_set='valid')
-        self.unlabeled = TFD(which_set='unlabeled')
-        self.full_train = TFD(which_set='full_train')
         self.test = TFD(which_set='test')
-        self.large = TFD(which_set='test', image_size=96)
-        self.fold1 = TFD(which_set='test', fold=1)
-        self.fold2 = TFD(which_set='test', fold=2)
-        self.fold3 = TFD(which_set='test', fold=3)
-        self.fold4 = TFD(which_set='test', fold=4)
+        valid = TFD(which_set='valid')
+        unlabeled = TFD(which_set='unlabeled')
+        full_train = TFD(which_set='full_train')
+        large = TFD(which_set='test', image_size=96)
+        fold1 = TFD(which_set='test', fold=1)
+        fold2 = TFD(which_set='test', fold=2)
+        fold3 = TFD(which_set='test', fold=3)
+        fold4 = TFD(which_set='test', fold=4)
 
     def test_topo(self):
         """Tests that a topological batch has 4 dimensions"""
