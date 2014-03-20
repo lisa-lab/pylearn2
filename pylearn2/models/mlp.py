@@ -3088,7 +3088,6 @@ class ConvRectifiedLinear(ConvElemwise):
             inputs.
         - "valid" : The output consists only of those elements that do not
             rely on the zero-padding. (Default)
-
     include_prob : float
         probability of including a weight element in the set of weights
         initialized to U(-irange, irange). If not included it is initialized
@@ -3123,7 +3122,6 @@ class ConvRectifiedLinear(ConvElemwise):
             spatial pooling
         - output: the output of the layer, after spatial pooling, can
             be normalized as well
-
     kernel_stride : tuple
         The stride of the convolution kernel. A two-tuple of ints.
     """
