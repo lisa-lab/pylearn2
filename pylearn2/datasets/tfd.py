@@ -19,11 +19,12 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
     example_range : array_like.
         Load only examples in range [example_range[0]:example_range[1]].
     center : bool
-        Move data from range [0., 255.] to [-127.5, 127.5] 
+        Move data from range [0., 255.] to [-127.5, 127.5]
         False by default.
     scale : bool
-        Move data from range [0., 255.] to [0., 1.]. False by default.
-        scale and center cannot both be True.
+        Move data from range [0., 255.] to [0., 1.], or
+        from range [-127.5, 127.5] to [-1., 1.] if center is True
+        False by default.
     shuffle : WRITEME
     one_hot : WRITEME
     rng : WRITEME
@@ -70,11 +71,14 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
         data_x = data_x[ex_range]
         # create dense design matrix from topological view
         data_x = data_x.reshape(data_x.shape[0], image_size ** 2)
-        if center:
-            data_x -= 127.5
-        if scale:
-            assert not center
-            data_x /= 255.
+
+        if center and scale:
+            data.X[:] -= 127.5
+            data.X[:] /= 127.5
+        elif center:
+            data.X[:] -= 127.5
+        elif scale:
+            data.X[:] /= 255.
 
         if shuffle:
             rng = make_np_rng(rng, seed, which_method='permutation')
