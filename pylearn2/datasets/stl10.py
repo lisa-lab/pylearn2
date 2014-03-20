@@ -12,6 +12,8 @@ __email__ = "goodfeli@iro"
 import numpy as np
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
+from pylearn2.utils.string_utils import preprocess
+
 
 class STL10(dense_design_matrix.DenseDesignMatrix):
     """
@@ -98,18 +100,19 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
             assert y.shape == (8000,)
 
         elif which_set == 'unlabeled':
-            unlabeled = load('${PYLEARN2_DATA_PATH}/stl10/stl10_matlab/unlabeled.mat')
+            import tables
+            unlabeled_path = preprocess('${PYLEARN2_DATA_PATH}/stl10/stl10_matlab/unlabeled.mat')
 
-            X =  unlabeled['X']
+            unlabeled = tables.File(unlabeled_path)
+
+            X = unlabeled.getNode("/X")
 
             #this file is stored in HDF format, which transposes everything
             assert X.shape == (96*96*3, 100000)
             assert X.dtype == 'uint8'
 
-            if example_range is None:
-                X = X.value
-            else:
-                X = X.value[:,example_range[0]:example_range[1]]
+            if example_range is not None:
+                X = X[:,example_range[0]:example_range[1]]
             X = np.cast['float32'](X.T)
 
             unlabeled.close()
