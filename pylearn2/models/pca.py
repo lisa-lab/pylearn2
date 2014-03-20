@@ -599,7 +599,8 @@ class PcaOnlineEstimator(object):
 
     Example:
 
-      pca_esti = pca_online_estimator.PcaOnlineEstimator(dimension_of_the_samples)
+      pca_esti = \
+        pca_online_estimator.PcaOnlineEstimator(dimension_of_the_samples)
 
       for i in range(number_of_samples):
         pca_esti.observe(samples[i])
@@ -690,7 +691,7 @@ class PcaOnlineEstimator(object):
                      (1.0 - self.gamma)
 
         # Now center the observation.
-        # We will lose the first observation as it is the only one in the mean.
+        # We will lose the 1st observation as it is the only one in the mean.
         if self.centering:
             self.Xt[row] -= self.x_sum / normalizer
 
@@ -736,9 +737,9 @@ class PcaOnlineEstimator(object):
         # top ones) but it doesn't look loke it for scipy 0.6.
         self.d, self.V = linalg.eigh(self.G)
 
-        # Convert the n_eigen LAST eigenvectors of the Gram matrix contained in
-        # V into *unnormalized* eigenvectors U of the covariance (unnormalized
-        # wrt the eigen values, not the moving average).
+        # Convert the n_eigen LAST eigenvectors of the Gram matrix contained
+        # in V into *unnormalized* eigenvectors U of the covariance 
+        # (unnormalized wrt the eigen values, not the moving average).
         self.Ut = numpy.dot(self.V[:,-self.n_eigen:].transpose(), self.Xt)
 
         # Take into account the discount factor.
@@ -771,7 +772,7 @@ class PcaOnlineEstimator(object):
         # We subtract self.minibatch_index in case this call is not right
         # after a reevaluate call.
         normalizer = (1.0 - pow(self.gamma,
-                                self.n_observations - self.minibatch_index)) /\
+                                self.n_observations - self.minibatch_index))/\
                      (1.0 - self.gamma)
 
         eigvals = self.d[-self.n_eigen:] / normalizer
@@ -885,6 +886,7 @@ if __name__ == "__main__":
     pca_transform = theano.function([inputs], pca(inputs))
     valid_pca = pca_transform(valid_data)
     test_pca = pca_transform(test_data)
-    print >> sys.stderr, "New shapes:", map(numpy.shape, [valid_pca, test_pca])
+    print >> /
+          sys.stderr, "New shapes:", map(numpy.shape, [valid_pca, test_pca])
 
     # TODO: Compute ALC here when the code using the labels is ready.
