@@ -4,7 +4,7 @@ Unit tests for format checking
 
 import os
 import pylearn2
-from docscrape import docstring_errors
+from pylearn2.devtools.tests.docscrape import docstring_errors
 from pylearn2.devtools.list_files import list_files
 
 whitelist_pep8 = ["rbm_tools.py",
@@ -619,9 +619,9 @@ def test_format_docstrings():
         try:
             format_infractions.extend(docstring_errors(path))
         except StandardError as e:
-            format_infractions.append(["%s failed to run. Error message:\n %s"
-                                       "Format cannot be checked" %
-                                       (e, rel_path)])
+            format_infractions.append(["%s failed to run so format cannot "
+                                       "be checked. Error message:\n %s" %
+                                       (rel_path, e)])
 
     if len(format_infractions) > 0:
         msg = "\n".join(':'.join(line) for line in format_infractions)
