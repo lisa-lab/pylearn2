@@ -18,6 +18,7 @@ import time
 
 floatX = 'float32'
 relu = lambda x: T.maximum(0.0, x)
+relu_ = lambda x: x * (x > 0)
 
 def test_scalar_rectifier():
     # verify the new op rectifier produces the same results as relu
@@ -35,58 +36,39 @@ def test_scalar_rectifier():
         value = numpy.random.uniform(size=(100,500)).astype(floatX)
         numpy.testing.assert_array_equal(f1(value), f2(value),
                                          err_msg='arrays not equal' )
-        
+
         numpy.testing.assert_array_equal(g1(value), g2(value),
                                          err_msg='grad:arrays not equal' )
         
 
 def benchmark_single_op():
-    '''
-    On CPU, the new scalar_rectifier is about 1.5 times faster.
-    On GPU, they are almost of the same speed. 
-    '''
     x = T.fmatrix('inputs')
-    y1 = relu(x).sum()
-    y2 = rectifier(x).sum()
-
-    f1 = theano.function(inputs=[x], outputs=y1, name='benchmark_fprop_old')
-    f2 = theano.function(inputs=[x], outputs=y2, name='benchmark_fprop_new')
-
-    n_loops = 1000
-    value = numpy.random.uniform(size=(100,5000)).astype(floatX)
-
-    # benchmark forward computation
-    t0 = time.time()
-    for i in range(n_loops):
-        f1(value)
-    t1 = time.time()
-    benchmark_1 = t1-t0
     
-    t0 = time.time()
-    for i in range(n_loops):
-        f2(value)
-    t1 = time.time()
-    benchmark_2 = t1-t0
+    ops = [
+        rectifier(x).sum(), # new
+        relu_(x).sum(), # old
+        relu(x).sum(), # alter, short for alternative
+        T.grad(rectifier(x).sum(),x), # grad_new
+        T.grad(relu_(x).sum(),x), # grad_old
+        T.grad(relu(x).sum(),x) # grad_alter
+    ]
 
-    print 'speed benchmark fprop old/new= ', benchmark_1/(benchmark_2+0.0)
+    names = ['fprop_new', 'fprop_old', 'fprop_alter',
+             'grad_new', 'grad_old', 'grad_alter']
 
-    f1 = theano.function(inputs=[x], outputs=T.grad(y1, x), name='benchmark_grad_old')
-    f2 = theano.function(inputs=[x], outputs=T.grad(y2, x), name='benchmark_grad_new')
     
-    # benchmark grad computation
-    t0 = time.time()
-    for i in range(n_loops):
-        f1(value)
-    t1 = time.time()
-    benchmark_1 = t1-t0
-    
-    t0 = time.time()
-    for i in range(n_loops):
-        f2(value)
-    t1 = time.time()
-    benchmark_2 = t1-t0
+    times = []
+    for op, name in zip(ops, names):
+        f = theano.function(inputs=[x], outputs=op, name=name)
+        n_loops = 1000
+        value = numpy.random.uniform(size=(100,5000)).astype(floatX)
 
-    print 'speed benchmark grad old/new= ', benchmark_1/(benchmark_2+0.0)
+        t0 = time.time()
+        for i in range(n_loops):
+            f(value)
+        t1 = time.time()
+        benchmark = t1-t0
+        times.append(benchmark)
 
 def benchmark_all():
     benchmark_single_op()
