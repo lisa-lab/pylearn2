@@ -5,9 +5,9 @@ This file has two purposes:
 
 Conclusion:
 1. For pylearn2.scalar, both 'grad()' and 'c_code()' work as expected.
-2. On CPU, pylearn2.scalar is about 1.5 times faster than naive implementation of relu
-activation
-3. On GPU, they have almost the same speed.
+2. On CPU,
+speed benchmark fprop old/new=  0.615451241318,
+speed benchmark grad old/new=  2.8991003942
 
 '''
 import theano
@@ -49,12 +49,13 @@ def benchmark_single_op():
     y1 = relu(x).sum()
     y2 = rectifier(x).sum()
 
-    f1 = theano.function(inputs=[x], outputs=y1, name='benchmark_1')
-    f2 = theano.function(inputs=[x], outputs=y2, name='benchmark_2')
+    f1 = theano.function(inputs=[x], outputs=y1, name='benchmark_fprop_old')
+    f2 = theano.function(inputs=[x], outputs=y2, name='benchmark_fprop_new')
 
-    n_loops = 100
+    n_loops = 1000
     value = numpy.random.uniform(size=(100,5000)).astype(floatX)
-    
+
+    # benchmark forward computation
     t0 = time.time()
     for i in range(n_loops):
         f1(value)
@@ -67,11 +68,29 @@ def benchmark_single_op():
     t1 = time.time()
     benchmark_2 = t1-t0
 
-    print 'speed benchmark relu/scalar_rectifier= ', benchmark_1/(benchmark_2+0.0)
+    print 'speed benchmark fprop old/new= ', benchmark_1/(benchmark_2+0.0)
+
+    f1 = theano.function(inputs=[x], outputs=T.grad(y1, x), name='benchmark_grad_old')
+    f2 = theano.function(inputs=[x], outputs=T.grad(y2, x), name='benchmark_grad_new')
     
+    # benchmark grad computation
+    t0 = time.time()
+    for i in range(n_loops):
+        f1(value)
+    t1 = time.time()
+    benchmark_1 = t1-t0
+    
+    t0 = time.time()
+    for i in range(n_loops):
+        f2(value)
+    t1 = time.time()
+    benchmark_2 = t1-t0
+
+    print 'speed benchmark grad old/new= ', benchmark_1/(benchmark_2+0.0)
+
 def benchmark_all():
     benchmark_single_op()
 
 if __name__ == '__main__':
-    #benchmark_all()
-    test_scalar_rectifier()
+    benchmark_all()
+    #test_scalar_rectifier()
