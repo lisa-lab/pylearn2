@@ -2614,18 +2614,6 @@ class ConvRectifiedLinear(Layer):
 
         return p
 
-    @wraps(Layer.cost)
-    def cost(self, Y, Y_hat):
-        return self.cost_from_cost_matrix(self.cost_matrix(Y, Y_hat))
-
-    @wraps(Layer.cost_from_cost_matrix)
-    def cost_from_cost_matrix(self, cost_matrix):
-        return cost_matrix.sum(axis=1).mean()
-
-    @wraps(Layer.cost_matrix)
-    def cost_matrix(self, Y, Y_hat):
-        return T.sqr(Y - Y_hat)
-
 
 def max_pool(bc01, pool_shape, pool_stride, image_shape):
     """
