@@ -886,7 +886,7 @@ if __name__ == "__main__":
     pca_transform = theano.function([inputs], pca(inputs))
     valid_pca = pca_transform(valid_data)
     test_pca = pca_transform(test_data)
-    print >> /
+    print >> \
           sys.stderr, "New shapes:", map(numpy.shape, [valid_pca, test_pca])
 
     # TODO: Compute ALC here when the code using the labels is ready.
