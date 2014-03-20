@@ -43,6 +43,17 @@ class Conv2D(LinearTransform):
     """
     A pylearn2 linear operator based on 2D convolution,
     implemented using Alex Krizhevsky's cuda-convnet library.
+
+    Parameters
+    ----------
+    filters : WRITEME
+    input_axes : WRITEME
+    batch_size : WRITEME
+    output_axes : WRITEME
+    kernel_stride : WRITEME
+    pad : WRITEME
+    message : WRITEME
+    partial_sum : WRITEME
     """
 
     def __init__(self, filters, input_axes=('c', 0, 1, 'b'),
