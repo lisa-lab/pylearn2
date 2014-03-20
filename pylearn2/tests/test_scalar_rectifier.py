@@ -25,19 +25,28 @@ def test_scalar_rectifier():
     x = T.fmatrix('inputs')
     y1 = relu(x)
     y2 = rectifier(x)
-
+    y3 = relu_(x)
+    
     f1 = theano.function(inputs=[x], outputs=y1, name='benchmark_1_forward')
     f2 = theano.function(inputs=[x], outputs=y2, name='benchmark_2_forward')
-
+    f3 = theano.function(inputs=[x], outputs=y3, name='benchmark_3_forward')
+    
     g1 = theano.function(inputs=[x], outputs=T.grad(y1.sum(),x), name='benchmark_1_grad')
     g2 = theano.function(inputs=[x], outputs=T.grad(y2.sum(),x), name='benchmark_2_grad')
+    g3 = theano.function(inputs=[x], outputs=T.grad(y3.sum(),x), name='benchmark_3_grad')
     
     for i in range(10):
-        value = numpy.random.uniform(size=(100,500)).astype(floatX)
+        value = numpy.random.uniform(-1,1,size=(100,500)).astype(floatX)
         numpy.testing.assert_array_equal(f1(value), f2(value),
                                          err_msg='arrays not equal' )
 
+        numpy.testing.assert_array_equal(f1(value), f3(value),
+                                         err_msg='arrays not equal' )
+
         numpy.testing.assert_array_equal(g1(value), g2(value),
+                                         err_msg='grad:arrays not equal' )
+
+        numpy.testing.assert_array_equal(g1(value), g3(value),
                                          err_msg='grad:arrays not equal' )
         
 
@@ -62,7 +71,7 @@ def benchmark_single_op():
         f = theano.function(inputs=[x], outputs=op, name=name)
         n_loops = 1000
         value = numpy.random.uniform(size=(100,5000)).astype(floatX)
-
+        
         t0 = time.time()
         for i in range(n_loops):
             f(value)
@@ -70,6 +79,9 @@ def benchmark_single_op():
         benchmark = t1-t0
         times.append(benchmark)
 
+        if name == 'fprop_old' or name == 'grad_old':
+            theano.printing.debugprint(f)
+            
 def benchmark_all():
     benchmark_single_op()
 
