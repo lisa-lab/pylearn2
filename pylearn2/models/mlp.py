@@ -3585,12 +3585,14 @@ class ConvRectifiedLinear(ConvElemwise):
         U(-irange, irange)
     border_mode : str
         A string indicating the size of the output:
-
         - "full" : The output is the full discrete linear convolution of the
             inputs.
         - "valid" : The output consists only of those elements that do not
             rely on the zero-padding. (Default)
-
+        - detector: the rectifier units can be normalized prior to the
+            spatial pooling
+        - output: the output of the layer, after spatial pooling, can
+            be normalized as well
     include_prob : float
         probability of including a weight element in the set of weights
         initialized to U(-irange, irange). If not included it is initialized
@@ -3620,12 +3622,6 @@ class ConvRectifiedLinear(ConvElemwise):
         if specified, should be a callable object. the state of the
         network is optionally replaced with normalization(state) at each
         of the 3 points in processing:
-
-        - detector: the rectifier units can be normalized prior to the
-            spatial pooling
-        - output: the output of the layer, after spatial pooling, can
-            be normalized as well
-
     kernel_stride : tuple
         The stride of the convolution kernel. A two-tuple of ints.
     """
