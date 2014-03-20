@@ -68,7 +68,7 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
             y = train['y'][:,0]
             assert y.shape == (5000,)
         elif which_set == 'test':
-            test = load('${PYLEARN2_DATA_PATH}/stl10_matlab/test.mat')
+            test = load('${PYLEARN2_DATA_PATH}/stl10/stl10_matlab/test.mat')
 
             #Load the class names
             self.class_names = [array[0].encode('utf-8') for array in test['class_names'][0] ]
@@ -88,7 +88,7 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
             assert y.shape == (8000,)
 
         elif which_set == 'unlabeled':
-            unlabeled = load('${PYLEARN2_DATA_PATH}/stl10_matlab/unlabeled.mat')
+            unlabeled = load('${PYLEARN2_DATA_PATH}/stl10/stl10_matlab/unlabeled.mat')
 
             X =  unlabeled['X']
 
@@ -130,7 +130,7 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
 
 def restrict(dataset, fold):
     """
-    Restricts the dataset to use the specified fold.
+    Restricts the dataset to use the specified fold (1 to 10).
     """
 
     fold_indices = dataset.fold_indices
