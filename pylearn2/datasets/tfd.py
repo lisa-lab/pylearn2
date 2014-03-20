@@ -16,11 +16,14 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
         TFD contains 5 official folds for train, valid and test.
     image_size : int in [48,96]
         Load smaller or larger dataset variant.
-    example_range : array_like. 
+    example_range : array_like.
         Load only examples in range [example_range[0]:example_range[1]].
     center : bool
-        Move data from range [0.,255.] to [-127.5,127.5]
-    scale : WRITEME
+        Move data from range [0., 255.] to [-127.5, 127.5] 
+        False by default.
+    scale : bool
+        Move data from range [0., 255.] to [0., 1.]. False by default.
+        scale and center cannot both be True.
     shuffle : WRITEME
     one_hot : WRITEME
     rng : WRITEME
