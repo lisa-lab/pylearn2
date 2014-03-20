@@ -27,7 +27,7 @@ MLP
     
 Principal Component Analysis
 ============================
-.. automodule:: pylearn2.pca
+.. automodule:: pylearn2.models.pca
     :members:
 
 RBM
