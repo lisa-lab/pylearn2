@@ -33,7 +33,7 @@ class ScalarRectifier(scalar.UnaryScalarOp):
 
             WRITEME
         """
-        return [x > 0.0]
+        return [(x > 0.0) * gz]
 
     def c_code(self, node, name, (x,), (z,), sub):
         """
