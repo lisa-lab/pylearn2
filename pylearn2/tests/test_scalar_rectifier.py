@@ -4,7 +4,7 @@ This file has two purposes:
 2. speed benchmark on pylearn2.scalar on CPU and GPU (conducted in benchmark_single_op)
 
 Conclusion:
-1. For pylearn2.scalar, both grad() and c_code work as expected.
+1. For pylearn2.scalar, both 'grad()' and 'c_code()' work as expected.
 2. On CPU, pylearn2.scalar is about 1.5 times faster than naive implementation of relu
 activation
 3. On GPU, they have almost the same speed.
