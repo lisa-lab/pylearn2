@@ -157,12 +157,12 @@ class Conv2D(LinearTransform):
         rval_axes = self.output_axes
         assert len(rval_axes) == 4
 
+        if cpu:
+            rval = host_from_gpu(rval)
+
         if tuple(rval_axes) != op_axes:
             rval = rval.dimshuffle(*[op_axes.index(axis)
                                      for axis in rval_axes])
-
-        if cpu:
-            rval = host_from_gpu(rval)
 
         return rval
 
@@ -364,7 +364,8 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange="not specified"):
             "AssertionError, so that this error message can alert you that "
             "the bug affected your code and explain why the interface is "
             "changing. The irange parameter to the function and this "
-            "error message may be removed after April 21, 2014.")
+            "error message may be removed after April 21, 2014."
+        )
 
     # Use "self" to refer to layer from now on, so we can pretend we're
     # just running in the set_input_space method of the layer
