@@ -3,7 +3,6 @@
 """
 
 import inspect
-import textwrap
 import re
 import sys
 import types
