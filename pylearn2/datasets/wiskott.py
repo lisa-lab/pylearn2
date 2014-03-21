@@ -17,7 +17,7 @@ class Wiskott(dense_design_matrix.DenseDesignMatrix):
     """
     def __init__(self):
 
-        path = "${PYLEARN2_DATA_PATH}/data/lisa/data/wiskott/wiskott"
+        path = "${PYLEARN2_DATA_PATH}/wiskott/wiskott"\
              + "_fish_layer0_15_standard_64x64_shuffled.npy"
 
         X = 1. - load(path)
