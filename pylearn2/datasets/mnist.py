@@ -82,7 +82,6 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             if binarize:
                 topo_view = (topo_view > 0.5).astype('float32')
 
-            # Make sure y is a 2D matrix to comply with IndexSpace
             max_labels = 10
             if one_hot is not None:
                 warnings.warn("the `one_hot` parameter is deprecated. To get "
