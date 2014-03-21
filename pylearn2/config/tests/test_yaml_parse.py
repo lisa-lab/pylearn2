@@ -3,9 +3,18 @@ import numpy as np
 import cPickle
 import tempfile
 from numpy.testing import assert_
-from pylearn2.config.yaml_parse import load, load_path
+from pylearn2.config.yaml_parse import load, load_path, initialize
 from os import environ
 from decimal import Decimal
+import yaml
+from pylearn2.models.mlp import (MLP, Linear, Softmax, Sigmoid,
+                                 exhaustive_dropout_average,
+                                 sampled_dropout_average)
+
+from pylearn2.models.rbm import GaussianBinaryRBM
+from pylearn2.space import Conv2DSpace
+from pylearn2.linear.conv2d import make_random_conv2D
+from pylearn2.energy_functions.rbm_energy import grbm_type_1
 
 def test_load_path():
     fd, fname = tempfile.mkstemp()
@@ -88,16 +97,84 @@ def test_unpickle_key():
 def test_multi_constructor_obj():
     """
     Tests whether multi_constructor_obj throws an exception when
-    the keys in mapping are not of type string.
+    the keys in mapping are None.
     """
     try:
-        loaded = load("a: !obj:decimal.Decimal { 1 : }")
+        loaded = load("a: !obj:decimal.Decimal { 1 }")
     except TypeError as e:
-        assert str(e) == "Received not string objects as keys in mapping."
+        assert str(e) == "received None as the value for the key 1"
         pass
     except Exception, e:
         error_msg = "Got the unexpected error: %s" % (e)
         raise ValueError(error_msg)
 
+
+def test_duplicate_keywords():
+    """
+    Tests whether there are doublicate keywords in the yaml
+    """
+    initialize()
+    yamlfile = """{
+            "model": !obj:pylearn2.models.mlp.MLP {
+            "layers": [
+                     !obj:pylearn2.models.mlp.Sigmoid {
+                         "layer_name": 'h0',
+                         "dim": 20,
+                         "sparse_init": 15,
+                     }],
+            "nvis": 784,
+
+            "nvis": 384,
+        }
+    }"""
+
+    try:
+        loaded = load(yamlfile)
+    except yaml.constructor.ConstructorError, e:
+        message = str(e)
+        assert message.endswith("found duplicate key (nvis)")
+        pass
+    except Exception, e:
+        error_msg = "Got the unexpected error: %s" % (e)
+        raise TypeError(error_msg)
+
+
+def test_duplicate_keywords_2():
+    """
+    Tests whether duplicate keywords as independent parameters works fine.
+    """
+    initialize()
+    yamlfile = """{
+             "model": !obj:pylearn2.models.rbm.GaussianBinaryRBM {
+
+                 "vis_space" : &vis_space !obj:pylearn2.space.Conv2DSpace {
+                    "shape" : [32,32],
+                    "num_channels" : 3
+                },
+                "hid_space" : &hid_space !obj:pylearn2.space.Conv2DSpace {
+                    "shape" : [27,27],
+                    "num_channels" : 10
+                },
+                "transformer" : !obj:pylearn2.linear.conv2d.make_random_conv2D {
+                    "irange" : .05,
+                    "input_space" : *vis_space,
+                    "output_space" : *hid_space,
+                    "kernel_shape" : [6,6],
+                    "batch_size" : &batch_size 5
+                },
+                "energy_function_class" : !obj:pylearn2.energy_functions.rbm_energy.grbm_type_1 {},
+                "learn_sigma" : True,
+                "init_sigma" : .3333,
+                "init_bias_hid" : -2.,
+                "mean_vis" : False,
+                "sigma_lr_scale" : 1e-3
+
+             }
+    }"""
+
+    loaded = load(yamlfile)
+
 if __name__ == "__main__":
     test_multi_constructor_obj()
+    test_doublicate_keywords()
+    test_doublicate_keywords_2()

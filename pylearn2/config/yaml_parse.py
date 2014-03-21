@@ -308,6 +308,7 @@ def initialize():
     global is_initialized
 
     # Add the custom multi-constructor
+    yaml.constructor.BaseConstructor.construct_mapping = construct_mapping
     yaml.add_multi_constructor('!obj:', multi_constructor_obj)
     yaml.add_multi_constructor('!pkl:', multi_constructor_pkl)
     yaml.add_multi_constructor('!import:', multi_constructor_import)
@@ -339,8 +340,15 @@ def multi_constructor_obj(loader, tag_suffix, node):
 
     assert hasattr(mapping, 'keys')
     assert hasattr(mapping, 'values')
-    if not(all(isinstance(x, str) for x in mapping.keys())):
-        raise TypeError("Received not string objects as keys in mapping.")
+    for key,val in zip(mapping.keys(), mapping.values()):
+        if (val == None):
+            message = "received None as the value for the key %s" %str(key)
+            raise TypeError(message)
+
+    for key in mapping.keys():
+        if not(isinstance(key, str)):
+            message = "Received non string object (%s) as keys in mapping." %str(key)
+            raise TypeError(message)
 
     if '.' not in tag_suffix:
         classname = tag_suffix
@@ -391,6 +399,29 @@ def constructor_float(loader, node):
     """
     value = loader.construct_scalar(node)
     return float(value)
+
+def construct_mapping(self, node, deep=False):
+    # This is a modified version of yaml.BaseConstructor.construct_mapping
+    # in which a repeated key raises a ConstructorError
+    if not isinstance(node, yaml.nodes.MappingNode):
+        raise yaml.constructor.ConstructorError(None, None,
+                "expected a mapping node, but found %s" % node.id,
+                node.start_mark)
+    mapping = {}
+    constructor = yaml.constructor.BaseConstructor()
+    for key_node, value_node in node.value:
+        key = str(constructor.construct_object(key_node, deep=False))
+        try:
+            hash(key)
+        except TypeError, exc:
+            raise yaml.constructor.ConstructorError("while constructing a mapping", node.start_mark,
+                    "found unacceptable key (%s)" % exc, key_node.start_mark)
+        if key in mapping:
+            raise yaml.constructor.ConstructorError("while constructing a mapping", node.start_mark,
+                    "found duplicate key (%s)" % key)
+        value = self.construct_object(value_node, deep=False)
+        mapping[key] = value
+    return mapping
 
 if __name__ == "__main__":
     initialize()
