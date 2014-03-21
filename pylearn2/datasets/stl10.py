@@ -90,24 +90,24 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
             assert y.shape == (8000,)
 
         elif which_set == 'unlabeled':
-            import tables
-            unlabeled_path = preprocess('${PYLEARN2_DATA_PATH}/stl10/stl10_matlab/unlabeled.mat')
+            unlabeled = load('${PYLEARN2_DATA_PATH}/stl10/stl10_matlab/unlabeled.mat')
 
-            unlabeled = tables.File(unlabeled_path)
-
-            X = unlabeled.getNode("/X")
+            X =  unlabeled['X']
 
             #this file is stored in HDF format, which transposes everything
             assert X.shape == (96*96*3, 100000)
             assert X.dtype == 'uint8'
 
-            if example_range is not None:
-                X = X[:,example_range[0]:example_range[1]]
+            if example_range is None:
+                X = X.value
+            else:
+                X = X.value[:,example_range[0]:example_range[1]]
             X = np.cast['float32'](X.T)
 
             unlabeled.close()
 
             y = None
+
         else:
             raise ValueError('"'+which_set+'" is not an STL10 dataset. '
                     'Recognized values are "train", "test", and "unlabeled".')
@@ -134,6 +134,7 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
 def restrict(dataset, fold):
     """
     Restricts the dataset to use the specified fold (1 to 10).
+    dataset should be the training set.
     """
 
     fold_indices = dataset.fold_indices
