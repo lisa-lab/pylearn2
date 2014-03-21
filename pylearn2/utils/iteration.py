@@ -20,6 +20,8 @@ from __future__ import division
 import numpy
 np = numpy
 
+import warnings
+
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import is_flat_specs
@@ -120,7 +122,7 @@ class SequentialSubsetIterator(SubsetIterator):
 
         WRITEME
     """
-    def __init__(self, dataset_size, batch_size, num_batches, rng=None):
+    def __init__(self, dataset_size, batch_size, num_batches, ignore_uneven=False, rng=None):
         """
         .. todo::
 
@@ -153,6 +155,12 @@ class SequentialSubsetIterator(SubsetIterator):
         self._next_batch_no = 0
         self._idx = 0
         self._batch = 0
+        self.ignore_uneven = ignore_uneven
+
+        if self.uneven and self.ignore_uneven:
+            warnings.warn("Dataset size is uneven, last uneven batch will be ignored")
+        elif self.uneven and not self.ignore_uneven:
+            warnings.warn("Dataset size is uneven, you can ignore last batch by setting ignore_uneven to True")
 
     def next(self):
         """
@@ -160,11 +168,14 @@ class SequentialSubsetIterator(SubsetIterator):
 
             WRITEME
         """
-        if self._batch >= self.num_batches or self._idx >= self._dataset_size:
+        is_last_uneven_batch = (self._idx + self._batch_size) > self._dataset_size
+
+        if self._batch >= self.num_batches or self._idx >= self._dataset_size or \
+                (is_last_uneven_batch and self.ignore_uneven):
             raise StopIteration()
 
         # this fix the problem where dataset_size % batch_size != 0
-        elif (self._idx + self._batch_size) > self._dataset_size:
+        elif is_last_uneven_batch:
             self._last = slice(self._idx, self._dataset_size)
             self._idx = self._dataset_size
             return self._last
@@ -207,7 +218,7 @@ class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
     stochastic = True
     fancy = True
 
-    def __init__(self, dataset_size, batch_size, num_batches, rng=None):
+    def __init__(self, dataset_size, batch_size, num_batches, ignore_uneven=False, rng=None):
         """
         .. todo::
 
@@ -217,6 +228,7 @@ class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
             dataset_size,
             batch_size,
             num_batches,
+            ignore_uneven,
             None
         )
         self._rng = make_np_rng(rng, which_method=["random_integers", "shuffle"])
@@ -229,11 +241,14 @@ class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
 
             WRITEME
         """
-        if self._batch >= self.num_batches or self._idx >= self._dataset_size:
+        is_last_uneven_batch = (self._idx + self._batch_size) > self._dataset_size
+
+        if self._batch >= self.num_batches or self._idx >= self._dataset_size or \
+                (is_last_uneven_batch and self.ignore_uneven):
             raise StopIteration()
 
         # this fix the problem where dataset_size % batch_size != 0
-        elif (self._idx + self._batch_size) > self._dataset_size:
+        elif is_last_uneven_batch:
             rval = self._shuffled[self._idx: self._dataset_size]
             self._idx = self._dataset_size
             return rval
@@ -336,7 +351,7 @@ class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
     Returns minibatches randomly, but sequential inside each minibatch
     """
 
-    def __init__(self, dataset_size, batch_size, num_batches=None, rng=None):
+    def __init__(self, dataset_size, batch_size, num_batches=None, ignore_uneven=False, rng=None):
         """
         .. todo::
 
@@ -369,6 +384,13 @@ class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
         self._idx = 0
         self._batch_order = range(self._num_batches)
         self._rng.shuffle(self._batch_order)
+        self.ignore_uneven = ignore_uneven
+
+        if self.uneven and self.ignore_uneven:
+            warnings.warn("Dataset size is uneven, last uneven batch will be ignored")
+        elif self.uneven and not self.ignore_uneven:
+            warnings.warn("Dataset size is uneven, you can ignore last batch by setting ignore_uneven to True")
+
 
     def next(self):
         """
@@ -376,16 +398,22 @@ class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
 
             WRITEME
         """
+
         if self._next_batch_no >= self._num_batches:
             raise StopIteration()
+
+        start = self._batch_order[self._next_batch_no] * self._batch_size
+        is_last_uneven_batch = start + self._batch_size > self._dataset_size
+
+        if is_last_uneven_batch and self.ignore_uneven:
+             raise StopIteration()
+        elif is_last_uneven_batch:
+             self._last = slice(start, self._dataset_size)
         else:
-            start = self._batch_order[self._next_batch_no] * self._batch_size
-            if start + self._batch_size > self._dataset_size:
-                self._last = slice(start, self._dataset_size)
-            else:
-                self._last = slice(start, start + self._batch_size)
-            self._next_batch_no += 1
-            return self._last
+             self._last = slice(start, start + self._batch_size)
+
+        self._next_batch_no += 1
+        return self._last
 
     fancy = False
     stochastic = True
