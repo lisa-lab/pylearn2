@@ -291,7 +291,7 @@ def restore_defaults():
 def newline(logger, nb_blank_lines=1):
     """
     A simple method to write a real new line to logging.
-    Only work with the INFO level at the moment.
+    Only works with the INFO level at the moment.
 
     Parameters
     ----------
