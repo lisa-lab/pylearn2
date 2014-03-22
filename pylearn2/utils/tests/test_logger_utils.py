@@ -7,6 +7,10 @@ logger = logging.getLogger(__name__)
 
 
 def test_newline():
+    """
+    Test the state of a the logger passed to the newline function.
+    The state has to be the same.
+    """
     # Save current properties
     handlers = logger.handlers
     level = logger.getEffectiveLevel()
