@@ -295,8 +295,10 @@ def newline(logger, nb_blank_lines=1):
 
     Parameters
     ----------
-    logger : the logger where the blank line will be added.
-    nb_blank_lines : number of blank lines in a row.
+    logger : Logger object
+             The logger where the blank line will be added.
+    nb_blank_lines : int
+                     Number of blank lines in a row.
     """
     formatter = logging.Formatter(fmt='')
     handler = CustomStreamHandler(formatter=formatter)
