@@ -2,6 +2,7 @@
 import h5py
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 
+
 class HDF5Dataset(DenseDesignMatrix):
     """Dense dataset loaded from an HDF5 file."""
     def __init__(self, filename, X=None, topo_view=None, y=None, **kwargs):
@@ -18,6 +19,8 @@ class HDF5Dataset(DenseDesignMatrix):
             Key into HDF5 file for topological view of dataset.
         y: str
             Key into HDF5 file for dataset targets.
+        kwargs: dict
+            Keyword arguments passed to `DenseDesignMatrix`.
         """
         with h5py.File(filename) as f:
             if X is not None:
@@ -26,4 +29,6 @@ class HDF5Dataset(DenseDesignMatrix):
                 topo_view = f[topo_view][:]
             if y is not None:
                 y = f[y][:]
-        super(HDF5Dataset, self).__init__(X, topo_view, y, **kwargs)
+
+        super(HDF5Dataset, self).__init__(X=X, topo_view=topo_view, y=y,
+                                          **kwargs)
