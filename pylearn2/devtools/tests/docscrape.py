@@ -433,7 +433,10 @@ class NumpyFunctionDocString(NumpyDocString):
         errors = NumpyDocString.get_errors(self)
 
         if not self['Signature']:
-            errors.append("No function signature")
+            #errors.append("No function signature") #this check is currently
+                                                    #too restrictive. Disabling
+                                                    #it for now
+            pass
 
         if not self['Summary']:
             errors.append("No function summary line")
