@@ -411,6 +411,14 @@ def indent(str,indent=4):
     return '\n'.join(indent_str + l for l in lines)
 
 class NumpyFunctionDocString(NumpyDocString):
+    def __init__(self, docstring, function):
+        super(NumpyFunctionDocString, self).__init__(docstring)
+        args, varargs, keywords, defaults = inspect.getargspec(function)
+        if (args and args != ['self']) or varargs or keywords or defaults:
+            self.has_parameters = True
+        else:
+            self.has_parameters = False
+
     def _parse(self):
         self._parsed_data = {
             'Signature': '',
@@ -444,8 +452,7 @@ class NumpyFunctionDocString(NumpyDocString):
         if len(" ".join(self['Summary'])) > 3*80:
             errors.append("Brief function summary is longer than 3 lines")
 
-        if not (re.match('^\w+\(\)$', self['Signature'])
-                or self['Parameters']):
+        if not self['Parameters'] and self.has_parameters:
             errors.append("No Parameters section")
 
         return errors
@@ -644,7 +651,7 @@ def handle_function(val, name):
         func_errors.append((name, '**missing** function-level docstring'))
     else:
         func_errors = [
-            (name, e) for e in NumpyFunctionDocString(docstring).get_errors()
+            (name, e) for e in NumpyFunctionDocString(docstring, val).get_errors()
         ]
     return func_errors
 
@@ -670,7 +677,7 @@ def handle_method(method, method_name, class_name):
     else:
         method_errors = [
             (class_name, method_name, e) for e in
-            NumpyFunctionDocString(docstring).get_errors()
+            NumpyFunctionDocString(docstring, method).get_errors()
         ]
     return method_errors
 

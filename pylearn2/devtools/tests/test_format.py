@@ -588,8 +588,6 @@ whitelist_docstrings.extend(['training_algorithms/tests/test_learning_rule.py',
 
 def test_format_pep8():
     """
-    test_format_pep8()
-
     Test if pep8 is respected.
     """
     format_infractions = []
@@ -609,8 +607,6 @@ def test_format_pep8():
 
 def test_format_docstrings():
     """
-    test_format_docstrings()
-
     Test if docstrings are well formated.
     """
     format_infractions = []
