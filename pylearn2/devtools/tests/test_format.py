@@ -517,8 +517,11 @@ whitelist_docstrings = ['scripts/datasets/step_through_norb_foveated.py',
     'devtools/list_files.py',
     'train_extensions/__init__.py',
     'train_extensions/best_params.py',
-    'corruption.py'
-    ]
+    'corruption.py',
+    'datasets/tests/test_tl_challenge.py',
+    'datasets/tests/test_tfd.py',
+    'datasets/tests/test_npy_npz.py',
+    'linear/tests/test_conv2d.py']
 
 #add files which have long execution time to whitelist_docstrings
 whitelist_docstrings.extend(['sandbox/cuda_convnet/debug.py',
