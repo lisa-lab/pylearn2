@@ -747,6 +747,8 @@ def docstring_errors(filename, global_dict=None):
                     all_errors.extend(handle_class(val, key))
         elif key == '__doc__':
             all_errors.extend(handle_module(val, key))
+    if all_errors:
+        all_errors.insert(0, ("%s:"%filename,))
     return all_errors
 
 if __name__ == "__main__":
