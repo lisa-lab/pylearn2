@@ -20,17 +20,20 @@ gauranteed by default copy.
 import os
 import time
 import atexit
+import logging
 from pylearn2.utils import string_utils
 import theano.gof.compilelock as compilelock
 
 
+log = logging.getLogger(__name__)
+
+
 class LocalDatasetCache:
 
-    def __init__(self, verbose=False):
+    def __init__(self):
         default_path = '${PYLEARN2_DATA_PATH}'
         self.dataset_remote_dir = string_utils.preprocess(default_path)
         self.pid = os.getpid()
-        self.verbose = verbose
 
         try:
             local_path = '${PYLEARN2_LOCAL_DATA_PATH}'
@@ -52,19 +55,19 @@ class LocalDatasetCache:
         # Check if a local directory for data has been defined. Otherwise,
         # do not locally copy the data
         if self.dataset_local_dir == "":
-            self._write("Local cache deactivated : file %s not cached" %
+            log.warning("Local cache deactivated : file %s not cached" %
                         remote_name)
             return filename
 
         # Make sure the file to cache exists and really is a file
         if not os.path.exists(remote_name):
-            self._write("Error : Specified file %s does not exist" %
-                        remote_name)
+            log.error("Error : Specified file %s does not exist" %
+                      remote_name)
             return filename
 
         if not os.path.isfile(remote_name):
-            self._write("Error : Specified name %s is not a file" %
-                        remote_name)
+            log.error("Error : Specified name %s is not a file" %
+                      remote_name)
             return filename
 
         # Create the $PYLEARN2_LOCAL_DATA_PATH folder if needed
@@ -81,7 +84,7 @@ class LocalDatasetCache:
 
         # Acquire writelock on the local file to prevent the possibility
         # of any other process modifying it while we cache it if needed.
-        # Also, if another process is currently caching the same file,
+        # Also, if another process is currently caching the same file, 
         # it forces the current process to wait for it to be done before
         # using the file.
         self.get_writelock(local_name)
@@ -91,19 +94,19 @@ class LocalDatasetCache:
 
             # Check that there is enough space to cache the file
             if not self.check_enough_space(remote_name, local_name):
-                self._write("Not enough free space : file %s not cached" %
+                log.warning("Not enough free space : file %s not cached" %
                             remote_name)
                 self.release_writelock()
                 return filename
 
             # There is enough space; make a local copy of the file
             self.copy_from_server_to_local(remote_name, local_name)
-            self._write("File %s has been locally cached to %s" %
-                       (remote_name, local_name))
+            log.info("File %s has been locally cached to %s" %
+                     (remote_name, local_name))
 
         else:
-            self._write("File %s has previously been locally cached to %s" %
-                       (remote_name, local_name))
+            log.info("File %s has previously been locally cached to %s" %
+                     (remote_name, local_name))
 
         # Obtain a readlock on the downloaded file before releasing the
         # writelock. This is to prevent having a moment where there is no
@@ -113,14 +116,6 @@ class LocalDatasetCache:
         self.release_writelock()
 
         return local_name
-
-    def _write(self, message):
-        """
-        Print message to the console if verbose
-        """
-
-        if self.verbose:
-            print message
 
     def copy_from_server_to_local(self, remote_fname, local_fname):
         """
@@ -156,7 +151,7 @@ class LocalDatasetCache:
 
         # Instead of only looking if there's enough space, we ensure we do not
         # go over max disk usage level to avoid filling the disk/partition
-        return ((storage_used + storage_need) <
+        return ((storage_used + storage_need) < 
                 (storage_total * max_disk_usage))
 
     def safe_mkdir(self, folderName):
@@ -167,6 +162,7 @@ class LocalDatasetCache:
         """
         if not os.path.exists(folderName):
             os.makedirs(folderName)
+
 
     def get_readlock(self, path):
         """
