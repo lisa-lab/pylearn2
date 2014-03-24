@@ -5,8 +5,7 @@ import numpy as np
 
 
 def test_wiskott():
+    skip_if_no_data()
     data = Wiskott()
     assert not np.any(np.isinf(data.X))
     assert not np.any(np.isnan(data.X))
-
-
