@@ -165,21 +165,9 @@ class LocalDatasetCache:
         exist, they are also created. If the folder already exists,
         nothing is done.
         """
+        if not os.path.exists(folderName):
+            os.makedirs(folderName)
 
-        intermediaryFolders = folderName.split("/")
-
-        # Remove invalid elements from intermediaryFolders
-        if intermediaryFolders[-1] == "":
-            intermediaryFolders = intermediaryFolders[:-1]
-
-        for i in range(len(intermediaryFolders)):
-            folderToCreate = "/".join(intermediaryFolders[:i+1]) + "/"
-
-            if not os.path.exists(folderToCreate):
-                try:
-                    os.mkdir(folderToCreate)
-                except:
-                    pass
 
     def getReadLock(self, path):
         """
