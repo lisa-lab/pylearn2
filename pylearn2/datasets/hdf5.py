@@ -1,5 +1,5 @@
 """Objects for datasets serialized in HDF5 format (.h5)."""
-import h5py
+import tables
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 
 
@@ -22,13 +22,19 @@ class HDF5Dataset(DenseDesignMatrix):
         kwargs: dict
             Keyword arguments passed to `DenseDesignMatrix`.
         """
-        with h5py.File(filename) as f:
+        with tables.File(filename) as f:
             if X is not None:
-                X = f[X][:]
+                if not X.startswith('/'):
+                    X = "/" + X
+                X = f.get_node(X)[:]
             if topo_view is not None:
-                topo_view = f[topo_view][:]
+                if not topo_view.startswith('/'):
+                    topo_view = "/" + topo_view
+                topo_view = f.get_node(topo_view)[:]
             if y is not None:
-                y = f[y][:]
+                if not y.startswith('/'):
+                    y = "/" + y
+                y = f.get_node(y)[:]
 
         super(HDF5Dataset, self).__init__(X=X, topo_view=topo_view, y=y,
                                           **kwargs)
