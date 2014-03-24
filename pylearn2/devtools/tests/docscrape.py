@@ -651,7 +651,8 @@ def handle_function(val, name):
         func_errors.append((name, '**missing** function-level docstring'))
     else:
         func_errors = [
-            (name, e) for e in NumpyFunctionDocString(docstring, val).get_errors()
+            (name, e) for e in
+            NumpyFunctionDocString(docstring, val).get_errors()
         ]
     return func_errors
 
