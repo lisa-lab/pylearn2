@@ -104,9 +104,9 @@ class TestConv2DC01b(unittest.TestCase):
         layer = MaxoutConvC01B(16, 2, (2, 2), (2, 2),
                                (1, 1), 'maxout', irange=1.)
         input_space = Conv2DSpace((3, 3), 16, axes=axes)
-        mlp = MLP(layers=[layer], input_space=input_space)
+        MLP(layers=[layer], input_space=input_space)
         layer.set_input_space(input_space)
-        # setup_detector_layer_c01b(layer, input_space, rng)
         assert isinstance(layer.input_space, Conv2DSpace)
         input = theano.tensor.tensor4()
         f = theano.function([input], layer.fprop(input))
+        f(numpy.random.rand(16, 3, 3, 1).astype(theano.config.floatX))
