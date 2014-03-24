@@ -42,11 +42,11 @@ class TestHDF5Dataset(unittest.TestCase):
                                                    'valid': valid,
                                                    'test': test}
         self.train.algorithm.termination_criterion = EpochCounter(max_epochs=5)
-        self.train.save_path = None
-        self.train.extensions[0].save_path = None
         self.train.main_loop()
 
     def tearDown(self):
         os.remove("train.h5")
         os.remove("valid.h5")
         os.remove("test.h5")
+        os.remove(os.environ['PYLEARN2_TRAIN_FILE_FULL_STEM'] + '.pkl')
+        os.remove(os.environ['PYLEARN2_TRAIN_FILE_FULL_STEM'] + '_best.pkl')
