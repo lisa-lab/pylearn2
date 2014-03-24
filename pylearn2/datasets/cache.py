@@ -145,7 +145,8 @@ class LocalDatasetCache:
         used = (st.f_blocks - st.f_bfree) * st.f_frsize
         return total, used
 
-    def check_enough_space(self, remote_fname, local_fname):
+    def check_enough_space(self, remote_fname, local_fname,
+                           max_disk_usage=0.9):
         """
         Check if the local disk has enough space to store the dataset
         """
@@ -154,8 +155,9 @@ class LocalDatasetCache:
         storage_total, storage_used = self.disk_usage(self.dataset_local_dir)
 
         # Instead of only looking if there's enough space, we ensure we do not
-        # go over 90% usage level to avoid filling the disk/partition
-        return (storage_used + storage_need) < (storage_total * 0.90)
+        # go over max disk usage level to avoid filling the disk/partition
+        return ((storage_used + storage_need) < 
+                (storage_total * max_disk_usage))
 
     def safe_mkdir(self, folderName):
         """
