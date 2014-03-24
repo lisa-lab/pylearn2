@@ -683,7 +683,6 @@ def show_packages():
     installed or from remove sources
     """
     logger.info("These packages are available:")
-    logger.info("\n")
     for this_package in packages_sources.values():
         if this_package.name in installed_packages_list:
             state="u" if installed_packages_list[this_package.name].timestamp<this_package.timestamp else 'i';
@@ -698,8 +697,6 @@ def show_packages():
                                          this_package.readable_size,
                                          package_time,
                                          this_package.source))
-    logger.info("\n")
-
 
 ########################################
 def install_upgrade( package, upgrade=False,progress_hook=None ):
@@ -740,7 +737,6 @@ def install_upgrade( package, upgrade=False,progress_hook=None ):
         # assign filename to cached package
         pass
 
-    logger.info("\n")
     logger.info("[in] running install scripts "
                 "for package '{0}'".format(package.name))
 
@@ -815,11 +811,9 @@ def upgrade_packages(packages_to_upgrade, hook=None ):
     #
     if packages_really_to_upgrade!=[]:
         logger.info("[up] the following package(s) will be upgraded:")
-        logger.info("\n")
         for this_package in packages_really_to_upgrade:
             readable_size = packages_sources[this_package].readable_size
             logger.info("{0} ({1})".format(this_package, readable_size))
-        logger.info("\n")
 
         r=raw_input("Proceed? [yes/N] ")
         if r=='y' or r=='yes':
@@ -872,11 +866,9 @@ def install_packages( packages_to_install, force_install=False, hook=None ):
 
     if packages_really_to_install!=[]:
         logger.info("[in] The following package(s) will be installed:")
-        logger.info("\n")
         for this_package in packages_really_to_install:
             readable_size = packages_sources[this_package].readable_size
             logger.info("{0} ({1})".format(this_package, readable_size))
-        logger.info("\n\n")
 
         r=raw_input("Proceed? [yes/N] ")
         if r=='y' or r=='yes':
@@ -914,12 +906,10 @@ def install_packages_from_file( packages_to_install ):
 
     if packages_really_to_install!=[]:
         logger.info("[in] The following package(s) will be installed:")
-        logger.info("\n")
         packages = []
         for this_package in packages_really_to_install:
             packages.append(corename(this_package))
         logger.info(' '.join(packages))
-        logger.info("\n\n")
 
         r=raw_input("Proceed? [yes/N] ")
         if r=='y' or r=='yes':
@@ -998,12 +988,10 @@ def remove_packages( packages_to_remove ):
 
     if packages_really_to_remove!=[]:
         logger.info("[rm] the following packages will be removed permanently:")
-        logger.info("\n")
         packages = []
         for this_package in packages_really_to_remove:
             packages.append(this_package)
         logger.info(' '.join(packages))
-        logger.info("\n\n")
 
         r=raw_input("Proceed? [yes/N] ")
         if r=='y' or r=='yes':
