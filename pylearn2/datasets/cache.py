@@ -207,3 +207,6 @@ class LocalDatasetCache:
         Release the previously obtained writelock
         """
         compilelock.release_lock()
+
+
+datasetCache = LocalDatasetCache()

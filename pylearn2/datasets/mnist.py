@@ -59,9 +59,9 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             label_path = serial.preprocess(label_path)
 
             # Locally cache the files before reading them
-            datasetCache = cache.LocalDatasetCache()
-            im_path = datasetCache.cacheFile(im_path)
-            label_path = datasetCache.cacheFile(label_path)
+            datasetCache = cache.datasetCache
+            im_path = datasetCache.cache_file(im_path)
+            label_path = datasetCache.cache_file(label_path)
 
             topo_view = read_mnist_images(im_path, dtype='float32')
             y = read_mnist_labels(label_path)
