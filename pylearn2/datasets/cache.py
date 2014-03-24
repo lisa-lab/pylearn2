@@ -81,7 +81,7 @@ class LocalDatasetCache:
 
         # Acquire writelock on the local file to prevent the possibility
         # of any other process modifying it while we cache it if needed.
-        # Also, if another process is currently caching the same file, 
+        # Also, if another process is currently caching the same file,
         # it forces the current process to wait for it to be done before
         # using the file.
         self.get_writelock(local_name)
@@ -156,7 +156,7 @@ class LocalDatasetCache:
 
         # Instead of only looking if there's enough space, we ensure we do not
         # go over max disk usage level to avoid filling the disk/partition
-        return ((storage_used + storage_need) < 
+        return ((storage_used + storage_need) <
                 (storage_total * max_disk_usage))
 
     def safe_mkdir(self, folderName):
@@ -167,7 +167,6 @@ class LocalDatasetCache:
         """
         if not os.path.exists(folderName):
             os.makedirs(folderName)
-
 
     def get_readlock(self, path):
         """
