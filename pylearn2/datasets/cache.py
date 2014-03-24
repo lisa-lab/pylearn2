@@ -81,6 +81,9 @@ class LocalDatasetCache:
 
         # Acquire writelock on the local file to prevent the possibility
         # of any other process modifying it while we cache it if needed.
+        # Also, if another process is currently caching the same file, 
+        # it forces the current process to wait for it to be done before
+        # using the file.
         self.getWriteLock(local_name)
 
         # If the file does not exist locally, consider creating it
@@ -103,7 +106,9 @@ class LocalDatasetCache:
                        (remote_name, local_name))
 
         # Obtain a readlock on the downloaded file before releasing the
-        # write lock
+        # writelock. This is to prevent having a moment where there is no
+        # lock on this file which could give the impression that it is
+        # unused and therefore safe to delete.
         self.getReadLock(local_name)
         self.releaseWriteLock()
 
