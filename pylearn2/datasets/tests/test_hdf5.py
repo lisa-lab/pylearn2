@@ -42,6 +42,8 @@ class TestHDF5Dataset(unittest.TestCase):
                                                    'valid': valid,
                                                    'test': test}
         self.train.algorithm.termination_criterion = EpochCounter(max_epochs=5)
+        self.train.save_path = None
+        self.train.extensions[0].save_path = None
         self.train.main_loop()
 
     def tearDown(self):
