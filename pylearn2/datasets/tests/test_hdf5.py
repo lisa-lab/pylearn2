@@ -3,9 +3,8 @@ from pylearn2.datasets.hdf5 import HDF5Dataset
 from pylearn2.datasets.mnist import MNIST
 from pylearn2.termination_criteria import EpochCounter
 from pylearn2.utils import serial
-from pylearn2.testing.skip import skip_if_no_data
+from pylearn2.testing.skip import skip_if_no_data, skip_if_no_h5py
 import unittest
-import h5py
 import os
 
 
@@ -13,6 +12,8 @@ class TestHDF5Dataset(unittest.TestCase):
     """Trains the model described in scripts/papers/maxout/mnist_pi.yaml
     using HDF5 datasets and a max_epochs termination criterion."""
     def setUp(self):
+        skip_if_no_h5py()
+        import h5py
         skip_if_no_data()
 
         # save MNIST data to HDF5
