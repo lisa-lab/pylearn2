@@ -32,14 +32,15 @@ class LocalDatasetCache:
 
     def __init__(self):
         default_path = '${PYLEARN2_DATA_PATH}'
-        self.dataset_remote_dir = string_utils.preprocess(default_path)
+        local_path = '${PYLEARN2_LOCAL_DATA_PATH}'
         self.pid = os.getpid()
 
         try:
-            local_path = '${PYLEARN2_LOCAL_DATA_PATH}'
+            self.dataset_remote_dir = string_utils.preprocess(default_path)
             self.dataset_local_dir = string_utils.preprocess(local_path)
         except:
             # Local cache seems to be deactivated
+            self.dataset_remote_dir = ""
             self.dataset_local_dir = ""
 
     def cache_file(self, filename):
