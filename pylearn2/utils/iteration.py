@@ -17,15 +17,15 @@ Presets:
     container is empty after num_examples / batch_size calls
 """
 from __future__ import division
-import numpy
+import numpy, logging
 np = numpy
-
-import warnings
 
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import is_flat_specs
 from pylearn2.utils.rng import make_np_rng
+
+log = logging.getLogger(__name__)
 
 # Make sure that the docstring uses restructured text list format.
 # If you change the module-level docstring, please re-run
@@ -158,9 +158,11 @@ class SequentialSubsetIterator(SubsetIterator):
         self.ignore_uneven = ignore_uneven
 
         if self.uneven and self.ignore_uneven:
-            warnings.warn("Dataset size is uneven, last uneven batch will be ignored")
+            log.warning("Dataset size is not a multiple of batch size, last "
+                        "uneven batch will be ignored")
         elif self.uneven and not self.ignore_uneven:
-            warnings.warn("Dataset size is uneven, you can ignore last batch by setting ignore_uneven to True")
+            log.warning("Dataset size is not a multiple of batch size, you "
+                        "can ignore last batch by setting ignore_uneven to True")
 
     def next(self):
         """
@@ -387,9 +389,11 @@ class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
         self.ignore_uneven = ignore_uneven
 
         if self.uneven and self.ignore_uneven:
-            warnings.warn("Dataset size is uneven, last uneven batch will be ignored")
+            log.warning("Dataset size is not a multiple of batch size, last "
+                        "uneven batch will be ignored")
         elif self.uneven and not self.ignore_uneven:
-            warnings.warn("Dataset size is uneven, you can ignore last batch by setting ignore_uneven to True")
+            log.warning("Dataset size is not a multiple of batch size, you "
+                        "can ignore last batch by setting ignore_uneven to True")
 
 
     def next(self):
