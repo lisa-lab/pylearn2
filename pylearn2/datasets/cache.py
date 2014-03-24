@@ -39,7 +39,7 @@ class LocalDatasetCache:
             # Local cache seems to be deactivated
             self.dataset_local_dir = ""
 
-    def cacheFile(self, filename):
+    def cache_file(self, filename):
         """
         Caches a file locally if possible. If caching was succesfull, or if
         the file was previously successfully cached, this method returns the
@@ -84,7 +84,7 @@ class LocalDatasetCache:
         # Also, if another process is currently caching the same file, 
         # it forces the current process to wait for it to be done before
         # using the file.
-        self.getWriteLock(local_name)
+        self.get_writelock(local_name)
 
         # If the file does not exist locally, consider creating it
         if not os.path.exists(local_name):
@@ -93,7 +93,7 @@ class LocalDatasetCache:
             if not self.check_enough_space(remote_name, local_name):
                 self._write("Not enough free space : file %s not cached" %
                             remote_name)
-                self.releaseWriteLock()
+                self.release_writelock()
                 return filename
 
             # There is enough space; make a local copy of the file
@@ -109,8 +109,8 @@ class LocalDatasetCache:
         # writelock. This is to prevent having a moment where there is no
         # lock on this file which could give the impression that it is
         # unused and therefore safe to delete.
-        self.getReadLock(local_name)
-        self.releaseWriteLock()
+        self.get_readlock(local_name)
+        self.release_writelock()
 
         return local_name
 
@@ -169,7 +169,7 @@ class LocalDatasetCache:
             os.makedirs(folderName)
 
 
-    def getReadLock(self, path):
+    def get_readlock(self, path):
         """
         Obtain a readlock on a file
         """
@@ -179,9 +179,9 @@ class LocalDatasetCache:
         os.mkdir(lockdirName)
 
         # Register function to release the readlock at the end of the script
-        atexit.register(self.releaseReadLock, lockdirName=lockdirName)
+        atexit.register(self.release_readlock, lockdirName=lockdirName)
 
-    def releaseReadLock(self, lockdirName):
+    def release_readlock(self, lockdirName):
         """
         Release a previously obtained readlock
         """
@@ -190,7 +190,7 @@ class LocalDatasetCache:
         if (os.path.exists(lockdirName) and os.path.isdir(lockdirName)):
             os.rmdir(lockdirName)
 
-    def getWriteLock(self, filename):
+    def get_writelock(self, filename):
         """
         Obtain a writelock on a file.
         Only one write lock may be held at any given time.
@@ -202,7 +202,7 @@ class LocalDatasetCache:
         # try to create a folder with the same name as the file
         compilelock.get_lock(filename + ".writelock")
 
-    def releaseWriteLock(self):
+    def release_writelock(self):
         """
         Release the previously obtained writelock
         """
