@@ -5,6 +5,7 @@ from pylearn2.testing.skip import skip_if_no_data
 
 
 def test_avicenna():
+    """test that train/valid/test sets load (when standardize=False)."""
     skip_if_no_data()
     data = Avicenna(which_set='train', standardize=False)
     data = Avicenna(which_set='valid', standardize=False)
@@ -12,6 +13,7 @@ def test_avicenna():
 
 
 def test_avicenna_standardized():
+    """test that train/valid/test sets load (when standardize=True)."""
     skip_if_no_data()
     data = Avicenna(which_set='train', standardize=True)
     data = Avicenna(which_set='valid', standardize=True)
