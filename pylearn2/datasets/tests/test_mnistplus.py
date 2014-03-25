@@ -22,6 +22,10 @@ def int2base(x, base):
   return ''.join(digits)
 
 def test_mnistplus():
+    """
+    Tests every combination of parameters for loading mnistplus.
+    This test takes ~16.5 minutes on eos4.
+    """
     skip_if_no_data()
     params = []
     for i in range(32):

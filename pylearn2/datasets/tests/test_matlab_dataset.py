@@ -6,6 +6,7 @@ import os.path
 
 
 def test_matlab_dataset():
+    """test matlab_dataset"""
     skip_if_no_data()
     pylearn2_data_path = commands.getoutput("echo $PYLEARN2_DATA_PATH")
     dataset_path = 'matlab_test_dataset/test.mat'
