@@ -7,6 +7,7 @@ from pylearn2.testing.skip import skip_if_no_data
 
 class TestCIFAR10(unittest.TestCase):
     def setUp(self):
+        """Loads the train/test sets."""
         skip_if_no_data()
         self.train = CIFAR10(which_set = 'train')
         self.test = CIFAR10(which_set = 'test')
@@ -36,9 +37,14 @@ class TestCIFAR10(unittest.TestCase):
         assert np.all(b01c_direct == b01c)
 
     def test_iterator(self):
-        # Tests that batches returned by an iterator with topological
-        # data_specs are the same as the ones returned by calling
-        # get_topological_view on the dataset with the corresponding order
+        """
+        Tests that batches returned by an iterator with topological
+        data_specs are the same as the ones returned by calling
+        get_topological_view on the dataset with the corresponding order.
+
+        Also checks that samples from iterators with the same data_specs
+        with Conv2DSpace do not depend on the axes of the dataset.
+        """
         batch_size = 100
         b01c_X = self.test.X[0:batch_size, :]
         b01c_topo = self.test.get_topological_view(b01c_X)
