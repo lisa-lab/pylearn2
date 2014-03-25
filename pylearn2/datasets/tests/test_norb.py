@@ -14,14 +14,14 @@ class TestNORB(unittest.TestCase):
         skip_if_no_data()
 
     def test_foveated_norb(self):
-
-        # Test that the FoveatedNORB class can be instantiated
+        """Test that the FoveatedNORB class can be instantiated"""
         norb_train = FoveatedNORB(which_set="train",
                 scale=1, restrict_instances=[4, 6, 7, 8],
                 one_hot=1)
 
 
     def test_get_topological_view(self):
+        """Test smallNORB.get_topological_view"""
         norb = SmallNORB('train')
 
         # Get a topological view as a single "(b, s, 0 1, c)" tensor.
