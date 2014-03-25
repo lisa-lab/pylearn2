@@ -2657,6 +2657,7 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
     max_pool_c01b : Same functionality but with ('c', 0, 1, 'b') axes
     sandbox.cuda_convnet.pool.max_pool_c01b : Same functionality as
         `max_pool_c01b` but GPU-only and considerably faster.
+    mean_pool : Mean pooling instead of max pooling
     """
     mx = None
     r, c = image_shape
@@ -2828,14 +2829,27 @@ def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape):
 
 def mean_pool(bc01, pool_shape, pool_stride, image_shape):
     """
-    .. todo::
+    Does mean pooling (aka average pooling) via a Theano graph.
 
-        WRITEME properly
+    Parameters
+    ----------
+    bc01 : theano tensor
+        minibatch in format (batch size, channels, rows, cols)
+    pool_shape : tuple
+        shape of the pool region (rows, cols)
+    pool_stride : tuple
+        strides between pooling regions (row stride, col stride)
+    image_shape : tuple
+        avoid doing some of the arithmetic in theano
 
-    bc01: minibatch in format (batch size, channels, rows, cols)
-    pool_shape: shape of the pool region (rows, cols)
-    pool_stride: strides between pooling regions (row stride, col stride)
-    image_shape: avoid doing some of the arithmetic in theano
+    Returns
+    -------
+    pooled : theano tensor
+        The output of pooling applied to `bc01`
+
+    See Also
+    --------
+    max_pool : Same thing but with max pooling
     """
     mx = None
     r, c = image_shape
@@ -3526,14 +3540,14 @@ def geometric_mean_prediction(forward_props):
     Parameters
     ----------
     forward_props : list
-        A list of Theano graphs corresponding to forward \
-        propagations through the network with different \
+        A list of Theano graphs corresponding to forward
+        propagations through the network with different
         dropout masks.
 
     Returns
     -------
     geo_mean : tensor_like
-        A symbolic graph for the geometric mean prediction \
+        A symbolic graph for the geometric mean prediction
         of all exponentially many masked subnetworks.
 
     Notes
