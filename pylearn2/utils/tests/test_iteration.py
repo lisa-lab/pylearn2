@@ -1,6 +1,5 @@
 """Tests for iterators."""
 import numpy as np
-
 from pylearn2.utils.iteration import (
     SubsetIterator,
     SequentialSubsetIterator,
@@ -9,6 +8,7 @@ from pylearn2.utils.iteration import (
     RandomUniformSubsetIterator,
     BatchwiseShuffledSequentialIterator
 )
+
 
 def test_misc_exceptions():
     raised = False
@@ -82,9 +82,7 @@ def test_sequential_num_batches_and_batch_size():
         for i in range(4):
             iterator.next()
     except Exception as e:
-        raise e
         assert False
-#        raise e
     raised = False
     try:
         iterator.next()
@@ -143,41 +141,3 @@ def test_batchwise_shuffled_sequential():
         assert iter_slice.start >= 0
         assert iter_slice.step is None or iter_slice.step == 1
 
-def test_uneven_batches():
-    # to do
-    dataset_size = 50
-    batch_size = 20
-
-    def test_ignore_uneven_iterator(Iterator):
-        iterator = Iterator(dataset_size,batch_size,None,ignore_uneven=True)
-
-        num = 0
-        for iter_slice in iterator:
-            if isinstance(iter_slice,slice):
-                length = iter_slice.stop-iter_slice.start
-            else:
-                length = len(iter_slice)
-            assert length == batch_size
-            num +=  1
-        assert num == 2
-
-    def test_include_uneven_iterator(Iterator):
-        iterator = Iterator(dataset_size,batch_size,None,ignore_uneven=False)
-
-        num = 0
-        for iter_slice in iterator:
-            if isinstance(iter_slice,slice):
-                length = iter_slice.stop-iter_slice.start
-            else:
-                length = len(iter_slice)
-            assert length in [batch_size, dataset_size % batch_size]
-            num +=  1
-        assert num == 3
-
-    test_ignore_uneven_iterator(SequentialSubsetIterator)
-    test_ignore_uneven_iterator(ShuffledSequentialSubsetIterator)
-    test_ignore_uneven_iterator(BatchwiseShuffledSequentialIterator)
-
-    test_include_uneven_iterator(SequentialSubsetIterator)
-    test_include_uneven_iterator(ShuffledSequentialSubsetIterator)
-    test_include_uneven_iterator(BatchwiseShuffledSequentialIterator)
