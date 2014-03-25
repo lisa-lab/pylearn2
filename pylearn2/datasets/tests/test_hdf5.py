@@ -1,6 +1,4 @@
 import pylearn2
-from pylearn2.datasets.hdf5 import HDF5Dataset
-from pylearn2.datasets.mnist import MNIST
 from pylearn2.termination_criteria import EpochCounter
 from pylearn2.utils import serial
 from pylearn2.testing.skip import skip_if_no_data, skip_if_no_h5py
@@ -15,6 +13,7 @@ class TestHDF5Dataset(unittest.TestCase):
         skip_if_no_h5py()
         import h5py
         skip_if_no_data()
+        from pylearn2.datasets.mnist import MNIST
 
         # save MNIST data to HDF5
         train = MNIST(which_set='train', one_hot=1, start=0, stop=50000)
@@ -31,7 +30,8 @@ class TestHDF5Dataset(unittest.TestCase):
         self.train = serial.load_train_file(model_path)
 
     def test_hdf5(self):
-        # load datasets from HDF5
+        """Load datasets from HDF5."""
+        from pylearn2.datasets.hdf5 import HDF5Dataset
         train = HDF5Dataset('train.h5', X="X", y="y")
         valid = HDF5Dataset('valid.h5', X="X", y="y")
         test = HDF5Dataset('test.h5', X="X", y="y")
