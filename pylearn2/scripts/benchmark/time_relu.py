@@ -1,18 +1,26 @@
 '''
-This file has two purposes:
-1. test pylearn2.scalar module (conducted in test_scalar_rectifier())
-2. speed benchmark on pylearn2.scalar on CPU and GPU (conducted in benchmark_single_op)
+This is the benchmark of 4 different implementations of rectified linear
+activation in Theano.
+Two types of computations are tested w.r.t. each implementation: fprop and grad
 
-Conclusion:
-1. For pylearn2.scalar, both 'grad()' and 'c_code()' work as expected.
-2. On CPU,
-speed benchmark fprop old/new=  0.615451241318,
-speed benchmark grad old/new=  2.8991003942
+Results: in seconds, float32 (details in the code)
+
+Implementations tested, CPU (fprop, bprop), GPU (fprop, bprop), (final score)
+a) ScalarRectifier:       (2.32, 2.40)    (1.36, 2.67)    (8.75)
+b) T.max(.0, x):          (5.19, 3.65)    (1.38, 2.38)    (12.60)
+c) x*(x>0.):              (2.85, 2.84)    (1.31, 2.91)    (9.91)
+d) T.switch(x<0., 0., x): (2.32, 1.41)    (1.41, 2.84)    (8.39)
+
+Conlusion:
+In terms of efficiency, d) > a) > c) > b)
+
+Written by Li and Fred.
 
 '''
 import theano
 import theano.tensor as T
-from pylearn2.scalar import rectifier
+from theano.tensor import elemwise
+
 import numpy
 import time
 
@@ -20,6 +28,67 @@ floatX = 'float32'
 relu = lambda x: T.maximum(0.0, x)
 relu_ = lambda x: x * (x > 0)
 relu__ = lambda x: T.switch(x < 0., 0., x)
+
+class ScalarRectifier(scalar.UnaryScalarOp):
+    """
+    .. todo::
+
+        WRITEME
+    """
+    @staticmethod
+    def st_impl(x):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        return x * (x > 0.0)
+
+    def impl(self, x):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        return ScalarRectifier.st_impl(x)
+
+    def grad(self, (x,), (gz,)):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        return [(x > 0.0) * gz]
+
+    def c_code(self, node, name, (x,), (z,), sub):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        if node.inputs[0].type == scalar.float32:
+            return """%(z)s = %(x)s < 0.0f ? 0.0 : %(x)s;""" % locals()
+        elif node.inputs[0].type == scalar.float64:
+            return """%(z)s = %(x)s < 0.0 ? 0.0 : %(x)s;""" % locals()
+        else:
+            raise NotImplementedError('only floatingpoint is implemented')
+
+    def c_code_cache_version(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        v = super(ScalarRectifier, self).c_code_cache_version()
+        if v:
+            return (2,) + v
+        else:
+            return v
+
+scalar_rectifier = ScalarRectifier(scalar.upgrade_to_float,
+                                   name='scalar_rectifier')
+rectifier = elemwise.Elemwise(scalar_rectifier, name='rectifier')
+
 
 def test_scalar_rectifier():
     # verify the new op rectifier produces the same results as relu
