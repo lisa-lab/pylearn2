@@ -4,6 +4,7 @@ from pylearn2.testing.skip import skip_if_no_data
 
 
 def test_iris():
+    """Load iris dataset"""
     skip_if_no_data()
     data = iris.Iris()
     assert data.X is not None
@@ -11,6 +12,7 @@ def test_iris():
     assert np.all(data.X != np.nan)
 
 def test_data():
+    """Checki iris dataset values against backup here"""
     assert iris_data == iris.iris_data
 
 iris_data = \
