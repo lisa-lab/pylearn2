@@ -1,8 +1,8 @@
 """
 Dataset preloading tool
 
-This file provides the ability to make a local cache of a dataset or 
-part of it. It is meant to help in the case where multiple jobs are 
+This file provides the ability to make a local cache of a dataset or
+part of it. It is meant to help in the case where multiple jobs are
 reading the same dataset from ${PYLEARN2_DATA_PATH}, which may cause a
 great burden on the network.
 
@@ -53,6 +53,17 @@ class LocalDatasetCache:
         the file was previously successfully cached, this method returns the
         path to the local copy of the file. If not, it returns the path to
         the original file.
+
+        Parameters
+        ----------
+        filename : string
+            Remote file to cache locally
+
+        Returns
+        -------
+        output : string
+            Updated (if needed) filename to use to access the remote
+            file.
         """
 
         remote_name = string_utils.preprocess(filename)
@@ -89,7 +100,7 @@ class LocalDatasetCache:
 
         # Acquire writelock on the local file to prevent the possibility
         # of any other process modifying it while we cache it if needed.
-        # Also, if another process is currently caching the same file, 
+        # Also, if another process is currently caching the same file,
         # it forces the current process to wait for it to be done before
         # using the file.
         self.get_writelock(local_name)
@@ -125,6 +136,14 @@ class LocalDatasetCache:
     def copy_from_server_to_local(self, remote_fname, local_fname):
         """
         Copies a remote file locally
+
+        Parameters
+        ----------
+        remote_fname : string
+            Remote file to copy
+        local_fname : string
+            Path and name of the local copy to be made of the remote
+            file.
         """
 
         head, tail = os.path.split(local_fname)
@@ -138,6 +157,17 @@ class LocalDatasetCache:
     def disk_usage(self, path):
         """
         Return free usage about the given path, in bytes
+
+        Parameters
+        ----------
+        path : string
+            Folder for which to return disk usage
+
+        Returns
+        -------
+        output : tuple
+            Tuple containing total space in the folder and currently
+            used space in the folder
         """
 
         st = os.statvfs(path)
@@ -148,7 +178,24 @@ class LocalDatasetCache:
     def check_enough_space(self, remote_fname, local_fname,
                            max_disk_usage=0.9):
         """
-        Check if the local disk has enough space to store the dataset
+        Check if the given local folder has enough space to store
+        the specified remote file
+
+        Parameters
+        ----------
+        remote_fname : string
+            Path to the remote file
+        remote_fname : string
+            Path to the local folder
+        max_disk_usage : float
+            Fraction indicating how much of the total space in the
+            local folder can be used before the local cache must stop
+            adding to it.
+
+        Returns
+        -------
+        output : boolean
+            True if there is enough space to store the remote file.
         """
 
         storage_need = os.path.getsize(remote_fname)
@@ -156,7 +203,7 @@ class LocalDatasetCache:
 
         # Instead of only looking if there's enough space, we ensure we do not
         # go over max disk usage level to avoid filling the disk/partition
-        return ((storage_used + storage_need) < 
+        return ((storage_used + storage_need) <
                 (storage_total * max_disk_usage))
 
     def safe_mkdir(self, folderName):
@@ -164,14 +211,23 @@ class LocalDatasetCache:
         Create the specified folder. If the parent folders do not
         exist, they are also created. If the folder already exists,
         nothing is done.
+
+        Parameters
+        ----------
+        folderName : string
+            Name of the folder to create
         """
         if not os.path.exists(folderName):
             os.makedirs(folderName)
 
-
     def get_readlock(self, path):
         """
         Obtain a readlock on a file
+
+        Parameters
+        ----------
+        path : string
+            Name of the file on which to obtain a readlock
         """
 
         timestamp = int(time.time() * 1e6)
@@ -184,6 +240,11 @@ class LocalDatasetCache:
     def release_readlock(self, lockdirName):
         """
         Release a previously obtained readlock
+
+        Parameters
+        ----------
+        lockdirName : string
+            Name of the previously obtained readlock
         """
 
         # Make sure the lock still exists before deleting it
@@ -194,6 +255,11 @@ class LocalDatasetCache:
         """
         Obtain a writelock on a file.
         Only one write lock may be held at any given time.
+
+        Parameters
+        ----------
+        filename : string
+            Name of the file on which to obtain a writelock
         """
 
         # compilelock expect locks to be on folder. Since we want a lock on a
