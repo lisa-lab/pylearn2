@@ -218,6 +218,16 @@ class SGD(TrainingAlgorithm):
         self.monitor = Monitor.get_monitor(model)
         self.monitor._sanity_check()
 
+        # test if force batch size and batch size
+        print getattr(model,"force_batch_size",False)
+        if getattr(model,"force_batch_size",False) and \
+           self.dataset_size%self.batch_size != 0 and \
+           not isinstance(_iteration_schemes[self.monitor_iteration_mode],ForcedEvenIterator):
+            raise ValueError("Dataset size is not a multiple of batch size."
+                             "You should set monitor_iteration_mode to even_sequential, "
+                             "even_shuffled_sequential or even_batchwise_shuffled_sequential")
+
+
         data_specs = self.cost.get_data_specs(self.model)
         mapping = DataSpecsMapping(data_specs)
         space_tuple = mapping.flatten(data_specs[0], return_tuple=True)
