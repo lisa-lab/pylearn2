@@ -3,6 +3,7 @@ from pylearn2.datasets.four_regions import FourRegions
 
 
 def test_four_regions():
+    """test four regions dataset"""
     dataset = FourRegions(5000)
     X = dataset.get_design_matrix()
     np.testing.assert_(((X < 1.) & (X > -1.)).all())

@@ -4,6 +4,7 @@ from pylearn2.testing.skip import skip_if_no_data
 
 
 def test_hepatitis():
+    """test hepatitis dataset"""
     skip_if_no_data()
     data = hepatitis.Hepatitis()
     assert data.X is not None
@@ -11,6 +12,7 @@ def test_hepatitis():
     assert np.all(data.X != np.nan)
 
 def test_data():
+    """test data in hepatitis.py against backup here"""
     assert hepatitis_data == hepatitis.hepatitis_data
 
 hepatitis_data = \
