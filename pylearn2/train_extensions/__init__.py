@@ -30,16 +30,16 @@ class TrainExtension(object):
         Parameters
         ----------
         model : object
-            The model object being trained (implementing some subset of the \
+            The model object being trained (implementing some subset of the
             `pylearn2.models` interface).
 
         dataset : object
-            The dataset object being trained (implementing the \
+            The dataset object being trained (implementing the
             `pylearn2.datasets` interface).
 
         algorithm : object
-            The object representing the training algorithm being \
-            used to train the model (and thus implementing the \
+            The object representing the training algorithm being
+            used to train the model (and thus implementing the
             `pylearn2.training_algorithms` interface).
         """
 
@@ -51,16 +51,16 @@ class TrainExtension(object):
         Parameters
         ----------
         model : object
-            The model object being trained (implementing some \
+            The model object being trained (implementing some
             subset of the `pylearn2.models` interface).
 
         dataset : object
-            The dataset object being trained (implementing the \
+            The dataset object being trained (implementing the
             `pylearn2.datasets` interface).
 
         algorithm : object
-            The object representing the training algorithm being \
-            used to train the model (and thus implementing the \
+            The object representing the training algorithm being
+            used to train the model (and thus implementing the
             `pylearn2.training_algorithms` interface).
         """
 
@@ -72,18 +72,41 @@ class TrainExtension(object):
         Parameters
         ----------
         model : object
-            The model object being trained (implementing some \
+            The model object being trained (implementing some
             subset of the `pylearn2.models` interface).
 
         dataset : object
-            The dataset object being trained (implementing the \
+            The dataset object being trained (implementing the
             `pylearn2.datasets` interface).
 
         algorithm : object
-            The object representing the training algorithm being \
-            used to train the model (and thus implementing the \
+            The object representing the training algorithm being
+            used to train the model (and thus implementing the
             `pylearn2.training_algorithms` interface).
         """
+
+    def on_main_loop_terminate(self):
+        """
+        Train calls this immediately at the very end of training.
+        This method is called on each extension in the order they were
+        specified.
+
+        Parameters
+        ----------
+        model : object
+            The model object being trained (implementing some
+            subset of the `pylearn2.models` interface).
+
+        dataset : object
+            The dataset object being trained (implementing the
+            `pylearn2.datasets` interface).
+
+        algorithm : object
+            The object representing the training algorithm being
+            used to train the model (and thus implementing the
+            `pylearn2.training_algorithms` interface).
+        """
+
 
 class SharedSetter(TrainExtension):
     """
@@ -112,7 +135,7 @@ class SharedSetter(TrainExtension):
                 self._epoch_to_updates[epoch] = []
             assert hasattr(var, 'get_value')
             assert var.name is not None
-            self._epoch_to_updates[epoch].append((var,val))
+            self._epoch_to_updates[epoch].append((var, val))
 
     def on_monitor(self, model, dataset, algorithm):
         """
@@ -128,13 +151,12 @@ class SharedSetter(TrainExtension):
             for var in self._vars:
                 monitor.add_channel(name=var.name, val=var,
                                     ipt=hack.graph_input, dataset=hack.dataset)
-
-
         if self._count in self._epoch_to_updates:
             for update in self._epoch_to_updates[self._count]:
                 var, val = update
                 var.set_value(np.cast[var.dtype](val))
         self._count += 1
+
 
 class ChannelSmoother(TrainExtension):
     """
@@ -170,10 +192,9 @@ class ChannelSmoother(TrainExtension):
         ipt = channel_to_smooth.graph_input
         dataset = channel_to_smooth.dataset
 
-        monitor.add_channel(name=self.channel_to_publish,
-                ipt=ipt,
-                val=-1.,
-                dataset=dataset)
+        monitor.add_channel(name=self.channel_to_publish, ipt=ipt,
+                            val=-1.,
+                            dataset=dataset)
 
         self.in_ch = channel_to_smooth
         self.out_ch = channels[self.channel_to_publish]

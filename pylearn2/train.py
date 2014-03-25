@@ -222,6 +222,9 @@ already been reported."""
 
         self.model.monitor.training_succeeded = True
 
+        for extension in self.extensions:
+            extension.on_main_loop_terminate(self.model, self.dataset, self.algorithm)
+
         if self.save_freq > 0:
             self.save()
 
@@ -231,7 +234,7 @@ already been reported."""
 
         Returns
         -------
-        continue_learning: bool
+        continue_learning : bool
             If `False`, signals that at least one train
             extension wants to stop learning.
         """
