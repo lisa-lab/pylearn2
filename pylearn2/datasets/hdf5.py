@@ -1,5 +1,9 @@
 """Objects for datasets serialized in HDF5 format (.h5)."""
-import h5py
+import warnings
+try:
+    import h5py
+except ImportError:
+    warnings.warn("Could not import h5py")
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 
 
