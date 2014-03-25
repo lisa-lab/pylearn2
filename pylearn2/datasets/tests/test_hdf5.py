@@ -19,14 +19,18 @@ class TestHDF5Dataset(unittest.TestCase):
         train = MNIST(which_set='train', one_hot=1, start=0, stop=50000)
         valid = MNIST(which_set='train', one_hot=1, start=50000, stop=60000)
         test = MNIST(which_set='test', one_hot=1)
-        for name, dataset in [('train', train), ('valid', valid), ('test', test)]:
+        for name, dataset in [('train', train),
+                              ('valid', valid),
+                              ('test', test)]:
             with h5py.File("{}.h5".format(name), "w") as f:
                 f.create_dataset('X', data=dataset.get_design_matrix())
-                f.create_dataset('topo_view', data=dataset.get_topological_view())
+                f.create_dataset('topo_view',
+                                 data=dataset.get_topological_view())
                 f.create_dataset('y', data=dataset.get_targets())
 
         # load Train object
-        model_path = pylearn2.__path__[0] + "/scripts/papers/maxout/mnist_pi.yaml"
+        model_path = pylearn2.__path__[0] \
+                     + "/scripts/papers/maxout/mnist_pi.yaml"
         self.train = serial.load_train_file(model_path)
 
     def test_hdf5(self):
