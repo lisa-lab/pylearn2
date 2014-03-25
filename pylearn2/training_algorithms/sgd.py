@@ -130,7 +130,7 @@ class SGD(TrainingAlgorithm):
     batches_per_iter : optional, int
         The number of batches to draw from the iterator over training
         examples.
-        If iterational mode is 'sequential' or 'shuffled_sequential', this
+        If iteration mode is 'sequential' or 'shuffled_sequential', this
         is unnecessary; when unspecified we will iterate over all examples.
     theano_function_mode : optional, a valid argument to theano.function's
         'mode' parameter.
