@@ -219,7 +219,6 @@ class SGD(TrainingAlgorithm):
         self.monitor._sanity_check()
 
         # test if force batch size and batch size
-        print getattr(model,"force_batch_size",False)
         if getattr(model,"force_batch_size",False) and \
            self.dataset_size%self.batch_size != 0 and \
            not isinstance(_iteration_schemes[self.monitor_iteration_mode],ForcedEvenIterator):
