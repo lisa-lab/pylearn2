@@ -215,7 +215,6 @@ whitelist_docstrings = ['scripts/datasets/step_through_norb_foveated.py',
     'models/tests/test_s3c_misc.py',
     'models/gsn.py',
     'models/model.py',
-    'models/mlp.py',
     'models/dbm/sampling_procedure.py',
     'models/dbm/layer.py',
     'models/dbm/__init__.py',
@@ -517,8 +516,11 @@ whitelist_docstrings = ['scripts/datasets/step_through_norb_foveated.py',
     'devtools/list_files.py',
     'train_extensions/__init__.py',
     'train_extensions/best_params.py',
-    'corruption.py'
-    ]
+    'corruption.py',
+    'datasets/tests/test_tl_challenge.py',
+    'datasets/tests/test_tfd.py',
+    'datasets/tests/test_npy_npz.py',
+    'linear/tests/test_conv2d.py']
 
 #add files which have long execution time to whitelist_docstrings
 whitelist_docstrings.extend(['sandbox/cuda_convnet/debug.py',
@@ -585,8 +587,6 @@ whitelist_docstrings.extend(['training_algorithms/tests/test_learning_rule.py',
 
 def test_format_pep8():
     """
-    test_format_pep8()
-
     Test if pep8 is respected.
     """
     format_infractions = []
@@ -606,8 +606,6 @@ def test_format_pep8():
 
 def test_format_docstrings():
     """
-    test_format_docstrings()
-
     Test if docstrings are well formated.
     """
     format_infractions = []

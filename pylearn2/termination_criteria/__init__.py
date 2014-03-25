@@ -255,8 +255,8 @@ class Or(TerminationCriterion):
     Parameters
     ----------
     criteria : iterable
-        A sequence of callables representing termination criteria, \
-        with a return value of True indicating that gradient \
+        A sequence of callables representing termination criteria,
+        with a return value of True indicating that gradient
         descent should continue.
     """
     def __init__(self, criteria):

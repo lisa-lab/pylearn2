@@ -3,7 +3,6 @@
 """
 
 import inspect
-import textwrap
 import re
 import sys
 import types
@@ -382,7 +381,8 @@ class NumpyDocString(object):
         self._doc.reset()
         for j, line in enumerate(self._doc):
             if len(line) > 75:
-                errors.append("Line %d too long: \"%s\"..." % (j+1, line[:30]))
+                errors.append("Line %d exceeds 75 chars"
+                        ": \"%s\"..." % (j+1, line[:30]))
 
         if check_order:
             canonical_order = ['Signature', 'Summary', 'Extended Summary',
@@ -411,6 +411,14 @@ def indent(str,indent=4):
     return '\n'.join(indent_str + l for l in lines)
 
 class NumpyFunctionDocString(NumpyDocString):
+    def __init__(self, docstring, function):
+        super(NumpyFunctionDocString, self).__init__(docstring)
+        args, varargs, keywords, defaults = inspect.getargspec(function)
+        if (args and args != ['self']) or varargs or keywords or defaults:
+            self.has_parameters = True
+        else:
+            self.has_parameters = False
+
     def _parse(self):
         self._parsed_data = {
             'Signature': '',
@@ -433,7 +441,10 @@ class NumpyFunctionDocString(NumpyDocString):
         errors = NumpyDocString.get_errors(self)
 
         if not self['Signature']:
-            errors.append("No function signature")
+            #errors.append("No function signature") #this check is currently
+                                                    #too restrictive. Disabling
+                                                    #it for now
+            pass
 
         if not self['Summary']:
             errors.append("No function summary line")
@@ -441,8 +452,7 @@ class NumpyFunctionDocString(NumpyDocString):
         if len(" ".join(self['Summary'])) > 3*80:
             errors.append("Brief function summary is longer than 3 lines")
 
-        if not (re.match('^\w+\(\)$', self['Signature'])
-                or self['Parameters']):
+        if not self['Parameters'] and self.has_parameters:
             errors.append("No Parameters section")
 
         return errors
@@ -641,7 +651,8 @@ def handle_function(val, name):
         func_errors.append((name, '**missing** function-level docstring'))
     else:
         func_errors = [
-            (name, e) for e in NumpyFunctionDocString(docstring).get_errors()
+            (name, e) for e in
+            NumpyFunctionDocString(docstring, val).get_errors()
         ]
     return func_errors
 
@@ -667,7 +678,7 @@ def handle_method(method, method_name, class_name):
     else:
         method_errors = [
             (class_name, method_name, e) for e in
-            NumpyFunctionDocString(docstring).get_errors()
+            NumpyFunctionDocString(docstring, method).get_errors()
         ]
     return method_errors
 
@@ -744,6 +755,8 @@ def docstring_errors(filename, global_dict=None):
                     all_errors.extend(handle_class(val, key))
         elif key == '__doc__':
             all_errors.extend(handle_module(val, key))
+    if all_errors:
+        all_errors.insert(0, ("%s:"%filename,))
     return all_errors
 
 if __name__ == "__main__":
