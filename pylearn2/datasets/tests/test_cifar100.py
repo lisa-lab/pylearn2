@@ -6,6 +6,7 @@ from pylearn2.testing.skip import skip_if_no_data
 
 
 class TestCIFAR100(unittest.TestCase):
+"""unittest for cifar100 class"""
     def setUp(self):
         skip_if_no_data()
         self.train_set = CIFAR100(which_set='train')
@@ -18,14 +19,17 @@ class TestCIFAR100(unittest.TestCase):
 
 
     def test_adjust_for_viewer(self):
+        """test adjust_for_viewer"""
         self.train_set.adjust_for_viewer(self.train_set.X)
 
     def test_adjust_to_be_viewed_with(self):
+        """test adjust_to_be_viewed_with"""
         self.train_set.adjust_to_be_viewed_with(
             self.train_set.X,
             np.ones(self.train_set.X.shape))
 
     def test_get_test_set(self):
+        """test get_test_set"""
         train_test_set = self.train_set.get_test_set()
         test_test_set = self.test_set.get_test_set()
         assert np.all(train_test_set.X == test_test_set.X)
@@ -56,9 +60,14 @@ class TestCIFAR100(unittest.TestCase):
         assert np.all(b01c_direct == b01c)
 
     def test_iterator(self):
-        # Tests that batches returned by an iterator with topological
-        # data_specs are the same as the ones returned by calling
-        # get_topological_view on the dataset with the corresponding order
+        """
+        Tests that batches returned by an iterator with topological
+        data_specs are the same as the ones returned by calling
+        get_topological_view on the dataset with the corresponding order
+
+        Also check that samples from iterators with the same data_specs
+        with Conv2DSpace do not depend on the axes of the dataset
+        """
         batch_size = 100
         b01c_X = self.test_set.X[0:batch_size, :]
         b01c_topo = self.test_set.get_topological_view(b01c_X)
