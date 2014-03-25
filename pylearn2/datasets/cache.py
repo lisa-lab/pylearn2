@@ -1,10 +1,10 @@
 """
 Dataset preloading tool
 
-This file provides the ability to make a local cache of a dataset or part of
-it. It is meant to help in the case where multiple jobs are reading the same
-dataset from ${PYLEARN2_DATA_PATH}, which may cause a great burden on the
-network.
+This file provides the ability to make a local cache of a dataset or 
+part of it. It is meant to help in the case where multiple jobs are 
+reading the same dataset from ${PYLEARN2_DATA_PATH}, which may cause a
+great burden on the network.
 
 With this file, it is possible to make a local copy
 (in ${PYLEARN2_LOCAL_DATA_PATH}) of any required file and have multiple
@@ -29,6 +29,10 @@ log = logging.getLogger(__name__)
 
 
 class LocalDatasetCache:
+    """
+    A local cache for remote files for faster access and reducing
+    network stress.
+    """
 
     def __init__(self):
         default_path = '${PYLEARN2_DATA_PATH}'
