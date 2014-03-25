@@ -17,7 +17,7 @@ Presets:
     container is empty after num_examples / batch_size calls
 """
 from __future__ import division
-import numpy, functools
+import numpy, functools, inspect
 np = numpy
 
 from pylearn2.space import CompositeSpace
@@ -165,7 +165,16 @@ class ForcedEvenIterator(SubsetIterator):
 
 
 def as_even(cls):
-    return functools.partial(ForcedEvenIterator, cls)
+    partial = functools.partial(ForcedEvenIterator, cls)
+
+    # temporarily set cls attributes on partial so they are accessible
+    # before instantiation
+    attributes = inspect.getmembers(cls, lambda a:not(inspect.isroutine(a)))
+    for key, value in attributes:
+        if not(key.startswith('__') and key.endswith('__')):
+            setattr(partial,key,value)
+
+    return partial
 
 
 class SequentialSubsetIterator(SubsetIterator):
