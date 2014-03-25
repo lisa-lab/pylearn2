@@ -11,12 +11,18 @@ from pylearn2.testing.skip import skip_if_no_data
 
 
 class TestNORB(unittest.TestCase):
+    """
+
+    Parameters
+    ----------
+    none
+    """
+
     def setUp(self):
         skip_if_no_data()
 
     def test_foveated_norb(self):
-
-        # Test that the FoveatedNORB class can be instantiated
+        """Test that the FoveatedNORB class can be instantiated"""
         norb_train = FoveatedNORB(which_set="train",
                                   scale=1, restrict_instances=[4, 6, 7, 8],
                                   one_hot=1)
