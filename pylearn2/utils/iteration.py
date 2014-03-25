@@ -17,7 +17,7 @@ Presets:
     container is empty after num_examples / batch_size calls
 """
 from __future__ import division
-import numpy
+import numpy, functools
 np = numpy
 
 from pylearn2.space import CompositeSpace
@@ -112,6 +112,60 @@ class SubsetIterator(object):
             WRITEME
         """
         return False
+
+class ForcedEvenIterator(SubsetIterator):
+    """
+    .. todo::
+
+        WRITEME
+    """
+
+    def __init__(self, base_iterator_cls, *args, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
+
+        self._base_iterator = base_iterator_cls(*args, **kwargs)
+        self._batch_size = self._base_iterator._batch_size
+        self._num_batches = self._base_iterator._num_batches
+        self._dataset_size = self._base_iterator._dataset_size
+
+    @property
+    def num_examples(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
+
+        product = self.batch_size * self.num_batches
+        return min(product, self._dataset_size)
+
+    def next(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
+
+        length = -1
+
+        # check if the batch has wrong length, throw it away
+        while length != self.batch_size:
+            batch = self._base_iterator.next()
+
+            if isinstance(batch,slice):
+                length = batch.stop-batch.start
+            else:
+                length = len(batch)
+
+        return batch
+
+
+def as_even(cls):
+    return functools.partial(ForcedEvenIterator, cls)
 
 
 class SequentialSubsetIterator(SubsetIterator):
@@ -397,6 +451,9 @@ _iteration_schemes = {
     'random_slice': RandomSliceSubsetIterator,
     'random_uniform': RandomUniformSubsetIterator,
     'batchwise_shuffled_sequential': BatchwiseShuffledSequentialIterator,
+    'even_sequential': as_even(SequentialSubsetIterator),
+    'even_shuffled_sequential': as_even(ShuffledSequentialSubsetIterator),
+    'even_batchwise_shuffled_sequential': as_even(BatchwiseShuffledSequentialIterator),
 }
 
 
