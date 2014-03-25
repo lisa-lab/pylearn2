@@ -142,8 +142,38 @@ def test_str():
     s = str(mlp)
 
     assert isinstance(s, basestring)
+    
+def test_sigmoid_cost_matches_cost_matrix():
+    """
+    Make sure that the result of cost() and 
+    cost_from_cost_matrix(cost_matrix()) are the same for the sigmoid layer
+    """
+    mlp = MLP(nvis=3, layers=[Sigmoid(layer_name='h0', dim=1, irange=0.005,
+                                      monitor_style='classification')])
+    Y = theano.tensor.matrix(dtype=theano.config.floatX)
+    X = theano.tensor.matrix(dtype=theano.config.floatX)
+    
+    Y_hat = mlp.fprop(X)
+    cost = mlp.cost(Y=Y, Y_hat=Y_hat)
+    cost_from_cost_matrix = (
+                                mlp.cost_matrix(Y=Y, Y_hat=Y_hat))
+    f = theano.function([X, Y], [cost, cost_from_cost_matrix],
+                        allow_input_downcast=True)
+    rng = np.random.RandomState(0)
+
+    for _ in range(10):  # repeat a few times for statistical strength
+    
+        # Ensure that the two ways to compute the cost give identical
+        # answers (minus rounding errors)
+        inputs = rng.normal(size=(30,3))
+        targets = (rng.uniform(size=(30, 1)) > 0.5) * 1.0
+        cost1, cost2 = f(inputs, targets)
+        
+        np.testing.assert_allclose(cost1,cost2.mean(), rtol=1e-6)
+    
 
 if __name__ == "__main__":
+    test_sigmoid_cost_matches_cost_matrix()
     test_masked_fprop()
     test_sampled_dropout_average()
     test_exhaustive_dropout_average()
