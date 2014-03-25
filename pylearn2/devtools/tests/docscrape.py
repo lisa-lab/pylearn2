@@ -381,7 +381,8 @@ class NumpyDocString(object):
         self._doc.reset()
         for j, line in enumerate(self._doc):
             if len(line) > 75:
-                errors.append("Line %d too long: \"%s\"..." % (j+1, line[:30]))
+                errors.append("Line %d exceeds 75 chars"
+                        ": \"%s\"..." % (j+1, line[:30]))
 
         if check_order:
             canonical_order = ['Signature', 'Summary', 'Extended Summary',
