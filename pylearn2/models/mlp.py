@@ -2576,7 +2576,7 @@ class ConvRectifiedLinear(Layer):
             b = self.b.dimshuffle('x', 0, 'x', 'x')
         else:
             b = self.b.dimshuffle('x', 0, 1, 2)
- 
+
         z = z + b
 
         if self.layer_name is not None:
@@ -3423,27 +3423,23 @@ def exhaustive_dropout_average(mlp, inputs, masked_input_layers=None,
     ----------
     mlp : object
         An MLP object.
-
     inputs : tensor_like
-        A Theano variable representing a minibatch appropriate \
-        for fpropping through the MLP.
-
+        A Theano variable representing a minibatch appropriate for fpropping
+        through the MLP.
     masked_input_layers : list, optional
-        A list of layer names whose input should be masked. \
-        Default is all layers (including the first hidden \
-        layer, i.e. mask the input).
-
+        A list of layer names whose input should be masked.
+        Default is all layers (including the first hidden layer, i.e. mask
+        the input).
     default_input_scale : float, optional
         The amount to scale input in dropped out layers.
-
     input_scales : dict, optional
-        A dictionary  mapping layer names to constants by \
+        A dictionary  mapping layer names to constants by
         which to scale the input.
 
     Returns
     -------
     geo_mean : tensor_like
-        A symbolic graph for the geometric mean prediction \
+        A symbolic graph for the geometric mean prediction
         of all exponentially many masked subnetworks.
 
     Notes
