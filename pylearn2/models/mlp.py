@@ -2224,6 +2224,7 @@ class SpaceConverter(Layer):
 
         return self.input_space.format_as(state_below, self.output_space)
 
+
 class ConvNonlinearity(object):
     """
     Abstract convolutional nonlinearity class.
@@ -2237,10 +2238,42 @@ class ConvNonlinearity(object):
 
         Returns
         -------
-        linear_response: Variable
-            Returns the linear activation of the layer.
+        p: Variable
+            the response of the layer after the activation function
+            is applied over.
         """
-        return linear_response
+        p = linear_response
+        return p
+
+    def get_monitoring_channels_from_state(self, state, target,
+                                           orval=None, cost_fn=None):
+        """
+        Override the default get_monitoring_channels_from_state function.
+
+        Parameters
+        ----------
+        state : member of self.output_space
+            A minibatch of states that this Layer took on during fprop.
+            Provided externally so that we don't need to make a second
+            expression for it. This helps keep the Theano graph smaller
+            so that function compilation runs faster.
+        target : member of self.output_space
+            Should be None unless this is the last layer.
+            If specified, it should be a minibatch of targets for the
+            last layer.
+        orval : Variable or None
+            This is the rval coming from the parent layer.
+        cost_fn : theano computational graph or None
+            This is the theano computational graph of a cost function.
+
+        Returns
+        -------
+        rval : OrderedDict
+            A dictionary mapping channel names to monitoring channels of
+            interest for this layer.
+        """
+        rval = OrderedDict()
+        return rval
 
 
 class LinearConvNonlinearity(ConvNonlinearity):
@@ -2250,6 +2283,7 @@ class LinearConvNonlinearity(ConvNonlinearity):
     def __init__(self):
         self.non_lin_name = "linear"
 
+    @wraps(ConvNonlinearity.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target,
                                            cost_fn=False, rval=None):
         rval = OrderedDict() if rval is None else rval
@@ -2263,21 +2297,18 @@ class RectifierConvNonlinearity(ConvNonlinearity):
     A simple rectifier nonlinearity class for convolutional layers.
     """
     def __init__(self, left_slope=0.0):
-        self.non_lin_name = "rectifier"
-        self.left_slope = left_slope
-
-    def apply(self, linear_response):
         """
         Parameters
         ----------
-        linear_response : Variable
-            linear response of the layer.
-
-        Returns
-        ------
-        p : Variable
-            activation applied over the linear response of the layer.
+        left_slope : float, optional
+            left slope for the linear response of the rectifier function.
+            default is 0.0.
         """
+        self.non_lin_name = "rectifier"
+        self.left_slope = left_slope
+
+    @wraps(ConvNonlinearity.apply)
+    def apply(self, linear_response):
         p = linear_response * (linear_response > 0.) + self.left_slope *\
             linear_response * (linear_response < 0.)
         return p
@@ -2291,38 +2322,23 @@ class SigmoidConvNonlinearity(ConvNonlinearity):
         """
         Parameters
         ----------
-        monitor_style : str
-            By default monitor_style is classification.
+        monitor_style : str, optional
+            default monitor_style is "classification".
             This determines whether to do classification or detection.
         """
         assert monitor_style in ['classification', 'detection']
         self.monitor_style = monitor_style
         self.non_lin_name = "sigmoid"
 
+    @wraps(ConvNonlinearity.apply)
     def apply(self, linear_response):
-        """
-        Parameters
-        ----------
-        linear_response : Variable
-            linear response of the layer.
-        Returns
-        -------
-        p : Variable
-            sigmoid activation applied over the linear_response.
-        """
         rval = OrderedDict()
         p = T.nnet.sigmoid(linear_response)
         return p
 
+    @wraps(ConvNonlinearity.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target,
                                            orval=None, cost_fn=None):
-        """
-        Override the default get_monitoring_channels_from_state function.
-
-        Parameters
-        ----------
-        orval : This is the rval coming from the parent layer.
-        """
         rval = OrderedDict()
         y_hat = state > 0.5
         y = target > 0.5
@@ -2367,23 +2383,13 @@ class SigmoidConvNonlinearity(ConvNonlinearity):
 
 class TanhConvNonlinearity(ConvNonlinearity):
     """
-        Tanh nonlinearity class for convolutional layers.
+    Tanh nonlinearity class for convolutional layers.
     """
     def __init__(self):
-        self.non_lin_name = "sigmoid"
+        self.non_lin_name = "tanh"
 
+    @wraps(ConvNonlinearity.apply)
     def apply(self, linear_response):
-        """
-        Parameters
-        ----------
-        linear_response: linear response of the layer.
-
-        Returns
-        ------
-        p : Variable
-            activation after the tanh nonlinearity is applied.
-        """
-        rval = OrderedDict()
         p = T.tanh(linear_response)
         return p
 
@@ -2395,11 +2401,12 @@ class ConvElemwise(Layer):
     convolutional layer with the specified nonlinearity.
 
     This function can implement:
-        * Linear convolutional layer
-        * Rectifier convolutional layer
-        * Sigmoid convolutional layer
-        * Tanh convolutional layer
-    based on the nonlinearity argument that it gets.
+    * Linear convolutional layer
+    * Rectifier convolutional layer
+    * Sigmoid convolutional layer
+    * Tanh convolutional layer
+
+    based on the nonlinearity argument that it recieves.
 
     Parameters
     ----------
@@ -2414,51 +2421,56 @@ class ConvElemwise(Layer):
     layer_name : str
         A name for this layer that will be prepended to monitoring channels
         related to this layer.
-    irange : float
+    nonlinearity : object
+        An instance of a nonlinearity object which might be inherited
+        from the ConvNonlinearity class.
+    irange : float, optional
         if specified, initializes each weight randomly in
         U(-irange, irange)
-    border_mode : str
+    border_mode : str, optional
         A string indicating the size of the output:
+
         - "full" : The output is the full discrete linear convolution of the
             inputs.
         - "valid" : The output consists only of those elements that do not
             rely on the zero-padding. (Default)
-    include_prob : float
+
+    include_prob : float, optional
         probability of including a weight element in the set of weights
         initialized to U(-irange, irange). If not included it is initialized
-        to 0.
-    init_bias : float
-        All biases are initialized to this number
-    W_lr_scale: float
+        to 1.0.
+    init_bias : float, optional
+        All biases are initialized to this number. Default is 0.
+    W_lr_scale : float or None
         The learning rate on the weights for this layer is multiplied by this
         scaling factor
-    b_lr_scale : float
+    b_lr_scale : float or None
         The learning rate on the biases for this layer is multiplied by this
         scaling factor
-    max_kernel_norm : float
+    max_kernel_norm : float or None
         If specified, each kernel is constrained to have at most this norm.
-    pool_type : str
+    pool_type : str or None
         The type of the pooling operation performed the convolution.
         Default pooling type is max-pooling.
-    tied_b : bool
+    tied_b : bool, optional
         If true, all biases in the same channel are constrained to be the
         same as each other. Otherwise, each bias at each location is
-        learned independently.
-    detector_normalization : callable
+        learned independently. Default is true.
+    detector_normalization : callable or None
         See `output_normalization`
-    output_normalization : callable
+    output_normalization : callable  or None
         if specified, should be a callable object. the state of the
         network is optionally replaced with normalization(state) at each
         of the 3 points in processing:
+
         - detector: the maxout units can be normalized prior to the
             spatial pooling
         - output: the output of the layer, after spatial pooling, can
             be normalized as well
-   nonlinearity : object
-        An instance of a nonlinearity object which might be inherited
-        from the LinearConvNonlinearity class.
-    kernel_stride: The stride of the convolution kernel. A two-tuple of
-        ints.
+
+    kernel_stride : tuple, optional
+        The stride of the convolution kernel. A two-tuple of
+        ints. Default is (1, 1).
     """
     def __init__(self,
                  output_channels,
@@ -2476,7 +2488,7 @@ class ConvElemwise(Layer):
                  pool_type=None,
                  pool_shape=None,
                  pool_stride=None,
-                 is_final_layer=True,
+                 tied_b=None,
                  detector_normalization=None,
                  output_normalization=None,
                  kernel_stride=(1, 1),
@@ -2485,14 +2497,15 @@ class ConvElemwise(Layer):
         if (irange is None) and (sparse_init is None):
             raise AssertionError("You should specify either irange or "
                                  "sparse_init when calling the constructor of "
-                                 "ConvRectifiedLinear.")
+                                 "ConvElemwise.")
         elif (irange is not None) and (sparse_init is not None):
             raise AssertionError("You should specify either irange or "
                                  "sparse_init when calling the constructor of "
-                                 "ConvRectifiedLinear and not both.")
+                                 "ConvElemwise and not both.")
 
         assert nonlinearity is not None
 
+        self.nonlin = nonlinearity
         self.__dict__.update(locals())
         assert monitor_style in ['classification',
                             'detection'], ("%s.monitor_style"
@@ -2501,6 +2514,15 @@ class ConvElemwise(Layer):
         del self.self
 
     def initialize_transformer(self, rng):
+        """
+        This function initializes the transformer of the class. Re-running
+        this function will reset the transformer.
+
+        Parameters
+        ----------
+        rng : object
+            random number generator object.
+        """
         if self.irange is not None:
             assert self.sparse_init is None
             self.transformer = conv2d.make_random_conv2D(
@@ -2522,6 +2544,11 @@ class ConvElemwise(Layer):
                     rng=rng)
 
     def initialize_output_space(self):
+        """
+        Initializes the output space of the ConvElemwise layer by taking
+        pooling operator and the hyperparameters of the convolutional layer
+        into consideration as well.
+        """
         dummy_batch_size = self.mlp.batch_size
 
         if dummy_batch_size is None:
@@ -2544,8 +2571,8 @@ class ConvElemwise(Layer):
             dummy_p = dummy_p.eval()
             self.output_space = Conv2DSpace(shape=[dummy_p.shape[2],
                                             dummy_p.shape[3]],
-                                            num_channels=\
-                                                    self.output_channels,
+                                            num_channels=
+                                                self.output_channels,
                                             axes=('b', 'c', 0, 1))
         else:
             dummy_detector = dummy_detector.eval()
@@ -2569,13 +2596,15 @@ class ConvElemwise(Layer):
         rng = self.mlp.rng
 
         if self.border_mode == 'valid':
-            output_shape = [(self.input_space.shape[0] - self.kernel_shape[0])\
-                            / self.kernel_stride[0] + 1, (self.input_space.shape[1] -
-                            self.kernel_shape[1]) / self.kernel_stride[1] + 1]
+            output_shape = [(self.input_space.shape[0] - self.kernel_shape[0])
+                            / self.kernel_stride[0] + 1,
+                            (self.input_space.shape[1] - self.kernel_shape[1])
+                            / self.kernel_stride[1] + 1]
         elif self.border_mode == 'full':
-            output_shape = [(self.input_space.shape[0] +  self.kernel_shape[0])\
-                            / self.kernel_stride[0] - 1, (self.input_space.shape[1] +
-                            self.kernel_shape[1]) / self.kernel_stride_stride[1] - 1]
+            output_shape = [(self.input_space.shape[0] + self.kernel_shape[0])
+                            / self.kernel_stride[0] - 1,
+                            (self.input_space.shape[1] + self.kernel_shape[1])
+                            / self.kernel_stride_stride[1] - 1]
 
         self.detector_space = Conv2DSpace(shape=output_shape,
                                           num_channels=self.output_channels,
@@ -2720,15 +2749,15 @@ class ConvElemwise(Layer):
 
     def get_monitoring_channels_from_state(self, state, target=None):
 
-        rval = super(ConvElemwise, self).get_monitoring_channels_from_state(
-                state, target)
+        rval = super(ConvElemwise,
+                     self).get_monitoring_channels_from_state(state, target)
 
         if target is not None:
-            rval = self.nonlinearity.get_monitoring_channels_from_state(state,
-                                                                        target,
-                                                                        rval=rval,
-                                                                        cost_fn=self.cost)
-
+            cst = self.cost
+            rval = self.nonlin.get_monitoring_channels_from_state(state,
+                                                                  target,
+                                                                  rval=rval,
+                                                                  cost_fn=cst)
         return rval
 
     @wraps(Layer.get_monitoring_channels)
@@ -2742,9 +2771,11 @@ class ConvElemwise(Layer):
 
         row_norms = T.sqrt(sq_W.sum(axis=(1, 2, 3)))
 
-        return OrderedDict([('kernel_norms_min',  row_norms.min()),
-                            ('kernel_norms_mean', row_norms.mean()),
-                            ('kernel_norms_max',  row_norms.max()), ])
+        return OrderedDict([
+                           ('kernel_norms_min', row_norms.min()),
+                           ('kernel_norms_mean', row_norms.mean()),
+                           ('kernel_norms_max', row_norms.max()),
+                           ])
 
     @wraps(Layer.fprop)
     def fprop(self, state_below):
@@ -2754,7 +2785,7 @@ class ConvElemwise(Layer):
         z = self.transformer.lmul(state_below) + self.b
 
 
-        d = self.nonlinearity.apply(z)
+        d = self.nonlin.apply(z)
 
         if self.layer_name is not None:
             d.name = self.layer_name + '_z'
@@ -2767,7 +2798,9 @@ class ConvElemwise(Layer):
             if self.detector_normalization:
                 d = self.detector_normalization(d)
 
-            assert self.pool_type in ['max', 'mean'], "pool_type should be either max or mean pooling."
+            assert self.pool_type in ['max', 'mean'], ("pool_type should be"
+                                                      "either max or mean"
+                                                      "pooling.")
 
             if self.pool_type == 'max':
                 p = max_pool(bc01=z, pool_shape=self.pool_shape,
@@ -2792,14 +2825,16 @@ class ConvElemwise(Layer):
 
    def cost(self, Y, Y_hat):
         """
-        Cost
-        mean across units, mean across batch of KL divergence
+        Cost mean across units, mean across batch of KL divergence
         KL(P || Q) where P is defined by Y and Q is defined by Y_hat
         KL(P || Q) = p log p - p log q + (1-p) log (1-p) - (1-p) log (1-q)
         """
-        assert self.nonlinearity.non_lin_name == "sigmoid", ("ConvElemwise supports"
-                                                            "cost function for only"
-                                                            "sigmoid layer for now.")
+        assert self.nonlin.non_lin_name == "sigmoid", ("ConvElemwise "
+                                                       "supports "
+                                                       "cost function "
+                                                       "for only "
+                                                       "sigmoid layer "
+                                                       "for now.")
         batch_axis = self.output_space.get_batch_axis()
         ave_total = kl(Y=Y, Y_hat=Y_hat, batch_axis=batch_axis)
         ave = ave_total.mean()
@@ -2808,8 +2843,8 @@ class ConvElemwise(Layer):
 
 class ConvRectifiedLinear(ConvElemwise):
     """
-    A convolutional rectified linear layer, based on theano's B01C formatted
-    convolution.
+    A convolutional rectified linear layer, based on theano's B01C
+    formatted convolution.
 
     Parameters
     ----------
@@ -2841,13 +2876,13 @@ class ConvRectifiedLinear(ConvElemwise):
         to 0.
     init_bias : float
         All biases are initialized to this number
-    W_lr_scale: float
+    W_lr_scale : float
         The learning rate on the weights for this layer is multiplied by this
         scaling factor
     b_lr_scale : float
         The learning rate on the biases for this layer is multiplied by this
         scaling factor
-    left_slope: float
+    left_slope : float
         The slope of the left half of the activation function
     max_kernel_norm : float
         If specifed, each kernel is constrained to have at most this norm.
@@ -2905,6 +2940,10 @@ class ConvRectifiedLinear(ConvElemwise):
             raise AssertionError("You should specify either irange or "
                                  "sparse_init when calling the constructor of "
                                  "ConvRectifiedLinear and not both.")
+        #Alias the variables for pep8
+        mkn = max_kernel_norm
+        dn = detector_normalization
+        on = output_normalization
 
         super(ConvRectifiedLinear, self).__init__(output_channels,
                                                   kernel_shape,
@@ -2919,11 +2958,11 @@ class ConvRectifiedLinear(ConvElemwise):
                                                   b_lr_scale=b_lr_scale,
                                                   pool_shape=pool_shape,
                                                   pool_stride=pool_stride,
-                                                  max_kernel_norm=max_kernel_norm,
+                                                  max_kernel_norm=mkn,
                                                   pool_type=pool_type,
                                                   tied_b=tied_b,
-                                                  detector_normalization=detector_normalization,
-                                                  output_normalization=output_normalization,
+                                                  detector_normalization=dn,
+                                                  output_normalization=on,
                                                   kernel_stride=kernel_stride,
                                                   monitor_style=monitor_style)
 

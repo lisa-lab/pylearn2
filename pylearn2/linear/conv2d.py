@@ -59,7 +59,8 @@ class Conv2D(OrigConv2D):
         filters: Theano shared variable. 4-tensor of shape (out channels,
         in channels, rows, cols)
         """
-        assert batch_size > 0
+        assert batch_size is None or batch_size > 0
+
         self.input_space = input_space
         self.output_axes = output_axes
 
