@@ -18,7 +18,13 @@ except:
 
 
 class TestConv2DC01b(unittest.TestCase):
+    """
+    Tests for Alex Krizhevsky's Conv2D code
+    """
     def setUp(self):
+        """
+        Set up a test image and filter to re-use
+        """
         self.image = \
             numpy.random.rand(16, 3, 3, 1).astype(theano.config.floatX)
         self.image_tensor = tensor.tensor4()
@@ -29,9 +35,16 @@ class TestConv2DC01b(unittest.TestCase):
         self.conv2d = Conv2D(self.filters)
 
     def test_get_params(self):
+        """
+        Check whether the conv2d has stored the correct filters
+        """
         assert self.conv2d.get_params() == [self.filters]
 
     def test_lmul(self):
+        """
+        Use SciPy's ndimage to check whether the convolution worked
+        correctly
+        """
         f = theano.function([self.image_tensor],
                             self.conv2d.lmul(self.image_tensor))
         if scipy_available:
@@ -44,12 +57,18 @@ class TestConv2DC01b(unittest.TestCase):
             )
 
     def test_lmul_T(self):
+        """
+        Check whether this function outputs the right shape
+        """
         conv2d = self.conv2d.lmul(self.image_tensor)
         f = theano.function([self.image_tensor],
                             self.conv2d.lmul_T(conv2d))
         assert f(self.image).shape == self.image.shape
 
     def test_axes(self):
+        """
+        Use custom output axes and check whether it worked
+        """
         default_axes = ('c', 0, 1, 'b')
         axes = (0, 'b', 1, 'c')
         mapping = tuple(axes.index(axis) for axis in default_axes)
@@ -65,6 +84,9 @@ class TestConv2DC01b(unittest.TestCase):
         assert output.shape == output_axes.shape
 
     def test_channels(self):
+        """
+        Go from 32 to 16 channels and see whether that works without error
+        """
         filters_values = numpy.ones(
             (32, 2, 2, 16), dtype=theano.config.floatX
         )
@@ -76,6 +98,9 @@ class TestConv2DC01b(unittest.TestCase):
         assert f(image).shape == (16, 2, 2, 1)
 
     def test_make_random_conv2D(self):
+        """
+        Make random filters
+        """
         default_axes = ('c', 0, 1, 'b')
         conv2d = make_random_conv2D(1, 16, default_axes, default_axes,
                                     16, (2, 2))
@@ -85,6 +110,10 @@ class TestConv2DC01b(unittest.TestCase):
         assert conv2d.output_axes == default_axes
 
     def test_make_sparse_random_conv2D(self):
+        """
+        Make random sparse filters, count whether the number of
+        non-zero elements is sensible
+        """
         axes = ('c', 0, 1, 'b')
         input_space = Conv2DSpace((3, 3), 16, axes=axes)
         output_space = Conv2DSpace((3, 3), 16, axes=axes)
@@ -100,6 +129,10 @@ class TestConv2DC01b(unittest.TestCase):
         assert numpy.count_nonzero(conv2d._filters.get_value()) >= 32
 
     def test_setup_detector_layer_c01b(self):
+        """
+        Very basic test to see whether a detector layer can be set up
+        without error. Not checking much for the actual output.
+        """
         axes = ('c', 0, 1, 'b')
         layer = MaxoutConvC01B(16, 2, (2, 2), (2, 2),
                                (1, 1), 'maxout', irange=1.)
