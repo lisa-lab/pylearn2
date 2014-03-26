@@ -390,12 +390,11 @@ class OnlinePCA(_PCABase):
             centering=False
         )
 
-        print >> sys.stderr, '*' * 50
+        logger.debug('*' * 50)
         for i in range(X.shape[0]):
             if (i + 1) % (X.shape[0] / 50) == 0:
-                sys.stderr.write('|')  # suppresses newline/whitespace.
+                logger.debug('|')  # suppresses newline/whitespace.
             pca_estimator.observe(X[i, :])
-        print >> sys.stderr
 
         v, W = pca_estimator.getLeadingEigen()
 
