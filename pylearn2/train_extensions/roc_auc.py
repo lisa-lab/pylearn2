@@ -44,7 +44,11 @@ class ROCAUCChannel(TrainExtension):
         roc_auc = roc_auc_score(y, y_hat)
         roc_auc = T.cast(roc_auc, config.floatX)
         for dataset_name, dataset in algorithm.monitoring_dataset.items():
-            monitor.add_channel(name='{}_y_roc_auc'.format(dataset_name),
+            if dataset_name:
+                channel_name = '{}_y_roc_auc'.format(dataset_name)
+            else:
+                channel_name = 'y_roc_auc'
+            monitor.add_channel(name=channel_name,
                                 ipt=(state, target),
                                 val=roc_auc,
                                 data_specs=(m_space, m_source),
