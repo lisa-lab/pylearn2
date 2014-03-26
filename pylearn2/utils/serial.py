@@ -60,7 +60,7 @@ def load(filepath, recurse_depth=0, retry = True):
     ----------
     filepath : str
         A path to a file to load. Should be a pickle, Matlab, or NumPy
-        file.
+        file; or a .txt or .amat file that numpy.loadtxt can load.
     recurse_depth : int
         End users should not use this argument. It is used by the function
         itself to implement the `retry` option recursively.
@@ -92,6 +92,14 @@ def load(filepath, recurse_depth=0, retry = True):
 
     if filepath.endswith('.npy') or filepath.endswith('.npz'):
         return np.load(filepath)
+
+    if filepath.endswith('.amat') or filepath.endswith('txt'):
+        try:
+            return np.loadtxt(filepath)
+        except Exception:
+            print filepath + " cannot be loaded by serial.load (trying to"\
+                           + " use np.loadtxt)"
+            raise
 
     if filepath.endswith('.mat'):
         global io

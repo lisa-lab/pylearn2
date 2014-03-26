@@ -37,6 +37,10 @@ from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
 from pylearn2.utils import wraps
 
+# Only to be used by the deprecation warning wrapper functions
+from pylearn2.costs.mlp import L1WeightDecay as _L1WD
+from pylearn2.costs.mlp import WeightDecay as _WD
+
 warnings.warn("MLP changing the recursion limit.")
 # We need this to be high enough that the big theano graphs we make
 # when doing max pooling via subtensors don't cause python to complain.
@@ -2576,7 +2580,7 @@ class ConvRectifiedLinear(Layer):
             b = self.b.dimshuffle('x', 0, 'x', 'x')
         else:
             b = self.b.dimshuffle('x', 0, 1, 2)
- 
+
         z = z + b
 
         if self.layer_name is not None:
@@ -2614,20 +2618,46 @@ class ConvRectifiedLinear(Layer):
 
         return p
 
+    @wraps(Layer.cost)
+    def cost(self, Y, Y_hat):
+        return self.cost_from_cost_matrix(self.cost_matrix(Y, Y_hat))
+
+    @wraps(Layer.cost_from_cost_matrix)
+    def cost_from_cost_matrix(self, cost_matrix):
+        return cost_matrix.sum(axis=(1,2,3)).mean()
+
+    @wraps(Layer.cost_matrix)
+    def cost_matrix(self, Y, Y_hat):
+        return T.sqr(Y - Y_hat)
+
 
 def max_pool(bc01, pool_shape, pool_stride, image_shape):
     """
-    .. todo::
-
-        WRITEME properly
-
     Theano's max pooling op only support pool_stride = pool_shape
     so here we have a graph that does max pooling with strides
 
-    bc01: minibatch in format (batch size, channels, rows, cols)
-    pool_shape: shape of the pool region (rows, cols)
-    pool_stride: strides between pooling regions (row stride, col stride)
-    image_shape: avoid doing some of the arithmetic in theano
+    Parameters
+    ----------
+    bc01 : theano tensor
+        minibatch in format (batch size, channels, rows, cols)
+    pool_shape : tuple
+        shape of the pool region (rows, cols)
+    pool_stride : tuple
+        strides between pooling regions (row stride, col stride)
+    image_shape : tuple
+        avoid doing some of the arithmetic in theano
+
+    Returns
+    -------
+    pooled : theano tensor
+        The output of pooling applied to `bc01`
+
+    See Also
+    --------
+    max_pool_c01b : Same functionality but with ('c', 0, 1, 'b') axes
+    sandbox.cuda_convnet.pool.max_pool_c01b : Same functionality as
+        `max_pool_c01b` but GPU-only and considerably faster.
+    mean_pool : Mean pooling instead of max pooling
     """
     mx = None
     r, c = image_shape
@@ -2701,12 +2731,30 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
 
 def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape):
     """
-    .. todo::
+    Theano's max pooling op only support pool_stride = pool_shape
+    so here we have a graph that does max pooling with strides
 
-        WRITEME properly
+    Parameters
+    ----------
+    c01b : theano tensor
+        minibatch in format (channels, rows, cols, batch size)
+    pool_shape : tuple
+        shape of the pool region (rows, cols)
+    pool_stride : tuple
+        strides between pooling regions (row stride, col stride)
+    image_shape : tuple
+        avoid doing some of the arithmetic in theano
 
-    Like max_pool but with input using axes ('c', 0, 1, 'b')
-      (Alex Krizhevsky format)
+    Returns
+    -------
+    pooled : theano tensor
+        The output of pooling applied to `c01b`
+
+    See Also
+    --------
+    sandbox.cuda_convnet.pool.max_pool_c01b : Same functionality but GPU-only
+        and considerably faster.
+    max_pool : Same functionality but with ('b', 0, 1, 'c') axes
     """
     mx = None
     r, c = image_shape
@@ -2781,14 +2829,27 @@ def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape):
 
 def mean_pool(bc01, pool_shape, pool_stride, image_shape):
     """
-    .. todo::
+    Does mean pooling (aka average pooling) via a Theano graph.
 
-        WRITEME properly
+    Parameters
+    ----------
+    bc01 : theano tensor
+        minibatch in format (batch size, channels, rows, cols)
+    pool_shape : tuple
+        shape of the pool region (rows, cols)
+    pool_stride : tuple
+        strides between pooling regions (row stride, col stride)
+    image_shape : tuple
+        avoid doing some of the arithmetic in theano
 
-    bc01: minibatch in format (batch size, channels, rows, cols)
-    pool_shape: shape of the pool region (rows, cols)
-    pool_stride: strides between pooling regions (row stride, col stride)
-    image_shape: avoid doing some of the arithmetic in theano
+    Returns
+    -------
+    pooled : theano tensor
+        The output of pooling applied to `bc01`
+
+    See Also
+    --------
+    max_pool : Same thing but with max pooling
     """
     mx = None
     r, c = image_shape
@@ -2870,28 +2931,18 @@ def mean_pool(bc01, pool_shape, pool_stride, image_shape):
     return mx
 
 
+@wraps(_WD)
 def WeightDecay(*args, **kwargs):
-    """
-    .. todo::
-
-        WRITEME
-    """
     warnings.warn("pylearn2.models.mlp.WeightDecay has moved to "
                   "pylearn2.costs.mlp.WeightDecay")
-    from pylearn2.costs.mlp import WeightDecay as WD
-    return WD(*args, **kwargs)
+    return _WD(*args, **kwargs)
 
 
+@wraps(_L1WD)
 def L1WeightDecay(*args, **kwargs):
-    """
-    .. todo::
-
-        WRITEME
-    """
     warnings.warn("pylearn2.models.mlp.L1WeightDecay has moved to "
                   "pylearn2.costs.mlp.WeightDecay")
-    from pylearn2.costs.mlp import L1WeightDecay as L1WD
-    return L1WD(*args, **kwargs)
+    return _L1WD(*args, **kwargs)
 
 
 class LinearGaussian(Linear):
@@ -3012,6 +3063,8 @@ class LinearGaussian(Linear):
 
 def beta_from_design(design, min_var=1e-6, max_var=1e6):
     """
+    Returns the marginal precision of a design matrix.
+
     Parameters
     ----------
     design : ndarray
@@ -3032,6 +3085,8 @@ def beta_from_design(design, min_var=1e-6, max_var=1e6):
 
 def beta_from_targets(dataset, **kwargs):
     """
+    Returns the marginal precision of the targets in a dataset.
+
     Parameters
     ----------
     dataset : DenseDesignMatrix
@@ -3050,18 +3105,35 @@ def beta_from_targets(dataset, **kwargs):
 
 def beta_from_features(dataset, **kwargs):
     """
-    .. todo::
+    Returns the marginal precision of the features in a dataset.
 
-        WRITEME
+    Parameters
+    ----------
+    dataset : DenseDesignMatrix
+        The dataset to compute the precision on.
+    kwargs : dict
+        Passed through to `beta_from_design`
+
+    Returns
+    -------
+    beta : ndarray
+        Vector of precision values for each feature in `dataset`
     """
     return beta_from_design(dataset.X, **kwargs)
 
 
 def mean_of_targets(dataset):
     """
-    .. todo::
+    Returns the mean of the targets in a dataset.
 
-        WRITEME
+    Parameters
+    ----------
+    dataset : DenseDesignMatrix
+
+    Returns
+    -------
+    mn : ndarray
+        A 1-D vector with entry i giving the mean of target i
     """
     return dataset.y.mean(axis=0)
 
@@ -3275,25 +3347,25 @@ def generate_dropout_mask(mlp, default_include_prob=0.5,
         An MLP object.
 
     default_include_prob : float, optional
-        The probability of including an input to a hidden \
-        layer, for layers not listed in `input_include_probs`. \
+        The probability of including an input to a hidden
+        layer, for layers not listed in `input_include_probs`.
         Default is 0.5.
 
     input_include_probs : dict, optional
-        A dictionary  mapping layer names to probabilities \
-        of input inclusion for that layer. Default is `None`, \
-        in which `default_include_prob` is used for all \
+        A dictionary  mapping layer names to probabilities
+        of input inclusion for that layer. Default is `None`,
+        in which `default_include_prob` is used for all
         layers.
 
     rng : RandomState object or seed, optional
-        A `numpy.random.RandomState` object or a seed used to \
+        A `numpy.random.RandomState` object or a seed used to
         create one.
 
     Returns
     -------
     mask : int
-        An integer indexing a dropout mask for the network, \
-        drawn with the appropriate probability given the \
+        An integer indexing a dropout mask for the network,
+        drawn with the appropriate probability given the
         inclusion probabilities.
     """
     if input_include_probs is None:
@@ -3330,20 +3402,20 @@ def sampled_dropout_average(mlp, inputs, num_masks,
         An MLP object.
 
     inputs : tensor_like
-        A Theano variable representing a minibatch appropriate \
+        A Theano variable representing a minibatch appropriate
         for fpropping through the MLP.
 
     num_masks : int
         The number of masks to sample.
 
     default_input_include_prob : float, optional
-        The probability of including an input to a hidden \
-        layer, for layers not listed in `input_include_probs`. \
+        The probability of including an input to a hidden
+        layer, for layers not listed in `input_include_probs`.
         Default is 0.5.
 
     input_include_probs : dict, optional
-        A dictionary  mapping layer names to probabilities \
-        of input inclusion for that layer. Default is `None`, \
+        A dictionary  mapping layer names to probabilities
+        of input inclusion for that layer. Default is `None`,
         in which `default_include_prob` is used for all
         layers.
 
@@ -3351,23 +3423,23 @@ def sampled_dropout_average(mlp, inputs, num_masks,
         The amount to scale input in dropped out layers.
 
     input_scales : dict, optional
-        A dictionary  mapping layer names to constants by \
+        A dictionary  mapping layer names to constants by
         which to scale the input.
 
     rng : RandomState object or seed, optional
-        A `numpy.random.RandomState` object or a seed used to \
+        A `numpy.random.RandomState` object or a seed used to
         create one.
 
     per_example : boolean, optional
-        If `True`, generate a different mask for every single \
-        test example, so you have `num_masks` per example \
-        instead of `num_mask` networks total. If `False`, \
+        If `True`, generate a different mask for every single
+        test example, so you have `num_masks` per example
+        instead of `num_mask` networks total. If `False`,
         `num_masks` masks are fixed in the graph.
 
     Returns
     -------
     geo_mean : tensor_like
-        A symbolic graph for the geometric mean prediction of \
+        A symbolic graph for the geometric mean prediction of
         all the networks.
     """
     if input_include_probs is None:
@@ -3413,25 +3485,25 @@ def exhaustive_dropout_average(mlp, inputs, masked_input_layers=None,
         An MLP object.
 
     inputs : tensor_like
-        A Theano variable representing a minibatch appropriate \
+        A Theano variable representing a minibatch appropriate
         for fpropping through the MLP.
 
     masked_input_layers : list, optional
-        A list of layer names whose input should be masked. \
-        Default is all layers (including the first hidden \
+        A list of layer names whose input should be masked.
+        Default is all layers (including the first hidden
         layer, i.e. mask the input).
 
     default_input_scale : float, optional
         The amount to scale input in dropped out layers.
 
     input_scales : dict, optional
-        A dictionary  mapping layer names to constants by \
+        A dictionary  mapping layer names to constants by
         which to scale the input.
 
     Returns
     -------
     geo_mean : tensor_like
-        A symbolic graph for the geometric mean prediction \
+        A symbolic graph for the geometric mean prediction
         of all exponentially many masked subnetworks.
 
     Notes
@@ -3468,14 +3540,14 @@ def geometric_mean_prediction(forward_props):
     Parameters
     ----------
     forward_props : list
-        A list of Theano graphs corresponding to forward \
-        propagations through the network with different \
+        A list of Theano graphs corresponding to forward
+        propagations through the network with different
         dropout masks.
 
     Returns
     -------
     geo_mean : tensor_like
-        A symbolic graph for the geometric mean prediction \
+        A symbolic graph for the geometric mean prediction
         of all exponentially many masked subnetworks.
 
     Notes
