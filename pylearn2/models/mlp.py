@@ -122,7 +122,40 @@ class Layer(Model):
             A dictionary mapping channel names to monitoring channels of
             interest for this layer.
         """
+        warnings.warn("Layer.get_monitoring_channels is " + \
+                    "deprecated. Use get_layer_monitoring_channels " + \
+                    "instead. Layer.get_monitoring_channels " + \
+                    "will be removed on or after september 24th 2014", 
+                    stacklevel=2)
 
+        return OrderedDict()
+
+    def get_layer_monitoring_channels(self, state_below=None, 
+                                    state=None, targets=None):
+        """
+        Parameters
+        ----------
+        state_below : member of self.input_space
+            A minibatch of states that this Layer took as input.
+            Most of the time providing state_blow is unnecessary when
+            state is given.
+        state : member of self.output_space
+            A minibatch of states that this Layer took on during fprop.
+            Provided externally so that we don't need to make a second
+            expression for it. This helps keep the Theano graph smaller
+            so that function compilation runs faster.
+        targets : member of self.output_space
+            Should be None unless this is the last layer.
+            If specified, it should be a minibatch of targets for the
+            last layer.
+
+        Returns
+        -------
+        channels : OrderedDict
+            A dictionary mapping channel names to monitoring channels of
+            interest for this layer.
+        """
+        
         return OrderedDict()
 
     def fprop(self, state_below):
@@ -486,72 +519,16 @@ class MLP(Layer):
         self.freeze_set = self.freeze_set.union(parameter_set)
 
     @wraps(Layer.get_monitoring_channels)
-    def get_monitoring_channels(self, data=None):
+    def get_monitoring_channels(self, data):
         # if the MLP is the outer MLP \
         # (ie MLP is not contained in another structure)
-        if data is not None:
-            X, Y = data
-            state = X
-            rval = OrderedDict()
-
-            for layer in self.layers:
-                ch = layer.get_monitoring_channels()
-                for key in ch:
-                    value = ch[key]
-                    doc = get_monitor_doc(value)
-                    if doc is None:
-                        doc = str(type(layer)) + \
-                            ".get_monitoring_channels did" + \
-                            " not provide any further documentation for" + \
-                            " this channel."
-                    doc = 'This channel came from a layer called "' + \
-                            layer.layer_name + '" of an MLP.\n' + doc
-                    value.__doc__ = doc
-                    rval[layer.layer_name+'_'+key] = value
-                
-                state = layer.fprop(state)
-                args = [state]
-                if layer is self.layers[-1]:
-                    args.append(Y)
-                ch = layer.get_monitoring_channels_from_state(*args)
-                if not isinstance(ch, OrderedDict):
-                    raise TypeError(str((type(ch), layer.layer_name)))
-                for key in ch:
-                    value = ch[key]
-                    doc = get_monitor_doc(value)
-                    if doc is None:
-                        doc = str(type(layer)) + \
-                            ".get_monitoring_channels_from_state did" + \
-                            " not provide any further documentation for" + \
-                            " this channel."
-                    doc = 'This channel came from a layer called "' + \
-                            layer.layer_name + '" of an MLP.\n' + doc
-                    value.__doc__ = doc
-                    rval[layer.layer_name+'_'+key] = value
-                    
-
-            return rval
         
-        # if the MLP is part of a bigger structure
-        else:
-            rval = OrderedDict()
-            
-            for layer in self.layers:
-                ch = layer.get_monitoring_channels()
-                for key in ch:
-                    value = ch[key]
-                    doc = get_monitor_doc(value)
-                    if doc is None:
-                        doc = str(type(layer)) + \
-                            ".get_monitoring_channels did" + \
-                            " not provide any further documentation for" + \
-                            " this channel."
-                    doc = 'This channel came from a layer called "' + \
-                            layer.layer_name + '" of an MLP.\n' + doc
-                    value.__doc__ = doc
-                    rval[layer.layer_name+'_'+key] = value
-            
-            return rval
+        X, Y = data
+        state = X
+        rval = self.get_layer_monitoring_channels(state_below=X, 
+                                                    targets=Y)
+        
+        return rval
     
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
@@ -563,6 +540,11 @@ class MLP(Layer):
         get_monitoring_channels_from_state method. 
         
         """
+        warnings.warn("Layer.get_monitoring_channels_from_state is " + \
+                    "deprecated. Use get_layer_monitoring_channels " + \
+                    "instead. Layer.get_monitoring_channels_from_state " + \
+                    "will be removed on or after september 24th 2014", 
+                    stacklevel=2)
         rval = OrderedDict()
 
         for layer in self.layers:
@@ -598,6 +580,81 @@ class MLP(Layer):
                     self.layers[-1].layer_name + '" of an MLP.\n' + doc
             value.__doc__ = doc
             rval[self.layers[-1].layer_name+'_'+key] = value
+        
+        return rval
+    
+    
+    @wraps(Layer.get_layer_monitoring_channels)
+    def get_layer_monitoring_channels(self, state_below=None, 
+                                        state=None, targets=None):
+        
+        rval = OrderedDict()
+        if state_below is not None:
+            state = state_below
+
+            for layer in self.layers:
+                # We don't go through all the inner layers recursively
+                state = layer.fprop(state)
+                args = [None, state]
+                if layer is self.layers[-1] and targets is not None:
+                    args.append(targets)
+                ch = layer.get_layer_monitoring_channels(*args)
+                if not isinstance(ch, OrderedDict):
+                    raise TypeError(str((type(ch), layer.layer_name)))
+                for key in ch:
+                    value = ch[key]
+                    doc = get_monitor_doc(value)
+                    if doc is None:
+                        doc = str(type(layer)) + \
+                            ".get_monitoring_channels_from_state did" + \
+                            " not provide any further documentation for" + \
+                            " this channel."
+                    doc = 'This channel came from a layer called "' + \
+                            layer.layer_name + '" of an MLP.\n' + doc
+                    value.__doc__ = doc
+                    rval[layer.layer_name+'_'+key] = value
+                    
+        
+        elif state is not None:
+            
+            for layer in self.layers:
+                if layer is self.layers[-1]:
+                    args = [None, state]
+                    if targets is not None:
+                        args.append(targets)
+                    ch = layer.get_layer_monitoring_channels(*args)
+                else:
+                    ch = layer.get_layer_monitoring_channels()
+                for key in ch:
+                    value = ch[key]
+                    doc = get_monitor_doc(value)
+                    if doc is None:
+                        doc = str(type(layer)) + \
+                            ".get_monitoring_channels did" + \
+                            " not provide any further documentation for" + \
+                            " this channel."
+                    doc = 'This channel came from a layer called "' + \
+                            layer.layer_name + '" of an MLP.\n' + doc
+                    value.__doc__ = doc
+                    rval[layer.layer_name+'_'+key] = value
+            
+        else:
+            for layer in self.layers:
+                ch = layer.get_layer_monitoring_channels()
+                if not isinstance(ch, OrderedDict):
+                    raise TypeError(str((type(ch), layer.layer_name)))
+                for key in ch:
+                    value = ch[key]
+                    doc = get_monitor_doc(value)
+                    if doc is None:
+                        doc = str(type(layer)) + \
+                            ".get_monitoring_channels_from_state did" + \
+                            " not provide any further documentation for" + \
+                            " this channel."
+                    doc = 'This channel came from a layer called "' + \
+                            layer.layer_name + '" of an MLP.\n' + doc
+                    value.__doc__ = doc
+                    rval[layer.layer_name+'_'+key] = value
         
         return rval
 
@@ -1115,6 +1172,11 @@ class Softmax(Layer):
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
+        warnings.warn("Layer.get_monitoring_channels is " + \
+                    "deprecated. Use get_layer_monitoring_channels " + \
+                    "instead. Layer.get_monitoring_channels " + \
+                    "will be removed on or after september 24th 2014", 
+                    stacklevel=2)
 
         if self.no_affine:
             return OrderedDict()
@@ -1137,12 +1199,37 @@ class Softmax(Layer):
 
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
+        warnings.warn("Layer.get_monitoring_channels_from_state is " + \
+                    "deprecated. Use get_layer_monitoring_channels " + \
+                    "instead. Layer.get_monitoring_channels_from_state " + \
+                    "will be removed on or after september 24th 2014", 
+                    stacklevel=2)
+        
+        # channels that does not require state information
+        if self.no_affine:
+            rval = OrderedDict()
+
+        W = self.W
+
+        assert W.ndim == 2
+
+        sq_W = T.sqr(W)
+
+        row_norms = T.sqrt(sq_W.sum(axis=1))
+        col_norms = T.sqrt(sq_W.sum(axis=0))
+
+        rval = OrderedDict([('row_norms_min',  row_norms.min()),
+                            ('row_norms_mean', row_norms.mean()),
+                            ('row_norms_max',  row_norms.max()),
+                            ('col_norms_min',  col_norms.min()),
+                            ('col_norms_mean', col_norms.mean()),
+                            ('col_norms_max',  col_norms.max()), ])
         
         mx = state.max(axis=1)
 
-        rval = OrderedDict([('mean_max_class', mx.mean()),
+        rval.update(OrderedDict([('mean_max_class', mx.mean()),
                             ('max_max_class', mx.max()),
-                            ('min_max_class', mx.min())])
+                            ('min_max_class', mx.min())]))
 
         if target is not None:
             y_hat = T.argmax(state, axis=1)
@@ -1151,6 +1238,50 @@ class Softmax(Layer):
             misclass = T.cast(misclass, config.floatX)
             rval['misclass'] = misclass
             rval['nll'] = self.cost(Y_hat=state, Y=target)
+
+        return rval
+
+    @wraps(Layer.get_layer_monitoring_channels)
+    def get_layer_monitoring_channels(self, state_below=None, 
+                                    state=None, targets=None):
+        
+        # channels that does not require state information
+        if self.no_affine:
+            rval = OrderedDict()
+
+        W = self.W
+
+        assert W.ndim == 2
+
+        sq_W = T.sqr(W)
+
+        row_norms = T.sqrt(sq_W.sum(axis=1))
+        col_norms = T.sqrt(sq_W.sum(axis=0))
+
+        rval = OrderedDict([('row_norms_min',  row_norms.min()),
+                            ('row_norms_mean', row_norms.mean()),
+                            ('row_norms_max',  row_norms.max()),
+                            ('col_norms_min',  col_norms.min()),
+                            ('col_norms_mean', col_norms.mean()),
+                            ('col_norms_max',  col_norms.max()), ])
+        
+        if (state_below is not None) or (state is not None):
+            if state is None:
+                state = self.fprop(state_below)
+        
+            mx = state.max(axis=1)
+
+            rval.update(OrderedDict([('mean_max_class', mx.mean()),
+                                ('max_max_class', mx.max()),
+                                ('min_max_class', mx.min())]))
+
+            if targets is not None:
+                y_hat = T.argmax(state, axis=1)
+                y = T.argmax(targets, axis=1)
+                misclass = T.neq(y, y_hat).mean()
+                misclass = T.cast(misclass, config.floatX)
+                rval['misclass'] = misclass
+                rval['nll'] = self.cost(Y_hat=state, Y=targets)
 
         return rval
 
@@ -1618,6 +1749,11 @@ class SoftmaxPool(Layer):
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
+        warnings.warn("Layer.get_monitoring_channels is " + \
+                    "deprecated. Use get_layer_monitoring_channels " + \
+                    "instead. Layer.get_monitoring_channels " + \
+                    "will be removed on or after september 24th 2014", 
+                    stacklevel=2)
 
         W, = self.transformer.get_params()
 
@@ -1637,10 +1773,30 @@ class SoftmaxPool(Layer):
 
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state):
+        warnings.warn("Layer.get_monitoring_channels_from_state is " + \
+                    "deprecated. Use get_layer_monitoring_channels " + \
+                    "instead. Layer.get_monitoring_channels_from_state " + \
+                    "will be removed on or after september 24th 2014", 
+                    stacklevel=2)
+
+        W, = self.transformer.get_params()
+
+        assert W.ndim == 2
+
+        sq_W = T.sqr(W)
+
+        row_norms = T.sqrt(sq_W.sum(axis=1))
+        col_norms = T.sqrt(sq_W.sum(axis=0))
+
+        rval = OrderedDict([('row_norms_min',  row_norms.min()),
+                            ('row_norms_mean', row_norms.mean()),
+                            ('row_norms_max',  row_norms.max()),
+                            ('col_norms_min',  col_norms.min()),
+                            ('col_norms_mean', col_norms.mean()),
+                            ('col_norms_max',  col_norms.max()), ])
         
         P = state
 
-        rval = OrderedDict()
 
         if self.pool_size == 1:
             vars_and_prefixes = [(P, '')]
@@ -1675,6 +1831,68 @@ class SoftmaxPool(Layer):
                 rval[prefix+key] = val
 
         return rval
+    
+    @wraps(Layer.get_layer_monitoring_channels)
+    def get_layer_monitoring_channels(self, state_below=None, 
+                                    state=None, **kwargs):
+
+        W, = self.transformer.get_params()
+
+        assert W.ndim == 2
+
+        sq_W = T.sqr(W)
+
+        row_norms = T.sqrt(sq_W.sum(axis=1))
+        col_norms = T.sqrt(sq_W.sum(axis=0))
+
+        rval = OrderedDict([('row_norms_min',  row_norms.min()),
+                            ('row_norms_mean', row_norms.mean()),
+                            ('row_norms_max',  row_norms.max()),
+                            ('col_norms_min',  col_norms.min()),
+                            ('col_norms_mean', col_norms.mean()),
+                            ('col_norms_max',  col_norms.max()), ])
+        
+        if (state_below is not None) or (state is not None):
+            if state is None:
+                P = self.fprop(state_below)
+            else:
+                P = state
+
+
+            if self.pool_size == 1:
+                vars_and_prefixes = [(P, '')]
+            else:
+                vars_and_prefixes = [(P, 'p_')]
+
+            for var, prefix in vars_and_prefixes:
+                v_max = var.max(axis=0)
+                v_min = var.min(axis=0)
+                v_mean = var.mean(axis=0)
+                v_range = v_max - v_min
+
+                # max_x.mean_u is "the mean over *u*nits of the max over
+                # e*x*amples" The x and u are included in the name because
+                # otherwise its hard to remember which axis is which when 
+                # reading the monitor I use inner.outer rather than 
+                # outer_of_inner or something like that because I want 
+                # mean_x.* to appear next to each other in the alphabetical 
+                # list, as these are commonly plotted together
+                for key, val in [('max_x.max_u', v_max.max()),
+                                 ('max_x.mean_u', v_max.mean()),
+                                 ('max_x.min_u', v_max.min()),
+                                 ('min_x.max_u', v_min.max()),
+                                 ('min_x.mean_u', v_min.mean()),
+                                 ('min_x.min_u', v_min.min()),
+                                 ('range_x.max_u', v_range.max()),
+                                 ('range_x.mean_u', v_range.mean()),
+                                 ('range_x.min_u', v_range.min()),
+                                 ('mean_x.max_u', v_mean.max()),
+                                 ('mean_x.mean_u', v_mean.mean()),
+                                 ('mean_x.min_u', v_mean.min())]:
+                    rval[prefix+key] = val
+
+        return rval
+
 
     @wraps(Layer.fprop)
     def fprop(self, state_below):
@@ -2021,6 +2239,11 @@ class Linear(Layer):
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
+        warnings.warn("Layer.get_monitoring_channels is " + \
+                    "deprecated. Use get_layer_monitoring_channels " + \
+                    "instead. Layer.get_monitoring_channels " + \
+                    "will be removed on or after september 24th 2014", 
+                    stacklevel=2)
 
         W, = self.transformer.get_params()
 
@@ -2040,8 +2263,27 @@ class Linear(Layer):
 
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
-        
-        rval = OrderedDict()
+        warnings.warn("Layer.get_monitoring_channels_from_state is " + \
+                    "deprecated. Use get_layer_monitoring_channels " + \
+                    "instead. Layer.get_monitoring_channels_from_state " + \
+                    "will be removed on or after september 24th 2014", 
+                    stacklevel=2)
+
+        W, = self.transformer.get_params()
+
+        assert W.ndim == 2
+
+        sq_W = T.sqr(W)
+
+        row_norms = T.sqrt(sq_W.sum(axis=1))
+        col_norms = T.sqrt(sq_W.sum(axis=0))
+
+        rval = OrderedDict([('row_norms_min',  row_norms.min()),
+                            ('row_norms_mean', row_norms.mean()),
+                            ('row_norms_max',  row_norms.max()),
+                            ('col_norms_min',  col_norms.min()),
+                            ('col_norms_mean', col_norms.mean()),
+                            ('col_norms_max',  col_norms.max()), ])
 
         mx = state.max(axis=0)
         mean = state.mean(axis=0)
@@ -2063,6 +2305,53 @@ class Linear(Layer):
         rval['min_x_max_u'] = mn.max()
         rval['min_x_mean_u'] = mn.mean()
         rval['min_x_min_u'] = mn.min()
+
+        return rval
+    
+    
+    @wraps(Layer.get_layer_monitoring_channels)
+    def get_layer_monitoring_channels(self, state_below=None, 
+                                    state=None, targets=None):
+        W, = self.transformer.get_params()
+
+        assert W.ndim == 2
+
+        sq_W = T.sqr(W)
+
+        row_norms = T.sqrt(sq_W.sum(axis=1))
+        col_norms = T.sqrt(sq_W.sum(axis=0))
+
+        rval = OrderedDict([('row_norms_min',  row_norms.min()),
+                            ('row_norms_mean', row_norms.mean()),
+                            ('row_norms_max',  row_norms.max()),
+                            ('col_norms_min',  col_norms.min()),
+                            ('col_norms_mean', col_norms.mean()),
+                            ('col_norms_max',  col_norms.max()), ])
+        
+        if (state is not None) or (state_below is not None):
+            if state is None:
+                state = self.fprop(state_below)
+            
+            mx = state.max(axis=0)
+            mean = state.mean(axis=0)
+            mn = state.min(axis=0)
+            rg = mx - mn
+
+            rval['range_x_max_u'] = rg.max()
+            rval['range_x_mean_u'] = rg.mean()
+            rval['range_x_min_u'] = rg.min()
+
+            rval['max_x_max_u'] = mx.max()
+            rval['max_x_mean_u'] = mx.mean()
+            rval['max_x_min_u'] = mx.min()
+
+            rval['mean_x_max_u'] = mean.max()
+            rval['mean_x_mean_u'] = mean.mean()
+            rval['mean_x_min_u'] = mean.min()
+
+            rval['min_x_max_u'] = mn.max()
+            rval['min_x_mean_u'] = mn.mean()
+            rval['min_x_min_u'] = mn.min()
 
         return rval
 
@@ -2308,6 +2597,11 @@ class Sigmoid(Linear):
 
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
+        warnings.warn("Layer.get_monitoring_channels_from_state is " + \
+                    "deprecated. Use get_layer_monitoring_channels " + \
+                    "instead. Layer.get_monitoring_channels_from_state " + \
+                    "will be removed on or after september 24th 2014", 
+                    stacklevel=2)
         
         rval = super(Sigmoid, self).get_monitoring_channels_from_state(state,
                                                                        target)
@@ -2316,6 +2610,30 @@ class Sigmoid(Linear):
             if self.monitor_style == 'detection':
                 rval.update(self.get_detection_channels_from_state(state,
                                                                    target))
+            else:
+                assert self.monitor_style == 'classification'
+                # Threshold Y_hat at 0.5.
+                prediction = T.gt(state, 0.5)
+                # If even one feature is wrong for a given training example,
+                # it's considered incorrect, so we max over columns.
+                incorrect = T.neq(target, prediction).max(axis=1)
+                rval['misclass'] = T.cast(incorrect, config.floatX).mean()
+        return rval
+    
+    @wraps(Layer.get_layer_monitoring_channels)
+    def get_layer_monitoring_channels(self, state_below=None, 
+                                    state=None, targets=None):
+        
+        rval = super(Sigmoid, self).get_layer_monitoring_channels(state=state,
+                                                                targets=targets)
+
+        if (targets is not None) and \
+                ((state_below is not None) or (state is not None)):
+            if state is None:
+                state = self.fprop(state_below)
+            if self.monitor_style == 'detection':
+                rval.update(self.get_detection_channels_from_state(state,
+                                                                   targets))
             else:
                 assert self.monitor_style == 'classification'
                 # Threshold Y_hat at 0.5.
@@ -2663,6 +2981,26 @@ class ConvRectifiedLinear(Layer):
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
+        warnings.warn("Layer.get_monitoring_channels is deprecated. " + \
+                    "Use get_layer_monitoring_channels instead. " + \
+                    "Layer.get_monitoring_channels will be removed " + \
+                    "on or after september 24th 2014", stacklevel=2)
+
+        W, = self.transformer.get_params()
+
+        assert W.ndim == 4
+
+        sq_W = T.sqr(W)
+
+        row_norms = T.sqrt(sq_W.sum(axis=(1, 2, 3)))
+
+        return OrderedDict([('kernel_norms_min',  row_norms.min()),
+                            ('kernel_norms_mean', row_norms.mean()),
+                            ('kernel_norms_max',  row_norms.max()), ])
+    
+    @wraps(Layer.get_layer_monitoring_channels)
+    def get_layer_monitoring_channels(self, state_below=None, 
+                                    state=None, targets=None):
 
         W, = self.transformer.get_params()
 
@@ -3068,6 +3406,11 @@ class LinearGaussian(Linear):
 
     @wraps(Linear.get_monitoring_channels)
     def get_monitoring_channels(self):
+        warnings.warn("Layer.get_monitoring_channels is " + \
+                    "deprecated. Use get_layer_monitoring_channels " + \
+                    "instead. Layer.get_monitoring_channels " + \
+                    "will be removed on or after september 24th 2014", 
+                    stacklevel=2)
 
         rval = super(LinearGaussian, self).get_monitoring_channels()
         assert isinstance(rval, OrderedDict)
@@ -3078,10 +3421,35 @@ class LinearGaussian(Linear):
 
     @wraps(Linear.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
-        
+        warnings.warn("Layer.get_monitoring_channels_from_state is " + \
+                    "deprecated. Use get_layer_monitoring_channels " + \
+                    "instead. Layer.get_monitoring_channels_from_state " + \
+                    "will be removed on or after september 24th 2014", 
+                    stacklevel=2)
+
         rval = super(LinearGaussian, self).get_monitoring_channels()
+        assert isinstance(rval, OrderedDict)
+        rval['beta_min'] = self.beta.min()
+        rval['beta_mean'] = self.beta.mean()
+        rval['beta_max'] = self.beta.max()
+        
         if target:
             rval['mse'] = T.sqr(state - target).mean()
+        return rval
+
+    @wraps(Layer.get_layer_monitoring_channels)
+    def get_layer_monitoring_channels(self, state_below=None, 
+                                    state=None, targets=None):
+
+        rval = super(LinearGaussian, 
+                self).get_layer_monitoring_channels(state_below, state, targets)
+        assert isinstance(rval, OrderedDict)
+        rval['beta_min'] = self.beta.min()
+        rval['beta_mean'] = self.beta.mean()
+        rval['beta_max'] = self.beta.max()
+        
+        if targets:
+            rval['mse'] = T.sqr(state - targets).mean()
         return rval
 
     @wraps(Linear.cost)
@@ -3214,7 +3582,17 @@ class PretrainedLayer(Layer):
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
+        warnings.warn("Layer.get_monitoring_channels is " + \
+                    "deprecated. Use get_layer_monitoring_channels " + \
+                    "instead. Layer.get_monitoring_channels " + \
+                    "will be removed on or after september 24th 2014", 
+                    stacklevel=2)
 
+        return OrderedDict([])
+        
+    @wraps(Layer.get_layer_monitoring_channels)
+    def get_layer_monitoring_channels(self, state_below=None, 
+                                    state=None, targets=None):
         return OrderedDict([])
 
     @wraps(Layer.fprop)
