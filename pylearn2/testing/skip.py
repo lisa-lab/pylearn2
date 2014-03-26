@@ -25,12 +25,6 @@ try:
 except ImportError:
     sklearn_works = False
 
-h5py_works = True
-try:
-    import h5py
-except ImportError:
-    h5py_works = False
-
 def skip_if_no_data():
     if 'PYLEARN2_DATA_PATH' not in os.environ:
         raise SkipTest()
@@ -47,6 +41,3 @@ def skip_if_no_gpu():
     if cuda.cuda_available == False:
         raise SkipTest('Optional package cuda disabled.')
 
-def skip_if_no_h5py():
-    if not h5py_works:
-        raise SkipTest()
