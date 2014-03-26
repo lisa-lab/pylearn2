@@ -7,7 +7,7 @@ import numpy as np
 
 
 class TestMNIST(unittest.TestCase):
-"""class for testing datasets.mnist"""
+    """class for testing datasets.mnist"""
     def setUp(self):
         """TestMNIST setUp"""
         skip_if_no_data()
