@@ -221,7 +221,8 @@ class SGD(TrainingAlgorithm):
         # test if force batch size and batch size
         if getattr(model,"force_batch_size",False) and \
            self.dataset_size%self.batch_size != 0 and \
-           not isinstance(_iteration_schemes[self.monitor_iteration_mode],ForcedEvenIterator):
+           not has_uniform_batch_size(mode):
+
             raise ValueError("Dataset size is not a multiple of batch size."
                              "You should set monitor_iteration_mode to even_sequential, "
                              "even_shuffled_sequential or even_batchwise_shuffled_sequential")
