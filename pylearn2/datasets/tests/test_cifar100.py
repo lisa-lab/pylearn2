@@ -1,3 +1,4 @@
+"""module for testing datasets/cifar100.py"""
 import unittest
 import numpy as np
 from pylearn2.datasets.cifar100 import CIFAR100
@@ -6,7 +7,9 @@ from pylearn2.testing.skip import skip_if_no_data
 
 
 class TestCIFAR100(unittest.TestCase):
+"""class for testing datasets/cifar100.py"""
     def setUp(self):
+        """TestCIFAR100 setUp"""
         skip_if_no_data()
         self.train_set = CIFAR100(which_set='train')
         self.test_set = CIFAR100(which_set='test')
@@ -15,17 +18,18 @@ class TestCIFAR100(unittest.TestCase):
         assert not np.any(np.isnan(self.test_set.X))
         assert not np.any(np.isinf(self.test_set.X))
 
-
-
     def test_adjust_for_viewer(self):
+        """test adjust_for_viewer method"""
         self.train_set.adjust_for_viewer(self.train_set.X)
 
     def test_adjust_to_be_viewed_with(self):
+        """tests adjust_to_be_viewed_with method"""
         self.train_set.adjust_to_be_viewed_with(
             self.train_set.X,
             np.ones(self.train_set.X.shape))
 
     def test_get_test_set(self):
+        """tests get_test_set method"""
         train_test_set = self.train_set.get_test_set()
         test_test_set = self.test_set.get_test_set()
         assert np.all(train_test_set.X == test_test_set.X)
@@ -56,9 +60,14 @@ class TestCIFAR100(unittest.TestCase):
         assert np.all(b01c_direct == b01c)
 
     def test_iterator(self):
-        # Tests that batches returned by an iterator with topological
-        # data_specs are the same as the ones returned by calling
-        # get_topological_view on the dataset with the corresponding order
+        """
+        Tests that batches returned by an iterator with topological
+        data_specs are the same as the ones returned by calling
+        get_topological_view on the dataset with the corresponding order 
+
+        Also check that samples from iterators with the same data_specs
+        with Conv2DSpace do not depend on the axes of the dataset
+        """
         batch_size = 100
         b01c_X = self.test_set.X[0:batch_size, :]
         b01c_topo = self.test_set.get_topological_view(b01c_X)

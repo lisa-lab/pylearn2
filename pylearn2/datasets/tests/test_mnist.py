@@ -1,3 +1,4 @@
+"""module for testing datasets.mnist"""
 from pylearn2.datasets.mnist import MNIST, MNIST_rotated_background
 import unittest
 from pylearn2.testing.skip import skip_if_no_data
@@ -5,7 +6,9 @@ import numpy as np
 
 
 class TestMNIST(unittest.TestCase):
+"""class for testing datasets.mnist"""
     def setUp(self):
+        """TestMNIST setUp"""
         skip_if_no_data()
         self.train = MNIST(which_set='train')
         self.test = MNIST(which_set='test')
