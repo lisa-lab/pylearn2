@@ -167,7 +167,6 @@ class ForcedEvenIterator(SubsetIterator):
         """
 
         product = self.batch_size * self.num_batches
-        print "num examples?",product, self._dataset_size
         return min(product, self._dataset_size)
 
     def next(self):
@@ -187,8 +186,6 @@ class ForcedEvenIterator(SubsetIterator):
                 length = batch.stop-batch.start
             else:
                 length = len(batch)
-
-            print batch
 
         return batch
 
@@ -315,14 +312,9 @@ class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
             num_batches,
             None
         )
-#        if hasattr(rng,"get_state"):
-#            print "rng",rng.get_state()
-#        else:
-#            print rng
         self._rng = make_np_rng(rng, which_method=["random_integers", "shuffle"])
         self._shuffled = numpy.arange(self._dataset_size)
         self._rng.shuffle(self._shuffled)
-        print self._shuffled
 
     def next(self):
         """
@@ -330,8 +322,6 @@ class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
 
             WRITEME
         """
-#        print self._idx, self._shuffled
-
         if self._batch >= self.num_batches or self._idx >= self._dataset_size:
             raise StopIteration()
 

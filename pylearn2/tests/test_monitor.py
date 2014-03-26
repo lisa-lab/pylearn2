@@ -218,9 +218,7 @@ def test_revisit():
                 try:
                     monitor.add_dataset(monitoring_dataset, mode,
                         batch_size=mon_batch_size, num_batches=num_mon_batches)
-                except TypeError as e:
-                    print e
-                    print "needs seed!",mode
+                except TypeError:
                     monitor.add_dataset(monitoring_dataset, mode,
                         batch_size=mon_batch_size, num_batches=num_mon_batches,
                         seed = 0)
@@ -280,7 +278,6 @@ def test_revisit():
                     data_specs=(model.get_input_space(),
                                 model.get_input_source()))
 
-                print "==== saves dataset ===="
                 try:
                     monitor()
                 except RuntimeError:
@@ -293,12 +290,9 @@ def test_revisit():
                 batch_idx.set_value(0)
                 prereq.validate = True
 
-                print "==== validates iterator ===="
                 monitor()
 
                 assert all(visited)
-
-#    assert False
 
 def test_prereqs_batch():
 
