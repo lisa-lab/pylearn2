@@ -1,3 +1,4 @@
+"""module for testing datasets.stl10"""
 import unittest
 import numpy as np
 from pylearn2.datasets import stl10
