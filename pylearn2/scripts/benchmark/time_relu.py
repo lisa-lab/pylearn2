@@ -1,7 +1,8 @@
 '''
-This is the benchmark of 4 different implementations of rectified linear
-activation in Theano.
-Two types of computations are tested w.r.t. each implementation: fprop and grad
+This is the benchmark of 4 different implementations
+of rectified linear activation in Theano.
+Two types of computations are tested w.r.t.
+each implementation: fprop and grad.
 
 Results: in seconds, float32 (details in the code)
 
@@ -25,13 +26,41 @@ import numpy
 import time
 
 floatX = 'float32'
-relu = lambda x: T.maximum(0.0, x)
-relu_ = lambda x: x * (x > 0)
-relu__ = lambda x: T.switch(x < 0., 0., x)
+def relu(x):
+    """
+    relu implementation with T.maximum
+    
+    Parameters
+    ----------
+    x: tensor variable
+    """
+    return T.maximum(0.0, x)
+    
+def relu_(x):
+    """
+    Alternative relu implementation
+
+    Parameters
+    ----------
+    x: tensor variable
+    """
+    return x * (x > 0)
+    
+def relu__(x):
+    """
+    Alternative relu implementation. The most efficient one.
+
+    Parameters
+    ----------
+    x: tensor variable
+    """
+    return T.switch(x < 0., 0., x)
 
 
 def test_scalar_rectifier():
-    # verify the new op rectifier produces the same results as relu
+    """
+    verify different implementations of relu
+    """
     x = T.fmatrix('inputs')
     y1 = relu(x)
     y3 = relu_(x)
@@ -62,9 +91,12 @@ def test_scalar_rectifier():
                                          err_msg='grad:arrays not equal' )
 
 
-def benchmark_single_op():
+def benchmark_relu():
+    """
+    Benchmark the speed of different relu implementations.
+    Both fprop and grad are tested.
+    """
     x = T.ftensor4('inputs')
-    
     ops = [
         relu_(x).sum(), # old
         relu(x).sum(), # alter, short for alternative
@@ -95,9 +127,7 @@ def benchmark_single_op():
     print names
     print times
             
-def benchmark_all():
-    benchmark_single_op()
 
 if __name__ == '__main__':
-    benchmark_all()
+    benchmark_relu()
     #test_scalar_rectifier()
