@@ -1167,13 +1167,11 @@ class VectorSequenceSpace(SimplyTypedSpace):
         return ('%(classname)s(dim=%(dim)s, dtype=%(dtype)s)' %
                 dict(classname=self.__class__.__name__,
                      dim=self.dim,
-                     max_labels=self.max_labels,
                      dtype=self.dtype))
 
     @wraps(Space.__eq__)
     def __eq__(self, other):
         return (type(self) == type(other) and
-                self.max_labels == other.max_labels and
                 self.dim == other.dim and
                 self.dtype == other.dtype)
 
