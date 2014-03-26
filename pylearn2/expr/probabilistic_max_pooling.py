@@ -22,6 +22,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
+import logging
 import theano.tensor as T
 import numpy as np
 from theano import config
@@ -31,6 +32,8 @@ from pylearn2.utils import sharedX
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 from theano.gof.op import get_debug_values
 import warnings
+
+logger = logging.getLogger(__name__)
 
 
 def max_pool(z, pool_shape, top_down=None, theano_rng=None):
@@ -518,9 +521,9 @@ def max_pool_channels(z, pool_size, top_down=None, theano_rng=None):
             assert sub_h.ndim == 2
             assert hp.ndim == 2
             for hv, hsv, hpartv in get_debug_values(h, sub_h, hp):
-                print hv.shape
-                print hsv.shape
-                print hpartv.shape
+                logger.info(hv.shape)
+                logger.info(hsv.shape)
+                logger.info(hpartv.shape)
             h = T.set_subtensor(sub_h, hp)
 
     p.name = 'p(%s)' % z_name
@@ -938,7 +941,7 @@ def profile(f):
 
         WRITEME
     """
-    print 'profiling ', f
+    logger.info('profiling {0}'.format(f))
     rng = np.random.RandomState([2012, 7, 19])
     batch_size = 80
     rows = 26
@@ -958,7 +961,7 @@ def profile(f):
 
     func = function([], updates={p_shared: p_th, h_shared: h_th})
 
-    print 'warming up'
+    logger.info('warming up')
     for i in xrange(10):
         func()
 
@@ -970,9 +973,9 @@ def profile(f):
         for j in xrange(10):
             func()
         t2 = time.time()
-        print t2 - t1
+        logger.info(t2 - t1)
         results.append(t2-t1)
-    print 'final: ', sum(results)/float(trials)
+    logger.info('final: {0}'.format(sum(results)/float(trials)))
 
 
 def profile_bc01(f):
@@ -981,7 +984,7 @@ def profile_bc01(f):
 
         WRITEME
     """
-    print 'profiling ', f
+    logger.info('profiling {0}'.format(f))
     rng = np.random.RandomState([2012, 7, 19])
     batch_size = 80
     rows = 26
@@ -1001,7 +1004,7 @@ def profile_bc01(f):
 
     func = function([], updates={p_shared: p_th, h_shared: h_th})
 
-    print 'warming up'
+    logger.info('warming up')
     for i in xrange(10):
         func()
 
@@ -1013,9 +1016,9 @@ def profile_bc01(f):
         for j in xrange(10):
             func()
         t2 = time.time()
-        print t2 - t1
+        logger.info(t2 - t1)
         results.append(t2-t1)
-    print 'final: ', sum(results)/float(trials)
+    logger.info('final: {0}'.format(sum(results)/float(trials)))
 
 
 def profile_samples(f):
@@ -1024,7 +1027,7 @@ def profile_samples(f):
 
         WRITEME
     """
-    print 'profiling samples', f
+    logger.info('profiling samples {0}'.format(f))
     rng = np.random.RandomState([2012, 7, 19])
     theano_rng = MRG_RandomStreams(rng.randint(2147462579))
     batch_size = 80
@@ -1045,7 +1048,7 @@ def profile_samples(f):
 
     func = function([], updates={p_shared: ps_th, h_shared: hs_th})
 
-    print 'warming up'
+    logger.info('warming up')
     for i in xrange(10):
         func()
 
@@ -1057,9 +1060,9 @@ def profile_samples(f):
         for j in xrange(10):
             func()
         t2 = time.time()
-        print t2 - t1
+        logger.info(t2 - t1)
         results.append(t2-t1)
-    print 'final: ', sum(results)/float(trials)
+    logger.info('final: {0}'.format(sum(results)/float(trials)))
 
 
 def profile_grad(f):
@@ -1068,7 +1071,7 @@ def profile_grad(f):
 
         WRITEME
     """
-    print 'profiling gradient of ', f
+    logger.info('profiling gradient of {0}'.format(f))
     rng = np.random.RandomState([2012, 7, 19])
     batch_size = 80
     rows = 26
@@ -1088,7 +1091,7 @@ def profile_grad(f):
     func = function([], updates={grad_shared: T.grad(p_th.sum() + h_th.sum(),
                                  z_shared)})
 
-    print 'warming up'
+    logger.info('warming up')
     for i in xrange(10):
         func()
 
@@ -1100,9 +1103,9 @@ def profile_grad(f):
         for j in xrange(10):
             func()
         t2 = time.time()
-        print t2 - t1
+        logger.info(t2 - t1)
         results.append(t2-t1)
-    print 'final: ', sum(results)/float(trials)
+    logger.info('final: {0}'.format(sum(results)/float(trials)))
 
 
 def profile_grad_bc01(f):
@@ -1111,7 +1114,7 @@ def profile_grad_bc01(f):
 
         WRITEME
     """
-    print 'profiling gradient of ', f
+    logger.info('profiling gradient of {0}'.format(f))
     rng = np.random.RandomState([2012, 7, 19])
     batch_size = 80
     rows = 26
@@ -1131,7 +1134,7 @@ def profile_grad_bc01(f):
     func = function([], updates={grad_shared: T.grad(p_th.sum() + h_th.sum(),
                                  z_shared)})
 
-    print 'warming up'
+    logger.info('warming up')
     for i in xrange(10):
         func()
 
@@ -1143,9 +1146,9 @@ def profile_grad_bc01(f):
         for j in xrange(10):
             func()
         t2 = time.time()
-        print t2 - t1
+        logger.info(t2 - t1)
         results.append(t2-t1)
-    print 'final: ', sum(results)/float(trials)
+    logger.info('final: {0}'.format(sum(results)/float(trials)))
 
 
 if __name__ == '__main__':
