@@ -2625,7 +2625,7 @@ class Sigmoid(Linear):
                                     state=None, targets=None):
         
         rval = super(Sigmoid, self).get_layer_monitoring_channels(state=state,
-                                                                targets=targets)
+                                                        targets=targets)
 
         if (targets is not None) and \
                 ((state_below is not None) or (state is not None)):
@@ -2640,7 +2640,7 @@ class Sigmoid(Linear):
                 prediction = T.gt(state, 0.5)
                 # If even one feature is wrong for a given training example,
                 # it's considered incorrect, so we max over columns.
-                incorrect = T.neq(target, prediction).max(axis=1)
+                incorrect = T.neq(targets, prediction).max(axis=1)
                 rval['misclass'] = T.cast(incorrect, config.floatX).mean()
         return rval
 
@@ -3442,7 +3442,9 @@ class LinearGaussian(Linear):
                                     state=None, targets=None):
 
         rval = super(LinearGaussian, 
-                self).get_layer_monitoring_channels(state_below, state, targets)
+                self).get_layer_monitoring_channels(state_below, \
+                                                    state, \
+                                                    targets)
         assert isinstance(rval, OrderedDict)
         rval['beta_min'] = self.beta.min()
         rval['beta_mean'] = self.beta.mean()
