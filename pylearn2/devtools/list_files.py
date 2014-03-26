@@ -1,6 +1,7 @@
 """
 Code for listing files that belong to the library.
 """
+import logging
 import pylearn2
 import os
 __authors__ = "Ian Goodfellow"
@@ -9,6 +10,8 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
+
+logger = logging.getLogger(__name__)
 
 
 def list_files(suffix=""):
@@ -64,4 +67,4 @@ if __name__ == '__main__':
     # Print all .py files in the library
     result = list_files('.py')
     for path in result:
-        print path
+        logger.info(path)
