@@ -1,6 +1,7 @@
-from pylearn2.space import IndexSpace, VectorSpace
+"""module for testing datasets.mnist"""
 from pylearn2.datasets.mnist import MNIST, MNIST_rotated_background
 import unittest
+from pylearn2.space import IndexSpace, VectorSpace
 from pylearn2.testing.skip import skip_if_no_data
 import numpy as np
 

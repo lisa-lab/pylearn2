@@ -1,3 +1,4 @@
+"""module for testing datasets.adult"""
 import numpy as np
 from pylearn2.datasets.adult import adult
 from pylearn2.testing.skip import skip_if_no_data

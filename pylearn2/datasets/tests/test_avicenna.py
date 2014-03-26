@@ -1,3 +1,4 @@
+"""module for testing datasets.avicenna"""
 import unittest
 import numpy as np
 from pylearn2.datasets.avicenna import Avicenna
