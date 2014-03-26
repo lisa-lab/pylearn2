@@ -125,17 +125,38 @@ class ForcedEvenIterator(SubsetIterator):
     uniform_batch_size = True
 
 
-    def __init__(self, base_iterator_cls, *args, **kwargs):
+    def __init__(self, base_iterator_cls, dataset_size, batch_size, num_batches, *args, **kwargs):
         """
         .. todo::
 
             WRITEME
         """
 
-        self._base_iterator = base_iterator_cls(*args, **kwargs)
+        if batch_size is None:
+            if num_batches is not None:
+                batch_size = int(dataset_size / num_batches)
+            else:
+                raise ValueError("need one of batch_size, num_batches "
+                                 "for sequential batch iteration")
+        elif batch_size is not None:
+            if num_batches is not None:
+                max_num_batches = int(dataset_size / batch_size)
+                if num_batches > max_num_batches:
+                    raise ValueError("dataset of %d examples can only provide "
+                                     "%d batches of equal size with batch_size %d, but %d "
+                                     "batches were requested" %
+                                     (dataset_size, max_num_batches,
+                                      batch_size, num_batches))
+            else:
+                num_batches = int(dataset_size / batch_size)
+
+        self._base_iterator = base_iterator_cls(dataset_size, batch_size, num_batches, *args, **kwargs)
+        self._dataset_size = self._base_iterator._dataset_size
         self._batch_size = self._base_iterator._batch_size
         self._num_batches = self._base_iterator._num_batches
-        self._dataset_size = self._base_iterator._dataset_size
+        self.fancy = base_iterator_cls.fancy
+        self.stochastic = base_iterator_cls.stochastic
+
 
     @property
     def num_examples(self):
@@ -146,6 +167,7 @@ class ForcedEvenIterator(SubsetIterator):
         """
 
         product = self.batch_size * self.num_batches
+        print "num examples?",product, self._dataset_size
         return min(product, self._dataset_size)
 
     def next(self):
@@ -165,6 +187,8 @@ class ForcedEvenIterator(SubsetIterator):
                 length = batch.stop-batch.start
             else:
                 length = len(batch)
+
+            print batch
 
         return batch
 
@@ -291,9 +315,14 @@ class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
             num_batches,
             None
         )
+#        if hasattr(rng,"get_state"):
+#            print "rng",rng.get_state()
+#        else:
+#            print rng
         self._rng = make_np_rng(rng, which_method=["random_integers", "shuffle"])
         self._shuffled = numpy.arange(self._dataset_size)
         self._rng.shuffle(self._shuffled)
+        print self._shuffled
 
     def next(self):
         """
@@ -301,6 +330,8 @@ class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
 
             WRITEME
         """
+#        print self._idx, self._shuffled
+
         if self._batch >= self.num_batches or self._idx >= self._dataset_size:
             raise StopIteration()
 
