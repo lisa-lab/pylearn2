@@ -1260,8 +1260,7 @@ class IndexSequenceSpace(SimplyTypedSpace):
     ----------
     max_labels : int
         The number of possible classes/labels. This means that
-        all labels should be < max_labels. Example: For MNIST
-        there are 10 numbers and hence max_labels = 10.
+        all labels should be < max_labels.
     dim : int
         The number of indices in one element of the sequence
     dtype : str
