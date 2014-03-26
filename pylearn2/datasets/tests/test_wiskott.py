@@ -1,3 +1,4 @@
+"""module to test datasets.wiskott"""
 from pylearn2.datasets.wiskott import Wiskott
 import unittest
 from pylearn2.testing.skip import skip_if_no_data
