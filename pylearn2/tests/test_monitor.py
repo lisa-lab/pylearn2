@@ -15,7 +15,7 @@ from pylearn2.monitor import push_monitor
 from pylearn2.space import VectorSpace
 from pylearn2.testing.datasets import ArangeDataset
 from pylearn2.training_algorithms.default import DefaultTrainingAlgorithm
-from pylearn2.utils.iteration import _iteration_schemes
+from pylearn2.utils.iteration import _iteration_schemes, has_uniform_batch_size
 from pylearn2.utils import py_integer_types
 from pylearn2.utils.serial import from_string
 from pylearn2.utils.serial import to_string
@@ -206,18 +206,28 @@ def test_revisit():
                 if num_mon_batches is None and mode in ['random_uniform', 'random_slice']:
                     continue
 
+                if has_uniform_batch_size(mode) and \
+                   num_mon_batches is not None and \
+                   num_mon_batches*mon_batch_size > num_examples:
+
+                    num_mon_batches = int(num_examples/float(mon_batch_size))
+
                 model = DummyModel(1)
                 monitor = Monitor.get_monitor(model)
 
                 try:
                     monitor.add_dataset(monitoring_dataset, mode,
                         batch_size=mon_batch_size, num_batches=num_mon_batches)
-                except TypeError:
+                except TypeError as e:
+                    print e
+                    print "needs seed!",mode
                     monitor.add_dataset(monitoring_dataset, mode,
                         batch_size=mon_batch_size, num_batches=num_mon_batches,
                         seed = 0)
 
-                if num_mon_batches is None:
+                if has_uniform_batch_size(mode) and num_mon_batches is None:
+                    num_mon_batches = int(num_examples/float(mon_batch_size))
+                elif num_mon_batches is None:
                     num_mon_batches = int(np.ceil(float(num_examples) / float(mon_batch_size)))
 
                 batches = [ None ] * num_mon_batches
@@ -270,6 +280,7 @@ def test_revisit():
                     data_specs=(model.get_input_space(),
                                 model.get_input_source()))
 
+                print "==== saves dataset ===="
                 try:
                     monitor()
                 except RuntimeError:
@@ -282,9 +293,12 @@ def test_revisit():
                 batch_idx.set_value(0)
                 prereq.validate = True
 
+                print "==== validates iterator ===="
                 monitor()
 
                 assert all(visited)
+
+#    assert False
 
 def test_prereqs_batch():
 
