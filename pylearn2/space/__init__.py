@@ -1200,7 +1200,7 @@ class VectorSequenceSpace(SimplyTypedSpace):
 
     @wraps(Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
-        if batch_size is None or batch_size == 1:
+        if batch_size == 1:
             return tensor.matrix(name=name)
         else:
             return ValueError("VectorSequenceSpace does not support batches "
@@ -1345,7 +1345,7 @@ class IndexSequenceSpace(SimplyTypedSpace):
 
     @wraps(Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
-        if batch_size is None or batch_size == 1:
+        if batch_size == 1:
             return tensor.matrix(name=name)
         else:
             return ValueError("IndexSequenceSpace does not support batches "
