@@ -7,7 +7,7 @@ from pylearn2.testing.skip import skip_if_no_data
 
 
 class TestCIFAR100(unittest.TestCase):
-"""class for testing datasets/cifar100.py"""
+    """class for testing datasets/cifar100.py"""
     def setUp(self):
         """TestCIFAR100 setUp"""
         skip_if_no_data()
