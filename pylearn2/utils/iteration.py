@@ -77,6 +77,9 @@ class SubsetIterator(object):
     # Does this class make use of random number generators?
     stochastic = False
 
+    # Does it ensure that every batch has the same size?
+    uniform_batch_size = False
+
     @property
     def batch_size(self):
         """
@@ -111,7 +114,7 @@ class SubsetIterator(object):
 
             WRITEME
         """
-        return False
+        return True
 
 class ForcedEvenIterator(SubsetIterator):
     """
@@ -119,6 +122,8 @@ class ForcedEvenIterator(SubsetIterator):
 
         WRITEME
     """
+    uniform_batch_size = True
+
 
     def __init__(self, base_iterator_cls, *args, **kwargs):
         """
@@ -173,6 +178,8 @@ def as_even(cls):
     for key, value in attributes:
         if not(key.startswith('__') and key.endswith('__')):
             setattr(partial,key,value)
+
+    partial.uniform_batch_size = True
 
     return partial
 
@@ -240,6 +247,7 @@ class SequentialSubsetIterator(SubsetIterator):
 
     fancy = False
     stochastic = False
+    uniform_batch_size = False
 
     @property
     def num_examples(self):
@@ -269,6 +277,7 @@ class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
     """
     stochastic = True
     fancy = True
+    uniform_batch_size = False
 
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
         """
@@ -348,6 +357,7 @@ class RandomUniformSubsetIterator(SubsetIterator):
 
     fancy = True
     stochastic = True
+    uniform_batch_size = True
 
 
 class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
@@ -392,6 +402,7 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
 
     fancy = False
     stochastic = True
+    uniform_batch_size = True
 
 
 class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
@@ -452,6 +463,7 @@ class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
 
     fancy = False
     stochastic = True
+    uniform_batch_size = False
 
 
 _iteration_schemes = {
@@ -464,6 +476,15 @@ _iteration_schemes = {
     'even_shuffled_sequential': as_even(ShuffledSequentialSubsetIterator),
     'even_batchwise_shuffled_sequential': as_even(BatchwiseShuffledSequentialIterator),
 }
+
+
+def has_uniform_batch_size(mode):
+    """
+    .. todo::
+
+        WRITEME
+    """
+    return resolve_iterator_class(mode).uniform_batch_size
 
 
 def is_stochastic(mode):
