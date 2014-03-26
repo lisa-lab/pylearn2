@@ -10,6 +10,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
 import numpy as np
+import logging
 import warnings
 
 from theano.compat.python2x import OrderedDict
@@ -34,6 +35,9 @@ from pylearn2.utils import safe_izip
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
 from pylearn2.utils.rng import make_theano_rng
+
+
+logger = logging.getLogger(__name__)
 
 
 class BaseCD(Cost):
@@ -930,7 +934,7 @@ class TorontoSparsity(Cost):
             if term == 0.:
                 continue
             else:
-                print 'term is ',term
+                logger.info('term is {0}'.format(term))
 
             if i == 0:
                 state_below = X
