@@ -56,7 +56,7 @@ class DenseDesignMatrix(Dataset):
     Parameters
     ----------
     X : ndarray, 2-dimensional, optional
-        Should be supplied if `topo_view` is not. A design \
+        Should be supplied if  `topo_view` is not. A design \
         matrix of shape (number examples, number features) \
         that defines the dataset.
     topo_view : ndarray, optional
@@ -236,9 +236,10 @@ class DenseDesignMatrix(Dataset):
                                  'provided.',
                                  (data_specs, topo, targets))
 
-            warnings.warn("Usage of `topo` and `target` arguments are being "
-                          "deprecated, and will be removed around November "
-                          "7th, 2013. `data_specs` should be used instead.",
+            warnings.warn("Usage of `topo` and `target` arguments are "
+                          "being deprecated, and will be removed "
+                          "around November 7th, 2013. `data_specs` "
+                          "should be used instead.",
                           stacklevel=2)
 
             # build data_specs from topo and targets if needed
@@ -528,7 +529,7 @@ class DenseDesignMatrix(Dataset):
                                          batch_size=size)
             train = dataset_iter.next()
             valid = dataset_iter.next()[:self.num_examples-train.shape[0]]
-            
+
         return (train, valid)
 
     def split_dataset_nfolds(self, nfolds=0):
@@ -618,6 +619,10 @@ class DenseDesignMatrix(Dataset):
 
         Return to a state specified by an object returned from
         get_stream_position.
+
+        Parameters
+        ----------
+        pos : object
         """
         self.rng = copy.copy(pos)
 
@@ -642,6 +647,13 @@ class DenseDesignMatrix(Dataset):
         """
         .. todo::
 
+            WRITEME
+
+        Parameters
+        ----------
+        preprocessor : object
+            preprocessor object
+        can_fit : bool, optional
             WRITEME
         """
         preprocessor.apply(self, can_fit)
@@ -675,14 +687,14 @@ class DenseDesignMatrix(Dataset):
         Parameters
         ----------
         mat : ndarray, 2-dimensional
-            An array containing a design matrix representation of training \
-            examples.
+            An array containing a design matrix representation of
+            training examples.
 
         dspace : Space
-            A Space we want the data in mat to be formatted in. It can be \
-            a VectorSpace for a design matrix output, a Conv2DSpace for a \
-            topological output for instance. Valid values depend on the \
-            type of `self.view_converter`.
+            A Space we want the data in mat to be formatted in.
+            It can be a VectorSpace for a design matrix output,
+            a Conv2DSpace for a topological output for instance.
+            Valid values depend on the type of `self.view_converter`.
 
         Returns
         -------
@@ -719,8 +731,8 @@ class DenseDesignMatrix(Dataset):
         Parameters
         ----------
         V : ndarray
-            An array containing a design matrix representation of training \
-            examples.
+            An array containing a design matrix representation of
+            training examples.
         axes : WRITEME
 
         .. todo::
@@ -791,6 +803,10 @@ class DenseDesignMatrix(Dataset):
         .. todo::
 
             WRITEME
+
+        Parameters
+        ----------
+        X : ndarray
         """
         assert len(X.shape) == 2
         assert not np.any(np.isnan(X))
@@ -818,6 +834,11 @@ class DenseDesignMatrix(Dataset):
         .. todo::
 
             WRITEME
+
+        Parameters
+        ----------
+        batch_size : int
+        include_labels : bool
         """
         try:
             idx = self.rng.randint(self.X.shape[0] - batch_size + 1)
@@ -887,6 +908,13 @@ class DenseDesignMatrix(Dataset):
 
         Restricts the dataset to include only the examples
         in range(start, stop). Ignored if both arguments are None.
+
+        Parameters
+        ----------
+        start : int
+            start index
+        stop : int
+            stop index
         """
         assert (start is None) == (stop is None)
         if start is None:
@@ -909,6 +937,10 @@ class DenseDesignMatrix(Dataset):
 
         If y exists and is a vector of ints, converts it to a binary matrix
         Otherwise will raise some exception
+
+        Parameters
+        ----------
+        min_class : int
         """
 
         if self.y is None:
@@ -965,6 +997,12 @@ class DenseDesignMatrix(Dataset):
         .. todo::
 
             WRITEME
+
+        Parameters
+        ----------
+        X : int
+        ref : float
+        per_example : obejct, optional
         """
         if per_example is not None:
             warnings.warn("ignoring per_example")
@@ -988,6 +1026,10 @@ class DenseDesignMatrix(Dataset):
 
         This function is only useful if you intend to call self.iterator
         without data_specs, and with "topo=True", which is deprecated.
+
+        Parameters
+        ----------
+        axes : tuple
         """
         assert self.view_converter is not None
 
