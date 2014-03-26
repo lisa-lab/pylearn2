@@ -25,6 +25,7 @@ try:
 except ImportError:
     sklearn_works = False
 
+
 def skip_if_no_data():
     if 'PYLEARN2_DATA_PATH' not in os.environ:
         raise SkipTest()
