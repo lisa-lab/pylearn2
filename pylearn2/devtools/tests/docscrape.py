@@ -259,11 +259,14 @@ class NumpyDocString(object):
     def _parse_summary(self):
         """Grab signature (if given) and summary"""
         summary = self._doc.read_to_next_empty_line()
-        summary_str = " ".join([s.strip() for s in summary])
+        summary_str = "\n".join([s.strip() for s in summary])
         if re.compile('^([\w. ]+=)?[\w\.]+\(.*\)$').match(summary_str):
             self['Signature'] = summary_str
             if not self._is_at_section():
                 self['Summary'] = self._doc.read_to_next_empty_line()
+        elif re.compile('^[\w]+\n[-]+').match(summary_str):
+            self['Summary'] = ''
+            self._doc.reset()
         else:
             self['Summary'] = summary
 
