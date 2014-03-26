@@ -1,3 +1,4 @@
+"""module for testing datasets.hepatitis"""
 import numpy as np
 import pylearn2.datasets.hepatitis as hepatitis
 from pylearn2.testing.skip import skip_if_no_data

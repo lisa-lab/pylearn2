@@ -1,5 +1,5 @@
+"""module for testing datasets.dense_design_matrix"""
 import numpy as np
-
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrixPyTables
 from pylearn2.datasets.dense_design_matrix import DefaultViewConverter

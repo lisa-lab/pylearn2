@@ -1,3 +1,4 @@
+"""module for testing datasets.ocr"""
 import unittest
 import numpy as np
 from pylearn2.datasets.ocr import OCR
