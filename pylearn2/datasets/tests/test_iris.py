@@ -1,3 +1,4 @@
+"""module for testing datasets.iris"""
 import numpy as np
 import pylearn2.datasets.iris as iris
 from pylearn2.testing.skip import skip_if_no_data
@@ -12,7 +13,7 @@ def test_iris():
     assert np.all(data.X != np.nan)
 
 def test_data():
-    """Checki iris dataset values against backup here"""
+    """Check iris dataset values against backup here"""
     assert iris_data == iris.iris_data
 
 iris_data = \

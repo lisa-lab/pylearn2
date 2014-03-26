@@ -1,3 +1,4 @@
+"""module for testing datasets.four_regions"""
 import numpy as np
 from pylearn2.datasets.four_regions import FourRegions
 
