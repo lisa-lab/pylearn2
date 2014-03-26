@@ -1002,8 +1002,8 @@ class S3C(Model, Block):
         t1 = time.time()
         rval = function([V], updates = learning_updates)
         t2 = time.time()
-        logger.info("... compilation took {0} seconds".format(t2-t1))
-        logger.info("graph size: "
+        logger.debug("... compilation took {0} seconds".format(t2-t1))
+        logger.debug("graph size: "
                     "{0}".format(len(rval.maker.fgraph.toposort())))
 
         return rval
