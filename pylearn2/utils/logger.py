@@ -286,3 +286,26 @@ def restore_defaults():
     # Delete any handlers that might be installed on our logger.
     while top_level_logger.handlers:
         top_level_logger.handlers.pop()
+
+
+def newline(logger, nb_blank_lines=1):
+    """
+    A simple method to write a real new line to logging.
+    Only works with the INFO level at the moment.
+
+    Parameters
+    ----------
+    logger : Logger object
+             The logger where the blank line will be added.
+    nb_blank_lines : int
+                     Number of blank lines in a row.
+    """
+    formatter = logging.Formatter(fmt='')
+    handler = CustomStreamHandler(formatter=formatter)
+
+    logger.addHandler(handler)
+
+    for i in xrange(nb_blank_lines):
+        logger.info('')
+
+    logger.removeHandler(handler)
