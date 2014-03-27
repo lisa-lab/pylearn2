@@ -74,9 +74,10 @@ trainer_yaml = """
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
         batch_size: 100,
         learning_rate: .1,
-        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
-            init_momentum: .5,
-        },
+        learning_rule:
+            !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+                init_momentum: .5,
+            },
         monitoring_dataset:
             {
                 'train' : *train,
@@ -95,13 +96,15 @@ trainer_yaml = """
             input_include_probs: { 'h0' : .8 },
             input_scales: { 'h0': 1. }
         },
-        termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
-            max_epochs: 5,
-        },
-        update_callbacks: !obj:pylearn2.training_algorithms.sgd.ExponentialDecay {
-            decay_factor: 1.000004,
-            min_lr: .000001
-        }
+        termination_criterion:
+            !obj:pylearn2.termination_criteria.EpochCounter {
+                max_epochs: 5,
+            },
+        update_callbacks:
+            !obj:pylearn2.training_algorithms.sgd.ExponentialDecay {
+                decay_factor: 1.000004,
+                min_lr: .000001
+            },
     },
     extensions: [
         !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
