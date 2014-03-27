@@ -65,7 +65,7 @@ prev_err = err()
 accepted_steps = 0
 
 while True:
-    logger.info('Current error: {0}'.format(prev_err))
+    logger.debug('Current error: {0}'.format(prev_err))
     change_filters =  rng.randint(2)
 
     if change_filters:
@@ -92,7 +92,7 @@ while True:
     new_err = err()
 
     if new_err <= prev_err:
-        logger.info('Failed to move beyond step {0}'.format(accepted_steps))
+        logger.debug('Failed to move beyond step {0}'.format(accepted_steps))
         target.set_value(old_val)
     else:
         prev_err = new_err
