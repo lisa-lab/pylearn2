@@ -125,6 +125,10 @@ class BatchGradientDescent:
         obj = objective
 
         self.verbose = verbose
+        
+        # TODO: remove verbose statements (handled by logging)
+        if self.verbose > 0:
+            logger.setLevel(logging.DEBUG)
 
         param_to_grad_sym = OrderedDict()
         param_to_grad_shared = OrderedDict()
