@@ -623,6 +623,7 @@ class DenseDesignMatrix(Dataset):
         Parameters
         ----------
         pos : object
+            WRITEME
         """
         self.rng = copy.copy(pos)
 
@@ -807,6 +808,7 @@ class DenseDesignMatrix(Dataset):
         Parameters
         ----------
         X : ndarray
+            WRITEME
         """
         assert len(X.shape) == 2
         assert not np.any(np.isnan(X))
@@ -838,7 +840,9 @@ class DenseDesignMatrix(Dataset):
         Parameters
         ----------
         batch_size : int
+            WRITEME
         include_labels : bool
+            WRITEME
         """
         try:
             idx = self.rng.randint(self.X.shape[0] - batch_size + 1)
@@ -941,6 +945,7 @@ class DenseDesignMatrix(Dataset):
         Parameters
         ----------
         min_class : int
+            WRITEME
         """
 
         if self.y is None:
@@ -1001,8 +1006,11 @@ class DenseDesignMatrix(Dataset):
         Parameters
         ----------
         X : int
+            WRITEME
         ref : float
+            WRITEME
         per_example : obejct, optional
+            WRITEME
         """
         if per_example is not None:
             warnings.warn("ignoring per_example")
@@ -1029,7 +1037,8 @@ class DenseDesignMatrix(Dataset):
 
         Parameters
         ----------
-        axes : tuple
+        axes : WRITEME
+            WRITEME
         """
         assert self.view_converter is not None
 
@@ -1063,6 +1072,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         may want to add one that uses the retina encoding that the U of T group
         uses.
     axes : WRITEME
+        WRITEME
     rng : object, optional
         A random number generator used for picking random indices into the
         design matrix when choosing minibatches.
@@ -1112,6 +1122,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
             examples. If unspecified, the entire dataset (`self.X`) is used \
             instead.
         axes : WRITEME
+            WRITEME
         start : WRITEME
 
         .. todo::
