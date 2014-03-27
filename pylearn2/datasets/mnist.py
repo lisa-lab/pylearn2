@@ -202,16 +202,12 @@ class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
                        'rotation_normalized_test.amat'
         else:
             raise ValueError("which_set must be one of: 'test', 'train'")
-        pylearn2_data_path = commands.getoutput("echo $PYLEARN2_DATA_PATH")
-        print pylearn2_data_path
-        path = os.path.join(pylearn2_data_path,
-                            "mnist/mnist_rotation_back_image/",
-                            set_path)
-        print path
-        obj = N.loadtxt(path)
-        X = obj[:,:-1]
+        path = "${PYLEARN2_DATA_PATH}/mnist/mnist_rotation_back_image/"\
+               + set_path
+        obj = serial.load(path)
+        X = obj[:, :-1]
         X = N.cast['float32'](X)
-        y = N.cast['int'](obj[:,-1])
+        y = N.cast['int'](obj[:, -1])
 
         self.one_hot = one_hot
         if one_hot:
@@ -228,4 +224,5 @@ class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
         super(MNIST_rotated_background, self).__init__(
             X=X, y=y, view_converter=view_converter)
 
+        assert not N.any(N.isnan(self.X))
         assert not N.any(N.isnan(self.X))
