@@ -56,7 +56,7 @@ class DenseDesignMatrix(Dataset):
     Parameters
     ----------
     X : ndarray, 2-dimensional, optional
-        Should be supplied if  `topo_view` is not. A design \
+        Should be supplied if `topo_view` is not. A design \
         matrix of shape (number examples, number features) \
         that defines the dataset.
     topo_view : ndarray, optional
@@ -529,7 +529,6 @@ class DenseDesignMatrix(Dataset):
                                          batch_size=size)
             train = dataset_iter.next()
             valid = dataset_iter.next()[:self.num_examples-train.shape[0]]
-
         return (train, valid)
 
     def split_dataset_nfolds(self, nfolds=0):
