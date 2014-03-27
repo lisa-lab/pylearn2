@@ -1,4 +1,4 @@
-from pylearn2.termination_criteria import EpochCounter
+from pylearn2.termination_criteria import EpochCounter, MonitorBased, And
 from pylearn2.testing.skip import skip_if_no_sklearn
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.models.mlp import MLP, Softmax, Sigmoid
@@ -26,11 +26,14 @@ class TestROCAUCChannel(unittest.TestCase):
         model = MLP(nvis=30,
                     layers=[Sigmoid(layer_name='h0', dim=30, sparse_init=15),
                             Softmax(layer_name='y', n_classes=2, irange=0.)])
+        criteria = [EpochCounter(10),
+                    MonitorBased(channel_name='valid_y_roc_auc',
+                                 prop_decrease=0., N=5)]
         algorithm = SGD(learning_rate=1e-3, batch_size=100,
                         monitoring_dataset={'train': train_dataset,
                                             'valid': valid_dataset,
                                             'test': test_dataset},
-                        termination_criterion=EpochCounter(10))
+                        termination_criterion=And(criteria))
         train = Train(dataset=train_dataset, model=model, algorithm=algorithm,
                       extensions=[ROCAUCChannel()])
         train.main_loop()

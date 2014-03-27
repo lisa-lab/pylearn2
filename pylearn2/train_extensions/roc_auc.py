@@ -3,6 +3,7 @@ from theano import tensor as T
 from theano import gof, config
 import theano
 import sklearn.metrics
+import numpy as np
 
 class ROCAUCScoreOp(gof.Op):
     # See function roc_auc_score for docstring
@@ -14,7 +15,13 @@ class ROCAUCScoreOp(gof.Op):
 
     def perform(self, node, inputs, output_storage):
         y_true, y_score = inputs
-        roc_auc = sklearn.metrics.roc_auc_score(y_true, y_score)
+        try:
+            roc_auc = sklearn.metrics.roc_auc_score(y_true, y_score)
+        except ValueError as e:
+            print y_true
+            print y_score
+            print e
+            roc_auc = np.nan
         output_storage[0][0] = theano._asarray(roc_auc, dtype='float64')
 
 def roc_auc_score(y_true, y_score):
