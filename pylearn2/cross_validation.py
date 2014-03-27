@@ -14,7 +14,7 @@ from sklearn.cross_validation import *
 
 class DatasetIterator(object):
     """Returns a new DenseDesignMatrix for each subset."""
-    def __init__(self, dataset, index_iterator):
+    def __init__(self, dataset, index_iterator, return_dict=True):
         self.index_iterator = index_iterator
         targets = False
         if dataset.get_targets() is not None:
@@ -22,18 +22,19 @@ class DatasetIterator(object):
         dataset_iterator = dataset.iterator(mode='sequential', num_batches=1,
                                             targets=targets)
         self.dataset_iterator = dataset_iterator
+        self.return_dict = return_dict
 
     def __iter__(self):
         for subsets in self.index_iterator:
+            labels = []
+            if len(subsets) == 1:
+                labels = ['train']
+            elif len(subsets) == 2:
+                labels = ['train', 'test']
+            elif len(subsets) == 3:
+                labels = ['train', 'valid', 'test']
             datasets = {}
             for i, subset in enumerate(subsets):
-                labels = []
-                if len(subset) == 1:
-                    labels = ['train']
-                elif len(subset) == 2:
-                    labels = ['train', 'test']
-                elif len(subset) == 3:
-                    labels = ['train', 'valid', 'test']
                 subset_data = tuple(
                     fn(data[subset]) if fn else data[subset]
                     for data, fn in safe_zip(self.dataset_iterator._raw_data,
@@ -45,6 +46,10 @@ class DatasetIterator(object):
                     y = None
                 dataset = DenseDesignMatrix(X=X, y=y)
                 datasets[labels[i]] = dataset
+            if not self.return_dict:
+                datasets = tuple(datasets[label] for label in labels)
+                if len(datasets) == 1:
+                    datasets, = datasets
             yield datasets
 
 
