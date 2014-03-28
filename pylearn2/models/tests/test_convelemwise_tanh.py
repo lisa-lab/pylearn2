@@ -9,7 +9,7 @@ def test_conv_tanh_basic():
     # Tests that we can load a convolutional tanh model
     # and train it for a few epochs (without saving) on a dummy
     # dataset-- tiny model and dataset
-    yaml_file = "conv_elemwise_tanh.yaml"
+    yaml_file = "./conv_elemwise_tanh.yaml"
     with open(yaml_file) as yamlh:
         yaml_lines = yamlh.readlines()
         yaml_str = "".join(yaml_lines)
