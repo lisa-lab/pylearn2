@@ -1,8 +1,13 @@
 __author__ = "Ian Goodfellow"
 
+import logging
 import numpy as np
 
 from pylearn2.utils import serial
+
+
+logger = logging.getLogger(__name__)
+
 
 class Simulator(object):
     """
@@ -29,6 +34,4 @@ class Simulator(object):
                 assert not np.any(np.isinf(param.get_value())), (i, param.name)
             if i % 1000 == 0:
                 serial.save(self.save_path, self.agent)
-                print 'saved!'
-
-
+                logger.info('saved!')
