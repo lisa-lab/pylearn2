@@ -24,6 +24,11 @@ MLP
 ===
 .. automodule:: pylearn2.models.mlp
     :members:
+    
+Principal Component Analysis
+============================
+.. automodule:: pylearn2.models.pca
+    :members:
 
 RBM
 ===

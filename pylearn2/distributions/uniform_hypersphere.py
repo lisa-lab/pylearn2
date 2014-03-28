@@ -37,7 +37,7 @@ class UniformHypersphere(object):
         .. todo::
 
             WRITEME properly
-        
+
         Parameters:
             X: Must contain only examples that lie on the hypersphere
         """
