@@ -18,7 +18,7 @@ class ROCAUCScoreOp(gof.Op):
         y_true, y_score = inputs
         try:
             roc_auc = sklearn.metrics.roc_auc_score(y_true, y_score)
-        except ValueError as e:
+        except ValueError:
             roc_auc = np.nan
         output_storage[0][0] = theano._asarray(roc_auc, dtype='float64')
 
