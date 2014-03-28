@@ -10,7 +10,7 @@ By default Pylearn2 loads all the dataset to the main memory (not GPU). This cou
 * `Pytables <http://www.pytables.org/moin/PyTables>`_
 * `h5py <http://www.h5py.org/>`_
 
-Pylearn2 currently only supports Pytables and h5py. (Theano supports memmap, and its usage in Pylearn2 needs to be investigated.)
+Pylearn2 currently only supports Pytables and h5py. (memmap support has been introduced in the latest version of Theano. But it has not been tested with Pylearn2 yet.)
 
 PyTables
 ========
