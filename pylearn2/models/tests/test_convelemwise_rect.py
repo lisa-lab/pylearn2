@@ -1,14 +1,19 @@
+import os
+
 from theano import config
 from theano.sandbox import cuda
 
 from pylearn2.config import yaml_parse
+import pylearn2
 
 
 def test_conv_rectifier_basic():
     # Tests that we can load a convolutional rectifier model
     # and train it for a few epochs (without saving) on a dummy
     # dataset-- tiny model and dataset
-    yaml_file = "./conv_elemwise_rect.yaml"
+
+    yaml_file = os.path.join(pylearn2.__path__[0],
+                             "models/tests/conv_elemwise_rect.yaml")
     with open(yaml_file) as yamlh:
         yaml_lines = yamlh.readlines()
         yaml_str = "".join(yaml_lines)
