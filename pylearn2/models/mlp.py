@@ -2744,6 +2744,7 @@ class ConvElemwise(Layer):
 
         outp, inp, rows, cols = range(4)
         raw = self.transformer._filters.get_value()
+
         print 'Output space: ', self.output_space.shape
         return np.transpose(raw, (outp, rows, cols, inp))
 
@@ -2782,8 +2783,16 @@ class ConvElemwise(Layer):
 
         self.input_space.validate(state_below)
 
-        z = self.transformer.lmul(state_below) + self.b
+        z = self.transformer.lmul(state_below)
+        if not hasattr(self, 'tied_b'):
+            self.tied_b = False
 
+        if self.tied_b:
+            b = self.b.dimshuffle('x', 0, 'x', 'x')
+        else:
+            b = self.b.dimshuffle('x', 0, 1, 2)
+
+        z = z + b
 
         d = self.nonlin.apply(z)
 
@@ -2965,11 +2974,6 @@ class ConvRectifiedLinear(ConvElemwise):
                                                   output_normalization=on,
                                                   kernel_stride=kernel_stride,
                                                   monitor_style=monitor_style)
-
-
-    @wraps(Layer.cost_matrix)
-    def cost_matrix(self, Y, Y_hat):
-        return T.sqr(Y - Y_hat)
 
 
 def max_pool(bc01, pool_shape, pool_stride, image_shape):
