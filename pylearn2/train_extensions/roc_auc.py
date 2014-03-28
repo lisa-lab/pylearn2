@@ -32,18 +32,19 @@ def roc_auc_score(y_true, y_score):
         Target values.
     y_score: tensor_like
         Predicted values or probabilities for positive class.
-
-    Notes
-    -----
-    This method will fail unless both classes are represented in y_true. It is
-    therefore important to set monitoring_batches to 1 to make sure you
-    calculate the ROC AUC on the entire dataset.
     """
     return ROCAUCScoreOp()(y_true, y_score)
 
 
 class ROCAUCChannel(TrainExtension):
-    """Adds a ROC AUC channel to the monitor for each monitoring dataset."""
+    """Adds a ROC AUC channel to the monitor for each monitoring dataset.
+
+    Notes
+    -----
+    This monitor will return nan unless both classes are represented in y_true.
+    It is therefore important to set monitoring_batches to 1 to make sure ROC
+    AUC is calculated on the entire dataset.
+    """
     def setup(self, model, dataset, algorithm):
         m_space, m_source = model.get_monitoring_data_specs()
         state, target = m_space.make_theano_batch()
