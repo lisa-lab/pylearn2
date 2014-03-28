@@ -194,13 +194,18 @@ def _cast(arg, dtype):
     elif str(type(arg)) == "<type 'CudaNdarray'>":  # numeric CUDA array
         if str(dtype) != theano.config.floatX:
             raise TypeError("Can only cast a numeric CudaNdarray to "
-                            "theano.config.floatX (%s), but dtype = %s" %
+                            "theano.config.floatX (%s), not %s" %
                             (theano.config.floatX, dtype))
-    elif isinstance(arg, CudaNdarrayType):  # symbolic CUDA array
+        else:
+            return arg
+    elif (isinstance(arg, theano.gof.Variable) and
+          isinstance(arg.type, CudaNdarrayType)):  # symbolic CUDA array
         if str(dtype) != theano.config.floatX:
             raise TypeError("Can only cast a theano CudaNdArrayType to "
-                            "theano.config.floatX (%s), but dtype = %s" %
+                            "theano.config.floatX (%s), not %s" %
                             (theano.config.floatX, dtype))
+        else:
+            return arg
     elif scipy.sparse.issparse(arg):
         return arg.astype(dtype)
     elif isinstance(arg, theano.tensor.TensorVariable):
