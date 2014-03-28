@@ -20,7 +20,3 @@ RBM tools
 .. automodule:: pylearn2.rbm_tools
     :members:
 
-Scalar
-======
-.. automodule:: pylearn2.scalar
-    :members:
