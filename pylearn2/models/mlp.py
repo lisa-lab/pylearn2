@@ -2213,7 +2213,8 @@ class RectifiedLinear(Linear):
         p = self._linear_part(state_below)
         # Original: p = p * (p > 0.) + self.left_slope * p * (p < 0.)
         # T.switch is faster.
-        # For details, see benchmarks in pylearn2/scripts/benchmark/time_relu.py
+        # For details, see benchmarks in
+        # pylearn2/scripts/benchmark/time_relu.py
         p = T.switch(p > 0., p, self.left_slope * p)
         return p
 

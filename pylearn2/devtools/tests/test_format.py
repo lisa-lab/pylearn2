@@ -2,8 +2,11 @@
 Unit tests for format checking
 """
 
+from nose.plugins.skip import SkipTest
+
 import os
 import pylearn2
+
 from pylearn2.devtools.tests.docscrape import docstring_errors
 from pylearn2.devtools.list_files import list_files
 
@@ -117,7 +120,6 @@ whitelist_pep8 = ["rbm_tools.py",
              "dataset_get/dataset-get.py",
              "dataset_get/helper-scripts/make-archive.py",
              "dataset_get/dataset_resolver.py",
-             "pca.py",
              "monitor.py",
              "optimization/batch_gradient_descent.py",
              "optimization/minres.py",
@@ -180,6 +182,7 @@ whitelist_pep8 = ["rbm_tools.py",
 
 whitelist_docstrings = ['scripts/datasets/step_through_norb_foveated.py',
     'blocks.py',
+    'datasets/hdf5.py',
     'rbm_tools.py',
     'training_algorithms/tests/test_bgd.py',
     'training_algorithms/tests/test_sgd.py',
@@ -539,6 +542,9 @@ whitelist_docstrings.extend(['sandbox/cuda_convnet/debug.py',
 #add files which fail to run to whitelist_docstrings
 whitelist_docstrings.extend(['training_algorithms/tests/test_learning_rule.py',
  'models/__init__.py',
+ 'models/pca.py',
+ 'datasets/tests/test_hdf5.py',
+ 'linear/tests/test_conv2d_c01b.py',
  'packaged_dependencies/theano_linear/conv2d.py',
  'packaged_dependencies/theano_linear/pyramid.py',
  'packaged_dependencies/theano_linear/unshared_conv/gpu_unshared_conv.py',
@@ -590,23 +596,43 @@ def test_format_pep8():
     Test if pep8 is respected.
     """
     format_infractions = []
+    whitespace_infractions = []
     for path in list_files(".py"):
         rel_path = os.path.relpath(path, pylearn2.__path__[0])
         if rel_path in whitelist_pep8:
             continue
         with open(path) as file:
             for i, line in enumerate(file):
-                if len(line.rstrip()) > 79:
+                line = line.rstrip('\r\n')
+                if len(line) > 79:
                     format_infractions.append((path, i + 1))
-    if len(format_infractions) > 0:
+                if line.endswith(' ') or line.endswith('\t'):
+                    whitespace_infractions.append((path, i + 1))
+    if len(format_infractions) + len(whitespace_infractions) > 0:
         msg = "\n".join('File "%s" line %d has more than 79 characters'
               % (fn, line) for fn, line in format_infractions)
+        msg += '\n'.join('File "%s" line %d ends with whitespace'
+                % (fn, line) for fn, line in whitespace_infractions)
         raise AssertionError("Format not respected:\n%s" % msg)
 
 
 def test_format_docstrings():
     """
-    Test if docstrings are well formated.
+    Test if docstrings are well formatted.
+    """
+
+    try:
+        verify_format_docstrings()
+    except SkipTest, e:
+        import traceback
+        traceback.print_exc(e)
+        raise AssertionError("Some file raised SkipTest on import, and "
+                " inadvertently canceled the documentation testing.")
+
+def verify_format_docstrings():
+    """
+    Implementation of `test_format_docstrings`. The implementation is
+    factored out so it can be placed inside a guard against SkipTest.
     """
     format_infractions = []
 

@@ -197,7 +197,7 @@ class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
         #
         # or
         #
-        # C = K_1 * B + K_2 * softplus(B) 
+        # C = K_1 * B + K_2 * softplus(B)
         #
         # Here we generate K_1. Since B is a 1-dimension vector, we must
         # transpose K_1 to make it work.
