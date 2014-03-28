@@ -3,6 +3,7 @@ A module containing different learning rules for use with the SGD training
 algorithm.
 """
 import numpy as np
+
 from theano import config
 from theano import tensor as T
 
@@ -168,7 +169,7 @@ class MomentumAdjustor(TrainExtension):
             self._init_momentum = momentum.get_value()
             self._initialized = True
         self._count += 1
-        momentum.set_value( np.cast[config.floatX](self.current_momentum()))
+        momentum.set_value(np.cast[config.floatX](self.current_momentum()))
 
     def current_momentum(self):
         """
@@ -223,13 +224,13 @@ class AdaDelta(LearningRule):
             WRITEME
         """
         updates = OrderedDict()
-
         for param in grads.keys():
 
             # mean_squared_grad := E[g^2]_{t-1}
             mean_square_grad = sharedX(param.get_value() * 0.)
             # mean_square_dx := E[(\Delta x)^2]_{t-1}
             mean_square_dx = sharedX(param.get_value() * 0.)
+
             if param.name is not None:
                 mean_square_grad.name = 'mean_square_grad_' + param.name
                 mean_square_dx.name = 'mean_square_dx_' + param.name
@@ -256,3 +257,4 @@ class AdaDelta(LearningRule):
             updates[param] = param + delta_x_t
 
         return updates
+
