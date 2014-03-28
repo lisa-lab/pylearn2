@@ -45,6 +45,8 @@ from pylearn2.linear.conv2d_c01b import setup_detector_layer_c01b
 from pylearn2.linear import local_c01b
 if cuda.cuda_available:
     from pylearn2.sandbox.cuda_convnet.pool import max_pool_c01b
+else:
+    max_pool_c01b = None
 from pylearn2.sandbox.cuda_convnet import check_cuda
 
 
@@ -1030,6 +1032,9 @@ class MaxoutLocalC01B(Layer):
             spatial pooling
         - output: the output of the layer, after sptial pooling, can be
             normalized as well
+    kernel_stride : vertical and horizontal pixel stride between
+        each detector.
+
     """
 
     def __init__(self,
@@ -1049,7 +1054,7 @@ class MaxoutLocalC01B(Layer):
                  fix_kernel_shape=False,
                  partial_sum=1,
                  tied_b=False,
-                 max_filter_norm=None,
+                 max_kernel_norm=None,
                  input_normalization=None,
                  detector_normalization=None,
                  min_zero=False,
@@ -1209,11 +1214,11 @@ class MaxoutLocalC01B(Layer):
 
         assert self.detector_space.num_channels >= 16
 
-        if self.pool_shape is None:
+        if self.pool_shape is None or np.prod(self.pool_shape)==1:
             self.output_space = Conv2DSpace(shape=self.detector_space.shape,
                                             num_channels=self.num_channels,
                                             axes=('c', 0, 1, 'b'))
-        else:
+        elif max_pool_c01b is not None:
             ds = self.detector_space
             dummy_detector = sharedX(ds.get_origin_batch(2)[0:16, :, :, :])
 
@@ -1226,13 +1231,15 @@ class MaxoutLocalC01B(Layer):
                                                    dummy_p.shape[2]],
                                             num_channels=self.num_channels,
                                             axes=('c', 0, 1, 'b'))
+        else:
+            raise ValueError("Pooling is not implemented for CPU")
 
         print 'Output space: ', self.output_space.shape
 
     def censor_updates(self, updates):
         """
         Replaces the values in `updates` if needed to enforce the options set
-        in the __init__ method, including `max_filter_norm`.
+        in the __init__ method, including `max_kernel_norm`.
 
         Parameters
         ----------
@@ -1245,13 +1252,13 @@ class MaxoutLocalC01B(Layer):
             by the learning algorithm.
         """
 
-        if self.max_filter_norm is not None:
+        if self.max_kernel_norm is not None:
             W, = self.transformer.get_params()
             if W in updates:
                 # TODO:    push some of this into the transformer itself
                 updated_W = updates[W]
                 updated_norms = self.get_filter_norms(updated_W)
-                desired_norms = T.clip(updated_norms, 0, self.max_filter_norm)
+                desired_norms = T.clip(updated_norms, 0, self.max_kernel_norm)
                 scales = desired_norms / (1e-7 + updated_norms)
                 updates[W] = (updated_W *
                               scales.dimshuffle(0, 1, 'x', 'x', 'x', 2, 3))
@@ -1381,7 +1388,7 @@ class MaxoutLocalC01B(Layer):
             if self.detector_normalization:
                 z = self.detector_normalization(z)
 
-            if self.pool_shape is None:
+            if self.pool_shape is None or np.prod(self.pool_shape)==1:
                 p = z
             else:
                 p = max_pool_c01b(c01b=z,
@@ -1396,7 +1403,7 @@ class MaxoutLocalC01B(Layer):
                                           "never exists as a stage of "
                                           "processing in this "
                                           "implementation.")
-            if self.pool_shape is not None:
+            if self.pool_shape is not None or np.prod(self.pool_shape)>1:
                 z = max_pool_c01b(c01b=z,
                                   pool_shape=self.pool_shape,
                                   pool_stride=self.pool_stride,
