@@ -589,17 +589,23 @@ def test_format_pep8():
     Test if pep8 is respected.
     """
     format_infractions = []
+    whitespace_infractions = []
     for path in list_files(".py"):
         rel_path = os.path.relpath(path, pylearn2.__path__[0])
         if rel_path in whitelist_pep8:
             continue
         with open(path) as file:
             for i, line in enumerate(file):
-                if len(line.rstrip()) > 79:
+                line = line.rstrip('\r\n')
+                if len(line) > 79:
                     format_infractions.append((path, i + 1))
-    if len(format_infractions) > 0:
+                if line.endswith(' ') or line.endswith('\t'):
+                    whitespace_infractions.append((path, i + 1))
+    if len(format_infractions) + len(whitespace_infractions) > 0:
         msg = "\n".join('File "%s" line %d has more than 79 characters'
               % (fn, line) for fn, line in format_infractions)
+        msg += '\n'.join('File "%s" line %d ends with whitespace'
+                % (fn, line) for fn, line in whitespace_infractions)
         raise AssertionError("Format not respected:\n%s" % msg)
 
 
