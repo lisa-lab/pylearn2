@@ -14,13 +14,10 @@ d) T.switch(x<0., 0., x): (2.32, 1.41)    (1.41, 2.84)    (8.39)
 
 Conlusion:
 In terms of efficiency, d) > a) > c) > b)
-
-Written by Li and Fred.
-
 '''
+__authors__ = "Li Yao and Frederic Bastien"
 import theano
 import theano.tensor as T
-from theano.tensor import elemwise
 
 import numpy
 import time
@@ -29,13 +26,13 @@ floatX = 'float32'
 def relu(x):
     """
     relu implementation with T.maximum
-    
+
     Parameters
     ----------
     x: tensor variable
     """
     return T.maximum(0.0, x)
-    
+
 def relu_(x):
     """
     Alternative relu implementation
@@ -45,7 +42,7 @@ def relu_(x):
     x: tensor variable
     """
     return x * (x > 0)
-    
+
 def relu__(x):
     """
     Alternative relu implementation. The most efficient one.
@@ -65,28 +62,31 @@ def test_scalar_rectifier():
     y1 = relu(x)
     y3 = relu_(x)
     y4 = relu__(x)
-    
+
     f1 = theano.function(inputs=[x], outputs=y1, name='benchmark_1_forward')
     f3 = theano.function(inputs=[x], outputs=y3, name='benchmark_3_forward')
     f4 = theano.function(inputs=[x], outputs=y4, name='benchmark_4_forward')
-    
-    g1 = theano.function(inputs=[x], outputs=T.grad(y1.sum(),x), name='benchmark_1_grad')
-    g3 = theano.function(inputs=[x], outputs=T.grad(y3.sum(),x), name='benchmark_3_grad')
-    g4 = theano.function(inputs=[x], outputs=T.grad(y4.sum(),x), name='benchmark_4_grad')
-    
+
+    g1 = theano.function(inputs=[x], outputs=T.grad(y1.sum(),x),
+            name='benchmark_1_grad')
+    g3 = theano.function(inputs=[x], outputs=T.grad(y3.sum(),x),
+            name='benchmark_3_grad')
+    g4 = theano.function(inputs=[x], outputs=T.grad(y4.sum(),x),
+            name='benchmark_4_grad')
+
     for i in range(10):
         value = numpy.random.uniform(-1,1,size=(100,500)).astype(floatX)
-        
+
         numpy.testing.assert_array_equal(f1(value), f3(value),
                                          err_msg='arrays not equal' )
 
         numpy.testing.assert_array_equal(f1(value), f4(value),
                                          err_msg='arrays not equal' )
 
-        
+
         numpy.testing.assert_array_equal(g1(value), g3(value),
                                          err_msg='grad:arrays not equal' )
-        
+
         numpy.testing.assert_array_equal(g1(value), g4(value),
                                          err_msg='grad:arrays not equal' )
 
@@ -109,13 +109,13 @@ def benchmark_relu():
     names = ['fprop_old', 'fprop_alter', 'fprop_alter2',
              'grad_old', 'grad_alter', 'grad_alter2']
 
-    
+
     value = numpy.random.uniform(size=(512,32,32,100)).astype(floatX)
     times = []
     for op, name in zip(ops, names):
         f = theano.function(inputs=[x], outputs=op, name=name)
         n_loops = 10
-        
+
         t0 = time.time()
         for i in range(n_loops):
             f(value)
@@ -126,7 +126,7 @@ def benchmark_relu():
         theano.printing.debugprint(f, print_type=True)
     print names
     print times
-            
+
 
 if __name__ == '__main__':
     benchmark_relu()

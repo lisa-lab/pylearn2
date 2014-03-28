@@ -602,7 +602,8 @@ class PcaOnlineEstimator(object):
 
     Example:
 
-      pca_esti = pca_online_estimator.PcaOnlineEstimator(dimension_of_the_samples)
+      pca_esti = \
+              pca_online_estimator.PcaOnlineEstimator(dimension_of_the_samples)
 
       for i in range(number_of_samples):
         pca_esti.observe(samples[i])
