@@ -50,7 +50,6 @@ test_yaml_layer0 = """
         batch_size: 100,
         line_search_mode: 'exhaustive',
         conjugate: 1,
-        monitoring_dataset: *train,
         cost: !obj:pylearn2.costs.autoencoder.MeanSquaredReconstructionError {},
         termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
             max_epochs: 5,
@@ -85,20 +84,18 @@ test_yaml_layer1 = """
         batch_size: 100,
         line_search_mode: 'exhaustive',
         conjugate: 1,
-        monitoring_dataset: *train,
         termination_criterion: !obj:pylearn2.termination_criteria.And {
             criteria: [
                 !obj:pylearn2.termination_criteria.EpochCounter {
                     max_epochs: 5,
                 },
                 !obj:pylearn2.termination_criteria.MonitorBased {
-                    channel_name: 'train_y_misclass',
+                    channel_name: 'valid_y_misclass',
                     prop_decrease: 0.,
                     N: 2,
                 },
             ],
         },
-
     },
     save_path: 'test_layer1.pkl',
     save_subsets: 1,
