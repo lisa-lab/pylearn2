@@ -1,39 +1,74 @@
-from pylearn2.termination_criteria import EpochCounter, MonitorBased, And
 from pylearn2.testing.skip import skip_if_no_sklearn
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
-from pylearn2.models.mlp import MLP, Softmax, Sigmoid
-from pylearn2.train import Train
-from pylearn2.training_algorithms.sgd import SGD
+from pylearn2.config import yaml_parse
 import numpy as np
 import unittest
+import cPickle
+import os
 
-def get_random_dataset(shape):
-    """Generate random features and targets."""
-    X = np.random.random(shape)
-    y = np.random.randint(2, size=shape[0])
-    y = np.vstack((y, 1-y)).T # one-hot encoding
-    dataset = DenseDesignMatrix(X=X, y=y)
-    return dataset
 
 class TestROCAUCChannel(unittest.TestCase):
-    """Train a simple model and calculate ROC AUC on the monitoring datasets."""
-    def test_roc_auc(self):
+    """Train a simple model and calculate ROC AUC for monitoring datasets."""
+    def setUp(self):
         skip_if_no_sklearn()
-        from pylearn2.train_extensions.roc_auc import ROCAUCChannel
-        train_dataset = get_random_dataset((1000, 30))
-        valid_dataset = get_random_dataset((500, 30))
-        test_dataset = get_random_dataset((1500, 30))
-        model = MLP(nvis=30,
-                    layers=[Sigmoid(layer_name='h0', dim=30, sparse_init=15),
-                            Softmax(layer_name='y', n_classes=2, irange=0.)])
-        criteria = [EpochCounter(10),
-                    MonitorBased(channel_name='valid_y_roc_auc',
-                                 prop_decrease=0., N=5)]
-        algorithm = SGD(learning_rate=1e-3, batch_size=100,
-                        monitoring_dataset={'train': train_dataset,
-                                            'valid': valid_dataset,
-                                            'test': test_dataset},
-                        termination_criterion=And(criteria))
-        train = Train(dataset=train_dataset, model=model, algorithm=algorithm,
-                      extensions=[ROCAUCChannel()])
-        train.main_loop()
+        for name in ['train', 'valid', 'test']:
+            X = np.random.random((1000, 15))
+            y = np.random.randint(2, size=1000)
+            dataset = DenseDesignMatrix(X=X, y=y)
+            dataset.convert_to_one_hot()
+            with open("{}_dataset.pkl".format(name), "w") as f:
+                cPickle.dump(dataset, f, cPickle.HIGHEST_PROTOCOL)
+
+    def test_roc_auc(self):
+        trainer = yaml_parse.load(test_yaml)
+        trainer.main_loop()
+
+    def tearDown(self):
+        for name in ['train', 'valid', 'test']:
+            os.remove("{}_dataset.pkl".format(name))
+
+test_yaml = """
+!obj:pylearn2.train.Train {
+    dataset: &train !pkl: 'train_dataset.pkl',
+    model: !obj:pylearn2.models.mlp.MLP {
+        nvis: 15,
+        layers: [
+            !obj:pylearn2.models.mlp.Sigmoid {
+                layer_name: 'h0',
+                dim: 15,
+                sparse_init: 15,
+            },
+            !obj:pylearn2.models.mlp.Softmax {
+                layer_name: 'y',
+                n_classes: 2,
+                irange: 0.005,
+            }
+        ],
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        learning_rate: 1e-3,
+        batch_size: 100,
+        monitoring_dataset: {
+            'train': *train,
+            'valid': !pkl: 'valid_dataset.pkl',
+            'test': !pkl: 'test_dataset.pkl',
+        },
+        monitoring_batches: 1,
+        termination_criterion: !obj:pylearn2.termination_criteria.And {
+            criteria: [
+                !obj:pylearn2.termination_criteria.EpochCounter {
+                    max_epochs: 10,
+                },
+                !obj:pylearn2.termination_criteria.MonitorBased {
+                    channel_name: 'valid_y_roc_auc',
+                    prop_decrease: 0.,
+                    N: 3,
+                },
+            ],
+        },
+    },
+    extensions: [
+        !obj:pylearn2.train_extensions.roc_auc.ROCAUCChannel {},
+    ],
+}
+"""
