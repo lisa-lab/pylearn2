@@ -2201,6 +2201,8 @@ class RectifiedLinear(Linear):
     Rectified linear MLP layer (Glorot and Bengio 2011).
 
     WRITEME parameters list
+
+    This should fail because this line is too long..............................
     """
 
     def __init__(self, left_slope=0.0, **kwargs):
