@@ -2,8 +2,7 @@
 Cross validation module.
 
 Each fold of cross validation is a separate experiment, so we create a separate
-Train object for each model and save all of the models together, as well as the
-cross validation object for future use.
+Train object for each model and save all of the models together.
 """
 __author__ = "Steven Kearnes"
 
