@@ -1127,7 +1127,7 @@ class VectorSpace(SimplyTypedSpace):
                 raise ValueError('VectorSpace batches must be 2D, got %d '
                                  'dimensions' % batch.ndim)
             for val in get_debug_values(batch):
-                self.validate(val)  # sic; should be validate, not _validate
+                self.np_validate(val)  # sic; val is numeric, not symbolic
         else:
             # Use the 'CudaNdarray' string to avoid importing
             # theano.sandbox.cuda when it is not available
