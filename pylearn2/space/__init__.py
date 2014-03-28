@@ -192,18 +192,16 @@ def _cast(arg, dtype):
         # theano._asarray is a safer drop-in replacement to numpy.asarray.
         return theano._asarray(arg, dtype=dtype)
     elif str(type(arg)) == "<type 'CudaNdarray'>":  # numeric CUDA array
-        if str(dtype) != theano.config.floatX:
+        if str(dtype) != 'float32':
             raise TypeError("Can only cast a numeric CudaNdarray to "
-                            "theano.config.floatX (%s), not %s" %
-                            (theano.config.floatX, dtype))
+                            "float32, not %s" % dtype)
         else:
             return arg
     elif (isinstance(arg, theano.gof.Variable) and
           isinstance(arg.type, CudaNdarrayType)):  # symbolic CUDA array
-        if str(dtype) != theano.config.floatX:
+        if str(dtype) != 'float32':
             raise TypeError("Can only cast a theano CudaNdArrayType to "
-                            "theano.config.floatX (%s), not %s" %
-                            (theano.config.floatX, dtype))
+                            "float32, not %s" % dtype)
         else:
             return arg
     elif scipy.sparse.issparse(arg):
