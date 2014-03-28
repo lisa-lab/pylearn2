@@ -197,6 +197,8 @@ def _cast(arg, dtype):
         return theano.tensor.cast(arg, dtype)
     elif isinstance(arg, theano.sparse.SparseVariable):
         return theano.sparse.cast(arg, dtype)
+    elif isinstance(arg, theano.sandbox.cuda.var.CudaNdarrayVariable):
+        return arg
     else:
         raise TypeError("Unsupported arg type '%s'" % str(type(arg)))
 
