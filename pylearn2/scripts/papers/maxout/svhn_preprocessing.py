@@ -6,7 +6,7 @@ from pylearn2.datasets import preprocessing
 from pylearn2.datasets.svhn import SVHN
 from pylearn2.utils.string_utils import preprocess
 
-orig_path = preprocess('${PYLEARN2_DATA_PATH}/SVHN/format2/')
+orig_path = preprocess('${PYLEARN2_DATA_PATH}/SVHN/format2')
 try:
     local_path = preprocess('${SVHN_LOCAL_PATH}')
 except ValueError:
@@ -23,7 +23,7 @@ if not os.path.isdir(os.path.join(local_path, 'h5')):
 
 for d_set in [train_name, valid_name, test_name]:
     if not os.path.isfile(os.path.join(local_path, d_set)):
-        logging.info("Copying data from {} to {}".format(os.path.join(local_path, d_set), local_path))
+        logging.info("Copying data from {0} to {1}".format(os.path.join(local_path, d_set), local_path))
         shutil.copyfile(os.path.join(orig_path, d_set),
                     os.path.join(local_path, d_set))
 
