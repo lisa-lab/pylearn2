@@ -2,8 +2,11 @@
 Unit tests for format checking
 """
 
+from nose.plugins.skip import SkipTest
+
 import os
 import pylearn2
+
 from pylearn2.devtools.tests.docscrape import docstring_errors
 from pylearn2.devtools.list_files import list_files
 
@@ -179,6 +182,7 @@ whitelist_pep8 = ["rbm_tools.py",
 
 whitelist_docstrings = ['scripts/datasets/step_through_norb_foveated.py',
     'blocks.py',
+    'datasets/hdf5.py',
     'rbm_tools.py',
     'training_algorithms/tests/test_bgd.py',
     'training_algorithms/tests/test_sgd.py',
@@ -538,6 +542,9 @@ whitelist_docstrings.extend(['sandbox/cuda_convnet/debug.py',
 #add files which fail to run to whitelist_docstrings
 whitelist_docstrings.extend(['training_algorithms/tests/test_learning_rule.py',
  'models/__init__.py',
+ 'models/pca.py',
+ 'datasets/tests/test_hdf5.py',
+ 'linear/tests/test_conv2d_c01b.py',
  'packaged_dependencies/theano_linear/conv2d.py',
  'packaged_dependencies/theano_linear/pyramid.py',
  'packaged_dependencies/theano_linear/unshared_conv/gpu_unshared_conv.py',
@@ -611,7 +618,21 @@ def test_format_pep8():
 
 def test_format_docstrings():
     """
-    Test if docstrings are well formated.
+    Test if docstrings are well formatted.
+    """
+
+    try:
+        verify_format_docstrings()
+    except SkipTest, e:
+        import traceback
+        traceback.print_exc(e)
+        raise AssertionError("Some file raised SkipTest on import, and "
+                " inadvertently canceled the documentation testing.")
+
+def verify_format_docstrings():
+    """
+    Implementation of `test_format_docstrings`. The implementation is
+    factored out so it can be placed inside a guard against SkipTest.
     """
     format_infractions = []
 

@@ -6,7 +6,7 @@ each implementation: fprop and grad.
 
 Results: in seconds, float32 (details in the code)
 
-Implementations tested, CPU (fprop, bprop), GPU (fprop, bprop), (final score)
+Implementation, CPU (fprop, bprop), GPU (fprop, bprop), (final score)
 a) ScalarRectifier:       (2.32, 2.40)    (1.36, 2.67)    (8.75)
 b) T.max(.0, x):          (5.19, 3.65)    (1.38, 2.38)    (12.60)
 c) x*(x>0.):              (2.85, 2.84)    (1.31, 2.91)    (9.91)
