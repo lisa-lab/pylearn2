@@ -511,8 +511,9 @@ class Maxout(Layer):
 
                 # max_x.mean_u is "the mean over *u*nits of the max over
                 # e*x*amples" The x and u are included in the name because
-                # otherwise its hard to remember which axis is which when reading
-                # the monitor I use inner.outer rather than outer_of_inner or
+                # otherwise its hard to remember which axis is which when 
+                # reading the monitor I use inner.outer 
+                # rather than outer_of_inner or
                 # something like that because I want mean_x.* to appear next to
                 # each other in the alphabetical list, as these are commonly
                 # plotted together
