@@ -118,7 +118,7 @@ class PatchViewer(object):
     pad : tuple
         Tuple of ints in the form (pad vertical, pad horizontal). Number of
         pixels to put between each patch in each direction.
-    background: float or 3-tuple
+    background : float or 3-tuple
         The color of the background of the display. Either a float in [0, 1]
         if `is_color` is `False` or a 3-tuple/3d ndarray array of floats in
         [0, 1] for RGB color if `is_color` is `True`.

@@ -103,8 +103,8 @@ class HeatMap:
         None or a callable that takes a 2D numpy array and returns a 2D numpy
         array
     render_mode : WRITEME
-        * 'o': opaque.
-        * 'r': render only to the (r)ed channel
+        * 'o' : opaque.
+        * 'r' : render only to the (r)ed channel
     """
     def __init__(self, f, normalizer, render_mode = 'o'):
         self.f = f

@@ -1,6 +1,4 @@
-"""
-Code for reformatting supervised learning targets.
-"""
+"""Code for reformatting supervised learning targets."""
 import numpy as np
 import scipy
 import scipy.sparse
