@@ -115,32 +115,31 @@ def symGivens2(a, b):
     d : WRITEME
         two-norm of [a; b]
 
-    See Also
-    --------
-
-    - Algorithm 4.9, stable *unsymmetric* Givens rotations in Golub and van
-        Loan's book Matrix Computations, 3rd edition.
-    - MATLAB's function PLANEROT.
-
     Notes
     -----
-    This method gives c and s such that
+    * See also:
 
-    [ c  s ][a] = [d],
-    [ s -c ][b]   [0]
+      - Algorithm 4.9, stable *unsymmetric* Givens rotations in Golub
+        and van Loan's book Matrix Computations, 3rd edition.
 
-    where
+      - MATLAB's function PLANEROT.
 
-    d = two norm of vector [a, b],
-    c = a / sqrt(a^2 + b^2) = a / d,
-    s = b / sqrt(a^2 + b^2) = b / d.
+    * This method gives c and s such that
 
-    The implementation guards against overflow in computing
-    sqrt(a^2 + b^2).
+      [ c  s ][a] = [d],
+      [ s -c ][b]   [0]
 
-    Observations:
-    Implementing this function as a single op in C might improve speed
-    considerably ..
+      where
+
+      d = two norm of vector [a, b],
+      c = a / sqrt(a^2 + b^2) = a / d,
+      s = b / sqrt(a^2 + b^2) = b / d.
+
+      The implementation guards against overflow in computing
+      sqrt(a^2 + b^2).
+
+    * Observation: Implementing this function as a single op in C might
+      improve speed considerably .
     """
     c_branch1 = T.switch(T.eq(a, constantX(0)),
                           constantX(1),
@@ -193,10 +192,10 @@ def sqrt_inner_product(xs, ys=None):
     tenors in `xs` and the similar vector obtain from `ys`. Note that
     `ys` should match `xs`.
 
-    Parameters:
-
-        xs : list of theano expressions
-        ys : None or list of theano expressions
+    Parameters
+    ----------
+    xs : list of theano expressions
+    ys : None or list of theano expressions
     """
     if ys is None:
         ys = [x for x in xs]
@@ -216,10 +215,10 @@ def inner_product(xs, ys=None):
     tenors in `xs` and the similar vector obtain from `ys`. Note that
     `ys` should match `xs`.
 
-    Parameters:
-
-        xs : list of theano expressions
-        ys : None or list of theano expressions
+    Parameters
+    ----------
+    xs : list of theano expressions
+    ys : None or list of theano expressions
     """
     if ys is None:
         ys = [x for x in xs]
@@ -236,13 +235,14 @@ def is_binary(x):
 
 class Identity(Block):
     """
-    A Block that computes the identity transformation. Mostly useful as a
-    placeholder.
+    A Block that computes the identity transformation. Mostly useful as
+    a placeholder.
 
     Parameters
     ----------
     input_space : WRITEME
     """
+
     def __init__(self, input_space=None):
         super(Identity, self).__init__()
         self.input_space = input_space
