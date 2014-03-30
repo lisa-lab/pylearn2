@@ -18,6 +18,7 @@ class Multinomial(object):
 
         WRITEME
     """
+
     def __init__(self, rng, pi, renormalize=False):
         self.pi = pi
         assert self.pi.min() >= 0.0

@@ -1,6 +1,4 @@
-"""
-Functionality for detecting NaNs in a Theano graph.
-"""
+"""Functionality for detecting NaNs in a Theano graph."""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -27,9 +25,10 @@ class NanGuardMode(Mode):
     ----------
     nan_is_error : bool
         If True, raise an error anytime a NaN is encountered
-    inf_is_error: bool
+    inf_is_error : bool
         If True, raise an error anytime an Inf is encountered
     """
+
     def __init__(self, nan_is_error, inf_is_error):
         def do_check_on(var, nd, f, is_input):
             """
