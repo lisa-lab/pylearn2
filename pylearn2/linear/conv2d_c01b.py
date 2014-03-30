@@ -336,16 +336,17 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange="not specified"):
     ----------
     layer : object
         Any python object that allows the modifications described below and
-        has the following attributes
-            * pad : int describing amount of zero padding to add
-            * kernel_shape : 2-element tuple or list describing spatial shape of
-              kernel
-            * fix_kernel_shape : bool, if true, will shrink the kernel shape to
-              make it feasible, as needed (useful for hyperparameter searchers)
-            * detector_channels : The number of channels in the detector layer
-            * init_bias : numeric constant added to a tensor of zeros to
-              initialize the bias
-            * tied_b : If true, biases are shared across all spatial locations
+        has the following attributes:
+
+          * pad : int describing amount of zero padding to add
+          * kernel_shape : 2-element tuple or list describing spatial shape of
+            kernel
+          * fix_kernel_shape : bool, if true, will shrink the kernel shape to
+            make it feasible, as needed (useful for hyperparameter searchers)
+          * detector_channels : The number of channels in the detector layer
+          * init_bias : numeric constant added to a tensor of zeros to
+            initialize the bias
+          * tied_b : If true, biases are shared across all spatial locations
     input_space : WRITEME
         A Conv2DSpace to be used as input to the layer
     rng : WRITEME
