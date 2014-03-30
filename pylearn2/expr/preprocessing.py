@@ -54,6 +54,8 @@ def global_contrast_normalize(X, scale=1., subtract_mean=True, use_std=False,
     `sqrt_bias` = 10 and `use_std = True` (and defaults for all other
     parameters) corresponds to the preprocessing used in [1].
 
+    References
+    ----------
     .. [1] A. Coates, H. Lee and A. Ng. "An Analysis of Single-Layer
        Networks in Unsupervised Feature Learning". AISTATS 14, 2011.
        http://www.stanford.edu/~acoates/papers/coatesleeng_aistats_2011.pdf
