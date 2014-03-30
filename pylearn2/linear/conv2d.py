@@ -38,7 +38,8 @@ class Conv2D(OrigConv2D):
 
     Parameters
     ----------
-    filters : WRITEME
+    filters : Theano shared variable
+        4-tensor of shape (out channels, in channels, rows, cols)
     batch_size : WRITEME
     input_space : WRITEME
     output_axes : WRITEME
@@ -51,16 +52,7 @@ class Conv2D(OrigConv2D):
     def __init__(self, filters, batch_size, input_space,
                  output_axes=('b', 0, 1, 'c'), subsample=(1, 1),
                  border_mode='valid', filters_shape=None, message=''):
-        """
-        .. todo::
-
-            WRITEME properly
-
-        filters: Theano shared variable. 4-tensor of shape (out channels,
-        in channels, rows, cols)
-        """
         assert batch_size is None or batch_size > 0
-
         self.input_space = input_space
         self.output_axes = output_axes
 
@@ -97,13 +89,13 @@ class Conv2D(OrigConv2D):
         """
         .. todo::
 
-            WRITEME
-        """
-        """
+            WRITEME properly
+
         dot(x, A)
 
         This method overrides the original Conv2D lmul to make it work
-        with arbitrary axis orders """
+        with arbitrary axis orders
+        """
 
         # x must be formatted as batch index, channel, topo dim 0, topo dim 1
         # for use with conv2d, so check what the current input space format is
@@ -149,7 +141,8 @@ class Conv2D(OrigConv2D):
             WRITEME properly
 
         Override the original Conv2D lmul_T to make it work
-        with pylearn format of topological data using dimshuffles """
+        with pylearn format of topological data using dimshuffles
+        """
         assert x.dtype == self._filters.dtype
 
         op_axes = ('b', 'c', 0, 1)
