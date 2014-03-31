@@ -136,9 +136,9 @@ class TrainCV(object):
         self.trainers = trainers
         self.save_path = save_path
 
-    def main_loop(self):
+    def main_loop(self, time_budget=None):
         for trainer in self.trainers:
-            trainer.main_loop()
+            trainer.main_loop(time_budget)
         if self.save_path is not None:
             self.save()
 
