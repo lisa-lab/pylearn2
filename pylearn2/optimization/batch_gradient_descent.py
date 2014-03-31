@@ -260,7 +260,7 @@ class BatchGradientDescent:
 
             assert grad not in grad_to_old_grad
 
-            make_conjugate_updates = [(g, g + beta * grad_to_old_grad[g]) for g in grad_ordered]
+            make_conjugate_updates = [(g_, g_ + beta * grad_to_old_grad[g_]) for g_ in grad_ordered]
 
             mode = self.theano_function_mode
             if mode is not None and hasattr(mode, 'record'):
