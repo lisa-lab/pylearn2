@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 # Standard library imports
 import logging
 import sys
@@ -61,13 +66,13 @@ class _PCABase(Block):
 
     Parameters
     ----------
-    num_components : int
+    num_components : int, optional
         This many components will be preserved, in decreasing order of variance
         (default None keeps all)
-    min_variance : float
+    min_variance : float, optional
         Components with normalized variance [0-1] below this threshold will be
         discarded
-    whiten : bool
+    whiten : bool, optional
         Whether or not to divide projected features by their standard deviation
     """
 
@@ -105,7 +110,7 @@ class _PCABase(Block):
         ----------
         X : numpy.ndarray
             Matrix of shape (n, d) on which to train PCA
-        mean : numpy.ndarray
+        mean : numpy.ndarray, optional
             Feature means of shape (d,)
         """
 
@@ -202,7 +207,7 @@ class _PCABase(Block):
         Parameters
         ----------
         inputs : WRITEME
-        add_mean : bool
+        add_mean : bool, optional
             WRITEME
 
         Returns
@@ -259,6 +264,8 @@ class SparseMatPCA(_PCABase):
     Parameters
     ----------
     batch_size : WRITEME
+    kwargs : dict
+        WRITEME
     """
     def __init__(self, batch_size=50, **kwargs):
         super(SparseMatPCA, self).__init__(**kwargs)
@@ -406,14 +413,17 @@ class OnlinePCA(_PCABase):
 
 class Cov:
     """
-    A covariance estimator that computes the covariance in small batches
-    instead of with one huge matrix multiply, in order to prevent memory
-    problems. Its call method has the same functionality as `numpy.cov`.
+    Covariance estimator
+
+    It computes the covariance in small batches instead of with one 
+    huge matrix multiply, in order to prevent memory problems. Its call
+    method has the same functionality as `numpy.cov`.
 
     Parameters
     ----------
     batch_size : WRITEME
     """
+
     def __init__(self, batch_size):
         self.batch_size = batch_size
 
@@ -443,6 +453,7 @@ class CovEigPCA(_PCABase):
     ----------
     cov_batch_size : WRITEME
     """
+
     def __init__(self, cov_batch_size=None, **kwargs):
         super(CovEigPCA, self).__init__(**kwargs)
         if cov_batch_size is not None:
@@ -474,6 +485,7 @@ class SVDPCA(_PCABase):
 
         WRITEME
     """
+
     def _cov_eigen(self, X):
         """
         Compute covariance matrix eigen{values,vectors} via Singular Value
@@ -501,6 +513,7 @@ class SparsePCA(_PCABase):
 
         WRITEME
     """
+
     def train(self, X, mean=None):
         """
         .. todo::
