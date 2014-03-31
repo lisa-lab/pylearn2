@@ -4,6 +4,7 @@ strategies.
 """
 # Standard library imports
 from itertools import izip
+import logging
 import sys
 
 # Third-party imports
@@ -27,8 +28,10 @@ from pylearn2.utils import safe_union
 from pylearn2.utils.rng import make_np_rng, make_theano_rng
 theano.config.warn.sum_div_dimshuffle_bug = False
 
+logger = logging.getLogger(__name__)
+
 if 0:
-    print 'WARNING: using SLOW rng'
+    logger.warning('using SLOW rng')
     RandomStreams = tensor.shared_randomstreams.RandomStreams
 else:
     import theano.sandbox.rng_mrg
@@ -1314,7 +1317,7 @@ class L1_ActivationCost(Cost):
     .. todo::
 
         WRITEME
-    
+
     Parameters
     ----------
     target : WRITEME
@@ -1434,10 +1437,10 @@ class _SGDOptimizer(_Optimizer):
             clip_name = '%s_clip' % parameter.name
             if clip_name in kwargs:
                 if clip_name in clip_names_seen:
-                    print >> sys.stderr, ('Warning: In SGDOptimizer, '
-                            'at least two parameters have the same name. '
-                            'Both will be affected by the keyword argument '
-                            '%s.' % clip_name)
+                    logger.warning('In SGDOptimizer, at least two parameters '
+                                   'have the same name. Both will be affected '
+                                   'by the keyword argument '
+                                   '{0}.'.format(clip_name))
                 clip_names_seen.add(clip_name)
                 p_min, p_max = kwargs[clip_name]
                 assert p_min <= p_max
@@ -1448,10 +1451,9 @@ class _SGDOptimizer(_Optimizer):
             kwargs.pop(clip_name)
         for kw in kwargs.iterkeys():
             if kw[-5:] == '_clip':
-                print >> sys.stderr, ('Warning: in SGDOptimizer, '
-                        'keyword argument %s will be ignored, '
-                        'because no parameter was found with name %s.'
-                        % (kw, kw[:-5]))
+                logger.warning('In SGDOptimizer, keyword argument {0} '
+                               'will be ignored, because no parameter '
+                               'was found with name {1}.'.format(kw, kw[:-5]))
 
         self.learning_rates_setup(base_lr, **kwargs)
 
@@ -1482,10 +1484,10 @@ class _SGDOptimizer(_Optimizer):
         for parameter in self.params:
             lr_name = '%s_lr' % parameter.name
             if lr_name in lr_names_seen:
-                print >> sys.stderr, ('Warning: In SGDOptimizer, '
-                        'at least two parameters have the same name. '
-                        'Both will be affected by the keyword argument '
-                        '%s.' % lr_name)
+                logger.warning('In SGDOptimizer, '
+                               'at least two parameters have the same name. '
+                               'Both will be affected by the keyword argument '
+                               '{0}.'.format(lr_name))
             lr_names_seen.add(lr_name)
 
             thislr = kwargs.get(lr_name, 1.)
@@ -1497,10 +1499,9 @@ class _SGDOptimizer(_Optimizer):
                 kwargs.pop(lr_name)
         for kw in kwargs.iterkeys():
             if kw[-3:] == '_lr':
-                print >> sys.stderr, ('Warning: in SGDOptimizer, '
-                        'keyword argument %s will be ignored, '
-                        'because no parameter was found with name %s.'
-                        % (kw, kw[:-3]))
+                logger.warning('In SGDOptimizer, keyword argument {0} '
+                               'will be ignored, because no parameter '
+                               'was found with name {1}.'.format(kw, kw[:-3]))
 
         # A shared variable for storing the iteration number.
         self.iteration = sharedX(theano._asarray(0, dtype='int32'),

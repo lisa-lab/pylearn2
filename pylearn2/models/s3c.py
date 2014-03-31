@@ -8,6 +8,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
 
+import logging
 import time
 import warnings
 
@@ -31,6 +32,9 @@ sys.setrecursionlimit(50000)
 
 from pylearn2.expr.basic import (full_min,
         full_max, numpy_norms, theano_norms)
+
+logger = logging.getLogger(__name__)
+
 
 def rotate_towards(old_W, new_W, new_coeff):
     """
@@ -994,12 +998,13 @@ class S3C(Model, Block):
 
 
 
-        print "compiling s3c learning function..."
+        logger.info("compiling s3c learning function...")
         t1 = time.time()
         rval = function([V], updates = learning_updates)
         t2 = time.time()
-        print "... compilation took "+str(t2-t1)+" seconds"
-        print "graph size: ",len(rval.maker.fgraph.toposort())
+        logger.debug("... compilation took {0} seconds".format(t2-t1))
+        logger.debug("graph size: "
+                    "{0}".format(len(rval.maker.fgraph.toposort())))
 
         return rval
 
@@ -1480,7 +1485,7 @@ class S3C(Model, Block):
 
         if self.stop_after_hack is not None:
             if self.monitor.examples_seen > self.stop_after_hack:
-                print 'stopping due to too many examples seen'
+                logger.error('stopping due to too many examples seen')
                 quit(-1)
 
         self.learn_mini_batch(dataset.get_batch_design(batch_size))
@@ -1492,26 +1497,29 @@ class S3C(Model, Block):
 
             WRITEME
         """
-        print ""
         b = self.bias_hid.get_value(borrow=True)
         assert not np.any(np.isnan(b))
         p = 1./(1.+np.exp(-b))
-        print 'p: ',(p.min(),p.mean(),p.max())
+        logger.info('p: ({0}, {1}, {2})'.format(p.min(), p.mean(), p.max()))
         B = self.B_driver.get_value(borrow=True)
         assert not np.any(np.isnan(B))
-        print 'B: ',(B.min(),B.mean(),B.max())
+        logger.info('B: ({0}, {1}, {2})'.format(B.min(), B.mean(), B.max()))
         mu = self.mu.get_value(borrow=True)
         assert not np.any(np.isnan(mu))
-        print 'mu: ',(mu.min(),mu.mean(),mu.max())
+        logger.info('mu: ({0}, {1}, {2})'.format(mu.min(), mu.mean(),
+                                                 mu.max()))
         alpha = self.alpha.get_value(borrow=True)
         assert not np.any(np.isnan(alpha))
-        print 'alpha: ',(alpha.min(),alpha.mean(),alpha.max())
+        logger.info('alpha: ({0}, {1}, {2})'.format(alpha.min(), alpha.mean(),
+                                                    alpha.max()))
         W = self.W.get_value(borrow=True)
         assert not np.any(np.isnan(W))
         assert not np.any(np.isinf(W))
-        print 'W: ',(W.min(),W.mean(),W.max())
+        logger.info('W: ({0}, {1}, {2})'.format(W.min(), W.mean(), W.max()))
         norms = numpy_norms(W)
-        print 'W norms:',(norms.min(),norms.mean(),norms.max())
+        logger.info('W norms: '
+                    '({0}, {1}, {2})'.format(norms.min(), norms.mean(),
+                                             norms.max()))
 
     def learn_mini_batch(self, X):
         """

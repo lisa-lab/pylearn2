@@ -26,6 +26,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
 import functools
+import logging
 import numpy as np
 import warnings
 
@@ -48,6 +49,9 @@ if cuda.cuda_available:
 else:
     max_pool_c01b = None
 from pylearn2.sandbox.cuda_convnet import check_cuda
+
+
+logger = logging.getLogger(__name__)
 
 
 class Maxout(Layer):
@@ -712,7 +716,7 @@ class MaxoutConvC01B(Layer):
                                         num_channels=self.num_channels,
                                         axes=('c', 0, 1, 'b'))
 
-        print 'Output space: ', self.output_space.shape
+        logger.info('Output space: {0}'.format(self.output_space.shape))
 
     def censor_updates(self, updates):
         """
@@ -1215,8 +1219,8 @@ class MaxoutLocalC01B(Layer):
             self.b = sharedX(self.detector_space.get_origin() + self.init_bias)
         self.b.name = 'b'
 
-        print 'Input shape: ', self.input_space.shape
-        print 'Detector space: ', self.detector_space.shape
+        logger.info('Input shape: {0}'.format(self.input_space.shape))
+        logger.info('Detector space: {0}'.format(self.detector_space.shape))
 
         assert self.detector_space.num_channels >= 16
 
@@ -1240,7 +1244,7 @@ class MaxoutLocalC01B(Layer):
         else:
             raise ValueError("Pooling is not implemented for CPU")
 
-        print 'Output space: ', self.output_space.shape
+        logger.info('Output space: {0}'.format(self.output_space.shape))
 
     def censor_updates(self, updates):
         """

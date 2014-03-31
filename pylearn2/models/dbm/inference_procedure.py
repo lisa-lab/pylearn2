@@ -4,6 +4,7 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
+import logging
 import warnings
 from theano import gof
 import theano.tensor as T
@@ -12,6 +13,9 @@ from theano.gof.op import get_debug_values
 from pylearn2.models.dbm import block, flatten
 from pylearn2.models.dbm.layer import Softmax
 from pylearn2.utils import safe_izip, block_gradient, safe_zip
+
+
+logger = logging.getLogger(__name__)
 
 
 class InferenceProcedure(object):
@@ -929,13 +933,15 @@ class BiasInit(InferenceProcedure):
             for value in get_debug_values(elem):
                 assert value.shape[0] == dbm.batch_size
             if V not in theano.gof.graph.ancestors([elem]):
-                print str(elem)+" does not have V as an ancestor!"
-                print theano.printing.min_informative_str(V)
+                logger.error("{0} "
+                             "does not have V as an ancestor!".format(elem))
+                logger.error(theano.printing.min_informative_str(V))
                 if elem is V:
-                    print "this variational parameter *is* V"
+                    logger.error("this variational parameter *is* V")
                 else:
-                    print "this variational parameter is not the same as V"
-                print "V is ",V
+                    logger.error("this variational parameter "
+                                 "is not the same as V")
+                logger.error("V is {0}".format(V))
                 assert False
             if Y is not None:
                 assert Y in theano.gof.graph.ancestors([elem])
@@ -1395,4 +1401,3 @@ class UpDown(InferenceProcedure):
             if Y is not None:
                 return V_hat, Y_hat
             return V_hat
-
