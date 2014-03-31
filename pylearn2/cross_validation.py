@@ -14,11 +14,13 @@ from sklearn.cross_validation import (KFold, StratifiedKFold, ShuffleSplit,
                                       StratifiedShuffleSplit)
 from copy import deepcopy
 import os
+import numpy as np
 
 
 class DatasetIterator(object):
     """Returns a new DenseDesignMatrix for each subset."""
     def __init__(self, dataset, index_iterator, return_dict=True):
+        self.dataset = dataset
         self.index_iterator = index_iterator
         dataset_iterator = dataset.iterator(mode='sequential', num_batches=1,
                                             data_specs=dataset.data_specs)
@@ -48,6 +50,17 @@ class DatasetIterator(object):
             yield datasets
 
 
+class StratifiedDatasetIterator(DatasetIterator):
+    @staticmethod
+    def get_y(dataset):
+        """Targets must be single values, possibly from one-hot encoding."""
+        y = np.asarray(dataset.y)
+        if y.ndim > 1:
+            assert np.array_equal(np.unique(y), [0, 1])
+            y = np.argmax(y, axis=1)
+        return y
+
+
 class DatasetKFold(DatasetIterator):
     def __init__(self, dataset, n_folds=3, indices=None, shuffle=False,
                  random_state=None):
@@ -56,9 +69,9 @@ class DatasetKFold(DatasetIterator):
         super(DatasetKFold, self).__init__(dataset, cv)
 
 
-class DatasetStratifiedKFold(DatasetIterator):
+class DatasetStratifiedKFold(StratifiedDatasetIterator):
     def __init__(self, dataset, n_folds=3, indices=None):
-        y = dataset.y
+        y = self.get_y(dataset)
         cv = StratifiedKFold(y, n_folds, indices)
         super(DatasetStratifiedKFold, self).__init__(dataset, cv)
 
@@ -72,10 +85,10 @@ class DatasetShuffleSplit(DatasetIterator):
         super(DatasetShuffleSplit, self).__init__(dataset, cv)
 
 
-class DatasetStratifiedShuffleSplit(DatasetIterator):
+class DatasetStratifiedShuffleSplit(StratifiedDatasetIterator):
     def __init__(self, dataset, n_iter=10, test_size=0.1, train_size=None,
                  indices=True, random_state=None):
-        y = dataset.y
+        y = self.get_y(dataset)
         cv = StratifiedShuffleSplit(y, n_iter, test_size, train_size, indices,
                                     random_state)
         super(DatasetStratifiedShuffleSplit, self).__init__(dataset, cv)
