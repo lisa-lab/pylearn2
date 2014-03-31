@@ -149,8 +149,8 @@ class SGD(TrainingAlgorithm):
         training dataset iterator (if any)
     """
     def __init__(self, learning_rate, cost=None, batch_size=None,
-                 monitoring_batches=None, monitoring_dataset=None,
-                 monitor_iteration_mode='sequential',
+                 monitoring_batch_size=None, monitoring_batches=None,
+                 monitoring_dataset=None, monitor_iteration_mode='sequential',
                  termination_criterion=None, update_callbacks=None,
                  learning_rule = None, init_momentum = None,
                  set_batch_size = False,
@@ -179,6 +179,7 @@ class SGD(TrainingAlgorithm):
         self.set_batch_size = set_batch_size
         self.batches_per_iter = batches_per_iter
         self._set_monitoring_dataset(monitoring_dataset)
+        self.monitoring_batch_size = monitoring_batch_size
         self.monitoring_batches = monitoring_batches
         self.monitor_iteration_mode = monitor_iteration_mode
         if monitoring_dataset is None:
@@ -256,7 +257,7 @@ class SGD(TrainingAlgorithm):
         if self.monitoring_dataset is not None:
             self.monitor.setup(dataset=self.monitoring_dataset,
                                cost=self.cost,
-                               batch_size=self.batch_size,
+                               batch_size=self.monitoring_batch_size,
                                num_batches=self.monitoring_batches,
                                extra_costs=self.monitoring_costs,
                                mode=self.monitor_iteration_mode)

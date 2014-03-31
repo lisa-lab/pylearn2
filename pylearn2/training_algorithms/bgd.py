@@ -85,19 +85,20 @@ class BGD(TrainingAlgorithm):
     seed : WRITEME
     """
     def __init__(self, cost=None, batch_size=None, batches_per_iter=None,
-                 updates_per_batch=10, monitoring_batches=None,
-                 monitoring_dataset=None, termination_criterion = None,
-                 set_batch_size=False, reset_alpha=True, conjugate=False,
-                 min_init_alpha=.001, reset_conjugate=True,
-                 line_search_mode=None, verbose_optimization=False,
-                 scale_step=1., theano_function_mode=None, init_alpha=None,
-                 seed=None):
+                 updates_per_batch=10, monitoring_batch_size=None,
+                 monitoring_batches=None, monitoring_dataset=None,
+                 termination_criterion=None, set_batch_size=False,
+                 reset_alpha=True, conjugate=False, min_init_alpha=.001,
+                 reset_conjugate=True, line_search_mode=None,
+                 verbose_optimization=False, scale_step=1.,
+                 theano_function_mode=None, init_alpha=None, seed=None):
 
         self.__dict__.update(locals())
         del self.self
 
         if monitoring_dataset is None:
-            assert monitoring_batches == None
+            assert monitoring_batches is None
+            assert monitoring_batch_size is None
 
 
         self._set_monitoring_dataset(monitoring_dataset)
@@ -190,7 +191,7 @@ class BGD(TrainingAlgorithm):
             self.monitor.setup(
                     dataset=self.monitoring_dataset,
                     cost=self.cost,
-                    batch_size=self.batch_size,
+                    batch_size=self.monitoring_batch_size,
                     num_batches=self.monitoring_batches,
                     obj_prereqs=obj_prereqs,
                     cost_monitoring_args=fixed_var_descr.fixed_vars)
