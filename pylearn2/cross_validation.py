@@ -20,11 +20,8 @@ class DatasetIterator(object):
     """Returns a new DenseDesignMatrix for each subset."""
     def __init__(self, dataset, index_iterator, return_dict=True):
         self.index_iterator = index_iterator
-        targets = False
-        if dataset.get_targets() is not None:
-            targets = True
         dataset_iterator = dataset.iterator(mode='sequential', num_batches=1,
-                                            targets=targets)
+                                            data_specs=dataset.data_specs)
         self.dataset_iterator = dataset_iterator
         self.return_dict = return_dict
 
