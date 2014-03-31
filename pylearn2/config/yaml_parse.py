@@ -6,6 +6,7 @@ from pylearn2.utils import serial
 from pylearn2.utils.string_utils import preprocess
 from pylearn2.utils.string_utils import match
 import warnings
+import collections
 
 
 is_initialized = False
@@ -73,7 +74,7 @@ def load_path(path, overrides=None, environ=None, **kwargs):
         to the desired parameter, e.g. "model.corruptor.corruption_level".
     environ : dict, optional
         A dictionary used for ${FOO} substitutions in addition to
-        environment variables. If a key appears both in `os.environ` \
+        environment variables. If a key appears both in `os.environ` 
         and this dictionary, the value in this dictionary is used.
 
     Returns
@@ -308,7 +309,6 @@ def initialize():
     global is_initialized
 
     # Add the custom multi-constructor
-    yaml.constructor.BaseConstructor.construct_mapping = construct_mapping
     yaml.add_multi_constructor('!obj:', multi_constructor_obj)
     yaml.add_multi_constructor('!pkl:', multi_constructor_pkl)
     yaml.add_multi_constructor('!import:', multi_constructor_import)
@@ -336,18 +336,19 @@ def multi_constructor_obj(loader, tag_suffix, node):
     See PyYAML documentation for details on the call signature.
     """
     yaml_src = yaml.serialize(node)
+    construct_mapping(node);
     mapping = loader.construct_mapping(node)
 
     assert hasattr(mapping, 'keys')
     assert hasattr(mapping, 'values')
-    for key,val in zip(mapping.keys(), mapping.values()):
+    for key,val in mapping.iteritems():
         if (val == None):
-            message = "received None as the value for the key %s" %str(key)
+            message = "received None as the value for the key %s" % str(key)
             raise TypeError(message)
 
     for key in mapping.keys():
-        if not(isinstance(key, str)):
-            message = "Received non string object (%s) as keys in mapping." %str(key)
+        if not(isinstance(key, basestring)):
+            message = "Received non string object (%s) as keys in mapping." % str(key)
             raise TypeError(message)
 
     if '.' not in tag_suffix:
@@ -400,26 +401,26 @@ def constructor_float(loader, node):
     value = loader.construct_scalar(node)
     return float(value)
 
-def construct_mapping(self, node, deep=False):
+def construct_mapping(node, deep=False):
     # This is a modified version of yaml.BaseConstructor.construct_mapping
     # in which a repeated key raises a ConstructorError
     if not isinstance(node, yaml.nodes.MappingNode):
         raise yaml.constructor.ConstructorError(None, None,
-                "expected a mapping node, but found %s" % node.id,
-                node.start_mark)
+                                                "expected a mapping node, but found %s" % node.id,
+                                                node.start_mark)
     mapping = {}
     constructor = yaml.constructor.BaseConstructor()
     for key_node, value_node in node.value:
-        key = str(constructor.construct_object(key_node, deep=False))
+        key = constructor.construct_object(key_node, deep=False)
         try:
             hash(key)
         except TypeError, exc:
             raise yaml.constructor.ConstructorError("while constructing a mapping", node.start_mark,
-                    "found unacceptable key (%s)" % exc, key_node.start_mark)
+                                                    "found unacceptable key (%s)" % exc, key_node.start_mark)
         if key in mapping:
             raise yaml.constructor.ConstructorError("while constructing a mapping", node.start_mark,
-                    "found duplicate key (%s)" % key)
-        value = self.construct_object(value_node, deep=False)
+                                                    "found duplicate key (%s)" % key)
+        value = constructor.construct_object(value_node, deep=False)
         mapping[key] = value
     return mapping
 

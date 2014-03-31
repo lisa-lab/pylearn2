@@ -7,9 +7,7 @@ from pylearn2.config.yaml_parse import load, load_path, initialize
 from os import environ
 from decimal import Decimal
 import yaml
-from pylearn2.models.mlp import (MLP, Linear, Softmax, Sigmoid,
-                                 exhaustive_dropout_average,
-                                 sampled_dropout_average)
+from pylearn2.models.mlp import MLP, Sigmoid
 
 from pylearn2.models.rbm import GaussianBinaryRBM
 from pylearn2.space import Conv2DSpace
@@ -123,7 +121,6 @@ def test_duplicate_keywords():
                          "sparse_init": 15,
                      }],
             "nvis": 784,
-
             "nvis": 384,
         }
     }"""
