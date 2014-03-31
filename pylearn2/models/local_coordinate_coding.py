@@ -28,6 +28,7 @@ class LocalCoordinateCoding(object):
     nhid : WRITEME
     coeff : WRITEME
     """
+
     def __init__(self, nvis, nhid, coeff):
         self.nvis = nvis
         self.nhid = nhid
