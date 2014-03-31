@@ -125,7 +125,7 @@ class BatchGradientDescent:
         obj = objective
 
         self.verbose = verbose
-        
+
         # TODO: remove verbose statements (handled by logging)
         if self.verbose > 0:
             logger.setLevel(logging.DEBUG)
@@ -229,8 +229,8 @@ class BatchGradientDescent:
             for elem in grad_shared:
                 grad_to_old_grad[elem] = sharedX(elem.get_value(), 'old_'+elem.name)
 
-            self._store_old_grad = function([norm], updates = OrderedDict([(grad_to_old_grad[g], g * norm)
-                for g in grad_to_old_grad]), mode=self.theano_function_mode,
+            self._store_old_grad = function([norm], updates = OrderedDict([(grad_to_old_grad[g_], g_ * norm)
+                for g_ in grad_to_old_grad]), mode=self.theano_function_mode,
                 name='BatchGradientDescent._store_old_grad')
 
             grad_ordered = list(grad_to_old_grad.keys())
