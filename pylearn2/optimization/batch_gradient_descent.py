@@ -234,7 +234,7 @@ class BatchGradientDescent:
                 name='BatchGradientDescent._store_old_grad')
 
             grad_ordered = list(grad_to_old_grad.keys())
-            old_grad_ordered = [ grad_to_old_grad[g] for g in grad_ordered]
+            old_grad_ordered = [grad_to_old_grad[g_] for g_ in grad_ordered]
 
             def dot_product(x, y):
                 return sum([ (x_elem * y_elem).sum() for x_elem, y_elem in safe_zip(x, y) ])
