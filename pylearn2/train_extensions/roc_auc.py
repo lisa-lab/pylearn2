@@ -48,7 +48,7 @@ class ROCAUCChannel(TrainExtension):
     batches_per_iter to be set to 1 to avoid class population issues.
     """
     def setup(self, model, dataset, algorithm):
-
+        
         # sanity checks
         try:
             assert isinstance(algorithm, BGD)
@@ -57,11 +57,13 @@ class ROCAUCChannel(TrainExtension):
             raise NotImplementedError("ROC AUC is only supported when using " +
                                       "batch gradient descent (BGD).")
         try:
+            assert algorithm.batch_size is None
             assert algorithm.monitoring_batches == 1
             assert algorithm.batches_per_iter == 1
         except AssertionError:
             # TODO: stratified dataset iterator to supply training batches
-            raise ValueError("monitoring_batches and batches_per_iter " +
+            raise ValueError("batch_size should be None and " +
+                             "monitoring_batches and batches_per_iter " +
                              "should both be set to 1 to avoid class " +
                              "population issues.")
 
