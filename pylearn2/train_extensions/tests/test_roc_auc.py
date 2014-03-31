@@ -45,15 +45,16 @@ test_yaml = """
             }
         ],
     },
-    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
-        learning_rate: 1e-3,
-        batch_size: 100,
+    algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
+        line_search_mode: 'exhaustive',
+        conjugate: 1,
         monitoring_dataset: {
             'train': *train,
             'valid': !pkl: 'valid_dataset.pkl',
             'test': !pkl: 'test_dataset.pkl',
         },
         monitoring_batches: 1,
+        batches_per_iter: 1,
         termination_criterion: !obj:pylearn2.termination_criteria.And {
             criteria: [
                 !obj:pylearn2.termination_criteria.EpochCounter {

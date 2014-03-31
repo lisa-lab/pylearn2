@@ -1,4 +1,5 @@
 from pylearn2.train_extensions import TrainExtension
+from pylearn2.training_algorithms.bgd import BGD
 from theano import tensor as T
 from theano import gof, config
 import theano
@@ -42,10 +43,28 @@ class ROCAUCChannel(TrainExtension):
     Notes
     -----
     This monitor will return nan unless both classes are represented in y_true.
-    It is therefore important to set monitoring_batches to 1 to make sure ROC
-    AUC is calculated on the entire dataset.
+
+    Currently only supports BGD, and requires monitoring_batches and
+    batches_per_iter to be set to 1 to avoid class population issues.
     """
     def setup(self, model, dataset, algorithm):
+
+        # sanity checks
+        try:
+            assert isinstance(algorithm, BGD)
+        except AssertionError:
+            # TODO: workaround for batch_size requirement of SGD
+            raise NotImplementedError("ROC AUC is only supported when using " +
+                                      "batch gradient descent (BGD).")
+        try:
+            assert algorithm.monitoring_batches == 1
+            assert algorithm.batches_per_iter == 1
+        except AssertionError:
+            # TODO: stratified dataset iterator to supply training batches
+            raise ValueError("monitoring_batches and batches_per_iter " +
+                             "should both be set to 1 to avoid class " +
+                             "population issues.")
+
         m_space, m_source = model.get_monitoring_data_specs()
         state, target = m_space.make_theano_batch()
         y = T.argmax(target, axis=1)
