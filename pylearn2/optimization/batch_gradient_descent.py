@@ -125,7 +125,7 @@ class BatchGradientDescent:
         obj = objective
 
         self.verbose = verbose
-        
+
         # TODO: remove verbose statements (handled by logging)
         if self.verbose > 0:
             logger.setLevel(logging.DEBUG)
@@ -229,12 +229,12 @@ class BatchGradientDescent:
             for elem in grad_shared:
                 grad_to_old_grad[elem] = sharedX(elem.get_value(), 'old_'+elem.name)
 
-            self._store_old_grad = function([norm], updates = OrderedDict([(grad_to_old_grad[g], g * norm)
-                for g in grad_to_old_grad]), mode=self.theano_function_mode,
+            self._store_old_grad = function([norm], updates = OrderedDict([(grad_to_old_grad[g_], g_ * norm)
+                for g_ in grad_to_old_grad]), mode=self.theano_function_mode,
                 name='BatchGradientDescent._store_old_grad')
 
             grad_ordered = list(grad_to_old_grad.keys())
-            old_grad_ordered = [ grad_to_old_grad[g] for g in grad_ordered]
+            old_grad_ordered = [grad_to_old_grad[g_] for g_ in grad_ordered]
 
             def dot_product(x, y):
                 return sum([ (x_elem * y_elem).sum() for x_elem, y_elem in safe_zip(x, y) ])
@@ -260,7 +260,7 @@ class BatchGradientDescent:
 
             assert grad not in grad_to_old_grad
 
-            make_conjugate_updates = [(g, g + beta * grad_to_old_grad[g]) for g in grad_ordered]
+            make_conjugate_updates = [(g_, g_ + beta * grad_to_old_grad[g_]) for g_ in grad_ordered]
 
             mode = self.theano_function_mode
             if mode is not None and hasattr(mode, 'record'):
