@@ -1,15 +1,4 @@
-from distutils.core import setup
-from distutils.extension import Extension
-from Cython.Distutils import build_ext
-import numpy
+import warnings
 
-
-setup(
-    cmdclass={'build_ext': build_ext},
-    ext_modules=[
-        Extension("_window_flip", ["_window_flip.pyx"],
-                  include_dirs=[numpy.get_include()]),
-        Extension("_video", ["_video.pyx"],
-                  include_dirs=[numpy.get_include()])
-    ]
-)
+warnings.warn("pylearn2/utils/setup.py has been deprecated. Please run python "
+              "setup.py develop in the root directory instead.")
