@@ -90,7 +90,7 @@ test_yaml_layer1 = """
                     max_epochs: 5,
                 },
                 !obj:pylearn2.termination_criteria.MonitorBased {
-                    channel_name: 'valid_y_misclass',
+                    channel_name: 'train_y_misclass',
                     prop_decrease: 0.,
                     N: 2,
                 },
