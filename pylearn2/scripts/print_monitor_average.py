@@ -3,6 +3,8 @@
 """
 Print average channel values for a collection of models, such as that serialized
 by TrainCV. Based on print_monitor.py
+
+usage: print_monitor_average.py model.pkl
 """
 __author__ = "Steven Kearnes"
 
@@ -26,11 +28,17 @@ def main():
                 if key not in values:
                     values[key] = []
                 values[key].append(channels[key].val_record[-1])
-    print 'epochs seen: {} +/- {}'.format(np.mean(epochs), np.std(epochs))
-    print 'training time: {} +/- {}'.format(np.mean(time), np.std(time))
-    for key in sorted(values.keys()):
-        print '{}: {} +/- {}'.format(key, np.mean(values[key]),
-                                     np.std(values[key]))
+    if len(epochs) > 1:
+        print 'epochs seen: {} +/- {}'.format(np.mean(epochs), np.std(epochs))
+        print 'training time: {} +/- {}'.format(np.mean(time), np.std(time))
+        for key in sorted(values.keys()):
+            print '{}: {} +/- {}'.format(key, np.mean(values[key]),
+                                         np.std(values[key]))
+    else:
+        print 'epochs seen: {}'.format(epochs[0])
+        print 'training time: {}'.format(time[0])
+        for key in sorted(values.keys()):
+            print '{}: {}'.format(key, values[key][0])
 
 if __name__ == '__main__':
     main()
