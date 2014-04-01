@@ -41,6 +41,10 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
         del self.self
         if monitoring_dataset is None:
             assert monitoring_batches == -1
+            assert monitoring_batch_size is None
+        elif monitoring_batch_size is None and monitoring_batches is None:
+            self.monitoring_batch_size = batch_size
+            self.monitoring_batches = batches_per_iter
 
         self._set_monitoring_dataset(monitoring_dataset)
         self.monitoring_batches = monitoring_batches

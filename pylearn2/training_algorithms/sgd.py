@@ -183,9 +183,15 @@ class SGD(TrainingAlgorithm):
         self.monitoring_batches = monitoring_batches
         self.monitor_iteration_mode = monitor_iteration_mode
         if monitoring_dataset is None:
+            if monitoring_batch_size is not None:
+                raise ValueError("Specified a monitoring batch size " +
+                                 "but not a monitoring dataset.")
             if monitoring_batches is not None:
                 raise ValueError("Specified an amount of monitoring batches " +
                                  "but not a monitoring dataset.")
+        elif monitoring_batch_size is None and monitoring_batches is None:
+            self.monitoring_batch_size = batch_size
+            self.monitoring_batches = batches_per_iter
         self.termination_criterion = termination_criterion
         self._register_update_callbacks(update_callbacks)
         if train_iteration_mode is None:
