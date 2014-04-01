@@ -42,7 +42,7 @@ class LocalDatasetCache:
         try:
             self.dataset_remote_dir = string_utils.preprocess(default_path)
             self.dataset_local_dir = string_utils.preprocess(local_path)
-        except:
+        except ValueError:
             # Local cache seems to be deactivated
             self.dataset_remote_dir = ""
             self.dataset_local_dir = ""
