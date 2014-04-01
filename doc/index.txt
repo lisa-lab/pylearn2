@@ -39,15 +39,16 @@ Pylearn2 Vision
 Download and installation
 =========================
 
-No PyPI download yet. You must checkout the version in github for bleeding-edge/development
-version, available via:
+There is no PyPI download yet, so Pylearn2 cannot be installed using e.g. ``pip``.
+You must check out the bleeding-edge/development version from GitHub
+using:
 
 .. code-block:: bash
 
    git clone git://github.com/lisa-lab/pylearn2.git
 
 To make Pylearn2 available in your Python installation, run the following command in the
-top-level ``pylearn2`` directory that should have been created by the previous command:
+top-level ``pylearn2`` directory (which should have been created by the previous command):
 
 .. code-block:: bash
 
