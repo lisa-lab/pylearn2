@@ -2,15 +2,8 @@
 Utilities for working with videos, pulling out patches, etc.
 """
 import numpy
-import warnings
 
 from pylearn2.utils.rng import make_np_rng
-
-try:
-    from pylearn2.utils._video import rgb_to_gray
-except ImportError:
-    warnings.warn("Import of Cython module failed, some functions unavailable")
-
 
 __author__ = "David Warde-Farley"
 __copyright__ = "Copyright 2011, David Warde-Farley / Universite de Montreal"
