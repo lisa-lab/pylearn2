@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -26,6 +31,11 @@ from pylearn2.space import VectorSpace, CompositeSpace, Conv2DSpace, Space
 from pylearn2.utils import is_block_gradient
 from pylearn2.utils import sharedX, safe_zip, py_integer_types, block_gradient
 from pylearn2.utils.rng import make_theano_rng
+"""
+.. todo::
+
+    WRITEME
+"""
 from pylearn2.utils import safe_union
 
 
@@ -222,10 +232,10 @@ class Layer(Model):
         state : WRITEME
             Total state of this layer
         average_below : bool
-            If True, the layer below is one of the variables to integrate \
-            over in the expectation, and state_below gives its variational \
-            parameters. If False, that layer is to be held constant and \
-            state_below gives a set of assignments to it average: like \
+            If True, the layer below is one of the variables to integrate
+            over in the expectation, and state_below gives its variational
+            parameters. If False, that layer is to be held constant and
+            state_below gives a set of assignments to it average: like
             average_below, but for 'state' rather than 'state_below'
 
         Returns
@@ -500,7 +510,11 @@ class BinaryVector(VisibleLayer):
         return rval * self.copies
 
     def init_inpainting_state(self, V, drop_mask, noise = False, return_unmasked = False):
+        """
+        .. todo::
 
+            WRITEME
+        """
         assert drop_mask is None or drop_mask.ndim > 1
 
         unmasked = T.nnet.sigmoid(self.bias.dimshuffle('x',0))
@@ -542,7 +556,11 @@ class BinaryVector(VisibleLayer):
 
 
     def inpaint_update(self, state_above, layer_above, drop_mask = None, V = None, return_unmasked = False):
+        """
+        .. todo::
 
+            WRITEME
+        """
         msg = layer_above.downward_message(state_above)
         mu = self.bias
 
@@ -570,7 +588,11 @@ class BinaryVector(VisibleLayer):
 
 
     def recons_cost(self, V, V_hat_unmasked, drop_mask = None, use_sum=False):
+        """
+        .. todo::
 
+            WRITEME
+        """
         if use_sum:
             raise NotImplementedError()
 
@@ -622,9 +644,9 @@ class BinaryVectorMaxPool(HiddenLayer):
     irange : WRITEME
     sparse_init : WRITEME
     sparse_stdev : WRITEME
-    include_prob : float
-        Probability of including a weight element in the set of weights \
-        initialized to U(-irange, irange). If not included it is \
+    include_prob : , optional
+        Probability of including a weight element in the set of weights
+        initialized to U(-irange, irange). If not included it is
         initialized to 0.
     init_bias : WRITEME
     W_lr_scale : WRITEME
@@ -641,7 +663,7 @@ class BinaryVectorMaxPool(HiddenLayer):
     #       (detector, pooled)
 
     def __init__(self,
-             detector_layer_dim,
+            detector_layer_dim,
             pool_size,
             layer_name,
             irange = None,
@@ -1938,20 +1960,27 @@ class GaussianVisLayer(VisibleLayer):
 
     Parameters
     ----------
-    rows, cols, channels: WRITEME
+    rows, cols, channels : WRITEME
         the shape of the space
-    init_beta: WRITEME
+    learn_init_inpainting : bool, optional
+        WRITEME
+    nvis : WRITEME
+    init_beta : WRITEME
         the initial value of the precision parameter
-    min_beta: WRITEME
+    min_beta : WRITEME
         clip beta so it is at least this big (default 1)
-    init_mu: WRITEME
+    init_mu : WRITEME
         the initial value of the mean parameter
-    tie_beta: WRITEME
+    tie_beta : WRITEME
         None or a string specifying how to tie beta 'locations' = tie beta
         across locations, ie beta should be a vector with one elem per channel
-    tie_mu: WRITEME
+    tie_mu : WRITEME
         None or a string specifying how to tie mu 'locations' = tie mu across
         locations, ie mu should be a vector with one elem per channel
+    bias_from_marginals : WRITEME
+    beta_lr_scale : WRITEME
+    axes : tuple
+        WRITEME
     """
     def __init__(self,
             rows = None,
@@ -2090,9 +2119,12 @@ class GaussianVisLayer(VisibleLayer):
 
     def set_biases(self, bias):
         """
-        set mean parameter
+        Set mean parameter
 
-        :param bias: Vector of size nvis
+        Parameters
+        ----------
+        bias: WRITEME
+            Vector of size nvis
         """
         self.mu = sharedX(bias, name = 'mu')
 
@@ -2393,6 +2425,7 @@ class ConvMaxPool(HiddenLayer):
 
         WRITEME
     """
+
     def __init__(self,
              output_channels,
             kernel_rows,
@@ -2912,6 +2945,7 @@ class ConvC01B_MaxPool(HiddenLayer):
 
         WRITEME
     """
+
     def __init__(self,
              output_channels,
             kernel_shape,
@@ -3075,9 +3109,15 @@ class ConvC01B_MaxPool(HiddenLayer):
 
             WRITEME properly
 
-        target: if pools contain more than one element, should be a list with
-                two elements. the first element is for the pooling units and
-                the second for the detector units.
+        Parameters
+        ----------
+        state : WRITEME
+        target : WRITEME
+            if pools contain more than one element, should be a list 
+            with two elements. the first element is for the pooling
+            units and the second for the detector units.
+        coeff : WRITEME
+        eps : WRITEME
         """
         rval = 0.
 
@@ -3417,7 +3457,7 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
 
     def __init__(self,
             input_layer,
-             detector_layer_dim,
+            detector_layer_dim,
             pool_size,
             layer_name,
             irange = None,
@@ -3726,9 +3766,9 @@ class CompositeLayer(HiddenLayer):
 
         Parameters
         ----------
-        components: WRITEME
+        components : WRITEME
             A list of layers that are combined to form this layer
-        inputs_to_components: None or dict mapping int to list of int
+        inputs_to_components : None or dict mapping int to list of int
             Should be None unless the input space is a CompositeSpace
             If inputs_to_components[i] contains j, it means input i will
             be given as input to component j.
@@ -3771,7 +3811,11 @@ class CompositeLayer(HiddenLayer):
                 self.inputs_to_components[key] = list(value)
 
     def set_input_space(self, space):
+        """
+        .. todo::
 
+            WRITEME
+        """
         self.input_space = space
 
         if not isinstance(space, CompositeSpace):
@@ -3804,22 +3848,46 @@ class CompositeLayer(HiddenLayer):
         self.output_space = CompositeSpace([ component.get_output_space() for component in self.components ])
 
     def make_state(self, num_examples, numpy_rng):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return tuple(component.make_state(num_examples, numpy_rng) for
                 component in self.components)
 
     def get_total_state_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return CompositeSpace([component.get_total_state_space() for component in self.components])
 
     def set_batch_size(self, batch_size):
+        """
+        .. todo::
+
+            WRITEME
+        """
         for component in self.components:
             component.set_batch_size(batch_size)
 
     def set_dbm(self, dbm):
+        """
+        .. todo::
+
+            WRITEME
+        """
         for component in self.components:
             component.set_dbm(dbm)
 
     def mf_update(self, state_below, state_above, layer_above = None, double_weights = False, iter_name = None):
+        """
+        .. todo::
 
+            WRITEME
+        """
         rval = []
 
         for i, component in enumerate(self.components):
@@ -3853,27 +3921,49 @@ class CompositeLayer(HiddenLayer):
         return tuple(rval)
 
     def init_mf_state(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return tuple([component.init_mf_state() for component in self.components])
 
 
     def get_weight_decay(self, coeffs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return sum([component.get_weight_decay(coeff) for component, coeff
             in safe_zip(self.components, coeffs)])
 
     def upward_state(self, total_state):
+        """
+        .. todo::
 
+            WRITEME
+        """
         return tuple([component.upward_state(elem)
             for component, elem in
             safe_zip(self.components, total_state)])
 
     def downward_state(self, total_state):
+        """
+        .. todo::
 
+            WRITEME
+        """
         return tuple([component.downward_state(elem)
             for component, elem in
             safe_zip(self.components, total_state)])
 
     def downward_message(self, downward_state):
+        """
+        .. todo::
 
+            WRITEME
+        """
         if isinstance(self.input_space, CompositeSpace):
             num_input_components = self.input_space.num_components
         else:
@@ -3915,18 +4005,38 @@ class CompositeLayer(HiddenLayer):
         return rval
 
     def get_l1_act_cost(self, state, target, coeff, eps):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return sum([ comp.get_l1_act_cost(s, t, c, e) \
             for comp, s, t, c, e in safe_zip(self.components, state, target, coeff, eps)])
 
     def get_range_rewards(self, state, coeffs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return sum([comp.get_range_rewards(s, c)
             for comp, s, c in safe_zip(self.components, state, coeffs)])
 
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return reduce(lambda x, y: safe_union(x, y),
                 [component.get_params() for component in self.components])
 
     def get_weights_topo(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         logger.info('Get topological weights for which layer?')
         for i, component in enumerate(self.components):
             logger.info('{0} {1}'.format(i, component.layer_name))
@@ -3934,6 +4044,11 @@ class CompositeLayer(HiddenLayer):
         return self.components[int(x)].get_weights_topo()
 
     def get_monitoring_channels_from_state(self, state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rval = OrderedDict()
 
         for layer, s in safe_zip(self.components, state):
@@ -3946,6 +4061,11 @@ class CompositeLayer(HiddenLayer):
     def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rval = []
 
         for i, component in enumerate(self.components):

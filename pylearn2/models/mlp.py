@@ -3530,10 +3530,10 @@ class PretrainedLayer(Layer):
     Parameters
     ----------
     layer_name : WRITEME
-    layer_content: Model
+    layer_content : Model
         A Model that implements "upward_pass", such as an RBM or an
         Autoencoder
-    freeze_params: bool, optional
+    freeze_params : bool, optional
         If True, regard layer_conent's parameters as fixed
         If False, they become parameters of this layer and can be
         fine-tuned to optimize the MLP's cost function.
