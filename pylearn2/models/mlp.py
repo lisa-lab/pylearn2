@@ -2496,7 +2496,9 @@ class ConvElemwise(Layer):
         same as each other. Otherwise, each bias at each location is
         learned independently. Default is true.
     detector_normalization : callable or None
-        See `output_normalization`
+        See `output_normalization`.
+        If pooling argument is not provided, detector_normalization
+        is not applied on the layer.
     output_normalization : callable  or None
         if specified, should be a callable object. the state of the
         network is optionally replaced with normalization(state) at each
@@ -2758,7 +2760,6 @@ class ConvElemwise(Layer):
         outp, inp, rows, cols = range(4)
         raw = self.transformer._filters.get_value()
 
-        print 'Output space: ', self.output_space.shape
         return np.transpose(raw, (outp, rows, cols, inp))
 
     def get_monitoring_channels_from_state(self, state, target=None):
@@ -2813,6 +2814,12 @@ class ConvElemwise(Layer):
             d.name = self.layer_name + '_z'
             self.detector_space.validate(d)
 
+        if not hasattr(self, 'output_normalization'):
+           self.output_normalization = None
+
+        if self.output_normalization:
+           p = self.output_normalization(p)
+
         if self.pool_type is not None:
             if not hasattr(self, 'detector_normalization'):
                 self.detector_normalization = None
@@ -2835,11 +2842,6 @@ class ConvElemwise(Layer):
 
             self.output_space.validate(p)
 
-            if not hasattr(self, 'output_normalization'):
-                self.output_normalization = None
-
-            if self.output_normalization:
-                p = self.output_normalization(p)
         else:
             p = d
 
