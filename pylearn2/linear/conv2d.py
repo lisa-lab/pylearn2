@@ -59,7 +59,8 @@ class Conv2D(OrigConv2D):
         filters: Theano shared variable. 4-tensor of shape (out channels,
         in channels, rows, cols)
         """
-        assert batch_size > 0
+        assert batch_size is None or batch_size > 0
+
         self.input_space = input_space
         self.output_axes = output_axes
 
@@ -256,9 +257,10 @@ class Conv2D(OrigConv2D):
         self._img_shape = tuple([batch_size] + list(self._img_shape[1:]))
 
 
-def make_random_conv2D(irange, input_space, output_space, kernel_shape,
-                       batch_size, subsample=(1, 1), border_mode='valid',
-                       message="", rng=None):
+def make_random_conv2D(irange, input_space, output_space,
+                       kernel_shape, batch_size=None, \
+                       subsample = (1,1), border_mode = 'valid',
+                       message = "", rng = None):
     """
     .. todo::
 
