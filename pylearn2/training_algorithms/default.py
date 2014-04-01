@@ -34,8 +34,9 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
         instead.
     """
     def __init__(self, batch_size=None, batches_per_iter=1000,
-                 monitoring_batches=-1, monitoring_dataset=None,
-                 termination_criterion=None, set_batch_size=False):
+                 monitoring_batch_size=None, monitoring_batches=-1,
+                 monitoring_dataset=None, termination_criterion=None,
+                 set_batch_size=False):
         self.__dict__.update(locals())
         del self.self
         if monitoring_dataset is None:
@@ -99,7 +100,7 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
 
                 self.monitor.add_dataset(dataset=monitoring_dataset,
                                          mode="sequential",
-                                         batch_size=self.batch_size)
+                                         batch_size=self.monitoring_batch_size)
 
                 for name in channels:
                     J = channels[name]
