@@ -3,6 +3,7 @@
 """
 
 import inspect
+from nose.plugins.skip import SkipTest
 import re
 import sys
 import types
@@ -738,6 +739,9 @@ def docstring_errors(filename, global_dict=None):
         execfile(filename, global_dict)
     except SystemExit:
         pass
+    except SkipTest:
+        raise AssertionError("Couldn't verify format of " + filename +
+                "due to SkipTest")
     all_errors = []
     for key, val in global_dict.iteritems():
         if not key.startswith('_'):

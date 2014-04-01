@@ -23,7 +23,7 @@ def relu(x):
     .. todo::
 
         WRITEME properly
-    
+
     Rectified linear activation
     """
     return T.max(0, x)

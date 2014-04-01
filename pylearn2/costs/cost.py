@@ -253,7 +253,7 @@ class SumOfCosts(Cost):
                                  "Cost instance")
 
         # TODO: remove this when it is no longer necessary
-        self.supervised = any([cost.supervised for cost in self.costs])
+        self.supervised = any([cost_.supervised for cost_ in self.costs])
 
     def expr(self, model, data, ** kwargs):
         """
