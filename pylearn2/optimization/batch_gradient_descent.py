@@ -245,18 +245,14 @@ class BatchGradientDescent:
 
             beta = T.maximum(beta_pr, 0.)
 
-            """
+            #beta_pr is the Polak-Ribiere formula for beta.
+            #According to wikipedia, the beta to use for NCG is "a matter of heuristics or taste"
+            #but max(0, beta_pr) is "a popular choice... which provides direction reset automatically."
+            #(ie, it is meant to revert to steepest descent when you have traveled far enough that
+            #the objective function is behaving non-quadratically enough that the conjugate gradient
+            #formulas aren't working anymore)
 
-            beta_pr is the Polak-Ribiere formula for beta.
-            According to wikipedia, the beta to use for NCG is "a matter of heuristics or taste"
-            but max(0, beta_pr) is "a popular choice... which provides direction reset automatically."
-            (ie, it is meant to revert to steepest descent when you have traveled far enough that
-            the objective function is behaving non-quadratically enough that the conjugate gradient
-            formulas aren't working anymore)
-
-            http://en.wikipedia.org/wiki/Nonlinear_conjugate_gradient_method
-
-            """
+            #http://en.wikipedia.org/wiki/Nonlinear_conjugate_gradient_method
 
             assert grad not in grad_to_old_grad
 
@@ -546,27 +542,29 @@ class BatchGradientDescent:
         return best_obj
 
 class Accumulator(object):
+    """
+    Standin for a theano function with the given inputs, outputs, updates.
+
+    Here in the __init__ method you give the same expression as usual.
+    However, instead of passing __call__ the input variables directly, you
+    pass it batches, where each batch is a list containing the inputs for
+    that batch. It returns the average value of the function, averaged
+    across batches, taking batch size into account. The average of all
+    updates is also applied.
+
+    One extra change: if any of the inputs is a shared variable, then this
+    can assign to that variable, while theano.function would refuse to.
+    Those shared variables will be left with the value of the last batch
+    when __call__ returns.
+
+    Parameters
+    ----------
+    inputs : WRITEME
+    outputs : WRITEME
+    updates : WRITEME
+    """
+
     def __init__(self, inputs, outputs = None, updates = None):
-        """
-        Standin for a theano function with the given inputs, outputs, updates.
-        Here in the __init__ method you give the same expression as usual.
-        However, instead of passing __call__ the input variables directly, you
-        pass it batches, where each batch is a list containing the inputs for
-        that batch. It returns the average value of the function, averaged
-        across batches, taking batch size into account. The average of all
-        updates is also applied.
-
-        One extra change: if any of the inputs is a shared variable, then this
-        can assign to that variable, while theano.function would refuse to.
-        Those shared variables will be left with the value of the last batch
-        when __call__ returns.
-
-        Parameters
-        ----------
-        inputs : WRITEME
-        outputs : WRITEME
-        updates : WRITEME
-        """
         batch_size = T.cast(inputs[0].shape[0], 'float32')
         total_examples = T.scalar()
         transformed_updates = OrderedDict()

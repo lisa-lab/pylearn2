@@ -150,7 +150,7 @@ class BlockGibbsSampler(Sampler):
     steps : int, optional
         Number of Gibbs steps to run the Markov chain for at each
         iteration.
-    particles_clip: None or (min, max) pair, optional
+    particles_clip : None or (min, max) pair, optional
         The values of the returned particles will be clipped between
         min and max.
     """
