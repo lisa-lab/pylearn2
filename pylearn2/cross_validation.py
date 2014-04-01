@@ -29,7 +29,11 @@ class DatasetIterator(object):
 
     def __iter__(self):
         for subsets in self.index_iterator:
-            labels = ['train', 'valid', 'test']
+            labels = None
+            if len(subsets) == 3:
+                labels = ['train', 'valid', 'test']
+            elif len(subsets) == 2:
+                labels = ['train', 'test']
             datasets = {}
             for i, subset in enumerate(subsets):
                 subset_data = tuple(
