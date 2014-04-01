@@ -2807,18 +2807,11 @@ class ConvElemwise(Layer):
             b = self.b.dimshuffle('x', 0, 1, 2)
 
         z = z + b
-
         d = self.nonlin.apply(z)
 
         if self.layer_name is not None:
             d.name = self.layer_name + '_z'
             self.detector_space.validate(d)
-
-        if not hasattr(self, 'output_normalization'):
-           self.output_normalization = None
-
-        if self.output_normalization:
-           p = self.output_normalization(p)
 
         if self.pool_type is not None:
             if not hasattr(self, 'detector_normalization'):
@@ -2841,9 +2834,14 @@ class ConvElemwise(Layer):
                         image_shape=self.detector_space.shape)
 
             self.output_space.validate(p)
-
         else:
             p = d
+
+        if not hasattr(self, 'output_normalization'):
+           self.output_normalization = None
+
+        if self.output_normalization:
+           p = self.output_normalization(p)
 
         return p
 
