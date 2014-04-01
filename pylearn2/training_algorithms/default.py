@@ -21,6 +21,8 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
         the model
     batches_per_iter : int
         WRITEME
+    monitoring_batch_size : int
+        Size of monitoring batches.
     monitoring_batches : int
         WRITEME
     monitoring_dataset: Dataset or dict
@@ -42,9 +44,6 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
         if monitoring_dataset is None:
             assert monitoring_batches == -1
             assert monitoring_batch_size is None
-        elif monitoring_batch_size is None and monitoring_batches == -1:
-            self.monitoring_batch_size = batch_size
-            self.monitoring_batches = batches_per_iter
 
         self._set_monitoring_dataset(monitoring_dataset)
         self.monitoring_batches = monitoring_batches
@@ -102,9 +101,14 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
                     prefix = dataset_name + '_'
                 monitoring_dataset = self.monitoring_dataset[dataset_name]
 
+                if (self.monitoring_batch_size is None and
+                        self.monitoring_batches == -1):
+                    self.monitoring_batch_size = self.batch_size
+                    self.monitoring_batches = self.batches_per_iter
                 self.monitor.add_dataset(dataset=monitoring_dataset,
                                          mode="sequential",
-                                         batch_size=self.monitoring_batch_size)
+                                         batch_size=self.monitoring_batch_size,
+                                         num_batches=self.monitoring_batches)
 
                 for name in channels:
                     J = channels[name]

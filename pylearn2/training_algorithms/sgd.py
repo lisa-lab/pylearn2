@@ -65,6 +65,8 @@ class SGD(TrainingAlgorithm):
         If not specified, the model will be asked for the batch size, so
         you must have specified the batch size there.
         (Some models are rigidly defined to only work with one batch size)
+    monitoring_batch_size : optional, int
+        The size of the monitoring batches.
     monitoring_batches : optional, int
         At the start of each epoch, we run "monitoring", to evaluate
         quantities such as the validation set error.
@@ -189,9 +191,6 @@ class SGD(TrainingAlgorithm):
             if monitoring_batches is not None:
                 raise ValueError("Specified an amount of monitoring batches " +
                                  "but not a monitoring dataset.")
-        elif monitoring_batch_size is None and monitoring_batches is None:
-            self.monitoring_batch_size = batch_size
-            self.monitoring_batches = batches_per_iter
         self.termination_criterion = termination_criterion
         self._register_update_callbacks(update_callbacks)
         if train_iteration_mode is None:
@@ -261,6 +260,10 @@ class SGD(TrainingAlgorithm):
         # the cost
         learning_rate = self.learning_rate
         if self.monitoring_dataset is not None:
+            if (self.monitoring_batch_size is None and
+                    self.monitoring_batches is None):
+                self.monitoring_batch_size = self.batch_size
+                self.monitoring_batches = self.batches_per_iter
             self.monitor.setup(dataset=self.monitoring_dataset,
                                cost=self.cost,
                                batch_size=self.monitoring_batch_size,

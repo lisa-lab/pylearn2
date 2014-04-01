@@ -57,6 +57,8 @@ class BGD(TrainingAlgorithm):
     updates_per_batch : int
         Passed through to the optimization.BatchGradientDescent's \
         `max_iters parameter`
+    monitoring_batch_size : int
+        Size of monitoring batches.
     monitoring_batches : WRITEME
     monitoring_dataset: Dataset or dict
         A Dataset or a dictionary mapping string dataset names to Datasets
@@ -99,9 +101,6 @@ class BGD(TrainingAlgorithm):
         if monitoring_dataset is None:
             assert monitoring_batches is None
             assert monitoring_batch_size is None
-        elif monitoring_batch_size is None and monitoring_batches is None:
-            self.monitoring_batch_size = batch_size
-            self.monitoring_batches = batches_per_iter
 
         self._set_monitoring_dataset(monitoring_dataset)
 
@@ -190,6 +189,10 @@ class BGD(TrainingAlgorithm):
         obj_prereqs = [capture(f) for f in fixed_var_descr.on_load_batch]
 
         if self.monitoring_dataset is not None:
+            if (self.monitoring_batch_size is None and
+                    self.monitoring_batches is None):
+                self.monitoring_batch_size = self.batch_size
+                self.monitoring_batches = self.batches_per_iter
             self.monitor.setup(
                     dataset=self.monitoring_dataset,
                     cost=self.cost,
