@@ -12,19 +12,22 @@ from pylearn2.config import yaml_parse
 class TestCrossValidation(unittest.TestCase):
     def setUp(self):
         skip_if_no_sklearn()
+        handle, path = tempfile.mkstemp()
+        self.tempfile = path
 
     def test_train_cv(self):
         # train the first hidden layer (unsupervised)
-        trainer = yaml_parse.load(test_yaml_layer0)
+        trainer = yaml_parse.load(test_yaml_layer0 %
+                                  {'filename': self.tempfile})
         trainer.main_loop()
-        handle, path = tempfile.mkstemp()
-        trainer.save_path = path
-        trainer.save()
 
         # train the full model (supervised)
-        trainer = yaml_parse.load(test_yaml_layer1 % {'filename': path})
+        trainer = yaml_parse.load(test_yaml_layer1 %
+                                  {'filename': self.tempfile})
         trainer.main_loop()
-        os.remove(path)
+
+    def tearDown(self):
+        os.remove(self.tempfile)
 
 test_yaml_layer0 = """
 !obj:pylearn2.cross_validation.TrainCV {
@@ -52,6 +55,7 @@ test_yaml_layer0 = """
             max_epochs: 5,
         },
     },
+    save_path: %(filename)s,
 }
 """
 
