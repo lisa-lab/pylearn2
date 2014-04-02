@@ -10,6 +10,9 @@ import unittest
 
 
 class TestConv2DC01b(unittest.TestCase):
+    """
+    Test for local receptive fields
+    """
     def setUp(self):
         """
         Set up a test image and filter to re-use
