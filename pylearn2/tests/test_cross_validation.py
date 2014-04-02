@@ -1,6 +1,8 @@
 """Tests for cross validation module."""
 __author__ = "Steven Kearnes"
 
+import os
+import tempfile
 import unittest
 
 from pylearn2.testing.skip import skip_if_no_sklearn
@@ -15,10 +17,14 @@ class TestCrossValidation(unittest.TestCase):
         # train the first hidden layer (unsupervised)
         trainer = yaml_parse.load(test_yaml_layer0)
         trainer.main_loop()
+        handle, path = tempfile.mkstemp()
+        trainer.save_path = path
+        trainer.save()
 
         # train the full model (supervised)
-        trainer = yaml_parse.load(test_yaml_layer1)
+        trainer = yaml_parse.load(test_yaml_layer1 % {'filename': path})
         trainer.main_loop()
+        os.remove(path)
 
 test_yaml_layer0 = """
 !obj:pylearn2.cross_validation.TrainCV {
@@ -46,9 +52,6 @@ test_yaml_layer0 = """
             max_epochs: 5,
         },
     },
-    save_path: 'test_layer0.pkl',
-    save_subsets: 1,
-    save_freq: 1
 }
 """
 
@@ -68,7 +71,7 @@ test_yaml_layer1 = """
         layers: [
             !obj:pylearn2.cross_validation.PretrainedLayers {
                 layer_name: 'h0',
-                layer_content: !pkl: 'test_layer0.pkl'
+                layer_content: !pkl: %(filename)s
             },
             !obj:pylearn2.models.mlp.Softmax {
                 layer_name: 'y',
@@ -94,8 +97,5 @@ test_yaml_layer1 = """
             ],
         },
     },
-    save_path: 'test_layer1.pkl',
-    save_subsets: 1,
-    save_freq: 1
 }
 """
