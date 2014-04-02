@@ -1,3 +1,8 @@
+"""
+roc_auc.py
+
+TrainExtension subclass for calculating ROC AUC values as monitor channels.
+"""
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.training_algorithms.bgd import BGD
 from theano import tensor as T
@@ -8,7 +13,10 @@ import numpy as np
 
 
 class ROCAUCScoreOp(gof.Op):
-    # See function roc_auc_score for docstring
+    """
+    Theano Op wrapping sklearn.metrics.roc_auc_score.
+    See function roc_auc_score for docstring.
+    """
     def make_node(self, y_true, y_score):
         y_true = T.as_tensor_variable(y_true)
         y_score = T.as_tensor_variable(y_score)
@@ -48,7 +56,18 @@ class ROCAUCChannel(TrainExtension):
     batches_per_iter to be set to 1 to avoid class population issues.
     """
     def setup(self, model, dataset, algorithm):
-        
+        """
+        Add ROC AUC channels for monitoring dataset(s) to model.monitor.
+
+        Parameters
+        ----------
+        model : object
+            The model being trained.
+        dataset : object
+            Training dataset.
+        algorithm : object
+            Training algorithm.
+        """
         # sanity checks
         try:
             assert isinstance(algorithm, BGD)
