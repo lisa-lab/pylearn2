@@ -9,9 +9,11 @@ import pylearn2
 
 
 def test_conv_sigmoid_basic():
-    # Tests that we can load a convolutional sigmoid model
-    # and train it for a few epochs (without saving) on a dummy
-    # dataset-- tiny model and dataset
+    """
+    Tests that we can load a convolutional sigmoid model
+    and train it for a few epochs (without saving) on a dummy
+    dataset-- tiny model and dataset
+    """
     yaml_file = os.path.join(pylearn2.__path__[0],
                              "models/tests/conv_elemwise_sigm.yaml")
     with open(yaml_file) as yamlh:

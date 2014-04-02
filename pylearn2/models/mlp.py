@@ -2272,6 +2272,7 @@ class ConvNonlinearity(object):
     """
     def apply(self, linear_response):
         """
+        Applies the nonlinearity over the convolutional layer.
         Parameters
         ----------
         linear_response: Variable
