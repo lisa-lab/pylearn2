@@ -8,11 +8,11 @@ import pylearn2
 
 
 def test_conv_tanh_basic():
-
-    # Tests that we can load a convolutional tanh model
-    # and train it for a few epochs (without saving) on a dummy
-    # dataset-- tiny model and dataset
-    #
+    """
+    Tests that we can load a convolutional tanh model
+    and train it for a few epochs (without saving) on a dummy
+    dataset-- tiny model and dataset
+    """
     yaml_file = os.path.join(pylearn2.__path__[0],
                              "models/tests/conv_elemwise_tanh.yaml")
 
