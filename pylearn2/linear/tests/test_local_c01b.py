@@ -2,10 +2,8 @@ import theano
 from theano import tensor
 import numpy
 from pylearn2.linear.local_c01b import Local, make_random_local
-from pylearn2.space import Conv2DSpace
 from pylearn2.utils import sharedX
 from pylearn2.testing.skip import skip_if_no_gpu
-skip_if_no_gpu()
 import unittest
 
 
@@ -17,6 +15,7 @@ class TestConv2DC01b(unittest.TestCase):
         """
         Set up a test image and filter to re-use
         """
+        skip_if_no_gpu()
         self.image = \
             numpy.random.rand(16, 3, 3, 1).astype(theano.config.floatX)
         self.image_tensor = tensor.tensor4()
