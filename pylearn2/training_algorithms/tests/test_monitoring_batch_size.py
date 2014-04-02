@@ -11,6 +11,7 @@ class TestMonitoringBatchSize(unittest.TestCase):
     def setUp(self):
         datasets = {'train': 1000, 'valid': 500, 'test': 300}
         for name, size in datasets.items():
+            if not name: continue
             X = np.random.random((size, 15))
             y = np.random.randint(2, size=size)
             dataset = DenseDesignMatrix(X=X, y=y)
