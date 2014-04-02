@@ -468,6 +468,17 @@ class NumpyFunctionDocString(NumpyDocString):
         return errors
 
 class NumpyClassDocString(NumpyDocString):
+    def __init__(self, docstring, class_name, class_object):
+        super(NumpyClassDocString, self).__init__(docstring)
+        self.class_name = class_name
+        methods = dict((name, func) for name, func in inspect.getmembers(class_object))
+        if '__init__' in methods:
+            args, varargs, keywords, defaults = inspect.getargspec(methods['__init__'])
+            if (args and args != ['self']) or varargs or keywords or defaults:
+                self.has_parameters = True
+            else:
+                self.has_parameters = False
+
     def _parse(self):
         self._parsed_data = {
             'Signature': '',
@@ -503,6 +514,9 @@ class NumpyClassDocString(NumpyDocString):
 
     def get_errors(self):
         errors = NumpyDocString.get_errors(self)
+        if not self['Parameters'] and self.has_parameters:
+            errors.append("%s class has no Parameters section"
+                          % self.class_name)
         return errors
 
 class NumpyModuleDocString(NumpyDocString):
@@ -702,7 +716,7 @@ def handle_class(val, class_name):
     else:
         cls_errors = [
             (e,) for e in
-            NumpyClassDocString(docstring, class_name).get_errors()
+            NumpyClassDocString(docstring, class_name, val).get_errors()
         ]
         # Get public methods and parse their docstrings
         methods = dict(((name, func) for name, func in inspect.getmembers(val)
