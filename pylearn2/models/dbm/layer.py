@@ -4,6 +4,7 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
+import logging
 import time
 import warnings
 import numpy as np
@@ -26,6 +27,9 @@ from pylearn2.utils import is_block_gradient
 from pylearn2.utils import sharedX, safe_zip, py_integer_types, block_gradient
 from pylearn2.utils.rng import make_theano_rng
 from pylearn2.utils import safe_union
+
+
+logger = logging.getLogger(__name__)
 
 
 class Layer(Model):
@@ -310,25 +314,23 @@ class BinaryVector(VisibleLayer):
     """
     A DBM visible layer consisting of binary random variables living
     in a VectorSpace.
-    """
 
+    Parameters
+    ----------
+    nvis : int
+        Dimension of the space
+    bias_from_marginals : pylearn2.datasets.dataset.Dataset
+        Dataset, whose marginals are used to initialize the visible biases
+    center : bool
+        WRITEME
+    copies : int
+        WRITEME
+    """
     def __init__(self,
             nvis,
             bias_from_marginals = None,
             center = False,
             copies = 1, learn_init_inpainting_state = False):
-        """
-        Parameters
-        ----------
-        nvis : int
-            Dimension of the space
-        bias_from_marginals : pylearn2.datasets.dataset.Dataset
-            Dataset, whose marginals are used to initialize the visible biases
-        center : bool
-            WRITEME
-        copies : int
-            WRITEME
-        """
 
         self.__dict__.update(locals())
         del self.self
@@ -611,6 +613,26 @@ class BinaryVectorMaxPool(HiddenLayer):
     It has two sublayers, the detector layer and the pooling
     layer. The detector layer is its downward state and the pooling
     layer is its upward state.
+
+    Parameters
+    ----------
+    detector_layer_dim : WRITEME
+    pool_size : WRITEME
+    layer_name : WRITEME
+    irange : WRITEME
+    sparse_init : WRITEME
+    sparse_stdev : WRITEME
+    include_prob : float
+        Probability of including a weight element in the set of weights \
+        initialized to U(-irange, irange). If not included it is \
+        initialized to 0.
+    init_bias : WRITEME
+    W_lr_scale : WRITEME
+    b_lr_scale : WRITEME
+    center : WRITEME
+    mask_weights : WRITEME
+    max_col_norm : WRITEME
+    copies : WRITEME
     """
     # TODO: this layer uses (pooled, detector) as its total state,
     #       which can be confusing when listing all the states in
@@ -633,27 +655,6 @@ class BinaryVectorMaxPool(HiddenLayer):
             mask_weights = None,
             max_col_norm = None,
             copies = 1):
-        """
-        Parameters
-        ----------
-        detector_layer_dim : WRITEME
-        pool_size : WRITEME
-        layer_name : WRITEME
-        irange : WRITEME
-        sparse_init : WRITEME
-        sparse_stdev : WRITEME
-        include_prob : float
-            Probability of including a weight element in the set of weights \
-            initialized to U(-irange, irange). If not included it is \
-            initialized to 0.
-        init_bias : WRITEME
-        W_lr_scale : WRITEME
-        b_lr_scale : WRITEME
-        center : WRITEME
-        mask_weights : WRITEME
-        max_col_norm : WRITEME
-        copies : WRITEME
-        """
         self.__dict__.update(locals())
         del self.self
 
@@ -904,7 +905,7 @@ class BinaryVectorMaxPool(HiddenLayer):
         W = W.T
 
         W = W.reshape((self.detector_layer_dim, self.input_space.shape[0],
-            self.input_space.shape[1], self.input_space.nchannels))
+            self.input_space.shape[1], self.input_space.num_channels))
 
         W = Conv2DSpace.convert(W, self.input_space.axes, ('b', 0, 1, 'c'))
 
@@ -1435,19 +1436,6 @@ class Softmax(HiddenLayer):
                  max_col_norm = None,
                  copies = 1, center = False,
                  learn_init_inpainting_state = True):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        """
-            copies: We regard the layer as being replicated so that there
-                   are <copies> instances of it.
-                   All sample and mean field states are the *average* of
-                   all of these copies, and the weights to each copy are
-                   tied.
-        """
-
         if isinstance(W_lr_scale, str):
             W_lr_scale = float(W_lr_scale)
 
@@ -1820,10 +1808,10 @@ class Softmax(HiddenLayer):
 
         t4 = time.time()
 
-        print str(self)+'.make_state took',t4-t1
-        print '\tcompose time:',t2-t1
-        print '\tcompile time:',t3-t2
-        print '\texecute time:',t4-t3
+        logger.info('{0}.make_state took {1}'.format(self, t4-t1))
+        logger.info('\tcompose time: {0}'.format(t2-t1))
+        logger.info('\tcompile time: {0}'.format(t3-t2))
+        logger.info('\texecute time: {0}'.format(t4-t3))
 
         h_state.name = 'softmax_sample_shared'
 
@@ -1945,9 +1933,25 @@ class Softmax(HiddenLayer):
 
 class GaussianVisLayer(VisibleLayer):
     """
-    .. todo::
+    Implements a visible layer that is conditionally gaussian with
+    diagonal variance. The layer lives in a Conv2DSpace.
 
-        WRITEME
+    Parameters
+    ----------
+    rows, cols, channels: WRITEME
+        the shape of the space
+    init_beta: WRITEME
+        the initial value of the precision parameter
+    min_beta: WRITEME
+        clip beta so it is at least this big (default 1)
+    init_mu: WRITEME
+        the initial value of the mean parameter
+    tie_beta: WRITEME
+        None or a string specifying how to tie beta 'locations' = tie beta
+        across locations, ie beta should be a vector with one elem per channel
+    tie_mu: WRITEME
+        None or a string specifying how to tie mu 'locations' = tie mu across
+        locations, ie mu should be a vector with one elem per channel
     """
     def __init__(self,
             rows = None,
@@ -1963,32 +1967,6 @@ class GaussianVisLayer(VisibleLayer):
             bias_from_marginals = None,
             beta_lr_scale = 'by_sharing',
             axes = ('b', 0, 1, 'c')):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        """
-            Implements a visible layer that is conditionally gaussian with
-            diagonal variance. The layer lives in a Conv2DSpace.
-
-            rows, cols, channels: the shape of the space
-
-            init_beta: the initial value of the precision parameter
-            min_beta: clip beta so it is at least this big (default 1)
-
-            init_mu: the initial value of the mean parameter
-
-            tie_beta: None or a string specifying how to tie beta
-                      'locations' = tie beta across locations, ie
-                                    beta should be a vector with one
-                                    elem per channel
-            tie_mu: None or a string specifying how to tie mu
-                    'locations' = tie mu across locations, ie
-                                  mu should be a vector with one
-                                  elem per channel
-
-        """
 
         warnings.warn("GaussianVisLayer math very faith based, need to finish working through gaussian.lyx")
 
@@ -2010,7 +1988,7 @@ class GaussianVisLayer(VisibleLayer):
             assert channels is not None
             self.space = Conv2DSpace(shape=[rows,cols], num_channels=channels, axes=axes)
             # To make GaussianVisLayer compatible with any axis ordering
-            self.batch_axis=list(axes).index('b')  
+            self.batch_axis=list(axes).index('b')
             self.axes_to_sum = range(len(axes))
             self.axes_to_sum.remove(self.batch_axis)
         else:
@@ -2039,7 +2017,7 @@ class GaussianVisLayer(VisibleLayer):
             mu_origin = np.zeros((self.space.num_channels,))
         self.mu = sharedX( mu_origin + init_mu, name = 'mu')
         assert self.mu.ndim == mu_origin.ndim
-        
+
 
 
     def get_monitoring_channels(self):
@@ -2410,6 +2388,11 @@ class GaussianVisLayer(VisibleLayer):
 
 
 class ConvMaxPool(HiddenLayer):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self,
              output_channels,
             kernel_rows,
@@ -2424,11 +2407,6 @@ class ConvMaxPool(HiddenLayer):
             init_bias = 0.,
             border_mode = 'valid',
             output_axes = ('b', 'c', 0, 1)):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.__dict__.update(locals())
         del self.self
 
@@ -2495,7 +2473,10 @@ class ConvMaxPool(HiddenLayer):
                                                 num_channels = self.output_channels,
                 axes = self.output_axes)
 
-        print self.layer_name,': detector shape:',self.h_space.shape,'pool shape:',self.output_space.shape
+        logger.info('{0}: detector shape: {1} '
+                    'pool shape: {2}'.format(self.layer_name,
+                                             self.h_space.shape,
+                                             self.output_space.shape))
 
         if tuple(self.output_axes) == ('b', 0, 1, 'c'):
             self.max_pool = max_pool_b01c
@@ -2889,10 +2870,10 @@ class ConvMaxPool(HiddenLayer):
 
         t4 = time.time()
 
-        print str(self)+'.make_state took',t4-t1
-        print '\tcompose time:',t2-t1
-        print '\tcompile time:',t3-t2
-        print '\texecute time:',t4-t3
+        logger.info('{0}.make_state took'.format(self, t4-t1))
+        logger.info('\tcompose time: {0}'.format(t2-t1))
+        logger.info('\tcompile time: {0}'.format(t3-t2))
+        logger.info('\texecute time: {0}'.format(t4-t3))
 
         p_state.name = 'p_sample_shared'
         h_state.name = 'h_sample_shared'
@@ -2944,19 +2925,6 @@ class ConvC01B_MaxPool(HiddenLayer):
             init_bias = 0.,
             pad = 0,
             partial_sum = 1):
-        """
-        .. todo::
-
-            WRITEME properly
-
-        Like ConvMaxPool but using cuda convnet for the backend.
-
-        kernel_shape: two-element list or tuple of ints specifying
-                    rows and columns of kernel
-                    currently the two must be the same
-        output_channels: the number of convolutional channels in the
-            output and pooling layer.
-        """
         self.__dict__.update(locals())
         del self.self
 
@@ -3023,7 +2991,10 @@ class ConvC01B_MaxPool(HiddenLayer):
                                                 num_channels = self.output_channels,
                 axes = self.output_axes)
 
-        print self.layer_name,': detector shape:',self.h_space.shape,'pool shape:',self.output_space.shape
+        logger.info('{0} : detector shape: {1} '
+                    'pool shape: {2}'.format(self.layer_name,
+                                             self.h_space.shape,
+                                             self.output_space.shape))
 
         assert tuple(self.output_axes) == ('c', 0, 1, 'b')
         self.max_pool = max_pool_c01b
@@ -3391,10 +3362,10 @@ class ConvC01B_MaxPool(HiddenLayer):
 
         t4 = time.time()
 
-        print str(self)+'.make_state took',t4-t1
-        print '\tcompose time:',t2-t1
-        print '\tcompile time:',t3-t2
-        print '\texecute time:',t4-t3
+        logger.info('{0}.make_state took {1}'.format(self, t4-t1))
+        logger.info('\tcompose time: {0}'.format(t2-t1))
+        logger.info('\tcompile time: {0}'.format(t3-t2))
+        logger.info('\texecute time: {0}'.format(t4-t3))
 
         p_state.name = 'p_sample_shared'
         h_state.name = 'h_sample_shared'
@@ -3438,6 +3409,10 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
     external factor influencing how this layer behaves.
     Gradient can still flow to beta, but it will only be included in
     the parameters list if some class other than this layer includes it.
+
+    .. todo::
+
+        WRITEME : parameter list
     """
 
     def __init__(self,
@@ -3456,16 +3431,6 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
             mask_weights = None,
             max_col_norm = None,
             copies = 1):
-        """
-        .. todo::
-
-            WRITEME properly
-
-        include_prob: probability of including a weight element in the set
-                of weights initialized to U(-irange, irange). If not included
-                it is initialized to 0.
-        """
-
         warnings.warn("BVMP_Gaussian math is very faith-based, need to complete gaussian.lyx")
 
         args = locals()
@@ -3758,26 +3723,28 @@ class CompositeLayer(HiddenLayer):
     """
         A Layer constructing by aligning several other Layer
         objects side by side
+
+        Parameters
+        ----------
+        components: WRITEME
+            A list of layers that are combined to form this layer
+        inputs_to_components: None or dict mapping int to list of int
+            Should be None unless the input space is a CompositeSpace
+            If inputs_to_components[i] contains j, it means input i will
+            be given as input to component j.
+            If an input dodes not appear in the dictionary, it will be given
+            to all components.
+
+            This field allows one CompositeLayer to have another as input
+            without forcing each component to connect to all members
+            of the CompositeLayer below. For example, you might want to
+            have both densely connected and convolutional units in all
+            layers, but a convolutional unit is incapable of taking a
+            non-topological input space.
     """
 
+
     def __init__(self, layer_name, components, inputs_to_components = None):
-        """
-            components: A list of layers that are combined to form this layer
-            inputs_to_components: None or dict mapping int to list of int
-                Should be None unless the input space is a CompositeSpace
-                If inputs_to_components[i] contains j, it means input i will
-                be given as input to component j.
-                If an input dodes not appear in the dictionary, it will be given
-                to all components.
-
-                This field allows one CompositeLayer to have another as input
-                without forcing each component to connect to all members
-                of the CompositeLayer below. For example, you might want to
-                have both densely connected and convolutional units in all
-                layers, but a convolutional unit is incapable of taking a
-                non-topological input space.
-        """
-
         self.layer_name = layer_name
 
         self.components = list(components)
@@ -3960,9 +3927,9 @@ class CompositeLayer(HiddenLayer):
                 [component.get_params() for component in self.components])
 
     def get_weights_topo(self):
-        print 'Get topological weights for which layer?'
+        logger.info('Get topological weights for which layer?')
         for i, component in enumerate(self.components):
-            print i,component.layer_name
+            logger.info('{0} {1}'.format(i, component.layer_name))
         x = raw_input()
         return self.components[int(x)].get_weights_topo()
 
@@ -4009,4 +3976,3 @@ class CompositeLayer(HiddenLayer):
             rval.append(sample)
 
         return tuple(rval)
-

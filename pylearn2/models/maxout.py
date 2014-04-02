@@ -26,6 +26,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
 import functools
+import logging
 import numpy as np
 import warnings
 
@@ -46,6 +47,9 @@ from pylearn2.linear import local_c01b
 if cuda.cuda_available:
     from pylearn2.sandbox.cuda_convnet.pool import max_pool_c01b
 from pylearn2.sandbox.cuda_convnet import check_cuda
+
+
+logger = logging.getLogger(__name__)
 
 
 class Maxout(Layer):
@@ -660,12 +664,13 @@ class MaxoutConvC01B(Layer):
         if specified, should be a callable object. the state of the
         network is optionally replaced with normalization(state) at each
         of the 3 points in processing:
-            input: the input the layer receives can be normalized right
-                away
-            detector: the maxout units can be normalized prior to the
-                spatial pooling
-            output: the output of the layer, after sptial pooling,
-                can be normalized as well
+
+        - input: the input the layer receives can be normalized right
+            away
+        - detector: the maxout units can be normalized prior to the
+            spatial pooling
+        - output: the output of the layer, after sptial pooling,
+            can be normalized as well
     kernel_stride : vertical and horizontal pixel stride between
                    each detector.
     """
@@ -784,7 +789,7 @@ class MaxoutConvC01B(Layer):
                                         num_channels=self.num_channels,
                                         axes=('c', 0, 1, 'b'))
 
-        print 'Output space: ', self.output_space.shape
+        logger.info('Output space: {0}'.format(self.output_space.shape))
 
     def censor_updates(self, updates):
         """
@@ -1097,11 +1102,12 @@ class MaxoutLocalC01B(Layer):
         if specified, should be a callable object. the state of the network
         is optionally replaced with normalization(state) at each of the 3
         points in processing:
-            input: the input the layer receives can be normalized right
+
+        - input: the input the layer receives can be normalized right
             away
-            detector: the maxout units can be normalized prior to the
+        - detector: the maxout units can be normalized prior to the
             spatial pooling
-            output: the output of the layer, after sptial pooling, can be
+        - output: the output of the layer, after sptial pooling, can be
             normalized as well
     """
 
@@ -1277,8 +1283,8 @@ class MaxoutLocalC01B(Layer):
             self.b = sharedX(self.detector_space.get_origin() + self.init_bias)
         self.b.name = 'b'
 
-        print 'Input shape: ', self.input_space.shape
-        print 'Detector space: ', self.detector_space.shape
+        logger.info('Input shape: {0}'.format(self.input_space.shape))
+        logger.info('Detector space: {0}'.format(self.detector_space.shape))
 
         assert self.detector_space.num_channels >= 16
 
@@ -1300,7 +1306,7 @@ class MaxoutLocalC01B(Layer):
                                             num_channels=self.num_channels,
                                             axes=('c', 0, 1, 'b'))
 
-        print 'Output space: ', self.output_space.shape
+        logger.info('Output space: {0}'.format(self.output_space.shape))
 
     def censor_updates(self, updates):
         """

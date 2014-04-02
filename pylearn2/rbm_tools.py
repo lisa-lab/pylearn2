@@ -369,7 +369,27 @@ class AIS(object):
         log_w^i = fe_0(v0) - fe_1(v0) +
                   fe_1(v1) - fe_2(v1) + ... +
                   fe_{k-1}(v_{k-1}) - fe_{k}(v_{k-1})
+
+    Parameters
+    ----------
+    sample_fn : compiled theano function
+        `sample_fn(beta, v_sample)` returns new model samples, at inverse
+        temperature `beta`.  Internally, we do this by performing block
+        gibbs sampling using Eq.(15-17) (implemented in
+        `rbm_ais_gibbs_for_v`) starting from configuration `v_sample`.
+    free_energy_fn : theano function
+        `free_energy_fn(beta,v_sample)` computes the free-energy of
+        configuration `v_sample` at the interpolating distribution
+        :math:`p_a^{1-\\beta} p_b^{\\beta}`.
+    v_sample0 : numpy.ndarray
+        Initial samples from model A.
+    n_runs : int
+        Number of AIS runs (i.e. minibatch size)
+    log_int : int
+        Log standard deviation of log ais weights every `log_int`
+        temperatures.
     """
+
 
     # default configuration for interpolating distributions
     dflt_beta = numpy.hstack((numpy.asarray(numpy.linspace(0, 0.5, 1e3),
@@ -381,31 +401,6 @@ class AIS(object):
 
     def __init__(self, sample_fn, free_energy_fn, v_sample0, n_runs,
                  log_int=500):
-        """
-        Parameters
-        ----------
-        sample_fn : compiled theano function
-            `sample_fn(beta, v_sample)` returns new model samples, at inverse \
-            temperature `beta`.  Internally, we do this by performing block \
-            gibbs sampling using Eq.(15-17) (implemented in \
-            `rbm_ais_gibbs_for_v`) starting from configuration `v_sample`.
-
-        free_energy_fn : theano function
-            `free_energy_fn(beta,v_sample)` computes the free-energy of \
-            configuration `v_sample` at the interpolating distribution \
-            :math:`p_a^{1-\\beta} p_b^{\\beta}`.
-
-        v_sample0 : numpy.ndarray
-            Initial samples from model A.
-
-        n_runs : int
-            Number of AIS runs (i.e. minibatch size)
-
-        log_int : int
-            Log standard deviation of log ais weights every `log_int`
-            temperatures.
-        """
-
         self.sample_fn = sample_fn
         self.free_energy_fn = free_energy_fn
         self.v_sample0 = v_sample0

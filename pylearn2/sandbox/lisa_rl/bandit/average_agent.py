@@ -16,6 +16,10 @@ class AverageAgent(Agent):
     arm with the highest estimated reward. The estimated reward is just
     based on the average of all observations from that arm. If an arm
     has not been tried, the estimated reward is given by init_reward_estimate.
+
+    .. todo::
+
+        WRITEME : parameter list
     """
 
     def __init__(self, init_reward_estimate, num_arms):

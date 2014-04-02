@@ -2,6 +2,7 @@
 WRITEME
 """
 
+import logging
 from ..linear import LinearTransform
 from unshared_conv import FilterActs, ImgActs
 from theano.sandbox import cuda
@@ -14,6 +15,9 @@ try:
     import matplotlib.pyplot as plt
 except ImportError:
     pass
+
+logger = logging.getLogger(__name__)
+
 
 class LocalDot(LinearTransform):
     """
@@ -49,6 +53,17 @@ class LocalDot(LinearTransform):
         col_positions
         images
 
+    Parameters
+    ----------
+    filters : WRITEME
+    irows : WRITEME
+        Image rows
+    icols : WRITEME
+        Image columns
+    subsample : WRITEME
+    padding_start : WRITEME
+    filters_shape : WRITEME
+    message : WRITEME
     """
 
     def __init__(self, filters, irows, icols=None,
@@ -56,19 +71,6 @@ class LocalDot(LinearTransform):
             padding_start=None,
             filters_shape=None,
             message=""):
-        """
-        Parameters
-        ----------
-        filters : WRITEME
-        irows : WRITEME
-            Image rows
-        icols : WRITEME
-            Image columns
-        subsample : WRITEME
-        padding_start : WRITEME
-        filters_shape : WRITEME
-        message : WRITEME
-        """
         LinearTransform.__init__(self, [filters])
         self._filters = filters
         if filters_shape is None:
@@ -162,7 +164,7 @@ class LocalDot(LinearTransform):
         """
         filters = self._filters.get_value()
         modR, modC, colors, rows, cols, grps, fs_per_grp = filters.shape
-        print filters.shape
+        logger.info(filters.shape)
 
         rval = np.zeros((
             modR * (rows + 1) - 1,

@@ -53,12 +53,12 @@ class SGD(TrainingAlgorithm):
     Parameters
     ----------
     learning_rate : float
-        The learning rate to use. Train object callbacks can change the \
-        learning rate after each epoch. SGD update_callbacks can change \
+        The learning rate to use. Train object callbacks can change the
+        learning rate after each epoch. SGD update_callbacks can change
         it after each minibatch.
     cost : pylearn2.costs.cost.Cost
-        Cost object specifying the objective function to be minimized. \
-        Optionally, may be None. In this case, SGD will call the model's \
+        Cost object specifying the objective function to be minimized.
+        Optionally, may be None. In this case, SGD will call the model's
         get_default_cost method to obtain the objective function.
     batch_size : optional, int
         The size of the batch to be used.
@@ -99,26 +99,30 @@ class SGD(TrainingAlgorithm):
         All callbacks will be called with this SGD instance after each
         SGD step.
     learning_rule : training_algorithms.learning_rule.LearningRule
-        A learning rule computes the new parameter values given old \
-        parameters and first-order gradients. If learning_rule is None, \
-        sgd.SGD will update parameters according to the standard SGD \
+        A learning rule computes the new parameter values given old
+        parameters and first-order gradients. If learning_rule is None,
+        sgd.SGD will update parameters according to the standard SGD
         learning rule:
+
+        .. code-block:: none
+
             param := param - learning_rate * d cost / d param
+
         This argument allows more sophisticated learning rules, such
         as SGD with momentum.
     init_momentum : **DEPRECATED** option, float
         Use learning_rule instead.
-        If None, does not use momentum otherwise, use momentum and \
-        initialize the momentum coefficient to init_momentum. Callbacks \
-        can change this over time just like the learning rate. If the \
-        gradient is the same on every step, then the update taken by the \
-        SGD algorithm is scaled by a factor of 1/(1-momentum). See \
-        section 9 of Geoffrey Hinton's "A Practical Guide to Training \
+        If None, does not use momentum otherwise, use momentum and
+        initialize the momentum coefficient to init_momentum. Callbacks
+        can change this over time just like the learning rate. If the
+        gradient is the same on every step, then the update taken by the
+        SGD algorithm is scaled by a factor of 1/(1-momentum). See
+        section 9 of Geoffrey Hinton's "A Practical Guide to Training
         Restricted Boltzmann Machines" for details.
     set_batch_size : optional, bool
         Defaults to False.
-        If True, and batch_size conflicts with model.force_batch_size, \
-        will call model.set_batch_size(batch_size) in an attempt to \
+        If True, and batch_size conflicts with model.force_batch_size,
+        will call model.set_batch_size(batch_size) in an attempt to
         change model.force_batch_size
     train_iteration_mode : optional, str
         Defaults to 'shuffled_sequential'.
@@ -126,15 +130,15 @@ class SGD(TrainingAlgorithm):
     batches_per_iter : optional, int
         The number of batches to draw from the iterator over training
         examples.
-        If iterational mode is 'sequential' or 'shuffled_sequential', this
+        If iteration mode is 'sequential' or 'shuffled_sequential', this
         is unnecessary; when unspecified we will iterate over all examples.
     theano_function_mode : optional, a valid argument to theano.function's
         'mode' parameter.
-        The theano mode to compile the updates function with. Note that \
-        pylearn2 includes some wraplinker modes that are not bundled with \
-        theano. See pylearn2.devtools. These extra modes let you do \
-        things like check for NaNs at every step, or record md5 digests \
-        of all computations performed by the update function to help \
+        The theano mode to compile the updates function with. Note that
+        pylearn2 includes some wraplinker modes that are not bundled with
+        theano. See pylearn2.devtools. These extra modes let you do
+        things like check for NaNs at every step, or record md5 digests
+        of all computations performed by the update function to help
         isolate problems with nondeterminism.
     monitoring_costs : optional, list
         a list of Cost instances. The Monitor will also include all
@@ -153,8 +157,6 @@ class SGD(TrainingAlgorithm):
                  train_iteration_mode = None, batches_per_iter=None,
                  theano_function_mode = None, monitoring_costs=None,
                  seed=[2012, 10, 5]):
-        """
-        """
 
         if isinstance(cost, (list, tuple, set)):
             raise TypeError("SGD no longer supports using collections of " +
@@ -438,32 +440,30 @@ class MonitorBasedLRAdjuster(TrainExtension):
     learning rate will be scaled by grow_amt (which should be > 1
     for this scheme to make sense). The idea is that the learning
     algorithm is making progress but at too slow of a rate.
+
+    Parameters
+    ----------
+    high_trigger : see class-level docstring
+    low_trigger : see class-level docstring
+    grow_amt : see class-level docstring
+    min_lr : All updates to the learning rate are clipped to be at least
+    this value.
+    max_lr : All updates to the learning rate are clipped to be at most
+    this value.
+    dataset_name : optional, str
+        If specified, use dataset_name + "_objective" as the channel
+        to guide the learning rate adaptation.
+    channel_name : optional, str
+        If specified, use channel_name as the channel to guide the
+        learning rate adaptation. Conflicts with dataset_name.
+        If neither dataset_name nor channel_name is specified, uses
+        "objective"
     """
 
     def __init__(self, high_trigger=1., shrink_amt=.99,
                  low_trigger=.99, grow_amt=1.01,
                  min_lr = 1e-7, max_lr = 1.,
                  dataset_name=None, channel_name=None):
-        """
-        Parameters
-        ----------
-        high_trigger : see class-level docstring
-        low_trigger : see class-level docstring
-        grow_amt : see class-level docstring
-        min_lr : All updates to the learning rate are clipped to be at least
-        this value.
-        max_lr : All updates to the learning rate are clipped to be at most
-        this value.
-        dataset_name : optional, str
-            If specified, use dataset_name + "_objective" as the channel
-            to guide the learning rate adaptation.
-        channel_name : optional, str
-            If specified, use channel_name as the channel to guide the
-            learning rate adaptation. Conflicts with dataset_name.
-
-        If neither dataset_name nor channel_name is specified, uses
-        "objective"
-        """
         self.high_trigger = high_trigger
         self.shrink_amt = shrink_amt
         self.low_trigger = low_trigger
@@ -558,7 +558,7 @@ class MonitorBasedLRAdjuster(TrainExtension):
 
         rval = current_learning_rate
 
-        print "monitoring channel is %s" %self.channel_name
+        log.info("monitoring channel is {0}".format(self.channel_name))
 
         if v[-1] > self.high_trigger * v[-2]:
             rval *= self.shrink_amt
@@ -586,25 +586,22 @@ class PatienceBasedTermCrit(object):
     Note: Technically, the patience corresponds to a number of epochs to be
     independent of the size of the dataset, so be aware of that when choosing
     initial_patience.
+
+    Parameters
+    ----------
+    prop_decrease : float
+        The factor X in the (1 - X) * best_value threshold
+    initial_patience : int
+        Minimal number of epochs the model has to run before it can stop
+    patience_increase : float, optional
+        The factor X in the patience = X * n_iter update.
+    channel_name : string, optional
+        Name of the channel to examine. If None and the monitor \
+        has only one channel, this channel will be used; otherwise, an \
+        error will be raised.
     """
     def __init__(self, prop_decrease, initial_patience,
                  patience_increase=2., channel_name=None):
-        """
-        Initialize a patience-based termination criterion.
-
-        Parameters
-        ----------
-        prop_decrease : float
-            The factor X in the (1 - X) * best_value threshold
-        initial_patience : int
-            Minimal number of epochs the model has to run before it can stop
-        patience_increase : float, optional
-            The factor X in the patience = X * n_iter update.
-        channel_name : string, optional
-            Name of the channel to examine. If None and the monitor \
-            has only one channel, this channel will be used; otherwise, an \
-            error will be raised.
-        """
         self._channel_name = channel_name
         self.prop_decrease = prop_decrease
         self.patience = initial_patience
@@ -659,14 +656,13 @@ class AnnealedLearningRate(object):
     This anneals the learning rate to decrease as 1/t where t is the number
     of gradient descent updates done so far. Use OneOverEpoch as Train object
     callback if you would prefer 1/t where t is epochs.
+
+    Parameters
+    ----------
+    anneal_start : int
+        The epoch on which to begin annealing
     """
     def __init__(self, anneal_start):
-        """
-        Parameters
-        ----------
-        anneal_start : int
-            The epoch on which to begin annealing
-        """
         self._initialized = False
         self._count = 0
         self._anneal_start = anneal_start
@@ -689,21 +685,20 @@ class AnnealedLearningRate(object):
 
 class ExponentialDecay(object):
     """
-    This is a callback for the SGD algorithm rather than the Train object.
+    This is a callback for the `SGD` algorithm rather than the `Train` object.
     This anneals the learning rate by dividing by decay_factor after each
     gradient descent step. It will not shrink the learning rate beyond
-    min_lr.
+    `min_lr`.
+
+    Parameters
+    ----------
+    decay_factor : float
+        The learning rate at step t is given by
+        `init_learning_rate / (decay_factor ** t)`
+    min_lr :
+        The learning rate will be clipped to be at least this value
     """
     def __init__(self, decay_factor, min_lr):
-        """
-        Parameters
-        ---------
-        decay_factor : float
-            The learning rate at step t is given by
-            init_learning_rate / (decay_factor ** t)
-        min_lr :
-            The learning rate will be clipped to be at least this value
-        """
         if isinstance(decay_factor, str):
             decay_factor = float(decay_factor)
         if isinstance(min_lr, str):
@@ -747,18 +742,16 @@ class LinearDecay(object):
     This is a callback for the SGD algorithm rather than the Train object.
     This anneals the learning rate to decay_factor times of the initial value
     during time start till saturate.
+
+    Parameters
+    ----------
+    start : int
+        The step at which to start decreasing the learning rate
+    saturate : int
+        The step at which to stop decreating the learning rate decay_factor:
+        `final learning rate = decay_factor * initial learning rate`
     """
     def __init__(self, start, saturate, decay_factor):
-        """
-        Parameters
-        ----------
-        start : int
-            The step at which to start decreasing the learning rate
-        saturate : int
-            The step at which to stop decreating the learning rate
-            decay_factor: final learning rate = decay_factor * initial learning
-            rate
-        """
         if isinstance(decay_factor, str):
             decay_factor = float(decay_factor)
         if isinstance(start, str):
@@ -810,20 +803,19 @@ def MomentumAdjustor(final_momentum, start, saturate):
 class OneOverEpoch(TrainExtension):
     """
     Scales the learning rate like one over # epochs
+
+    Parameters
+    ----------
+    start : int
+        The epoch on which to start shrinking the learning rate
+    half_life : int
+        How many epochs after start it will take for the learning rate to lose
+        half its value for the first time (to lose the next half of its value
+        will take twice as long)
+    min_lr : float
+        The minimum value the learning rate can take on
     """
     def __init__(self, start, half_life = None, min_lr = 1e-6):
-        """
-        Parameters
-        ----------
-        start : int
-            The epoch on which to start shrinking the learning rate
-        half_life : int
-            How many epochs after start it will take for the learning rate \
-            to lose half its value for the first time (to lose the next half \
-            of its value will take twice as long)
-        min_lr : float
-            The minimum value the learning rate can take on
-        """
         self.__dict__.update(locals())
         del self.self
         self._initialized = False
@@ -864,18 +856,17 @@ class OneOverEpoch(TrainExtension):
 class LinearDecayOverEpoch(TrainExtension):
     """
     Scales the learning rate linearly on each epochs
+
+    Parameters
+    ----------
+    start : int
+        The epoch on which to start shrinking the learning rate
+    saturate : int
+        The epoch to saturate the shrinkage
+    decay_factor : float
+        The final value would be initial learning rate times decay_factor
     """
     def __init__(self, start, saturate, decay_factor):
-        """
-        Parameters
-        ----------
-        start : int
-            The epoch on which to start shrinking the learning rate
-        saturate : int
-            The epoch to saturate the shrinkage
-        decay_factor : float
-            The final value would be initial learning rate times decay_factor
-        """
         self.__dict__.update(locals())
         del self.self
         self._initialized = False
@@ -920,14 +911,13 @@ class _PolyakWorker(object):
     Only to be used by the PolyakAveraging TrainingCallback below.
     Do not use directly.
     A callback for the SGD class.
+
+    Parameters
+    ----------
+    model : a Model
+        The model whose parameters we want to train with Polyak averaging
     """
     def __init__(self, model):
-        """
-        Parameters
-        ----------
-        model : a Model
-            The model whose parameters we want to train with Polyak averaging
-        """
         avg_updates = OrderedDict()
         t = sharedX(1.)
         self.param_to_mean = OrderedDict()
@@ -978,20 +968,19 @@ class PolyakAveraging(TrainExtension):
 
     TOOD: make use of the new on_save callback instead
         of duplicating Train's save_freq flag
+
+    Parameters
+    ----------
+    start : int
+        The epoch after which to start averaging (0 = start averaging
+        immediately)
+    save_path : str
+        WRITEME
+    save_freq : int
+        WRITEME
     """
 
     def __init__(self, start, save_path = None, save_freq = 1):
-        """
-        Parameters
-        ----------
-        start : int
-            The epoch after which to start averaging (0 = start averaging \
-            immediately)
-        save_path : str
-            WRITEME
-        save_freq : int
-            WRITEME
-        """
         self.__dict__.update(locals())
         del self.self
         self._count = 0

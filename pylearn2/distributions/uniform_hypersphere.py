@@ -23,11 +23,6 @@ class UniformHypersphere(object):
         WRITEME
     """
     def __init__(self, dim, radius):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.dim = dim
         self.radius = radius
         self.s_rng = make_theano_rng(None, 42, which_method='normal')
@@ -42,7 +37,7 @@ class UniformHypersphere(object):
         .. todo::
 
             WRITEME properly
-        
+
         Parameters:
             X: Must contain only examples that lie on the hypersphere
         """

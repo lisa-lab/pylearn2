@@ -19,13 +19,13 @@ class ICML07DataSet(DenseDesignMatrix):
     
     All these datasets can be displayed as 28x28 pixel datapoints.
     """
-    def __init__(self, npy_filename, which_set, one_hot, splits):
+    def __init__(self, npy_filename, which_set, one_hot, split):
         """
         """
         assert which_set in ['train', 'valid', 'test']
 
         self.one_hot = one_hot
-        self.splits = splits
+        self.split = split
 
         # Load data from .npy file
         npy_filename_root = os.path.join(preprocess('${PYLEARN2_DATA_PATH}'), 'icml07data', 'npy', npy_filename)
@@ -39,7 +39,7 @@ class ICML07DataSet(DenseDesignMatrix):
         assert data_x.shape[0] == data_y.shape[0]
 
         # extract 
-        n_train, n_valid, n_test = splits
+        n_train, n_valid, n_test = split
         sets = {
             'train' : (0              , n_train),
             'valid' : (n_train        , n_train+n_valid),
@@ -63,7 +63,7 @@ class ICML07DataSet(DenseDesignMatrix):
         super(ICML07DataSet, self).__init__(X = data_x, y = data_y, view_converter = view_converter)
     
     def get_test_set(self):
-        return self.__class__(which_set='test', splits=self.splits, one_hot=self.one_hot)
+        return self.__class__(which_set='test', one_hot=self.one_hot, split=self.split)
 
 
 #
@@ -74,7 +74,7 @@ class MNIST_rotated_background(ICML07DataSet):
     """ ICML07: Rotated MNIST dataset with background.
 
     """
-    def __init__(self, which_set, one_hot=False, center=False, split=(10000, 2000, 10000)):
+    def __init__(self, which_set, one_hot=False, split=(10000, 2000, 10000)):
         """ Load ICML07 Rotated MNIST with background dataset.
 
         Parameters
@@ -88,7 +88,7 @@ class MNIST_rotated_background(ICML07DataSet):
         
         Default split: 10000 training, 2000 validation and 10000 in test dataset.
         """
-        super(MNIST_rotated_background, self).__init__('mnist_rotated_background_images', which_set, split, one_hot)
+        super(MNIST_rotated_background, self).__init__('mnist_rotated_background_images', which_set, one_hot, split)
    
 
 class Convex(ICML07DataSet):
@@ -110,7 +110,7 @@ class Convex(ICML07DataSet):
  
         Default split: 6000 training, 2000 validation and 50000 in test dataset.
         """
-        super(Convex, self).__init__('convex', which_set, split, one_hot)
+        super(Convex, self).__init__('convex', which_set, one_hot, split)
 
 
 
@@ -133,7 +133,7 @@ class Rectangles(ICML07DataSet):
  
         Default split: 1000 training, 200 validation and 50000 in test dataset.
         """
-        super(Rectangles, self).__init__('rectangles', which_set, split, one_hot)
+        super(Rectangles, self).__init__('rectangles', which_set, one_hot, split)
 
 
 class RectanglesImage(ICML07DataSet):
@@ -155,5 +155,5 @@ class RectanglesImage(ICML07DataSet):
         
         Default split: 10000 training, 2000 validation and 50000 in test dataset.
         """
-        super(RectanglesImage, self).__init__('rectangles_images', which_set, split, one_hot)
+        super(RectanglesImage, self).__init__('rectangles_images', which_set, one_hot, split)
 

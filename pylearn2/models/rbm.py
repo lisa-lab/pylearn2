@@ -4,6 +4,7 @@ strategies.
 """
 # Standard library imports
 from itertools import izip
+import logging
 import sys
 
 # Third-party imports
@@ -27,8 +28,10 @@ from pylearn2.utils import safe_union
 from pylearn2.utils.rng import make_np_rng, make_theano_rng
 theano.config.warn.sum_div_dimshuffle_bug = False
 
+logger = logging.getLogger(__name__)
+
 if 0:
-    print 'WARNING: using SLOW rng'
+    logger.warning('using SLOW rng')
     RandomStreams = tensor.shared_randomstreams.RandomStreams
 else:
     import theano.sandbox.rng_mrg
@@ -83,23 +86,20 @@ class Sampler(object):
     A sampler is responsible for implementing a sampling strategy on top of
     an RBM, which may include retaining state e.g. the negative particles for
     Persistent Contrastive Divergence.
+
+    Parameters
+    ----------
+    rbm : object
+        An instance of `RBM` or a derived class, or one implementing
+        the `gibbs_step_for_v` interface.
+    particles : numpy.ndarray
+        An initial state for the set of persistent Narkov chain particles
+        that will be updated at every step of learning.
+    rng : RandomState object
+        NumPy random number generator object used to initialize a
+        RandomStreams object used in training.
     """
     def __init__(self, rbm, particles, rng):
-        """
-        Construct a Sampler.
-
-        Parameters
-        ----------
-        rbm : object
-            An instance of `RBM` or a derived class, or one implementing \
-            the `gibbs_step_for_v` interface.
-        particles : numpy.ndarray
-            An initial state for the set of persistent Narkov chain particles \
-            that will be updated at every step of learning.
-        rng : RandomState object
-            NumPy random number generator object used to initialize a \
-            RandomStreams object used in training.
-        """
         self.__dict__.update(rbm=rbm)
 
         rng = make_np_rng(rng, which_method="randn")
@@ -135,27 +135,26 @@ class BlockGibbsSampler(Sampler):
        approximations to the likelihood gradient". Proceedings of the 25th
        International Conference on Machine Learning, Helsinki, Finland,
        2008. http://www.cs.toronto.edu/~tijmen/pcd/pcd.pdf
+
+    Parameters
+    ----------
+    rbm : object
+        An instance of `RBM` or a derived class, or one implementing \
+        the `gibbs_step_for_v` interface.
+    particles : ndarray
+        An initial state for the set of persistent Markov chain particles \
+        that will be updated at every step of learning.
+    rng : RandomState object
+        NumPy random number generator object used to initialize a \
+        RandomStreams object used in training.
+    steps : int, optional
+        Number of Gibbs steps to run the Markov chain for at each \
+        iteration.
+    particles_clip: None or (min, max) pair
+        The values of the returned particles will be clipped between \
+        min and max.
     """
     def __init__(self, rbm, particles, rng, steps=1, particles_clip=None):
-        """
-        Parameters
-        ----------
-        rbm : object
-            An instance of `RBM` or a derived class, or one implementing \
-            the `gibbs_step_for_v` interface.
-        particles : ndarray
-            An initial state for the set of persistent Markov chain particles \
-            that will be updated at every step of learning.
-        rng : RandomState object
-            NumPy random number generator object used to initialize a \
-            RandomStreams object used in training.
-        steps : int, optional
-            Number of Gibbs steps to run the Markov chain for at each \
-            iteration.
-        particles_clip: None or (min, max) pair
-            The values of the returned particles will be clipped between \
-            min and max.
-        """
         super(BlockGibbsSampler, self).__init__(rbm, particles, rng)
         self.steps = steps
         self.particles_clip = particles_clip
@@ -223,6 +222,49 @@ class RBM(Block, Model):
     finish porting all RBM functionality to the DBM framework, then turn
     the RBM class into a thin wrapper around the DBM class that allocates
     a single layer DBM.
+
+    Parameters
+    ----------
+    nvis : int
+        Number of visible units in the model. \
+        (Specifying this implies that the model acts on a vector, \
+        i.e. it sets vis_space = pylearn2.space.VectorSpace(nvis) )
+    nhid : int
+        Number of hidden units in the model. \
+        (Specifying this implies that the model acts on a vector)
+    vis_space : pylearn2.space.Space
+        Space object describing what kind of vector space the RBM acts \
+        on. Don't specify if you used nvis / hid
+    hid_space: pylearn2.space.Space
+        Space object describing what kind of vector space the RBM's \
+        hidden units live in. Don't specify if you used nvis / nhid
+    transformer : WRITEME
+    init_bias_vis_marginals : pylearn2.datasets.dataset.Dataset or None
+        Dataset used to initialize the visible biases to the inverse \
+        sigmoid of the data marginals
+    irange : float, optional
+        The size of the initial interval around 0 for weights.
+    rng : RandomState object or seed
+        NumPy RandomState object to use when initializing parameters \
+        of the model, or (integer) seed to use to create one.
+    init_bias_vis : array_like, optional
+        Initial value of the visible biases, broadcasted as necessary.
+    init_bias_hid : array_like, optional
+        initial value of the hidden biases, broadcasted as necessary.
+    monitor_reconstruction : bool
+        If True, will request a monitoring channel to monitor \
+        reconstruction error
+    random_patches_src : pylearn2.datasets.dataset.Dataset or None
+        Dataset from which to draw random patches in order to initialize \
+        the weights. Patches will be multiplied by irange.
+    base_lr : float
+        The base learning rate
+    anneal_start : int
+        Number of steps after which to start annealing on a 1/t schedule
+    nchains : int
+        Number of negative chains
+    sml_gibbs_steps : int
+        Number of gibbs steps to take per update
     """
     def __init__(self, nvis = None, nhid = None,
             vis_space = None,
@@ -234,51 +276,6 @@ class RBM(Block, Model):
             sml_gibbs_steps = 1,
             random_patches_src = None,
             monitor_reconstruction = False):
-
-        """
-        Parameters
-        ----------
-        nvis : int
-            Number of visible units in the model. \
-            (Specifying this implies that the model acts on a vector, \
-            i.e. it sets vis_space = pylearn2.space.VectorSpace(nvis) )
-        nhid : int
-            Number of hidden units in the model. \
-            (Specifying this implies that the model acts on a vector)
-        vis_space : pylearn2.space.Space
-            Space object describing what kind of vector space the RBM acts \
-            on. Don't specify if you used nvis / hid
-        hid_space: pylearn2.space.Space
-            Space object describing what kind of vector space the RBM's \
-            hidden units live in. Don't specify if you used nvis / nhid
-        transformer : WRITEME
-        init_bias_vis_marginals : pylearn2.datasets.dataset.Dataset or None
-            Dataset used to initialize the visible biases to the inverse \
-            sigmoid of the data marginals
-        irange : float, optional
-            The size of the initial interval around 0 for weights.
-        rng : RandomState object or seed
-            NumPy RandomState object to use when initializing parameters \
-            of the model, or (integer) seed to use to create one.
-        init_bias_vis : array_like, optional
-            Initial value of the visible biases, broadcasted as necessary.
-        init_bias_hid : array_like, optional
-            initial value of the hidden biases, broadcasted as necessary.
-        monitor_reconstruction : bool
-            If True, will request a monitoring channel to monitor \
-            reconstruction error
-        random_patches_src : pylearn2.datasets.dataset.Dataset or None
-            Dataset from which to draw random patches in order to initialize \
-            the weights. Patches will be multiplied by irange.
-        base_lr : float
-            The base learning rate
-        anneal_start : int
-            Number of steps after which to start annealing on a 1/t schedule
-        nchains : int
-            Number of negative chains
-        sml_gibbs_steps : int
-            Number of gibbs steps to take per update
-        """
 
         Model.__init__(self)
         Block.__init__(self)
@@ -855,6 +852,29 @@ class RBM(Block, Model):
 class GaussianBinaryRBM(RBM):
     """
     An RBM with Gaussian visible units and binary hidden units.
+
+    Parameters
+    ----------
+    nvis : int
+        Number of visible units in the model.
+    nhid : int
+        Number of hidden units in the model.
+    energy_function_class : WRITEME
+    irange : float, optional
+        The size of the initial interval around 0 for weights.
+    rng : RandomState object or seed
+        NumPy RandomState object to use when initializing parameters \
+        of the model, or (integer) seed to use to create one.
+    mean_vis : bool, optional
+        Don't actually sample visibles; make sample method simply return \
+        mean.
+    init_sigma : float or numpy.ndarray
+        Initial value of the sigma variable. If init_sigma is a scalar \
+        and sigma is not, will be broadcasted.
+    min_sigma, max_sigma: float, float
+        Elements of sigma are clipped to this range during learning
+    init_bias_hid : scalar or 1-d array of length `nhid`
+        Initial value for the biases on hidden units.
     """
     def __init__(self, energy_function_class,
             nvis = None,
@@ -866,30 +886,6 @@ class GaussianBinaryRBM(RBM):
                  mean_vis=False, init_sigma=2., learn_sigma=False,
                  sigma_lr_scale=1., init_bias_hid=0.0,
                  min_sigma = .1, max_sigma = 10.):
-        """
-        Parameters
-        ----------
-        nvis : int
-            Number of visible units in the model.
-        nhid : int
-            Number of hidden units in the model.
-        energy_function_class : WRITEME
-        irange : float, optional
-            The size of the initial interval around 0 for weights.
-        rng : RandomState object or seed
-            NumPy RandomState object to use when initializing parameters \
-            of the model, or (integer) seed to use to create one.
-        mean_vis : bool, optional
-            Don't actually sample visibles; make sample method simply return \
-            mean.
-        init_sigma : float or numpy.ndarray
-            Initial value of the sigma variable. If init_sigma is a scalar \
-            and sigma is not, will be broadcasted.
-        min_sigma, max_sigma: float, float
-            Elements of sigma are clipped to this range during learning
-        init_bias_hid : scalar or 1-d array of length `nhid`
-            Initial value for the biases on hidden units.
-        """
         super(GaussianBinaryRBM, self).__init__(nvis = nvis, nhid = nhid,
                                                 transformer = transformer,
                                                 vis_space = vis_space,
@@ -1058,6 +1054,25 @@ class mu_pooled_ssRBM(RBM):
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    alpha : WRITEME
+        Vector of length nslab, diagonal precision term on s.
+    b : WRITEME
+        Vector of length nhid, hidden unit bias.
+    B : WRITEME
+        Vector of length nvis, diagonal precision on v.  Lambda in ICML2011
+        paper.
+    Lambda : WRITEME
+        Matrix of shape nvis x nhid, whose i-th column encodes a diagonal
+        precision on v, conditioned on h_i.  phi in ICML2011 paper.
+    log_alpha : WRITEME
+        Vector of length nslab, precision on s.
+    mu : WRITEME
+        Vector of length nslab, mean parameter on s.
+    W : WRITEME
+        Matrix of shape nvis x nslab, weights of the nslab linear filters s.
     """
     def __init__(self, nvis, nhid, n_s_per_h,
             batch_size,
@@ -1068,23 +1083,6 @@ class mu_pooled_ssRBM(RBM):
             mu0,
             W_irange=None,
             rng=None):
-        """
-        .. todo::
-
-            WRITEME properly
-
-        alpha    : vector of length nslab, diagonal precision term on s.
-        b        : vector of length nhid, hidden unit bias.
-        B        : vector of length nvis, diagonal precision on v.
-                   Lambda in ICML2011 paper.
-        Lambda   : matrix of shape nvis x nhid, whose i-th column encodes a
-                   diagonal precision on v, conditioned on h_i.
-                   phi in ICML2011 paper.
-        log_alpha: vector of length nslab, precision on s.
-        mu       : vector of length nslab, mean parameter on s.
-        W        : matrix of shape nvis x nslab, weights of the nslab linear
-                   filters s.
-        """
 
         rng = make_np_rng(rng, 1001, which_method="rand")
 
@@ -1319,13 +1317,14 @@ class L1_ActivationCost(Cost):
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    target : WRITEME
+    eps : WRITEME
+    coeff : WRITEME
     """
     def __init__(self, target, eps, coeff):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.__dict__.update(locals())
         del self.self
 
@@ -1372,44 +1371,41 @@ class _SGDOptimizer(_Optimizer):
 
     Supports constant learning rates, or decreasing like 1/t after an initial
     period.
+
+    Parameters
+    ----------
+    params : object or list
+        Either a Model object with a .get_params() method, or a list of
+        parameters to be optimized.
+    base_lr : float
+        The base learning rate before annealing or parameter-specific
+        scaling.
+    anneal_start : int
+        Number of steps after which to start annealing the learning
+        rate at a 1/t schedule, where t is the number of stochastic
+        gradient updates.
+    use_adagrad : bool
+        'adagrad' adaptive learning rate scheme is used. If set to True,
+    base_lr is used as e0.
+
+    Notes
+    -----
+    The formula to compute the effective learning rate on a parameter is:
+    <paramname>_lr * max(0.0, min(base_lr, lr_anneal_start/(iteration+1)))
+
+    Parameter-specific learning rates can be set by passing keyword
+    arguments <name>_lr, where name is the .name attribute of a given
+    parameter.
+
+    Parameter-specific bounding values can be specified by passing
+    keyword arguments <param>_clip, which should be a (min, max) pair.
+
+    Adagrad is recommended with sparse inputs. It normalizes the base
+    learning rate of a parameter theta_i by the accumulated 2-norm of its
+    gradient: e{ti} = e0 / sqrt( sum_t (dL_t / dtheta_i)^2 )
     """
     def __init__(self, params, base_lr, anneal_start=None, use_adagrad=False,
                  ** kwargs):
-        """
-        Construct an SGDOptimizer.
-
-        Parameters
-        ----------
-        params : object or list
-            Either a Model object with a .get_params() method, or a list of
-            parameters to be optimized.
-        base_lr : float
-            The base learning rate before annealing or parameter-specific
-            scaling.
-        anneal_start : int
-            Number of steps after which to start annealing the learning
-            rate at a 1/t schedule, where t is the number of stochastic
-            gradient updates.
-        use_adagrad : bool
-            'adagrad' adaptive learning rate scheme is used. If set to True,
-        base_lr is used as e0.
-
-        Notes
-        -----
-        The formula to compute the effective learning rate on a parameter is:
-        <paramname>_lr * max(0.0, min(base_lr, lr_anneal_start/(iteration+1)))
-
-        Parameter-specific learning rates can be set by passing keyword
-        arguments <name>_lr, where name is the .name attribute of a given
-        parameter.
-
-        Parameter-specific bounding values can be specified by passing
-        keyword arguments <param>_clip, which should be a (min, max) pair.
-
-        Adagrad is recommended with sparse inputs. It normalizes the base
-        learning rate of a parameter theta_i by the accumulated 2-norm of its
-        gradient: e{ti} = e0 / sqrt( sum_t (dL_t / dtheta_i)^2 )
-        """
         if hasattr(params, '__iter__'):
             self.params = params
         elif hasattr(params, 'get_params') and hasattr(
@@ -1441,10 +1437,10 @@ class _SGDOptimizer(_Optimizer):
             clip_name = '%s_clip' % parameter.name
             if clip_name in kwargs:
                 if clip_name in clip_names_seen:
-                    print >> sys.stderr, ('Warning: In SGDOptimizer, '
-                            'at least two parameters have the same name. '
-                            'Both will be affected by the keyword argument '
-                            '%s.' % clip_name)
+                    logger.warning('In SGDOptimizer, at least two parameters '
+                                   'have the same name. Both will be affected '
+                                   'by the keyword argument '
+                                   '{0}.'.format(clip_name))
                 clip_names_seen.add(clip_name)
                 p_min, p_max = kwargs[clip_name]
                 assert p_min <= p_max
@@ -1455,10 +1451,9 @@ class _SGDOptimizer(_Optimizer):
             kwargs.pop(clip_name)
         for kw in kwargs.iterkeys():
             if kw[-5:] == '_clip':
-                print >> sys.stderr, ('Warning: in SGDOptimizer, '
-                        'keyword argument %s will be ignored, '
-                        'because no parameter was found with name %s.'
-                        % (kw, kw[:-5]))
+                logger.warning('In SGDOptimizer, keyword argument {0} '
+                               'will be ignored, because no parameter '
+                               'was found with name {1}.'.format(kw, kw[:-5]))
 
         self.learning_rates_setup(base_lr, **kwargs)
 
@@ -1489,10 +1484,10 @@ class _SGDOptimizer(_Optimizer):
         for parameter in self.params:
             lr_name = '%s_lr' % parameter.name
             if lr_name in lr_names_seen:
-                print >> sys.stderr, ('Warning: In SGDOptimizer, '
-                        'at least two parameters have the same name. '
-                        'Both will be affected by the keyword argument '
-                        '%s.' % lr_name)
+                logger.warning('In SGDOptimizer, '
+                               'at least two parameters have the same name. '
+                               'Both will be affected by the keyword argument '
+                               '{0}.'.format(lr_name))
             lr_names_seen.add(lr_name)
 
             thislr = kwargs.get(lr_name, 1.)
@@ -1504,10 +1499,9 @@ class _SGDOptimizer(_Optimizer):
                 kwargs.pop(lr_name)
         for kw in kwargs.iterkeys():
             if kw[-3:] == '_lr':
-                print >> sys.stderr, ('Warning: in SGDOptimizer, '
-                        'keyword argument %s will be ignored, '
-                        'because no parameter was found with name %s.'
-                        % (kw, kw[:-3]))
+                logger.warning('In SGDOptimizer, keyword argument {0} '
+                               'will be ignored, because no parameter '
+                               'was found with name {1}.'.format(kw, kw[:-3]))
 
         # A shared variable for storing the iteration number.
         self.iteration = sharedX(theano._asarray(0, dtype='int32'),

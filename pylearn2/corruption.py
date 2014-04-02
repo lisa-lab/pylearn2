@@ -26,20 +26,17 @@ class Corruptor(object):
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    corruption_level : float
+        Some measure of the amount of corruption to do. What this means will be
+        implementation specific.
+    rng : RandomState object or seed
+        NumPy random number generator object (or seed for creating one) used to
+        initialize a `RandomStreams`.
     """
     def __init__(self, corruption_level, rng=2001):
-        """
-        Allocate a corruptor object.
-
-        Parameters
-        ----------
-        corruption_level : float
-            Some measure of the amount of corruption to do. What this means \
-            will be implementation specific.
-        rng : RandomState object or seed
-            NumPy random number generator object (or seed for creating one) \
-            used to initialize a RandomStreams.
-        """
         # The default rng should be build in a deterministic way
         rng = make_np_rng(rng, which_method=['randn', 'randint'])
         seed = int(rng.randint(2 ** 30))
@@ -178,14 +175,14 @@ class GaussianCorruptor(Corruptor):
     """
     A Gaussian corruptor transforms inputs by adding zero mean isotropic
     Gaussian noise.
+
+    Parameters
+    ----------
+    stdev : WRITEME
+    rng : WRITEME
     """
 
     def __init__(self, stdev, rng=2001):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(GaussianCorruptor, self).__init__(corruption_level=stdev,
                                                 rng=rng)
 
@@ -344,11 +341,6 @@ class BinomialSampler(Corruptor):
         WRITEME
     """
     def __init__(self, *args, **kwargs):
-        """
-        .. todo::
-
-            WRITEME
-        """
         # pass up a 0 because corruption_level is not relevant here
         super(BinomialSampler, self).__init__(0, *args, **kwargs)
 
@@ -379,11 +371,6 @@ class MultinomialSampler(Corruptor):
         WRITEME
     """
     def __init__(self, *args, **kwargs):
-        """
-        .. todo::
-
-            WRITEME
-        """
         # corruption_level isn't relevant here
         super(MultinomialSampler, self).__init__(0, *args, **kwargs)
 
@@ -412,21 +399,20 @@ class ComposedCorruptor(Corruptor):
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    corruptors : list of Corruptor objects
+        The corruptors are applied in reverse order. This matches the typical
+        function application notation. Thus
+        `ComposedCorruptor(a, b)._corrupt(X)` is the same as `a(b(X))`.
+
+    Notes
+    -----
+    Does NOT call Corruptor.__init__, so does not contain all of the
+    standard fields for Corruptors.
     """
     def __init__(self, *corruptors):
-        """
-        Parameters
-        ----------
-        corruptors : list of Corruptor objects
-            The corruptors are applied in reverse order. This matches the \
-            typical function application notation. Thus \
-            `ComposedCorruptor(a, b)._corrupt(X)` is the same as `a(b(X))`.
-
-        Notes
-        -----
-        Does NOT call Corruptor.__init__, so does not contain all of the
-        standard fields for Corruptors.
-        """
         # pass up the 0 for corruption_level (not relevant here)
         assert len(corruptors) >= 1
         self._corruptors = corruptors

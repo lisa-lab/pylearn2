@@ -2,9 +2,6 @@
 This module contains cost functions to use with deep Boltzmann machines
 (pylearn2.models.dbm).
 """
-from pylearn2.models.dbm.layer import BinaryVector
-from pylearn2.models.dbm import BinaryVectorMaxPool
-from pylearn2.models.dbm import Softmax
 
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012, Universite de Montreal"
@@ -13,6 +10,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
 import numpy as np
+import logging
 import warnings
 
 from theano.compat.python2x import OrderedDict
@@ -26,13 +24,20 @@ from pylearn2.costs.cost import Cost
 from pylearn2.costs.cost import (
     FixedVarDescr, DefaultDataSpecsMixin, NullDataSpecsMixin
 )
+from pylearn2.models import dbm
+from pylearn2.models.dbm import BinaryVectorMaxPool
 from pylearn2.models.dbm import flatten
+from pylearn2.models.dbm.layer import BinaryVector
+from pylearn2.models.dbm import Softmax
 from pylearn2 import utils
 from pylearn2.utils import make_name
 from pylearn2.utils import safe_izip
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
 from pylearn2.utils.rng import make_theano_rng
+
+
+logger = logging.getLogger(__name__)
 
 
 class BaseCD(Cost):
@@ -457,6 +462,199 @@ class VariationalPCD(DefaultDataSpecsMixin, BaseCD):
         return neg_phase_grads, updates
 
 
+class VariationalPCD_VarianceReduction(DefaultDataSpecsMixin, Cost):
+    """
+    Like pylearn2.costs.dbm.VariationalPCD, indeed a copy-paste of it,
+    but with a variance reduction rule hard-coded for 2 binary
+    hidden layers and a softmax label layer
+    The variance reduction rule used here is to average together the expected
+    energy you get by integrating out the odd numbered layers and the
+    expected energy you get by integrating out the even numbered layers.
+    This is the most "textbook correct" implementation of the negative
+    phase, though not the one works the best in practice ("toronto_neg").
+    """
+
+    def __init__(self, num_chains, num_gibbs_steps, supervised = False):
+        """
+        """
+        self.__dict__.update(locals())
+        del self.self
+        self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
+        assert supervised in [True, False]
+
+    def expr(self, model, data):
+        """
+        The partition function makes this intractable.
+        """
+
+        if self.supervised:
+            X, Y = data
+            assert Y is not None
+
+        return None
+
+    def get_monitoring_channels(self, model, data):
+        rval = OrderedDict()
+
+        if self.supervised:
+            X, Y = data
+        else:
+            X = data
+            Y = None
+
+        history = model.mf(X, return_history = True)
+        q = history[-1]
+
+        if self.supervised:
+            assert Y is not None
+            Y_hat = q[-1]
+            true = T.argmax(Y,axis=1)
+            pred = T.argmax(Y_hat, axis=1)
+
+            #true = Print('true')(true)
+            #pred = Print('pred')(pred)
+
+            wrong = T.neq(true, pred)
+            err = T.cast(wrong.mean(), X.dtype)
+            rval['misclass'] = err
+
+            if len(model.hidden_layers) > 1:
+                q = model.mf(X, Y = Y)
+                pen = model.hidden_layers[-2].upward_state(q[-2])
+                Y_recons = model.hidden_layers[-1].mf_update(state_below = pen)
+                pred = T.argmax(Y_recons, axis=1)
+                wrong = T.neq(true, pred)
+
+                rval['recons_misclass'] = T.cast(wrong.mean(), X.dtype)
+
+
+        return rval
+
+    def get_gradients(self, model, data):
+        """
+        PCD approximation to the gradient of the bound.
+        Keep in mind this is a cost, so we are upper bounding
+        the negative log likelihood.
+        """
+
+        if self.supervised:
+            X, Y = data
+            assert Y is not None
+            # note: if the Y layer changes to something without linear energy,
+            # we'll need to make the expected energy clamp Y in the positive
+            # phase
+            assert isinstance(model.hidden_layers[-1], dbm.Softmax)
+        else:
+            X = data
+            Y = None
+
+
+
+        q = model.mf(X, Y)
+
+
+        """
+        Use the non-negativity of the KL divergence to construct a lower bound
+        on the log likelihood. We can drop all terms that are constant with
+        respect to the model parameters:
+
+        log P(v) = L(v, q) + KL(q || P(h|v))
+        L(v, q) = log P(v) - KL(q || P(h|v))
+        L(v, q) = log P(v) - sum_h q(h) log q(h) + q(h) log P(h | v)
+        L(v, q) = log P(v) + sum_h q(h) log P(h | v) + const
+        L(v, q) = log P(v) + sum_h q(h) log P(h, v) - sum_h q(h) log P(v) + C
+        L(v, q) = sum_h q(h) log P(h, v) + C
+        L(v, q) = sum_h q(h) - E(h, v) - log Z + C
+
+        so the cost we want to minimize is
+        expected_energy + log Z + C
+
+
+        Note: for the RBM, this bound is exact, since the KL divergence
+        goes to 0.
+        """
+
+        variational_params = flatten(q)
+
+        # The gradients of the expected energy under q are easy, we can just
+        # do that in theano
+        expected_energy_q = model.expected_energy(X, q).mean()
+        params = list(model.get_params())
+        gradients = OrderedDict(safe_zip(params, T.grad(expected_energy_q,
+            params,
+            consider_constant = variational_params,
+            disconnected_inputs = 'ignore')))
+
+        """
+        d/d theta log Z = (d/d theta Z) / Z
+                        = (d/d theta sum_h sum_v exp(-E(v,h)) ) / Z
+                        = (sum_h sum_v - exp(-E(v,h)) d/d theta E(v,h) ) / Z
+                        = - sum_h sum_v P(v,h)  d/d theta E(v,h)
+        """
+
+        layer_to_chains = model.make_layer_to_state(self.num_chains)
+
+        def recurse_check(l):
+            if isinstance(l, (list, tuple)):
+                for elem in l:
+                    recurse_check(elem)
+            else:
+                assert l.get_value().shape[0] == self.num_chains
+
+        recurse_check(layer_to_chains.values())
+
+        model.layer_to_chains = layer_to_chains
+
+        # Note that we replace layer_to_chains with a dict mapping to the new
+        # state of the chains
+        updates, layer_to_chains = model.get_sampling_updates(layer_to_chains,
+                self.theano_rng, num_steps=self.num_gibbs_steps,
+                return_layer_to_updated = True)
+
+        # Variance reduction is hardcoded for this exact model
+        assert isinstance(model.visible_layer, dbm.BinaryVector)
+        assert isinstance(model.hidden_layers[0], dbm.BinaryVectorMaxPool)
+        assert model.hidden_layers[0].pool_size == 1
+        assert isinstance(model.hidden_layers[1], dbm.BinaryVectorMaxPool)
+        assert model.hidden_layers[1].pool_size == 1
+        assert isinstance(model.hidden_layers[2], dbm.Softmax)
+        assert len(model.hidden_layers) == 3
+
+        V_samples = layer_to_chains[model.visible_layer]
+        H1_samples, H2_samples, Y_samples = [layer_to_chains[layer] for layer
+                in model.hidden_layers]
+
+        V_mf = model.visible_layer.inpaint_update(layer_above=\
+                model.hidden_layers[0],
+                state_above=\
+                model.hidden_layers[0].downward_state(H1_samples))
+        H1_mf = model.hidden_layers[0].mf_update(state_below=\
+                model.visible_layer.upward_state(V_samples),
+                state_above=model.hidden_layers[1].downward_state(H2_samples),
+                layer_above=model.hidden_layers[1])
+        H2_mf = model.hidden_layers[1].mf_update(state_below=\
+                model.hidden_layers[0].upward_state(H1_samples),
+                state_above=model.hidden_layers[2].downward_state(Y_samples),
+                layer_above=model.hidden_layers[2])
+        Y_mf = model.hidden_layers[2].mf_update(state_below=\
+                model.hidden_layers[1].upward_state(H2_samples))
+
+        expected_energy_p = 0.5 * model.energy(V_samples, [H1_mf,
+            H2_samples, Y_mf]).mean() + \
+                            0.5 * model.energy(V_mf, [H1_samples,
+                                H2_mf, Y_samples]).mean()
+
+        constants = flatten([V_samples, V_mf, H1_samples, H1_mf, H2_samples,
+            H2_mf, Y_mf, Y_samples])
+
+        neg_phase_grads = OrderedDict(safe_zip(params, T.grad(
+            -expected_energy_p, params, consider_constant = constants)))
+
+
+        for param in list(gradients.keys()):
+            gradients[param] = neg_phase_grads[param] + gradients[param]
+
+        return gradients, updates
 
 class VariationalCD(DefaultDataSpecsMixin, BaseCD):
     """
@@ -526,6 +724,79 @@ class VariationalCD(DefaultDataSpecsMixin, BaseCD):
 
         return neg_phase_grads, OrderedDict()
 
+class MF_L1_ActCost(DefaultDataSpecsMixin, Cost):
+    """
+    L1 activation cost on the mean field parameters.
+
+    Adds a cost of:
+
+    coeff * max( abs(mean_activation - target) - eps, 0)
+
+    averaged over units
+
+    for each layer.
+
+    """
+
+    def __init__(self, targets, coeffs, eps, supervised):
+        """
+        targets: a list, one element per layer, specifying the activation
+                each layer should be encouraged to have
+                    each element may also be a list depending on the
+                    structure of the layer.
+                See each layer's get_l1_act_cost for a specification of
+                    what the state should be.
+        coeffs: a list, one element per layer, specifying the coefficient
+                to put on the L1 activation cost for each layer
+        supervised: If true, runs mean field on both X and Y, penalizing
+                the layers in between only
+        """
+        self.__dict__.update(locals())
+        del self.self
+
+    def expr(self, model, data, ** kwargs):
+
+        if self.supervised:
+            X, Y = data
+            H_hat = model.mf(X, Y= Y)
+        else:
+            X = data
+            H_hat = model.mf(X)
+
+        hidden_layers = model.hidden_layers
+        if self.supervised:
+            hidden_layers = hidden_layers[:-1]
+            H_hat = H_hat[:-1]
+
+        layer_costs = []
+        for layer, mf_state, targets, coeffs, eps in \
+            safe_zip(hidden_layers, H_hat, self.targets, self.coeffs,
+                    self.eps):
+            cost = None
+            try:
+                cost = layer.get_l1_act_cost(mf_state, targets, coeffs, eps)
+            except NotImplementedError:
+                assert isinstance(coeffs, float) and coeffs == 0.
+                assert cost is None # if this gets triggered, there might
+                    # have been a bug, where costs from lower layers got
+                    # applied to higher layers that don't implement the cost
+                cost = None
+            if cost is not None:
+                layer_costs.append(cost)
+
+
+        assert T.scalar() != 0. # make sure theano semantics do what I want
+        layer_costs = [cost_ for cost_ in layer_costs if cost_ != 0.]
+
+        if len(layer_costs) == 0:
+            return T.as_tensor_variable(0.)
+        else:
+            total_cost = reduce(lambda x, y: x + y, layer_costs)
+        total_cost.name = 'MF_L1_ActCost'
+
+        assert total_cost.ndim == 0
+
+        return total_cost
 
 class MF_L2_ActCost(DefaultDataSpecsMixin, Cost):
     """
@@ -663,7 +934,7 @@ class TorontoSparsity(Cost):
             if term == 0.:
                 continue
             else:
-                print 'term is ',term
+                logger.info('term is {0}'.format(term))
 
             if i == 0:
                 state_below = X
@@ -1158,8 +1429,8 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
 
                 fake_s = T.dot(below, hack_W) + hack_b
                 if fake_s.ndim != real_grads.ndim:
-                    print fake_s.ndim
-                    print real_grads.ndim
+                    logger.error(fake_s.ndim)
+                    logger.error(real_grads.ndim)
                     assert False
                 sources = [ (fake_s, real_grads) ]
 

@@ -9,6 +9,7 @@ import numpy as N
 np = N
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.datasets import control
+from pylearn2.datasets import cache
 from pylearn2.utils import serial
 from pylearn2.utils.mnist_ubyte import read_mnist_images
 from pylearn2.utils.mnist_ubyte import read_mnist_labels
@@ -16,6 +17,25 @@ from pylearn2.utils.rng import make_np_rng
 
 
 class MNIST(dense_design_matrix.DenseDesignMatrix):
+    """
+    .. todo::
+
+        WRITEME
+
+    Parameters
+    ----------
+    which_set : WRITEME
+    center : WRITEME
+    shuffle : WRITEME
+    one_hot : WRITEME
+    binarize : WRITEME
+    start : WRITEME
+    stop : WRITEME
+    axes : WRITEME
+    preprocessor : WRITEME
+    fit_preprocessor : WRITEME
+    fit_test_preprocessor : WRITEME
+    """
     def __init__(self, which_set, center=False, shuffle=False,
                  one_hot=False, binarize=False, start=None,
                  stop=None, axes=['b', 0, 1, 'c'],
@@ -56,6 +76,12 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             # the Deep Learning Tutorials, or in another package).
             im_path = serial.preprocess(im_path)
             label_path = serial.preprocess(label_path)
+
+            # Locally cache the files before reading them
+            datasetCache = cache.datasetCache
+            im_path = datasetCache.cache_file(im_path)
+            label_path = datasetCache.cache_file(label_path)
+
             topo_view = read_mnist_images(im_path, dtype='float32')
             y = read_mnist_labels(label_path)
 
@@ -153,7 +179,17 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
 
 
 class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
+    """
+    .. todo::
 
+        WRITEME
+
+    Parameters
+    ----------
+    which_set : WRITEME
+    center : WRITEME
+    one_hot : WRITEME
+    """
     def __init__(self, which_set, center=False, one_hot=False):
         path = "${PYLEARN2_DATA_PATH}/mnist/mnist_rotation_back_image/" \
             + which_set

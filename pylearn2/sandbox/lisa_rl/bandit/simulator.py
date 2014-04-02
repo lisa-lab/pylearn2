@@ -1,11 +1,20 @@
 __author__ = "Ian Goodfellow"
 
+import logging
 import numpy as np
 
 from pylearn2.utils import serial
 
-class Simulator(object):
 
+logger = logging.getLogger(__name__)
+
+
+class Simulator(object):
+    """
+    .. todo::
+
+        WRITEME : parameter list
+    """
     def __init__(self, agent, environment, algorithm, save_path):
         self.__dict__.update(locals())
         del self.self
@@ -25,6 +34,4 @@ class Simulator(object):
                 assert not np.any(np.isinf(param.get_value())), (i, param.name)
             if i % 1000 == 0:
                 serial.save(self.save_path, self.agent)
-                print 'saved!'
-
-
+                logger.info('saved!')

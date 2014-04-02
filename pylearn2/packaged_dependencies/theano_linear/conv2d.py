@@ -55,14 +55,18 @@ class Conv2d(LinearTransform):
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    filters : WRITEME
+    img_shape : WRITEME
+    subsample : WRITEME
+    border_mode : WRITEME
+    filters_shape : WRITEME
+    message : WRITEME
     """
     def __init__(self, filters, img_shape, subsample=(1,1), border_mode='valid',
             filters_shape=None, message=""):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(Conv2d, self).__init__([filters])
         self._filters = filters
         if filters_shape is None:

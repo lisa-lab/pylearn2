@@ -108,10 +108,10 @@ to request features and targets from a dataset, the `source` would be
 ``('features', 'targets')``.
 
 
-Structure of composite specifications
-=====================================
+Structure of data specifications
+================================
 
-When using composite specifications ``data_specs=(space, source)``,
+When using data specifications ``data_specs=(space, source)``,
 ``space`` and ``source`` have to have the same *structure*. This means
 that:
 
@@ -129,7 +129,8 @@ For example, let us define the following spaces:
 .. code-block:: python
 
     input_vecspace = VectorSpace(dim=(32 * 32 * 3))
-    input_convspace = Conv2DSpace(shape=(32, 32), num_channels=3, axes=('b', 'c', 0, 1))
+    input_convspace = Conv2DSpace(shape=(32, 32), num_channels=3,
+                                  axes=('b', 'c', 0, 1))
     target_space = VectorSpace(dim=10)
 
 and suppose ``"features"`` and ``"targets"`` are sources present in our
@@ -158,7 +159,7 @@ data. Then, the following data_specs are correct:
   CompositeSpace; mini-batches will be ((matrix, matrix, matrix), matrix)
   pairs with the first element being a triplet.
 
-The following ones are incorrect:
+The following ones are **incorrect**:
 
 - ``(target_vecspace, "features")``: it will not crash immediately, but
   as soon as actual data are used, it will crash because feature data will

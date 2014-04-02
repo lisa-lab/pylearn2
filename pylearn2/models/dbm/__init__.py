@@ -90,13 +90,12 @@ def init_sigmoid_bias_from_array(arr):
 class DBMSampler(Block):
     """
     A Block used to sample from the last layer of a DBM with one hidden layer.
+
+    Parameters
+    ----------
+    dbm : WRITEME
     """
     def __init__(self, dbm):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(DBMSampler, self).__init__()
         self.theano_rng = make_theano_rng(None, 2012+10+14, which_method="binomial")
         self.dbm = dbm

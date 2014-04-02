@@ -1,11 +1,11 @@
 """
-An interface to the small NORB dataset. Unlike ./norb_small.py, this reads the
-original NORB file format, not the LISA lab's .npy version.
+An interface to the small NORB dataset. Unlike `./norb_small.py`, this reads
+the original NORB file format, not the LISA lab's `.npy` version.
 
 Currently only supports the Small NORB Dataset.
 
-Download the dataset from:
-http://www.cs.nyu.edu/~ylclab/data/norb-v1.0-small/
+Download the dataset from
+`here <http://www.cs.nyu.edu/~ylclab/data/norb-v1.0-small/>`_.
 
 NORB dataset(s) by Fu Jie Huang and Yann LeCun.
 """
@@ -18,10 +18,14 @@ __maintainer__ = "Matthew Koichi Grimes"
 __email__ = "mkg alum mit edu (@..)"
 
 
+import logging
 import os, gzip, bz2, warnings
 import numpy, theano
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.space import VectorSpace, Conv2DSpace, CompositeSpace
+
+
+logger = logging.getLogger(__name__)
 
 
 class SmallNORB(dense_design_matrix.DenseDesignMatrix):
@@ -43,7 +47,19 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
       category = SmallNORB.get_category(label[0])
       elevation = SmallNORB.get_elevation_degrees(label[2])
+
+    Parameters
+    ----------
+    which_set: str
+        Must be 'train' or 'test'.
+    multi_target: bool
+        If False, each label is an integer labeling the image catergory. If
+        True, each label is a vector: [category, instance, lighting, elevation,
+        azimuth]. All labels are given as integers. Use the categories,
+        elevation_degrees, and azimuth_degrees arrays to map from these
+        integers to actual values.
     """
+
 
     # Actual image shape may change, e.g. after being preprocessed by
     # datasets.preprocessing.Downsample
@@ -107,21 +123,6 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
     # form of preprocessing, which might be better implemented separately using
     # the Preprocess class.
     def __init__(self, which_set, multi_target=False):
-        """
-        parameters
-        ----------
-
-        which_set: str
-            Must be 'train' or 'test'.
-
-        multi_target: bool
-            If False, each label is an integer labeling the image catergory. If
-            True, each label is a vector: [category, instance, lighting,
-            elevation, azimuth]. All labels are given as integers. Use the
-            categories, elevation_degrees, and azimuth_degrees arrays to map
-            from these integers to actual values.
-        """
-
         assert which_set in ['train', 'test']
 
         self.which_set = which_set
@@ -232,14 +233,16 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                 type_key = readNums(file_handle, 'int32', 1)[0]
                 elem_type, elem_size = key_to_type[type_key]
                 if debug:
-                    print "header's type key, type, type size: ", \
-                        type_key, elem_type, elem_size
+                    logger.debug("header's type key, type, type size: "
+                                 "{0} {1} {2}".format(type_key, elem_type,
+                                                      elem_size))
                 if elem_type == 'packed matrix':
                     raise NotImplementedError('packed matrix not supported')
 
                 num_dims = readNums(file_handle, 'int32', 1)[0]
                 if debug:
-                    print '# of dimensions, according to header: ', num_dims
+                    logger.debug('# of dimensions, according to header: '
+                                 '{0}'.format(num_dims))
 
                 if from_gzip:
                     shape = readNums(file_handle,
@@ -251,7 +254,8 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                                            count=max(num_dims, 3))[:num_dims]
 
                 if debug:
-                    print 'Tensor shape, as listed in header:', shape
+                    logger.debug('Tensor shape, as listed in header: '
+                                 '{0}'.format(shape))
 
                 return elem_type, elem_size, shape
 
@@ -309,7 +313,7 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
             mono_shape = shape[:s_index] + (1, ) + shape[(s_index+1):]
 
             for i, res in enumerate(result):
-                print "result %d shape: %s" % (i, str(res.shape))
+                logger.info("result {0} shape: {1}".format(i, str(res.shape)))
 
             result = tuple(t.reshape(mono_shape) for t in result)
             result = numpy.concatenate(result, axis=s_index)
@@ -324,23 +328,27 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 class StereoViewConverter(object):
     """
     Converts stereo image data between two formats:
-      A) A dense design matrix, one stereo pair per row (VectorSpace)
-      B) An image pair (CompositeSpace of two Conv2DSpaces)
+
+    #. A dense design matrix, one stereo pair per row (`VectorSpace`)
+    #. An image pair (`CompositeSpace` of two `Conv2DSpace`)
+
+    The arguments describe how the data is laid out in the design matrix.
+
+    Parameters
+    ----------
+    shape: tuple
+        A tuple of 4 ints, describing the shape of each datum. This is the size
+        of each axis in `<axes>`, excluding the `b` axis.
+    axes : tuple
+        Tuple of the following elements in any order:
+
+        * 'b' : batch axis
+        * 's' : stereo axis
+        *  0  : image axis 0 (row)
+        *  1  : image axis 1 (column)
+        * 'c' : channel axis
     """
     def __init__(self, shape, axes=None):
-        """
-        The arguments describe how the data is laid out in the design matrix.
-
-        shape: A tuple of 4 ints, describing the shape of each datum.
-               This is the size of each axis in <axes>, excluding the 'b' axis.
-
-        axes: tuple of the following elements in any order:
-          'b'  batch axis)
-          's'  stereo axis)
-           0   image axis 0 (row)
-           1   image axis 1 (column)
-          'c'  channel axis
-        """
         shape = tuple(shape)
 
         if not all(isinstance(s, int) for s in shape):
@@ -394,7 +402,8 @@ class StereoViewConverter(object):
 
     def topo_view_to_design_mat(self, topo_batch):
         """
-        Used by DenseDesignMatrix.set_topological_view(), .get_design_mat()
+        Used by `DenseDesignMatrix.set_topological_view()` and
+        `DenseDesignMatrix.get_design_mat()`.
         """
         return self.topo_space.np_format_as(topo_batch, self.storage_space)
 

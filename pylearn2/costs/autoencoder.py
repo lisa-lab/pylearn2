@@ -76,13 +76,13 @@ class SampledMeanBinaryCrossEntropy(DefaultDataSpecsMixin, Cost):
     For theory:
     Y. Dauphin, X. Glorot, Y. Bengio. ICML2011
     Large-Scale Learning of Embeddings with Reconstruction Sampling
+
+    Parameters
+    ----------
+    L1 : WRITEME
+    ratio : WRITEME
     """
     def __init__(self, L1, ratio):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.random_stream = RandomStreams(seed=1)
         self.L1 = L1
         self.one_ratio = ratio
@@ -138,13 +138,13 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
     For theory:
     Y. Dauphin, X. Glorot, Y. Bengio. ICML2011
     Large-Scale Learning of Embeddings with Reconstruction Sampling
+
+    Parameters
+    ----------
+    L1 : WRITEME
+    ratio : WRITEME
     """
     def __init__(self, L1, ratio):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.random_stream = RandomStreams(seed=1)
         self.L1 = L1
         self.ratio = ratio

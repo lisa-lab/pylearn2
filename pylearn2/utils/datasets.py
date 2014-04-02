@@ -3,6 +3,7 @@ Several utilities to evaluate an ALC on the dataset, to iterate over
 minibatches from a dataset, or to merge three data with given proportions
 """
 # Standard library imports
+import logging
 import os
 import functools
 from itertools import repeat
@@ -12,12 +13,19 @@ import warnings
 import numpy
 import scipy
 import theano
-from matplotlib import pyplot
-from mpl_toolkits.mplot3d import Axes3D
+try:
+    from matplotlib import pyplot
+    from mpl_toolkits.mplot3d import Axes3D
+except ImportError:
+    warnings.warn("Could not import some dependencies.")
 
 # Local imports
 from pylearn2.utils import sharedX
 from pylearn2.utils.rng import make_np_rng
+
+
+logger = logging.getLogger(__name__)
+
 
 ##################################################
 # 3D Visualization
@@ -59,7 +67,7 @@ def save_plot(repr, path, name="figure.pdf", title="features"):
     # Save the produces figure
     filename = os.path.join(path, name)
     pyplot.savefig(filename, format="pdf")
-    print '... figure saved: %s' % filename
+    logger.info('... figure saved: {0}'.format(filename))
 
 ##################################################
 # Features or examples filtering
@@ -167,13 +175,15 @@ class BatchIterator(object):
     """
     Builds an iterator object that can be used to go through the minibatches
     of a dataset, with respect to the given proportions in conf
+
+    Parameters
+    ----------
+    dataset : WRITEME
+    set_proba : WRITEME
+    batch_size : WRITEME
+    seed : WRITEME
     """
     def __init__(self, dataset, set_proba, batch_size, seed=300):
-        """
-        .. todo::
-
-            WRITEME
-        """
         # Local shortcuts for array operations
         flo = numpy.floor
         sub = numpy.subtract

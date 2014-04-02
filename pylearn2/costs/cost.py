@@ -5,6 +5,7 @@ SGD and BGD training algorithms.
 """
 
 import functools
+import logging
 import warnings
 from itertools import izip
 
@@ -15,6 +16,9 @@ from pylearn2.utils import safe_zip
 from pylearn2.utils import safe_union
 from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.utils.data_specs import DataSpecsMapping
+
+
+logger = logging.getLogger(__name__)
 
 
 class DefaultDataSpecsMixin(object):
@@ -124,8 +128,8 @@ class Cost(object):
             # but still preserve the stack trace, please do so
             # The current code does neither
             e.message += " while calling " + str(type(self)) + ".expr"
-            print str(type(self))
-            print e.message
+            logger.error(type(self))
+            logger.error(e.message)
             raise e
 
         if cost is None:
@@ -249,7 +253,7 @@ class SumOfCosts(Cost):
                                  "Cost instance")
 
         # TODO: remove this when it is no longer necessary
-        self.supervised = any([cost.supervised for cost in self.costs])
+        self.supervised = any([cost_.supervised for cost_ in self.costs])
 
     def expr(self, model, data, ** kwargs):
         """
@@ -398,9 +402,9 @@ class SumOfCosts(Cost):
                                                         **kwargs)
                 rval.update(channels)
             except TypeError:
-                print ('SumOfCosts.get_monitoring_channels encountered '
-                       'TypeError while calling ' +
-                       str(type(cost)) + '.get_monitoring_channels')
+                logger.error('SumOfCosts.get_monitoring_channels encountered '
+                             'TypeError while calling {0}'
+                             '.get_monitoring_channels'.format(type(cost)))
                 raise
 
             value = cost.expr(model, cost_data, ** kwargs)
@@ -567,15 +571,14 @@ class FixedVarDescr(object):
     line search, etc.
 
     Attributes
-    ----------
-    fixed_vars : dict
+
+    - fixed_vars : dict
         maps string names to shared variables or some sort of data
         structure surrounding shared variables.
         Any learning algorithm that does multiple updates on the same
         minibatch should pass fixed_vars to the cost's expr and
         get_gradient methods as keyword arguments.
-
-    on_load_batch : list
+    - on_load_batch : list
         A list of callable objects that the learning algorithm should
         call with input data.
         All of these callables must take an argument with the same
@@ -616,6 +619,7 @@ def merge(left, right):
     ----------
     left : FixedVarDescr
     right : FixedVarDescr
+
     Returns
     -------
     merged : FixedVarDescr
@@ -641,4 +645,3 @@ def merge(left, right):
                                         right.on_load_batch)
 
     return merged
-

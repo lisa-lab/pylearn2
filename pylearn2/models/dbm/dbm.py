@@ -4,6 +4,7 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
+import logging
 import warnings
 import numpy as np
 from theano import tensor as T, config
@@ -16,32 +17,36 @@ from pylearn2.utils import safe_zip, safe_izip
 from pylearn2.utils.rng import make_np_rng
 
 
+logger = logging.getLogger(__name__)
+
+
 class DBM(Model):
     """
     A deep Boltzmann machine.
 
     See "Deep Boltzmann Machines" by Ruslan Salakhutdinov and Geoffrey Hinton
     for details.
+
+    Parameters
+    ----------
+    batch_size : int
+        The batch size the model should use. Some convolutional \
+        LinearTransforms require a compile-time hardcoded batch size, \
+        otherwise this would not be part of the model specification.
+    visible_layer : WRITEME
+        The visible layer of the DBM.
+    hidden_layers : list
+        The hidden layers. A list of HiddenLayer objects. The first \
+        layer in the list is connected to the visible layer.
+    niter : int
+        Number of mean field iterations for variational inference \
+        for the positive phase.
+    sampling_procedure : WRITEME
+    inference_procedure : WRITEME
     """
 
     def __init__(self, batch_size, visible_layer, hidden_layers, niter,
                  sampling_procedure=None, inference_procedure=None):
-        """
-        Parameters
-        ----------
-        batch_size : int
-            The batch size the model should use. Some convolutional \
-            LinearTransforms require a compile-time hardcoded batch size, \
-            otherwise this would not be part of the model specification.
-        visible_layer : WRITEME
-            The visible layer of the DBM.
-        hidden_layers : list
-            WRITEME
-        niter : int
-            WRITEME
-        sampling_procedure : WRITEME
-        inference_procedure : WRITEME
-        """
         self.__dict__.update(locals())
         del self.self
         assert len(hidden_layers) >= 1
@@ -604,7 +609,7 @@ class DBM(Model):
             for new, old in safe_zip(flat_q, flat_prev_q):
                 cur_mx = abs(new - old).max()
                 if new is old:
-                    print new, 'is', old
+                    logger.error('{0} is {1}'.format(new, old))
                     assert False
                 if mx is None:
                     mx = cur_mx

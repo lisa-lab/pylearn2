@@ -1,10 +1,10 @@
 !obj:pylearn2.train.Train {
     "dataset": !obj:pylearn2.datasets.dense_design_matrix.DenseDesignMatrix &dataset {
-        "X" : !obj:numpy.random.normal { 'size':[5000,300] },
+        "X" : !obj:numpy.random.normal { 'size':[5,3] },
     },
     "model": !obj:pylearn2.models.autoencoder.DenoisingAutoencoder {
-        "nvis" : 300,
-        "nhid" : 400,
+        "nvis" : 3,
+        "nhid" : 4,
         "irange" : 0.05,
         "corruptor": !obj:pylearn2.corruption.BinomialCorruptor {
             "corruption_level": 0.5,
@@ -14,12 +14,11 @@
     },
     "algorithm": !obj:pylearn2.training_algorithms.sgd.SGD {
         "learning_rate" : 1e-3,
-        "batch_size" : 10,
-        "monitoring_batches" : 5,
+        "batch_size" : 5,
         "monitoring_dataset" : *dataset,
         "cost" : !obj:pylearn2.costs.autoencoder.MeanSquaredReconstructionError {},
         "termination_criterion" : !obj:pylearn2.termination_criteria.EpochCounter {
-            "max_epochs": 50,
+            "max_epochs": 1,
         },
     },
     "save_path": "./garbage.pkl"

@@ -5,11 +5,14 @@ import warnings, itertools
 import theano
 from theano import tensor
 
-# Can't use nose.tools.assert_raises, only introduced in python 2.7
+# Can't use nose.tools.assert_raises, only introduced in python 2.7. Use
+# numpy.testing.assert_raises instead
 from pylearn2.space import (SimplyTypedSpace,
                             VectorSpace,
                             Conv2DSpace,
                             CompositeSpace,
+                            VectorSequenceSpace,
+                            IndexSequenceSpace,
                             IndexSpace,
                             NullSpace,
                             is_symbolic_batch)
@@ -116,6 +119,58 @@ def test_np_format_as_conv2d_vector_conv2d():
 
     nval = data.transpose(1, 0, 3, 2)
     assert np.allclose(nval, rval1)
+
+
+def test_np_format_as_vectorsequence2vectorsequence():
+    vector_sequence_space1 = VectorSequenceSpace(dim=3, dtype='float32')
+    vector_sequence_space2 = VectorSequenceSpace(dim=3, dtype='float64')
+
+    data = np.random.uniform(low=0.0, high=1.0, size=(10, 3))
+    rval = vector_sequence_space1.np_format_as(data, vector_sequence_space2)
+
+    assert np.all(rval == data)
+
+
+def test_np_format_as_indexsequence2indexsequence():
+    index_sequence_space1 = IndexSequenceSpace(max_labels=6, dim=1,
+                                               dtype='int16')
+    index_sequence_space2 = IndexSequenceSpace(max_labels=6, dim=1,
+                                               dtype='int32')
+
+    data = np.random.randint(low=0, high=5, size=(10, 1))
+    rval = index_sequence_space1.np_format_as(data, index_sequence_space2)
+
+    assert np.all(rval == data)
+
+
+def test_np_format_as_indexsequence2vectorsequence():
+    index_sequence_space = IndexSequenceSpace(max_labels=6, dim=1)
+    vector_sequence_space = VectorSequenceSpace(dim=6)
+
+    data = np.array([[0], [1], [4], [3]])
+    rval = index_sequence_space.np_format_as(data, vector_sequence_space)
+    true_val = np.array([[1, 0, 0, 0, 0, 0],
+                         [0, 1, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 1, 0],
+                         [0, 0, 0, 1, 0, 0]])
+
+    assert np.all(rval == true_val)
+
+
+def test_np_format_as_sequence2other():
+    vector_sequence_space = VectorSequenceSpace(dim=3)
+    vector_space = VectorSpace(dim=3)
+
+    data = np.random.uniform(low=0.0, high=1.0, size=(10, 3))
+    np.testing.assert_raises(ValueError, vector_sequence_space.np_format_as,
+                             data, vector_space)
+
+    index_sequence_space = IndexSequenceSpace(max_labels=6, dim=1)
+    index_space = IndexSpace(max_labels=6, dim=1)
+
+    data = np.random.randint(low=0, high=5, size=(10, 1))
+    np.testing.assert_raises(ValueError, index_sequence_space.np_format_as,
+                             data, index_space)
 
 
 def test_np_format_as_composite_composite():
