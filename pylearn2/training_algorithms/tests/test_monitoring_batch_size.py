@@ -9,7 +9,8 @@ import os
 class TestMonitoringBatchSize(unittest.TestCase):
     """Train a simple model and calculate ROC AUC for monitoring datasets."""
     def setUp(self):
-        for name, size in [('train', 1000), ('valid', 500), ('test', 300)]:
+        datasets = {'train': 1000, 'valid': 500, 'test': 300}
+        for name, size in datasets.items():
             X = np.random.random((size, 15))
             y = np.random.randint(2, size=size)
             dataset = DenseDesignMatrix(X=X, y=y)
