@@ -1,26 +1,15 @@
 """Tests for cross validation module."""
 __author__ = "Steven Kearnes"
 
-from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
+import unittest
+
 from pylearn2.testing.skip import skip_if_no_sklearn
 from pylearn2.config import yaml_parse
-import unittest
-import numpy as np
-import cPickle
-import os
-import glob
 
 
 class TestCrossValidation(unittest.TestCase):
     def setUp(self):
         skip_if_no_sklearn()
-        X = np.random.random((1000, 15))
-        y = np.random.randint(2, size=1000)
-        dataset = DenseDesignMatrix(X=X, y=y)
-        dataset.convert_to_one_hot()
-        with open("test_dataset.pkl", "w") as f:
-            cPickle.dump(dataset, f, cPickle.HIGHEST_PROTOCOL)
-        self.dataset = dataset
 
     def test_train_cv(self):
         # train the first hidden layer (unsupervised)
@@ -31,14 +20,16 @@ class TestCrossValidation(unittest.TestCase):
         trainer = yaml_parse.load(test_yaml_layer1)
         trainer.main_loop()
 
-    def tearDown(self):
-        for filename in glob.glob("test*.pkl"):
-            os.remove(filename)
-
 test_yaml_layer0 = """
 !obj:pylearn2.cross_validation.TrainCV {
     dataset_iterator: !obj:pylearn2.cross_validation.DatasetKFold {
-        dataset: &train !pkl: 'test_dataset.pkl'
+        dataset:
+      &train !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix {
+            rng: !obj:numpy.random.RandomState { seed: 1 },
+            num_examples: 1000,
+            dim: 15,
+            num_classes: 2,
+          },
     },
     model: !obj:pylearn2.models.autoencoder.Autoencoder {
         nvis: 15,
@@ -64,7 +55,13 @@ test_yaml_layer0 = """
 test_yaml_layer1 = """
 !obj:pylearn2.cross_validation.TrainCV {
     dataset_iterator: !obj:pylearn2.cross_validation.DatasetKFold {
-        dataset: &train !pkl: 'test_dataset.pkl'
+        dataset:
+      &train !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix {
+            rng: !obj:numpy.random.RandomState { seed: 1 },
+            num_examples: 1000,
+            dim: 15,
+            num_classes: 2,
+          },
     },
     model: !obj:pylearn2.models.mlp.MLP {
         nvis: 15,

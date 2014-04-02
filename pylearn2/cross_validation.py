@@ -3,23 +3,43 @@ Cross validation module.
 
 Each fold of cross validation is a separate experiment, so we create a separate
 Train object for each model and save all of the models together.
+
+print_monitor_average.py can be used to analyze average monitor channel values
+for all of the saved models.
 """
 __author__ = "Steven Kearnes"
 
-from pylearn2.train import Train, SerializationGuard
-from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
-from pylearn2.models.mlp import Layer, PretrainedLayer
-from pylearn2.utils import safe_zip, serial
+from copy import deepcopy
+import numpy as np
+import os
 from sklearn.cross_validation import (KFold, StratifiedKFold, ShuffleSplit,
                                       StratifiedShuffleSplit)
-from copy import deepcopy
-import os
-import numpy as np
+
+from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
+from pylearn2.models.mlp import Layer, PretrainedLayer
+from pylearn2.train import Train, SerializationGuard
+from pylearn2.utils import safe_zip, serial
 
 
-class DatasetIterator(object):
-    """Returns a new DenseDesignMatrix for each subset."""
+class DatasetPartitionIterator(object):
+    """Constructs a new DenseDesignMatrix for each subset."""
     def __init__(self, dataset, index_iterator, return_dict=True):
+        """
+        Parameters
+        ----------
+        dataset : object
+            Full dataset for use in cross validation.
+        index_iterator : iterable
+            Iterable that returns (train, test) or (train, valid, test) indices
+            for slicing the dataset during cross validation.
+        return_dict : bool
+            Whether to return subset datasets as a dictionary. If True,
+            returns a dict with keys 'train', 'valid', and/or 'test' (if
+            index_iterator returns two slices per partition, 'train' and 'test'
+            are used, and if index_iterator returns three slices per partition,
+            'train', 'valid', and 'test' are used). If False, returns a list of
+            datasets matching the slice order given by index_iterator.
+        """
         self.dataset = dataset
         self.index_iterator = index_iterator
         dataset_iterator = dataset.iterator(mode='sequential', num_batches=1,
@@ -54,7 +74,7 @@ class DatasetIterator(object):
             yield datasets
 
 
-class StratifiedDatasetIterator(DatasetIterator):
+class StratifiedDatasetPartitionIterator(DatasetPartitionIterator):
     @staticmethod
     def get_y(dataset):
         """Targets must be single values, possibly from one-hot encoding."""
@@ -65,7 +85,7 @@ class StratifiedDatasetIterator(DatasetIterator):
         return y
 
 
-class DatasetKFold(DatasetIterator):
+class DatasetKFold(DatasetPartitionIterator):
     def __init__(self, dataset, n_folds=3, indices=None, shuffle=False,
                  random_state=None):
         n = dataset.X.shape[0]
@@ -73,14 +93,14 @@ class DatasetKFold(DatasetIterator):
         super(DatasetKFold, self).__init__(dataset, cv)
 
 
-class DatasetStratifiedKFold(StratifiedDatasetIterator):
+class DatasetStratifiedKFold(StratifiedDatasetPartitionIterator):
     def __init__(self, dataset, n_folds=3, indices=None):
         y = self.get_y(dataset)
         cv = StratifiedKFold(y, n_folds, indices)
         super(DatasetStratifiedKFold, self).__init__(dataset, cv)
 
 
-class DatasetShuffleSplit(DatasetIterator):
+class DatasetShuffleSplit(DatasetPartitionIterator):
     def __init__(self, dataset, n_iter=10, test_size=0.1, train_size=None,
                  indices=True, random_state=None):
         n = dataset.X.shape[0]
@@ -89,7 +109,7 @@ class DatasetShuffleSplit(DatasetIterator):
         super(DatasetShuffleSplit, self).__init__(dataset, cv)
 
 
-class DatasetStratifiedShuffleSplit(StratifiedDatasetIterator):
+class DatasetStratifiedShuffleSplit(StratifiedDatasetPartitionIterator):
     def __init__(self, dataset, n_iter=10, test_size=0.1, train_size=None,
                  indices=True, random_state=None):
         y = self.get_y(dataset)
