@@ -1,3 +1,7 @@
+"""
+Test for Tanh convolutional layer.
+"""
+
 import os
 
 from theano import config
