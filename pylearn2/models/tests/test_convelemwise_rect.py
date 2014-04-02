@@ -1,3 +1,7 @@
+"""
+Test for rectifier convolutional layer.
+"""
+
 import os
 
 from theano import config
@@ -12,6 +16,7 @@ def test_conv_rectifier_basic():
     Tests that we can load a convolutional rectifier model
     and train it for a few epochs (without saving) on a dummy
     dataset-- tiny model and dataset.
+
     """
     yaml_file = os.path.join(pylearn2.__path__[0],
                              "models/tests/conv_elemwise_rect.yaml")

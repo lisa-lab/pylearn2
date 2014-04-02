@@ -1,3 +1,7 @@
+"""
+Test for convolutional sigmoid layer.
+"""
+
 import os
 
 from theano import config
