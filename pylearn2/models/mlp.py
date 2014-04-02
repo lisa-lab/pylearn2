@@ -2273,6 +2273,7 @@ class ConvNonlinearity(object):
     def apply(self, linear_response):
         """
         Applies the nonlinearity over the convolutional layer.
+
         Parameters
         ----------
         linear_response: Variable
@@ -2351,6 +2352,9 @@ class RectifierConvNonlinearity(ConvNonlinearity):
 
     @wraps(ConvNonlinearity.apply)
     def apply(self, linear_response):
+        """
+        Applies the rectifier nonlinearity over the convolutional layer.
+        """
         p = linear_response * (linear_response > 0.) + self.left_slope *\
             linear_response * (linear_response < 0.)
         return p
@@ -2375,6 +2379,9 @@ class SigmoidConvNonlinearity(ConvNonlinearity):
 
     @wraps(ConvNonlinearity.apply)
     def apply(self, linear_response):
+        """
+        Applies the sigmoid nonlinearity over the convolutional layer.
+        """
         rval = OrderedDict()
         p = T.nnet.sigmoid(linear_response)
         return p
@@ -2433,6 +2440,9 @@ class TanhConvNonlinearity(ConvNonlinearity):
 
     @wraps(ConvNonlinearity.apply)
     def apply(self, linear_response):
+        """
+        Applies the tanh nonlinearity over the convolutional layer.
+        """
         p = T.tanh(linear_response)
         return p
 
