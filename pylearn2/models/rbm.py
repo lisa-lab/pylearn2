@@ -232,7 +232,7 @@ class RBM(Block, Model):
     init_bias_vis : array_like, optional
         Initial value of the visible biases, broadcasted as necessary.
     init_bias_vis_marginals : pylearn2.datasets.dataset.Dataset or None
-        Optional. Dataset used to initialize the visible biases to the 
+        Optional. Dataset used to initialize the visible biases to the
         inverse sigmoid of the data marginals
     init_bias_hid : array_like, optional
         initial value of the hidden biases, broadcasted as necessary.
@@ -618,11 +618,11 @@ class RBM(Block, Model):
             except shape tuples):
 
               * `h_mean`: the returned value from `mean_h_given_v`
-              * `h_mean_shape`: shape tuple indicating the size of `h_mean` and
-                `h_sample`
+              * `h_mean_shape`: shape tuple indicating the size of
+                `h_mean` and `h_sample`
               * `h_sample`: the stochastically sampled hidden units
-              * `v_mean_shape`: shape tuple indicating the shape of `v_mean` and
-                `v_sample`
+              * `v_mean_shape`: shape tuple indicating the shape of
+                `v_mean` and `v_sample`
               * `v_mean`: the returned value from `mean_v_given_h`
               * `v_sample`: the stochastically sampled visible units
         """

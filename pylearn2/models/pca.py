@@ -415,7 +415,7 @@ class Cov:
     """
     Covariance estimator
 
-    It computes the covariance in small batches instead of with one 
+    It computes the covariance in small batches instead of with one
     huge matrix multiply, in order to prevent memory problems. Its call
     method has the same functionality as `numpy.cov`.
 

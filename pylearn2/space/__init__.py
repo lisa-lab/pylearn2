@@ -50,7 +50,7 @@ if theano.sparse.enable_sparse:
 
 def _is_batch_all(batch, predicate):
     """
-    Implementation of is_symbolic_batch() and is_numeric_batch().  
+    Implementation of is_symbolic_batch() and is_numeric_batch().
     Returns True iff predicate() returns True for all components of
     (possibly composite) batch.
 
@@ -95,7 +95,7 @@ def is_symbolic_batch(batch):
     """
     Returns True if batch is a symbolic variable.
 
-    Note that a batch may be both a symbolic and numeric variable 
+    Note that a batch may be both a symbolic and numeric variable
     (e.g. () for empty CompositeSpaces, None for NullSpaces).
     """
 
@@ -106,7 +106,7 @@ def is_numeric_batch(batch):
     """
     Returns True if batch is a numeric variable.
 
-    Note that a batch may be both a symbolic and numeric variable 
+    Note that a batch may be both a symbolic and numeric variable
     (e.g. () for empty CompositeSpaces, None for NullSpaces).
     """
     def is_numeric(batch):
@@ -140,7 +140,7 @@ def _reshape(arg, shape):
 
     This is a hack that first converts from sparse to dense, reshapes
     the dense tensor, then re-converts from dense to sparse. It is
-    therefore memory-inefficient and unsuitable for large tensors. It 
+    therefore memory-inefficient and unsuitable for large tensors. It
     will be replaced by a proper sparse reshaping Op once Theano
     implements that.
     """
@@ -178,7 +178,7 @@ def _cast(arg, dtype):
     Returns <arg> untouched if <dtype> is None, or dtype is unchanged
     (i.e. casting a float32 batch to float32).
 
-       (One exception: composite batches are never returned as-is. 
+       (One exception: composite batches are never returned as-is.
         A new tuple will always be returned. However, any components
         with unchanged dtypes will be returned untouched.)
     """
@@ -289,7 +289,7 @@ class Space(object):
         .. todo::
 
             WRITEME
-        """ 
+        """
         raise NotImplementedError()
 
     @dtype.deleter
@@ -298,7 +298,7 @@ class Space(object):
         .. todo::
 
             WRITEME
-        """ 
+        """
         raise RuntimeError("You may not delete the dtype of a space, "
                            "though you can set it to None.")
 
@@ -444,7 +444,7 @@ class Space(object):
         .. todo::
 
             WRITEME
-        """ 
+        """
         self._check_is_symbolic(batch)
         return self._format_as(is_numeric=False,
                                batch=batch,
@@ -552,12 +552,12 @@ class Space(object):
 
         Parameters
         ----------
-        is_numeric : bool. 
+        is_numeric : bool.
             Set to True to call np_validate_callbacks,
             False to call validate_callbacks.
             Necessary because it can be impossible to tell from the
             batch whether it should be treated as a numeric of symbolic
-            batch, for example when the batch is the empty tuple (), 
+            batch, for example when the batch is the empty tuple (),
 			or NullSpace batch None.
 
         batch : a theano variable, numpy ndarray, scipy.sparse matrix \
@@ -600,7 +600,7 @@ class Space(object):
             or symbolic.
 
         batch : A numpy ndarray, scipy.sparse matrix, theano variable \
-                or a nested tuple thereof. 
+                or a nested tuple thereof.
             Must be a valid batch belonging to this space.
         """
         raise NotImplementedError('Class "%s" does not implement '
@@ -1352,7 +1352,7 @@ class IndexSequenceSpace(SimplyTypedSpace):
     def __eq__(self, other):
         """
         .. todo::
-		
+
             WRITEME
         """
         return (type(self) == type(other) and
@@ -1882,9 +1882,9 @@ class CompositeSpace(Space):
     def restrict_batch(self, batch, subset):
         """
         Returns a batch containing only the components whose indices are
-        present in subset. 
+        present in subset.
 
-        May not be a tuple anymore if there is only one index. 
+        May not be a tuple anymore if there is only one index.
         Outputs will be ordered in the order that they appear in subset.
 
         Only supports symbolic batches.

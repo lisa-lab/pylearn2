@@ -245,11 +245,11 @@ class Model(object):
         held by the model and make sure they are valid.
 
         For example, if a given hyperparameter is not meant to be learned,
-        censor_updates should remove it from the dictionary. If a parameter 
+        censor_updates should remove it from the dictionary. If a parameter
         has a restricted range, e.g.. if it is the precision of a normal
         distribution, censor_updates should clip its update to that range.
         If a parameter has any other special properties, its updates should
-        be modified to respect that here, e.g. a matrix that must be 
+        be modified to respect that here, e.g. a matrix that must be
         orthogonal should have its update value modified to be orthogonal
         here.
 
