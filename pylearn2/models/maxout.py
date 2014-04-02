@@ -1133,11 +1133,6 @@ class MaxoutLocalC01B(Layer):
 
         rng = self.mlp.rng
 
-        if hasattr(self, 'kernel_stride'):
-            kernel_stride = self.kernel_stride
-        else:
-            kernel_stride = [1, 1]
-
         output_shape = [int(np.ceil((i_sh + 2. * self.pad - k_sh) / float(k_st))) + 1
                         for i_sh, k_sh, k_st in zip(self.input_space.shape,
                                                     self.kernel_shape,
