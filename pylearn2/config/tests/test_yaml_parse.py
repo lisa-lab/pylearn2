@@ -173,5 +173,6 @@ def test_duplicate_keywords_2():
 
 if __name__ == "__main__":
     test_multi_constructor_obj()
-    test_doublicate_keywords()
-    test_doublicate_keywords_2()
+    test_duplicate_keywords()
+    test_duplicate_keywords_2()
+    test_unpickle_key()
