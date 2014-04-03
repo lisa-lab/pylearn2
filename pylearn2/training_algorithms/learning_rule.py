@@ -28,7 +28,7 @@ class LearningRule():
         Parameters
         ----------
         monitor : pylearn2.monitor.Monitor
-            Monitor object, to which the rule should register additional \
+            Monitor object, to which the rule should register additional
             monitoring channels.
         monitoring_dataset : pylearn2.datasets.dataset.Dataset or dict
             Dataset instance or dictionary whose values are Dataset objects.
@@ -43,7 +43,7 @@ class LearningRule():
         Parameters
         ----------
         learning_rate : float
-            Learning rate coefficient
+            Learning rate coefficient.
         grads : dict
             A dictionary mapping from the model's parameters to their
             gradients.
@@ -68,8 +68,8 @@ class LearningRule():
 
             sgd_rule_updates = OrderedDict()
             for (param, grad) in grads.iteritems():
-                sgd_rule_updates[k] = param - learning_rate *
-                lr_scalers.get(param, 1.) * grad
+                sgd_rule_updates[k] = (param - learning_rate *
+                                       lr_scalers.get(param, 1.) * grad)
         """
         raise NotImplementedError(str(type(self)) + " does not implement "
                 "get_updates.")
@@ -99,9 +99,7 @@ class Momentum(LearningRule):
         self.momentum = sharedX(init_momentum, 'momentum')
 
     def add_channels_to_monitor(self, monitor, monitoring_dataset):
-        """
-        Activates monitoring of the momentum.
-        """
+        """Activates monitoring of the momentum."""
         monitor.add_channel(
             name='momentum',
             ipt=None,
@@ -142,7 +140,7 @@ class MomentumAdjustor(TrainExtension):
     start : int
         The epoch on which to start growing the momentum coefficient.
     saturate : int
-        The epoch on which the moment should reach its final value
+        The epoch on which the moment should reach its final value.
     """
     def __init__(self, final_momentum, start, saturate):
         if saturate < start:
@@ -155,9 +153,7 @@ class MomentumAdjustor(TrainExtension):
         self._count = 0
 
     def on_monitor(self, model, dataset, algorithm):
-        """
-        Updates the momentum according to the linear schedule.
-        """
+        """Updates the momentum according to the linear schedule."""
         if hasattr(algorithm, 'learning_rule'):
             momentum = algorithm.learning_rule.momentum
         else:
@@ -172,9 +168,7 @@ class MomentumAdjustor(TrainExtension):
         momentum.set_value(np.cast[config.floatX](self.current_momentum()))
 
     def current_momentum(self):
-        """
-        Returns the momentum currently desired by the schedule.
-        """
+        """Returns the momentum currently desired by the schedule."""
         w = self.saturate - self.start
 
         if w == 0:
@@ -198,8 +192,8 @@ class AdaDelta(LearningRule):
 
     Parameters
     ----------
-    decay : float
-        Decay rate :math:`\\rho` in Algorithm 1 of the afore-mentioned
+    decay : float, optional
+        Decay rate :math:`\\rho` in Algorithm 1 of the aforementioned
         paper.
     """
 
