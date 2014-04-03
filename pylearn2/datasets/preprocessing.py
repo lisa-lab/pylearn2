@@ -57,6 +57,10 @@ class Preprocessor(object):
 
     def apply(self, dataset, can_fit=False):
         """
+        .. todo::
+
+            WRITEME
+
         Parameters
         ----------
         dataset : Dataset
@@ -83,16 +87,16 @@ class Preprocessor(object):
         variety of reasons:
 
         - Preprocessors should work on any dataset, and not all
-            datasets will store their data as ndarrays.
+          datasets will store their data as ndarrays.
         - Preprocessors often need to change a dataset's
-            metadata.  For example, suppose you have a
-            DenseDesignMatrix dataset of images. If you implement
-            a fovea Preprocessor that reduces the dimensionality
-            of images by sampling them finely near the center and
-            coarsely with blurring at the edges, then your
-            preprocessor will need to change the way that the
-            dataset converts example vectors to images for
-            visualization.
+          metadata.  For example, suppose you have a
+          DenseDesignMatrix dataset of images. If you implement
+          a fovea Preprocessor that reduces the dimensionality
+          of images by sampling them finely near the center and
+          coarsely with blurring at the edges, then your
+          preprocessor will need to change the way that the
+          dataset converts example vectors to images for
+          visualization.
         """
 
         raise NotImplementedError(str(type(self)) +
@@ -108,17 +112,17 @@ class Preprocessor(object):
 
 class ExamplewisePreprocessor(Preprocessor):
     """
-        Abstract class.
+    Abstract class.
 
-        A Preprocessor that restricts the actions it can do in its
-        apply method so that it could be implemented as a Block's
-        perform method.
+    A Preprocessor that restricts the actions it can do in its
+    apply method so that it could be implemented as a Block's
+    perform method.
 
-        In other words, this Preprocessor can't modify the Dataset's
-        metadata, etc.
+    In other words, this Preprocessor can't modify the Dataset's
+    metadata, etc.
 
-        TODO: can these things fit themselves in their apply method?
-        That seems like a difference from Block.
+    TODO: can these things fit themselves in their apply method?
+    That seems like a difference from Block.
     """
 
     def as_block(self):
@@ -127,14 +131,15 @@ class ExamplewisePreprocessor(Preprocessor):
 
 
 class BlockPreprocessor(ExamplewisePreprocessor):
-    """An ExamplewisePreprocessor implemented by a Block."""
+    """
+    An ExamplewisePreprocessor implemented by a Block.
+
+    Parameters
+    ----------
+    block : WRITEME
+    """
 
     def __init__(self, block):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.block = block
 
     def apply(self, dataset, can_fit=False):
@@ -149,16 +154,15 @@ class BlockPreprocessor(ExamplewisePreprocessor):
 
 class Pipeline(Preprocessor):
     """
-        A Preprocessor that sequentially applies a list
-        of other Preprocessors.
+    A Preprocessor that sequentially applies a list
+    of other Preprocessors.
+
+    Parameters
+    ----------
+    items : WRITEME
     """
 
     def __init__(self, items=None):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.items = items if items is not None else []
 
     def apply(self, dataset, can_fit=False):
@@ -176,13 +180,14 @@ class ExtractGridPatches(Preprocessor):
     Converts a dataset of images into a dataset of patches extracted along a
     regular grid from each image.  The order of the images is
     preserved.
-    """
-    def __init__(self, patch_shape, patch_stride):
-        """
-        .. todo::
 
-            WRITEME
-        """
+    Parameters
+    ----------
+    patch_shape : WRITEME
+    patch_stride : WRITEME
+    """
+
+    def __init__(self, patch_shape, patch_stride):
         self.patch_shape = patch_shape
         self.patch_stride = patch_stride
 
@@ -260,15 +265,18 @@ class ExtractGridPatches(Preprocessor):
 
 
 class ReassembleGridPatches(Preprocessor):
-    """ Converts a dataset of patches into a dataset of full examples
-        This is the inverse of ExtractGridPatches for patch_stride=patch_shape
     """
-    def __init__(self, orig_shape, patch_shape):
-        """
-        .. todo::
+    Converts a dataset of patches into a dataset of full examples.
 
-            WRITEME
-        """
+    This is the inverse of ExtractGridPatches for patch_stride=patch_shape.
+
+    Parameters
+    ----------
+    orig_shape : WRITEME
+    patch_shape : WRITEME
+    """
+
+    def __init__(self, orig_shape, patch_shape):
         self.patch_shape = patch_shape
         self.orig_shape = orig_shape
 
@@ -358,14 +366,18 @@ class ReassembleGridPatches(Preprocessor):
 
 
 class ExtractPatches(Preprocessor):
-    """ Converts an image dataset into a dataset of patches
-        extracted at random from the original dataset. """
-    def __init__(self, patch_shape, num_patches, rng=None):
-        """
-        .. todo::
+    """
+    Converts an image dataset into a dataset of patches
+    extracted at random from the original dataset.
 
-            WRITEME
-        """
+    Parameters
+    ----------
+    patch_shape : WRITEME
+    num_patches : WRITEME
+    rng : WRITEME
+    """
+
+    def __init__(self, patch_shape, num_patches, rng=None):
         self.patch_shape = patch_shape
         self.num_patches = num_patches
 
@@ -418,14 +430,13 @@ class ExamplewiseUnitNormBlock(Block):
     A block that takes n-tensors, with training examples indexed along
     the first axis, and normalizes each example to lie on the unit
     sphere.
+
+    Parameters
+    ----------
+    input_space : WRITEME
     """
 
     def __init__(self, input_space=None):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(ExamplewiseUnitNormBlock, self).__init__()
         self.input_space = input_space
 
@@ -502,30 +513,24 @@ class ExamplewiseAddScaleTransform(Block):
     """
     A block that encodes an per-feature addition/scaling transform.
     The addition/scaling can be done in either order.
+
+    Parameters
+    ----------
+    add : array_like or scalar, optional
+        Array or array-like object or scalar, to be added to each
+        training example by this Block.
+    multiply : array_like, optional
+        Array or array-like object or scalar, to be element-wise
+        multiplied with each training example by this Block.
+    multiply_first : bool, optional
+        Whether to perform the multiplication before the addition.
+        (default is False).
+    input_space : Space, optional
+        The input space describing the data
     """
 
     def __init__(self, add=None, multiply=None, multiply_first=False,
                  input_space=None):
-        """
-        Initialize an ExamplewiseAddScaleTransform instance.
-
-        Parameters
-        ----------
-        add : array_like or scalar, optional
-            Array or array-like object or scalar, to be added to each
-            training example by this Block.
-
-        multiply : array_like, optional
-            Array or array-like object or scalar, to be element-wise
-            multiplied with each training example by this Block.
-
-        multiply_first : boolean, optional
-            Whether to perform the multiplication before the addition.
-            (default is False).
-
-        input_space: Space, optional
-            The input space describing the data
-        """
         self._add = numpy.asarray(add)
         self._multiply = numpy.asarray(multiply)
         # TODO: put the constant somewhere sensible.
@@ -619,18 +624,15 @@ class RemoveMean(ExamplewisePreprocessor):
     """
     Subtracts the mean along a given axis, or from every element
     if `axis=None`.
+
+    Parameters
+    ----------
+    axis : int or None, optional
+        Axis over which to take the mean, with the exact same
+        semantics as the `axis` parameter of `numpy.mean`.
     """
 
     def __init__(self, axis=0):
-        """
-        Initialize a RemoveMean preprocessor.
-
-        Parameters
-        ----------
-        axis : int or None
-            Axis over which to take the mean, with the exact same
-            semantics as the `axis` parameter of `numpy.mean`.
-        """
         self._axis = axis
         self._mean = None
 
@@ -663,29 +665,28 @@ class RemoveMean(ExamplewisePreprocessor):
 
 
 class Standardize(ExamplewisePreprocessor):
-    """Subtracts the mean and divides by the standard deviation."""
+    """
+    Subtracts the mean and divides by the standard deviation.
+
+    Parameters
+    ----------
+    global_mean : bool, optional
+        If `True`, subtract the (scalar) mean over every element
+        in the design matrix. If `False`, subtract the mean from
+        each column (feature) separately. Default is `False`.
+    global_std : bool, optional
+        If `True`, after centering, divide by the (scalar) standard
+        deviation of every element in the design matrix. If `False`,
+        divide by the column-wise (per-feature) standard deviation.
+        Default is `False`.
+    std_eps : float, optional
+        Stabilization factor added to the standard deviations before
+        dividing, to prevent standard deviations very close to zero
+        from causing the feature values to blow up too much.
+        Default is `1e-4`.
+    """
 
     def __init__(self, global_mean=False, global_std=False, std_eps=1e-4):
-        """
-        Initialize a Standardize preprocessor.
-
-        Parameters
-        ----------
-        global_mean : bool
-            If `True`, subtract the (scalar) mean over every element
-            in the design matrix. If `False`, subtract the mean from
-            each column (feature) separately. Default is `False`.
-        global_std : bool
-            If `True`, after centering, divide by the (scalar) standard
-            deviation of every element in the design matrix. If `False`,
-            divide by the column-wise (per-feature) standard deviation.
-            Default is `False`.
-        std_eps : float
-            Stabilization factor added to the standard deviations before
-            dividing, to prevent standard deviations very close to zero
-            from causing the feature values to blow up too much.
-            Default is `1e-4`.
-        """
         self._global_mean = global_mean
         self._global_std = global_std
         self._std_eps = std_eps
@@ -723,12 +724,12 @@ class Standardize(ExamplewisePreprocessor):
 
 
 class ColumnSubsetBlock(Block):
-    def __init__(self, columns, total):
-        """
-        .. todo::
+    """
+    .. todo::
 
-            WRITEME
-        """
+        WRITEME
+    """
+    def __init__(self, columns, total):
         self._columns = columns
         self._total = total
 
@@ -821,11 +822,6 @@ class RemoveZeroColumns(ExamplewisePreprocessor):
     _eps = 1e-8
 
     def __init__(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self._block = None
 
     def apply(self, dataset, can_fit=False):
@@ -854,18 +850,13 @@ class RemoveZeroColumns(ExamplewisePreprocessor):
 
 class RemapInterval(ExamplewisePreprocessor):
     """
-        .. todo::
+    .. todo::
 
         WRITEME
     """
     # TODO: Implement as_block
 
     def __init__(self, map_from, map_to):
-        """
-        .. todo::
-
-            WRITEME
-        """
         assert map_from[0] < map_from[1] and len(map_from) == 2
         assert map_to[0] < map_to[1] and len(map_to) == 2
         self.map_from = [numpy.float(x) for x in map_from]
@@ -888,13 +879,15 @@ class PCA_ViewConverter(object):
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    to_pca : WRITEME
+    to_input : WRITEME
+    to_weights : WRITEME
+    orig_view_converter : WRITEME
     """
     def __init__(self, to_pca, to_input, to_weights, orig_view_converter):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.to_pca = to_pca
         self.to_input = to_input
         self.to_weights = to_weights
@@ -961,14 +954,13 @@ class PCA(object):
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    num_components : WRITEME
     """
 
     def __init__(self, num_components):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self._num_components = num_components
         self._pca = None
         # TODO: Is storing these really necessary? This computation
@@ -1021,22 +1013,16 @@ class PCA(object):
 
 class Downsample(object):
     """
-    .. todo::
+    Downsamples the topological view
 
-        WRITEME
+    Parameters
+    ----------
+    sampling_factor : list or array
+        One element for each topological
+        dimension of the data
     """
 
     def __init__(self, sampling_factor):
-        """
-        Downsamples the topological view
-
-        Parameters
-        ----------
-        sampling_factor : list or array
-            One element for each topological 
-            dimension of the data
-        """
-
         self.sampling_factor = sampling_factor
 
     def apply(self, dataset, can_fit=False):
@@ -1079,30 +1065,25 @@ class GlobalContrastNormalization(Preprocessor):
     """
     .. todo::
 
-        WRITEME
+        WRITEME properly
+
+    See the docstring for `global_contrast_normalize` in
+    `pylearn2.expr.preprocessing`.
+
+    Parameters
+    ----------
+    batch_size : int or None, optional
+        If specified, read, apply and write the transformed data
+        in batches no larger than `batch_size`.
+    sqrt_bias : float, optional
+        Defaults to 0 if nothing is specified
+    use_std : bool, optional
+        Defaults to False if nothing is specified
     """
+
     def __init__(self, subtract_mean=True,
                  scale=1., sqrt_bias=0., use_std=False, min_divisor=1e-8,
                  batch_size=None):
-        """
-        See the docstring for `global_contrast_normalize` in
-        `pylearn2.expr.preprocessing`.
-
-        .. todo::
-
-            WRITEME properly
-
-        Parameters
-        ----------
-        batch_size : int or None, optional
-            If specified, read, apply and write the transformed data
-            in batches no larger than `batch_size`.
-        sqrt_bias : float, optional
-            Defaults to 0 if nothing is specified
-        use_std : bool, optional
-		    Defaults to False if nothing is specified
-        """
-
         self._subtract_mean = subtract_mean
         self._use_std = use_std
         self._sqrt_bias = sqrt_bias
@@ -1151,26 +1132,24 @@ class ZCA(Preprocessor):
 
     .. TODO::
 
+        WRITEME properly
         add reference
+
+    Parameters
+    ----------
+    n_components : WRITEME
+    n_drop_components : WRITEME
+    filter_bias : float, optional
+        TODO: verify that default of 0.1 is what was used in the
+        Coates and Ng paper, add reference
+    store_inverse : bool, optional
+        When self.apply(dataset, can_fit=True) store not just the
+        preprocessing matrix, but its inverse. This is necessary when
+        using this preprocessor to instantiate a ZCA_Dataset.
     """
 
     def __init__(self, n_components=None, n_drop_components=None,
                  filter_bias=0.1, store_inverse=True):
-        """
-        .. todo::
-
-            WRITEME properly
-
-        n_components: TODO: WRITEME
-        n_drop_components: TODO: WRITEME
-        filter_bias: Filters are scaled by 1/sqrt(filter_bias + variance)
-                    TODO: verify that default of 0.1 is what was used in the
-                          Coates and Ng paper, add reference
-        store_inverse: When self.apply(dataset, can_fit=True) store not just
-                       the preprocessing matrix, but its inverse. This is
-                       necessary when using this preprocessor to instantiate a
-                       ZCA_Dataset.
-        """
         warnings.warn("This ZCA preprocessor class is known to yield very "
                       "different results on different platforms. If you plan "
                       "to conduct experiments with this preprocessing on "
@@ -1206,6 +1185,12 @@ class ZCA(Preprocessor):
         Attempts to use the GPU if it's available. If the matrix multiplication
         is too big to fit on the GPU, this falls back to the CPU after throwing
         a warning.
+
+        Parameters
+        ----------
+        matrix_a : WRITEME
+        matrix_b : WRITEME
+        matrix_c : WRITEME
         """
         if not hasattr(ZCA._gpu_matrix_dot, 'theano_func'):
             ma, mb = theano.tensor.matrices('A', 'B')
@@ -1235,6 +1220,11 @@ class ZCA(Preprocessor):
 
         First tries to do this on the GPU. If this throws a MemoryError, it
         falls back to the CPU, with a warning message.
+
+        Parameters
+        ----------
+        mat : WRITEME
+        diags : WRITEME
         """
 
         floatX = theano.config.floatX
@@ -1276,6 +1266,10 @@ class ZCA(Preprocessor):
         parameter matrices will be saved separately to `matrices_save_path`, as
         a numpy .npz archive. This uses half the memory that a normal pickling
         does.
+
+        Parameters
+        ----------
+        matrices_save_path : WRITEME
         """
         if matrices_save_path is not None:
             assert isinstance(matrices_save_path, str)
@@ -1449,24 +1443,31 @@ class ZCA(Preprocessor):
 
 
 class LeCunLCN(ExamplewisePreprocessor):
-    """Yann LeCun local contrast normalization"""
+    """
+    Yann LeCun local contrast normalization
+
+    .. todo::
+
+        WRITEME properly
+
+    Parameters
+    ----------
+    img_shape : WRITEME
+    kernel_size : int, optional
+        local contrast kernel size
+    batch_size: int, optional
+        If dataset is based on PyTables use a batch size smaller than
+        10000. Otherwise any batch size diffrent than datasize is not
+        supported yet.
+    threshold : float
+        Threshold for denominator
+    channels : list or None, optional
+        List of channels to normalize.
+        If none, will apply it on all channels.
+    """
 
     def __init__(self, img_shape, kernel_size=7, batch_size=5000,
                  threshold=1e-4, channels=None):
-        """
-        .. todo::
-
-            WRITEME properly
-
-        img_shape: image shape
-        kernel_size: local contrast kernel size
-        batch_size: batch size. If dataset is based on PyTables use a
-                    batch size smaller than 10000. Otherwise any
-                    batch size diffrent than datasize is not supported yet.
-        threshold: threshold for denominator
-        channels: List of channels to normalize.
-                    If none will apply it on all channels
-        """
         self._img_shape = img_shape
         self._kernel_size = kernel_size
         self._batch_size = batch_size
@@ -1487,7 +1488,10 @@ class LeCunLCN(ExamplewisePreprocessor):
 
             WRITEME properly
 
-        X: data with axis [b, 0, 1, c]
+        Parameters
+        ----------
+        X : WRITEME
+            data with axis [b, 0, 1, c]
         """
         for i in self._channels:
             assert isinstance(i, int)
@@ -1547,23 +1551,18 @@ class LeCunLCN(ExamplewisePreprocessor):
 
 class RGB_YUV(ExamplewisePreprocessor):
     """
-    .. todo::
+    Converts image color channels from rgb to yuv and vice versa
 
-        WRITEME
+    Parameters
+    ----------
+    rgb_yuv : bool, optional
+        If true converts from rgb to yuv,
+        if false converts from yuv to rgb
+    batch_size : int, optional
+        Batch_size to make conversions in batches
     """
 
     def __init__(self, rgb_yuv=True, batch_size=5000):
-        """
-        Converts image color channels from rgb to yuv and vice versa
-
-        Parameters
-        ----------
-        rgb_yuv : bool, optional
-            If true converts from rgb to yuv, 
-            if false converts from yuv to rgb
-        batch_size : int
-            batch_size to make conversions in batches
-        """
 
         self._batch_size = batch_size
         self._rgb_yuv = rgb_yuv
@@ -1659,14 +1658,15 @@ class RGB_YUV(ExamplewisePreprocessor):
 
 
 class CentralWindow(Preprocessor):
-    """Preprocesses an image dataset to contain only the central window."""
+    """
+    Preprocesses an image dataset to contain only the central window.
+
+    Parameters
+    ----------
+    window_shape : WRITEME
+    """
 
     def __init__(self, window_shape):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.__dict__.update(locals())
         del self.self
 
@@ -1709,7 +1709,15 @@ class CentralWindow(Preprocessor):
 def lecun_lcn(input, img_shape, kernel_shape, threshold=1e-4):
     """
     Yann LeCun's local contrast normalization
+
     Original code in Theano by: Guillaume Desjardins
+
+    Parameters
+    ----------
+    input : WRITEME
+    img_shape : WRITEME
+    kernel_shape : WRITEME
+    threshold : WRITEME
     """
     input = input.reshape(input.shape[0], input.shape[1], input.shape[2], 1)
     X = tensor.matrix(dtype=input.dtype)
@@ -1752,6 +1760,10 @@ def gaussian_filter(kernel_shape):
     .. todo::
 
         WRITEME
+
+    Parameters
+    ----------
+    kernel_shape : WRITEME
     """
     x = numpy.zeros((kernel_shape, kernel_shape),
                     dtype=theano.config.floatX)
@@ -1772,19 +1784,26 @@ class ShuffleAndSplit(Preprocessor):
     """
     .. todo::
 
+        WRITEME properly
+
+    Allocates a numpy rng with the specified seed.
+    Note: this must be a seed, not a RandomState. A new RandomState is
+    re-created with the same seed every time the preprocessor is called.
+    This way if you save the preprocessor and re-use it later it will give
+    the same dataset regardless of whether you save the preprocessor before
+    or after applying it.
+    Shuffles the data, then takes examples in range (start, stop)
+
+    Parameters
+    ----------
+    seed : WRITEME
+    start : int
+        WRITEME
+    stop : int
         WRITEME
     """
 
     def __init__(self, seed, start, stop):
-        """
-        Allocates a numpy rng with the specified seed.
-        Note: this must be a seed, not a RandomState. A new RandomState is
-        re-created with the same seed every time the preprocessor is called.
-        This way if you save the preprocessor and re-use it later it will give
-        the same dataset regardless of whether you save the preprocessor before
-        or after applying it.
-        Shuffles the data, then takes examples in range (start, stop)
-        """
         self.__dict__.update(locals())
         del self.self
 
