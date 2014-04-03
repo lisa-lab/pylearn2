@@ -1,11 +1,11 @@
 """
 Cross validation module.
 
-Each fold of cross validation is a separate experiment, so we create a separate
-Train object for each model and save all of the models together.
+Each fold of cross validation is a separate experiment, so we create a
+separate Train object for each model and save all of the models together.
 
-print_monitor_average.py can be used to analyze average monitor channel values
-for all of the saved models.
+print_monitor_average.py can be used to analyze average monitor channel
+values for the collection of saved models.
 """
 __author__ = "Steven Kearnes"
 
@@ -79,9 +79,22 @@ class DatasetPartitionIterator(object):
 
 
 class StratifiedDatasetPartitionIterator(DatasetPartitionIterator):
+    """
+    Subclass of DatasetPartitionIterator for stratified experiments, where
+    the relative class proportions of the full dataset are maintained in
+    each partition.
+    """
     @staticmethod
     def get_y(dataset):
-        """Targets must be single values, possibly from one-hot encoding."""
+        """
+        Get target values for dataset, possibly converting from one-hot
+        encoding to a 1D array.
+
+        Parameters
+        ----------
+        dataset : object
+            Dataset containing target values for examples.
+        """
         y = np.asarray(dataset.y)
         if y.ndim > 1:
             assert np.array_equal(np.unique(y), [0, 1])
@@ -90,23 +103,73 @@ class StratifiedDatasetPartitionIterator(DatasetPartitionIterator):
 
 
 class DatasetKFold(DatasetPartitionIterator):
+    """K-fold cross-validation."""
     def __init__(self, dataset, n_folds=3, indices=None, shuffle=False,
                  random_state=None):
+        """
+        Parameters
+        ----------
+        dataset : object
+            Dataset to use for cross-validation.
+        n_folds : int
+            Number of cross-validation folds.
+        indices : bool
+            Whether to return indices for dataset slicing. If false, returns
+            a boolean mask.
+        shuffle : bool
+            Whether to shuffle the dataset before partitioning.
+        random_state : int or RandomState
+            Random number generator used for shuffling.
+        """
         n = dataset.X.shape[0]
         cv = KFold(n, n_folds, indices, shuffle, random_state)
         super(DatasetKFold, self).__init__(dataset, cv)
 
 
 class DatasetStratifiedKFold(StratifiedDatasetPartitionIterator):
+    """Stratified K-fold cross-validation."""
     def __init__(self, dataset, n_folds=3, indices=None):
+        """
+        Parameters
+        ----------
+        dataset : object
+            Dataset to use for cross-validation.
+        n_folds : int
+            Number of cross-validation folds.
+        indices : bool
+            Whether to return indices for dataset slicing. If false, returns
+            a boolean mask.
+        """
         y = self.get_y(dataset)
         cv = StratifiedKFold(y, n_folds, indices)
         super(DatasetStratifiedKFold, self).__init__(dataset, cv)
 
 
 class DatasetShuffleSplit(DatasetPartitionIterator):
+    """Shuffle-split cross-validation."""
     def __init__(self, dataset, n_iter=10, test_size=0.1, train_size=None,
                  indices=True, random_state=None):
+        """
+        Parameters
+        ----------
+        dataset : object
+            Dataset to use for cross-validation.
+        n_iter : int
+            Number of shuffle-split iterations.
+        test_size : float, int, or None
+            If float, intepreted as the proportion of examples in the test set.
+            If int, interpreted as the absolute number of examples in the test
+            set. If None, adjusted to the complement of train_size.
+        train_size : float, int, or None
+            If float, intepreted as the proportion of examples in the training
+            set. If int, interpreted as the absolute number of examples in the
+            training set. If None, adjusted to the complement of test_size.
+        indices : bool
+            Whether to return indices for dataset slicing. If false, returns
+            a boolean mask.
+        random_state : int or RandomState
+            Random number generator used for shuffling.
+        """
         n = dataset.X.shape[0]
         cv = ShuffleSplit(n, n_iter, test_size, train_size, indices,
                           random_state)
@@ -114,8 +177,30 @@ class DatasetShuffleSplit(DatasetPartitionIterator):
 
 
 class DatasetStratifiedShuffleSplit(StratifiedDatasetPartitionIterator):
+    """Stratified shuffle-split cross-validation."""
     def __init__(self, dataset, n_iter=10, test_size=0.1, train_size=None,
                  indices=True, random_state=None):
+        """
+        Parameters
+        ----------
+        dataset : object
+            Dataset to use for cross-validation.
+        n_iter : int
+            Number of shuffle-split iterations.
+        test_size : float, int, or None
+            If float, intepreted as the proportion of examples in the test set.
+            If int, interpreted as the absolute number of examples in the test
+            set. If None, adjusted to the complement of train_size.
+        train_size : float, int, or None
+            If float, intepreted as the proportion of examples in the training
+            set. If int, interpreted as the absolute number of examples in the
+            training set. If None, adjusted to the complement of test_size.
+        indices : bool
+            Whether to return indices for dataset slicing. If false, returns
+            a boolean mask.
+        random_state : int or RandomState
+            Random number generator used for shuffling.
+        """
         y = self.get_y(dataset)
         cv = StratifiedShuffleSplit(y, n_iter, test_size, train_size, indices,
                                     random_state)
@@ -144,8 +229,8 @@ class TrainCV(object):
 
         TODO: Implement checkpointing of the entire TrainCV object.
         It would be ideal to have each trainer's save() method actually write
-        to a master pickle to allow easy restart. But since monitors get mangled
-        when serialized, there's no way to resume training anyway.
+        to a master pickle to allow easy restart. But since monitors get
+        mangled when serialized, there's no way to resume training anyway.
         """
         # we need a way to save all the models without writing files
         trainers = []
@@ -171,19 +256,30 @@ class TrainCV(object):
             trainer = Train(datasets['train'], this_model, algorithm,
                             this_save_path, this_save_freq, extensions,
                             allow_overwrite)
-            trainer = deepcopy(trainer)  # no shared references between trainers
+            trainer = deepcopy(trainer)  # no shared references
+                                         # between trainers
             trainer.algorithm._set_monitoring_dataset(datasets)
             trainers.append(trainer)
         self.trainers = trainers
         self.save_path = save_path
 
     def main_loop(self, time_budget=None):
+        """
+        Run main_loop of each trainer.
+
+        Parameters
+        ----------
+        time_budget : int, optional
+            The maximum number of seconds before interrupting
+            training. Default is `None`, no time limit.
+        """
         for trainer in self.trainers:
             trainer.main_loop(time_budget)
         if self.save_path is not None:
             self.save()
 
     def save(self):
+        """Serialize trained models."""
         try:
             models = []
             for trainer in self.trainers:

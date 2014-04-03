@@ -10,6 +10,7 @@ from pylearn2.config import yaml_parse
 
 
 class TestCrossValidation(unittest.TestCase):
+    """Test cross-validation module."""
     def setUp(self):
         skip_if_no_sklearn()
         handle, path = tempfile.mkstemp()
@@ -33,12 +34,13 @@ test_yaml_layer0 = """
 !obj:pylearn2.cross_validation.TrainCV {
     dataset_iterator: !obj:pylearn2.cross_validation.DatasetKFold {
         dataset:
-      &train !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix {
+      &train !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix
+      {
             rng: !obj:numpy.random.RandomState { seed: 1 },
             num_examples: 1000,
             dim: 15,
             num_classes: 2,
-          },
+      },
     },
     model: !obj:pylearn2.models.autoencoder.Autoencoder {
         nvis: 15,
@@ -50,8 +52,10 @@ test_yaml_layer0 = """
         batch_size: 100,
         line_search_mode: 'exhaustive',
         conjugate: 1,
-        cost: !obj:pylearn2.costs.autoencoder.MeanSquaredReconstructionError {},
-        termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
+        cost: !obj:pylearn2.costs.autoencoder.MeanSquaredReconstructionError
+            {},
+        termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter
+        {
             max_epochs: 5,
         },
     },
@@ -63,12 +67,13 @@ test_yaml_layer1 = """
 !obj:pylearn2.cross_validation.TrainCV {
     dataset_iterator: !obj:pylearn2.cross_validation.DatasetKFold {
         dataset:
-      &train !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix {
+      &train !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix
+      {
             rng: !obj:numpy.random.RandomState { seed: 1 },
             num_examples: 1000,
             dim: 15,
             num_classes: 2,
-          },
+      },
     },
     model: !obj:pylearn2.models.mlp.MLP {
         nvis: 15,
