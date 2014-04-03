@@ -1,10 +1,13 @@
 """
-roc_auc.py
-
-TrainExtension subclass for calculating ROC AUC values as monitor channels.
+TrainExtension subclass for calculating ROC AUC values as monitor
+channels.
 """
 import numpy as np
-import sklearn.metrics
+import warnings
+try:
+    import sklearn.metrics
+except ImportError:
+    warnings.warn("Cannot import from sklearn.")
 
 import theano
 from theano import gof, config
@@ -14,17 +17,35 @@ from pylearn2.train_extensions import TrainExtension
 
 
 class RocAucScoreOp(gof.Op):
-    """
-    Theano Op wrapping sklearn.metrics.roc_auc_score.
-    See function roc_auc_score for docstring.
-    """
+    """Theano Op wrapping sklearn.metrics.roc_auc_score."""
     def make_node(self, y_true, y_score):
+        """Calculate ROC AUC score.
+
+        Parameters
+        ----------
+        y_true : tensor_like
+            Target class labels.
+        y_score : tensor_like
+            Predicted class labels or probabilities for positive class.
+        """
         y_true = T.as_tensor_variable(y_true)
         y_score = T.as_tensor_variable(y_score)
         output = [T.TensorType('float64', []).make_variable(name='roc_auc')]
         return gof.Apply(self, [y_true, y_score], output)
 
     def perform(self, node, inputs, output_storage):
+        """Calculate ROC AUC score.
+
+        Parameters
+        ----------
+        node : Apply instance
+            Symbolic inputs and outputs.
+        inputs : list
+            Sequence of inputs (immutable).
+        output_storage : list
+            List of mutable 1-element lists (do not change the length of
+            these lists).
+        """
         y_true, y_score = inputs
         print "Y SIZE", y_true.shape
         try:
@@ -40,9 +61,9 @@ def roc_auc_score(y_true, y_score):
     Parameters
     ----------
     y_true: tensor_like
-        Target values.
+        Target class values.
     y_score: tensor_like
-        Predicted values or probabilities for positive class.
+        Predicted class labels or probabilities for positive class.
     """
     return RocAucScoreOp()(y_true, y_score)
 
