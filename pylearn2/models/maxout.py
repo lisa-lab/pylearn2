@@ -585,7 +585,7 @@ class MaxoutConvC01B(Layer):
         If true, all biases in the same channel are constrained to be the
         same as each other. Otherwise, each bias at each location is
         learned independently.
-    max_kernel_norm: float, optional
+    max_kernel_norm : float, optional
         If specifed, each kernel is constrained to have at most this norm.
     input_normalization : callable, optional
         see output normalization
@@ -1027,9 +1027,9 @@ class MaxoutLocalC01B(Layer):
         If true, all biases in the same channel are constrained to be the
         same as each other. Otherwise, each bias at each location is
         learned independently.
-    max_filter_norm : float
+    max_filter_norm : float, optional
         DEPRECATED, use max_kernel_norm instead.
-    max_kernel_norm : float
+    max_kernel_norm : float, optional
         If specifed, each kernel is constrained to have at most this norm.
     input_normalization : callable
         see output_normalization
