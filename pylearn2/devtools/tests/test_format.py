@@ -9,6 +9,7 @@ import pylearn2
 
 from pylearn2.devtools.tests.docscrape import docstring_errors
 from pylearn2.devtools.list_files import list_files
+from pylearn2.devtools.tests.pep8.pep8 import StyleGuide
 
 whitelist_pep8 = ["rbm_tools.py",
              "training_algorithms/tests/test_learning_rule.py",
@@ -523,7 +524,8 @@ whitelist_docstrings = ['scripts/datasets/step_through_norb_foveated.py',
     'datasets/tests/test_tl_challenge.py',
     'datasets/tests/test_tfd.py',
     'datasets/tests/test_npy_npz.py',
-    'linear/tests/test_conv2d.py']
+    'linear/tests/test_conv2d.py',
+    'devtools/tests/pep8/pep8.py']
 
 #add files which have long execution time to whitelist_docstrings
 whitelist_docstrings.extend(['sandbox/cuda_convnet/debug.py',
@@ -597,24 +599,17 @@ def test_format_pep8():
     Test if pep8 is respected.
     """
     format_infractions = []
-    whitespace_infractions = []
+    pep8_checker = StyleGuide()
+    files_to_check = []
     for path in list_files(".py"):
         rel_path = os.path.relpath(path, pylearn2.__path__[0])
         if rel_path in whitelist_pep8:
             continue
-        with open(path) as file:
-            for i, line in enumerate(file):
-                line = line.rstrip('\r\n')
-                if len(line) > 79:
-                    format_infractions.append((path, i + 1))
-                if line.endswith(' ') or line.endswith('\t'):
-                    whitespace_infractions.append((path, i + 1))
-    if len(format_infractions) + len(whitespace_infractions) > 0:
-        msg = "\n".join('File "%s" line %d has more than 79 characters'
-              % (fn, line) for fn, line in format_infractions)
-        msg += '\n'.join('File "%s" line %d ends with whitespace'
-                % (fn, line) for fn, line in whitespace_infractions)
-        raise AssertionError("Format not respected:\n%s" % msg)
+        else:
+            files_to_check.append(path)
+    report = pep8_checker.check_files(files_to_check)
+    if report.total_errors > 0:
+        raise AssertionError("PEP8 Format not respected")
 
 
 def test_format_docstrings():
