@@ -219,8 +219,8 @@ class SGD(TrainingAlgorithm):
         self.monitor._sanity_check()
 
         # test if force batch size and batch size
-        if getattr(model,"force_batch_size",False) and \
-           self.dataset_size%self.batch_size != 0 and \
+        if getattr(model, "force_batch_size", False) and \
+           self.dataset_size % self.batch_size != 0 and \
            not has_uniform_batch_size(self.monitor_iteration_mode):
 
             raise ValueError("Dataset size is not a multiple of batch size."

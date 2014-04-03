@@ -208,9 +208,9 @@ def test_revisit():
 
                 if has_uniform_batch_size(mode) and \
                    num_mon_batches is not None and \
-                   num_mon_batches*mon_batch_size > num_examples:
+                   num_mon_batches * mon_batch_size > num_examples:
 
-                    num_mon_batches = int(num_examples/float(mon_batch_size))
+                    num_mon_batches = int(num_examples / float(mon_batch_size))
 
                 model = DummyModel(1)
                 monitor = Monitor.get_monitor(model)
@@ -224,7 +224,7 @@ def test_revisit():
                         seed = 0)
 
                 if has_uniform_batch_size(mode) and num_mon_batches is None:
-                    num_mon_batches = int(num_examples/float(mon_batch_size))
+                    num_mon_batches = int(num_examples / float(mon_batch_size))
                 elif num_mon_batches is None:
                     num_mon_batches = int(np.ceil(float(num_examples) / float(mon_batch_size)))
 
