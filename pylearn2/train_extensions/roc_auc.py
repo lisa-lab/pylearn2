@@ -3,13 +3,14 @@ roc_auc.py
 
 TrainExtension subclass for calculating ROC AUC values as monitor channels.
 """
-from pylearn2.train_extensions import TrainExtension
-from pylearn2.training_algorithms.bgd import BGD
-from theano import tensor as T
-from theano import gof, config
-import theano
-import sklearn.metrics
 import numpy as np
+import sklearn.metrics
+
+import theano
+from theano import gof, config
+from theano import tensor as T
+
+from pylearn2.train_extensions import TrainExtension
 
 
 class ROCAUCScoreOp(gof.Op):
@@ -68,24 +69,6 @@ class ROCAUCChannel(TrainExtension):
         algorithm : object
             Training algorithm.
         """
-        # sanity checks
-        try:
-            assert isinstance(algorithm, BGD)
-        except AssertionError:
-            # TODO: workaround for batch_size requirement of SGD
-            raise NotImplementedError("ROC AUC is only supported when using " +
-                                      "batch gradient descent (BGD).")
-        try:
-            assert algorithm.batch_size is None
-            assert algorithm.monitoring_batches == 1
-            assert algorithm.batches_per_iter == 1
-        except AssertionError:
-            # TODO: stratified dataset iterator to supply training batches
-            raise ValueError("batch_size should be None and " +
-                             "monitoring_batches and batches_per_iter " +
-                             "should both be set to 1 to avoid class " +
-                             "population issues.")
-
         m_space, m_source = model.get_monitoring_data_specs()
         state, target = m_space.make_theano_batch()
         y = T.argmax(target, axis=1)

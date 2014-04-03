@@ -1,35 +1,28 @@
-from pylearn2.testing.skip import skip_if_no_sklearn
-from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
-from pylearn2.config import yaml_parse
-import numpy as np
 import unittest
-import cPickle
-import os
+
+from pylearn2.config import yaml_parse
+from pylearn2.testing.skip import skip_if_no_sklearn
 
 
 class TestROCAUCChannel(unittest.TestCase):
     """Train a simple model and calculate ROC AUC for monitoring datasets."""
     def setUp(self):
         skip_if_no_sklearn()
-        for name in ['train', 'valid', 'test']:
-            X = np.random.random((1000, 15))
-            y = np.random.randint(2, size=1000)
-            dataset = DenseDesignMatrix(X=X, y=y)
-            dataset.convert_to_one_hot()
-            with open("{}_dataset.pkl".format(name), "w") as f:
-                cPickle.dump(dataset, f, cPickle.HIGHEST_PROTOCOL)
 
     def test_roc_auc(self):
         trainer = yaml_parse.load(test_yaml)
         trainer.main_loop()
 
-    def tearDown(self):
-        for name in ['train', 'valid', 'test']:
-            os.remove("{}_dataset.pkl".format(name))
-
 test_yaml = """
 !obj:pylearn2.train.Train {
-    dataset: &train !pkl: 'train_dataset.pkl',
+    dataset:
+      &train !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix
+      {
+          rng: !obj:numpy.random.RandomState {},
+          num_examples: 1000,
+          dim: 15,
+          num_classes: 2,
+      },
     model: !obj:pylearn2.models.mlp.MLP {
         nvis: 15,
         layers: [
@@ -50,20 +43,18 @@ test_yaml = """
         conjugate: 1,
         monitoring_dataset: {
             'train': *train,
-            'valid': !pkl: 'valid_dataset.pkl',
-            'test': !pkl: 'test_dataset.pkl',
         },
         monitoring_batches: 1,
         batches_per_iter: 1,
         termination_criterion: !obj:pylearn2.termination_criteria.And {
             criteria: [
                 !obj:pylearn2.termination_criteria.EpochCounter {
-                    max_epochs: 10,
+                    max_epochs: 1,
                 },
                 !obj:pylearn2.termination_criteria.MonitorBased {
                     channel_name: 'valid_y_roc_auc',
                     prop_decrease: 0.,
-                    N: 3,
+                    N: 1,
                 },
             ],
         },
