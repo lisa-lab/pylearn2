@@ -126,7 +126,7 @@ class DatasetKFold(DatasetPartitionIterator):
         super(DatasetKFold, self).__init__(dataset, cv)
 
 
-class DatasetStratifiedKFold(StratifiedDatasetPartitionIterator):
+class StratifiedDatasetKFold(StratifiedDatasetPartitionIterator):
     """Stratified K-fold cross-validation."""
     def __init__(self, dataset, n_folds=3, indices=None):
         """
@@ -142,7 +142,7 @@ class DatasetStratifiedKFold(StratifiedDatasetPartitionIterator):
         """
         y = self.get_y(dataset)
         cv = StratifiedKFold(y, n_folds, indices)
-        super(DatasetStratifiedKFold, self).__init__(dataset, cv)
+        super(StratifiedDatasetKFold, self).__init__(dataset, cv)
 
 
 class DatasetShuffleSplit(DatasetPartitionIterator):
@@ -176,7 +176,7 @@ class DatasetShuffleSplit(DatasetPartitionIterator):
         super(DatasetShuffleSplit, self).__init__(dataset, cv)
 
 
-class DatasetStratifiedShuffleSplit(StratifiedDatasetPartitionIterator):
+class StratifiedDatasetShuffleSplit(StratifiedDatasetPartitionIterator):
     """Stratified shuffle-split cross-validation."""
     def __init__(self, dataset, n_iter=10, test_size=0.1, train_size=None,
                  indices=True, random_state=None):
@@ -204,7 +204,7 @@ class DatasetStratifiedShuffleSplit(StratifiedDatasetPartitionIterator):
         y = self.get_y(dataset)
         cv = StratifiedShuffleSplit(y, n_iter, test_size, train_size, indices,
                                     random_state)
-        super(DatasetStratifiedShuffleSplit, self).__init__(dataset, cv)
+        super(StratifiedDatasetShuffleSplit, self).__init__(dataset, cv)
 
 
 class TrainCV(object):
