@@ -45,17 +45,17 @@ def training_updates(visible_batch, model, sampler, optimizer):
     Parameters
     ----------
     visible_batch : tensor_like
-        Theano symbolic representing a minibatch on the visible units, \
-        with the first dimension indexing training examples and the second \
+        Theano symbolic representing a minibatch on the visible units,
+        with the first dimension indexing training examples and the second
         indexing data dimensions.
-    rbm : object
-        An instance of `RBM` or a derived class, or one implementing \
+    model : object
+        An instance of `RBM` or a derived class, or one implementing
         the RBM interface.
     sampler : object
-        An instance of `Sampler` or a derived class, or one implementing \
+        An instance of `Sampler` or a derived class, or one implementing
         the sampler interface.
     optimizer : object
-        An instance of `_Optimizer` or a derived class, or one implementing \
+        An instance of `_Optimizer` or a derived class, or one implementing
         the optimizer interface (typically an `_SGDOptimizer`).
 
     Returns
@@ -115,7 +115,7 @@ class Sampler(object):
         Returns
         -------
         updates : dict
-            Dictionary with shared variable instances as keys and symbolic \
+            Dictionary with shared variable instances as keys and symbolic
             expressions indicating how they should be updated as values.
 
         Notes
@@ -139,19 +139,19 @@ class BlockGibbsSampler(Sampler):
     Parameters
     ----------
     rbm : object
-        An instance of `RBM` or a derived class, or one implementing \
+        An instance of `RBM` or a derived class, or one implementing
         the `gibbs_step_for_v` interface.
     particles : ndarray
-        An initial state for the set of persistent Markov chain particles \
+        An initial state for the set of persistent Markov chain particles
         that will be updated at every step of learning.
     rng : RandomState object
-        NumPy random number generator object used to initialize a \
+        NumPy random number generator object used to initialize a
         RandomStreams object used in training.
     steps : int, optional
-        Number of Gibbs steps to run the Markov chain for at each \
+        Number of Gibbs steps to run the Markov chain for at each
         iteration.
-    particles_clip: None or (min, max) pair
-        The values of the returned particles will be clipped between \
+    particles_clip : None or (min, max) pair, optional
+        The values of the returned particles will be clipped between
         min and max.
     """
     def __init__(self, rbm, particles, rng, steps=1, particles_clip=None):
@@ -171,7 +171,7 @@ class BlockGibbsSampler(Sampler):
         Returns
         -------
         updates : dict
-            Dictionary with shared variable instances as keys and symbolic \
+            Dictionary with shared variable instances as keys and symbolic
             expressions indicating how they should be updated as values.
         """
         steps = self.steps
@@ -208,9 +208,51 @@ class RBM(Block, Model):
     """
     A base interface for RBMs, implementing the binary-binary case.
 
+    Parameters
+    ----------
+    nvis : int, optional
+        Number of visible units in the model.
+        (Specifying this implies that the model acts on a vector,
+        i.e. it sets vis_space = pylearn2.space.VectorSpace(nvis) )
+    nhid : int, optional
+        Number of hidden units in the model.
+        (Specifying this implies that the model acts on a vector)
+    vis_space : pylearn2.space.Space, optional
+        Space object describing what kind of vector space the RBM acts
+        on. Don't specify if you used nvis / hid
+    hid_space: pylearn2.space.Space, optional
+        Space object describing what kind of vector space the RBM's
+        hidden units live in. Don't specify if you used nvis / nhid
+    transformer : WRITEME
+    irange : float, optional
+        The size of the initial interval around 0 for weights.
+    rng : RandomState object or seed, optional
+        NumPy RandomState object to use when initializing parameters
+        of the model, or (integer) seed to use to create one.
+    init_bias_vis : array_like, optional
+        Initial value of the visible biases, broadcasted as necessary.
+    init_bias_vis_marginals : pylearn2.datasets.dataset.Dataset or None
+        Optional. Dataset used to initialize the visible biases to the
+        inverse sigmoid of the data marginals
+    init_bias_hid : array_like, optional
+        initial value of the hidden biases, broadcasted as necessary.
+    base_lr : float, optional
+        The base learning rate
+    anneal_start : int, optional
+        Number of steps after which to start annealing on a 1/t schedule
+    nchains : int, optional
+        Number of negative chains
+    sml_gibbs_steps : int, optional
+        Number of gibbs steps to take per update
+    random_patches_src : pylearn2.datasets.dataset.Dataset or None
+        Optional. Dataset from which to draw random patches in order to
+        initialize the weights. Patches will be multiplied by irange.
+    monitor_reconstruction : bool, optional
+        If True, will request a monitoring channel to monitor
+        reconstruction error
+
     Notes
     -----
-
     The `RBM` class is redundant now that we have a `DBM` class, since
     an RBM is just a DBM with one hidden layer. Users of pylearn2 should
     use single-layer DBMs when possible. Not all RBM functionality has
@@ -222,50 +264,8 @@ class RBM(Block, Model):
     finish porting all RBM functionality to the DBM framework, then turn
     the RBM class into a thin wrapper around the DBM class that allocates
     a single layer DBM.
-
-    Parameters
-    ----------
-    nvis : int
-        Number of visible units in the model. \
-        (Specifying this implies that the model acts on a vector, \
-        i.e. it sets vis_space = pylearn2.space.VectorSpace(nvis) )
-    nhid : int
-        Number of hidden units in the model. \
-        (Specifying this implies that the model acts on a vector)
-    vis_space : pylearn2.space.Space
-        Space object describing what kind of vector space the RBM acts \
-        on. Don't specify if you used nvis / hid
-    hid_space: pylearn2.space.Space
-        Space object describing what kind of vector space the RBM's \
-        hidden units live in. Don't specify if you used nvis / nhid
-    transformer : WRITEME
-    init_bias_vis_marginals : pylearn2.datasets.dataset.Dataset or None
-        Dataset used to initialize the visible biases to the inverse \
-        sigmoid of the data marginals
-    irange : float, optional
-        The size of the initial interval around 0 for weights.
-    rng : RandomState object or seed
-        NumPy RandomState object to use when initializing parameters \
-        of the model, or (integer) seed to use to create one.
-    init_bias_vis : array_like, optional
-        Initial value of the visible biases, broadcasted as necessary.
-    init_bias_hid : array_like, optional
-        initial value of the hidden biases, broadcasted as necessary.
-    monitor_reconstruction : bool
-        If True, will request a monitoring channel to monitor \
-        reconstruction error
-    random_patches_src : pylearn2.datasets.dataset.Dataset or None
-        Dataset from which to draw random patches in order to initialize \
-        the weights. Patches will be multiplied by irange.
-    base_lr : float
-        The base learning rate
-    anneal_start : int
-        Number of steps after which to start annealing on a 1/t schedule
-    nchains : int
-        Number of negative chains
-    sml_gibbs_steps : int
-        Number of gibbs steps to take per update
     """
+
     def __init__(self, nvis = None, nhid = None,
             vis_space = None,
             hid_space = None,
@@ -367,6 +367,11 @@ class RBM(Block, Model):
         self.sml_gibbs_steps = sml_gibbs_steps
 
     def get_default_cost(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError("The RBM class predates the current "
                 "Cost-based training algorithms (SGD and BGD). To train "
                 "the RBM with PCD, use DefaultTrainingAlgorithm rather "
@@ -502,20 +507,20 @@ class RBM(Block, Model):
         Parameters
         ----------
         pos_v : tensor_like
-            Theano symbolic representing a minibatch on the visible units, \
-            with the first dimension indexing training examples and the \
+            Theano symbolic representing a minibatch on the visible units,
+            with the first dimension indexing training examples and the
             second indexing data dimensions (usually actual training data).
         neg_v : tensor_like
-            Theano symbolic representing a minibatch on the visible units, \
-            with the first dimension indexing training examples and the \
-            second indexing data dimensions (usually reconstructions of the \
+            Theano symbolic representing a minibatch on the visible units,
+            with the first dimension indexing training examples and the
+            second indexing data dimensions (usually reconstructions of the
             data or sampler particles from a persistent Markov chain).
 
         Returns
         -------
         grads : list
-            List of Theano symbolic variables representing gradients with \
-            respect to model parameters, in the same order as returned by \
+            List of Theano symbolic variables representing gradients with
+            respect to model parameters, in the same order as returned by
             `params()`.
 
         Notes
@@ -595,30 +600,31 @@ class RBM(Block, Model):
         Parameters
         ----------
         v : tensor_like
-            Theano symbolic representing the hidden unit states for a batch \
-            of training examples (or negative phase particles), with the \
-            first dimension indexing training examples and the second \
+            Theano symbolic representing the hidden unit states for a batch
+            of training examples (or negative phase particles), with the
+            first dimension indexing training examples and the second
             indexing data dimensions.
         rng : RandomStreams object
-            Random number generator to use for sampling the hidden and \
+            Random number generator to use for sampling the hidden and
             visible units.
 
         Returns
         -------
         v_sample : tensor_like
-            Theano symbolic representing the new visible unit state after one \
+            Theano symbolic representing the new visible unit state after one
             round of Gibbs sampling.
         locals : dict
-            Contains the following auxiliary state as keys (all symbolics \
+            Contains the following auxiliary state as keys (all symbolics
             except shape tuples):
-             * `h_mean`: the returned value from `mean_h_given_v`
-             * `h_mean_shape`: shape tuple indicating the size of `h_mean` and
-               `h_sample`
-             * `h_sample`: the stochastically sampled hidden units
-             * `v_mean_shape`: shape tuple indicating the shape of `v_mean` and
-               `v_sample`
-             * `v_mean`: the returned value from `mean_v_given_h`
-             * `v_sample`: the stochastically sampled visible units
+
+              * `h_mean`: the returned value from `mean_h_given_v`
+              * `h_mean_shape`: shape tuple indicating the size of
+                `h_mean` and `h_sample`
+              * `h_sample`: the stochastically sampled hidden units
+              * `v_mean_shape`: shape tuple indicating the shape of
+                `v_mean` and `v_sample`
+              * `v_mean`: the returned value from `mean_v_given_h`
+              * `v_sample`: the stochastically sampled visible units
         """
         h_mean = self.mean_h_given_v(v)
         assert h_mean.type.dtype == v.type.dtype
@@ -644,9 +650,9 @@ class RBM(Block, Model):
         Parameters
         ----------
         params : list
-            List of the necessary parameters to sample :math:`p(v|h)`. In the \
-            case of a binary-binary RBM this is a single-element list \
-            containing the symbolic representing :math:`p(v|h)`, as returned \
+            List of the necessary parameters to sample :math:`p(v|h)`. In the
+            case of a binary-binary RBM this is a single-element list
+            containing the symbolic representing :math:`p(v|h)`, as returned
             by `mean_v_given_h`.
 
         Returns
@@ -664,15 +670,15 @@ class RBM(Block, Model):
 
         Parameters
         ----------
-        v  : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the one or several \
-            minibatches on the visible units, with the first dimension \
+        v : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the one or several
+            minibatches on the visible units, with the first dimension
             indexing training examples and the second indexing data dimensions.
 
         Returns
         -------
         a : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the input to each \
+            Theano symbolic (or list thereof) representing the input to each
             hidden unit for each training example.
         """
 
@@ -688,15 +694,15 @@ class RBM(Block, Model):
 
         Parameters
         ----------
-        h  : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the one or several \
-            minibatches on the hidden units, with the first dimension \
+        h : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the one or several
+            minibatches on the hidden units, with the first dimension
             indexing training examples and the second indexing data dimensions.
 
         Returns
         -------
         a : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the input to each \
+            Theano symbolic (or list thereof) representing the input to each
             visible unit for each row of h.
         """
         if isinstance(h, tensor.Variable):
@@ -718,16 +724,16 @@ class RBM(Block, Model):
 
         Parameters
         ----------
-        v  : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the hidden unit \
-            states for a batch (or several) of training examples, with the \
-            first dimension indexing training examples and the second \
+        v : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the hidden unit
+            states for a batch (or several) of training examples, with the
+            first dimension indexing training examples and the second
             indexing data dimensions.
 
         Returns
         -------
         h : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the mean \
+            Theano symbolic (or list thereof) representing the mean
             (deterministic) hidden unit activations given the visible units.
         """
         if isinstance(v, tensor.Variable):
@@ -742,17 +748,17 @@ class RBM(Block, Model):
 
         Parameters
         ----------
-        h  : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the hidden unit \
-            states for a batch (or several) of training examples, with the \
-            first dimension indexing training examples and the second \
+        h : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the hidden unit
+            states for a batch (or several) of training examples, with the
+            first dimension indexing training examples and the second
             indexing hidden units.
 
         Returns
         -------
         vprime : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the mean \
-            (deterministic) reconstruction of the visible units given the \
+            Theano symbolic (or list thereof) representing the mean
+            (deterministic) reconstruction of the visible units given the
             hidden units.
         """
         if isinstance(h, tensor.Variable):
@@ -768,14 +774,14 @@ class RBM(Block, Model):
         Parameters
         ----------
         v : tensor_like
-            Theano symbolic representing the hidden unit states for a batch \
-            of training examples, with the first dimension indexing training \
+            Theano symbolic representing the hidden unit states for a batch
+            of training examples, with the first dimension indexing training
             examples and the second indexing data dimensions.
 
         Returns
         -------
         f : tensor_like
-            1-dimensional tensor (vector) representing the free energy \
+            1-dimensional tensor (vector) representing the free energy
             associated with each row of v.
         """
         sigmoid_arg = self.input_to_h_from_v(v)
@@ -794,14 +800,14 @@ class RBM(Block, Model):
         Parameters
         ----------
         h : tensor_like
-            Theano symbolic representing the hidden unit states, with the \
-            first dimension indexing training examples and the second \
+            Theano symbolic representing the hidden unit states, with the
+            first dimension indexing training examples and the second
             indexing data dimensions.
 
         Returns
         -------
         f : tensor_like
-            1-dimensional tensor (vector) representing the free energy \
+            1-dimensional tensor (vector) representing the free energy
             associated with each row of v.
         """
         sigmoid_arg = self.input_to_v_from_h(h)
@@ -826,17 +832,17 @@ class RBM(Block, Model):
         Parameters
         ----------
         v : tensor_like
-            Theano symbolic representing the hidden unit states for a batch \
-            of training examples, with the first dimension indexing training \
+            Theano symbolic representing the hidden unit states for a batch
+            of training examples, with the first dimension indexing training
             examples and the second indexing data dimensions.
         rng : RandomStreams object
-            Random number generator to use for sampling the hidden and \
+            Random number generator to use for sampling the hidden and
             visible units.
 
         Returns
         -------
         mse : tensor_like
-            0-dimensional tensor (essentially a scalar) indicating the mean \
+            0-dimensional tensor (essentially a scalar) indicating the mean
             reconstruction error across the minibatch.
 
         Notes
@@ -855,27 +861,34 @@ class GaussianBinaryRBM(RBM):
 
     Parameters
     ----------
-    nvis : int
-        Number of visible units in the model.
-    nhid : int
-        Number of hidden units in the model.
     energy_function_class : WRITEME
+    nvis : int, optional
+        Number of visible units in the model.
+    nhid : int, optional
+        Number of hidden units in the model.
+    vis_space : WRITEME
+    hid_space : WRITEME
     irange : float, optional
         The size of the initial interval around 0 for weights.
-    rng : RandomState object or seed
-        NumPy RandomState object to use when initializing parameters \
+    rng : RandomState object or seed, optional
+        NumPy RandomState object to use when initializing parameters
         of the model, or (integer) seed to use to create one.
     mean_vis : bool, optional
-        Don't actually sample visibles; make sample method simply return \
+        Don't actually sample visibles; make sample method simply return
         mean.
-    init_sigma : float or numpy.ndarray
-        Initial value of the sigma variable. If init_sigma is a scalar \
+    init_sigma : float or numpy.ndarray, optional
+        Initial value of the sigma variable. If init_sigma is a scalar
         and sigma is not, will be broadcasted.
-    min_sigma, max_sigma: float, float
-        Elements of sigma are clipped to this range during learning
+    learn_sigma : bool, optional
+        WRITEME
+    sigma_lr_scale : float, optional
+        WRITEME
     init_bias_hid : scalar or 1-d array of length `nhid`
         Initial value for the biases on hidden units.
+    min_sigma, max_sigma : float, float, optional
+        Elements of sigma are clipped to this range during learning
     """
+
     def __init__(self, energy_function_class,
             nvis = None,
             nhid = None,
@@ -969,15 +982,15 @@ class GaussianBinaryRBM(RBM):
 
         Parameters
         ----------
-        h  : tensor_like
-            Theano symbolic representing the hidden unit states for a batch \
-            of training examples, with the first dimension indexing training \
+        h : tensor_like
+            Theano symbolic representing the hidden unit states for a batch
+            of training examples, with the first dimension indexing training
             examples and the second indexing hidden units.
 
         Returns
         -------
         vprime : tensor_like
-            Theano symbolic representing the mean (deterministic) \
+            Theano symbolic representing the mean (deterministic)
             reconstruction of the visible units given the hidden units.
         """
 
@@ -992,14 +1005,14 @@ class GaussianBinaryRBM(RBM):
         Parameters
         ----------
         v : tensor_like
-            Theano symbolic representing the hidden unit states for a batch \
-            of training examples, with the first dimension indexing training \
+            Theano symbolic representing the hidden unit states for a batch
+            of training examples, with the first dimension indexing training
             examples and the second indexing data dimensions.
 
         Returns
         -------
         f : tensor_like
-            1-dimensional tensor representing the free energy of the visible \
+            1-dimensional tensor representing the free energy of the visible
             unit configuration for each example in the batch
         """
 
@@ -1026,14 +1039,17 @@ class GaussianBinaryRBM(RBM):
         Parameters
         ----------
         params : list
-            List of the necessary parameters to sample :math:`p(v|h)`. In the \
-            case of a Gaussian-binary RBM this is a single-element list \
-            containing the conditional mean.
+            List of the necessary parameters to sample :math:`p(v|h)`.
+            In the case of a Gaussian-binary RBM this is a single-element
+            list containing the conditional mean.
+        shape : WRITEME
+        rng : WRITEME
 
         Returns
         -------
         vprime : tensor_like
-            Theano symbolic representing stochastic samples from :math:`p(v|h)`
+            Theano symbolic representing stochastic samples from
+            :math:`p(v|h)`
 
         Notes
         -----
@@ -1074,6 +1090,7 @@ class mu_pooled_ssRBM(RBM):
     W : WRITEME
         Matrix of shape nvis x nslab, weights of the nslab linear filters s.
     """
+
     def __init__(self, nvis, nhid, n_s_per_h,
             batch_size,
             alpha0, alpha_irange,
@@ -1360,6 +1377,7 @@ class _Optimizer(object):
     """
     Basic abstract class for computing parameter updates of a model.
     """
+
     def updates(self):
         """Return symbolic updates to apply."""
         raise NotImplementedError()
@@ -1380,13 +1398,15 @@ class _SGDOptimizer(_Optimizer):
     base_lr : float
         The base learning rate before annealing or parameter-specific
         scaling.
-    anneal_start : int
+    anneal_start : int, optional
         Number of steps after which to start annealing the learning
         rate at a 1/t schedule, where t is the number of stochastic
         gradient updates.
-    use_adagrad : bool
+    use_adagrad : bool, optional
         'adagrad' adaptive learning rate scheme is used. If set to True,
-    base_lr is used as e0.
+        base_lr is used as e0.
+    kwargs : dict
+        WRITEME
 
     Notes
     -----
@@ -1467,6 +1487,8 @@ class _SGDOptimizer(_Optimizer):
         base_lr : float
             The base learning rate before annealing or parameter-specific
             scaling.
+        kwargs : dict
+            WRITEME
 
         Notes
         -----
@@ -1515,6 +1537,10 @@ class _SGDOptimizer(_Optimizer):
         """
         Compute a dictionary of shared variable updates related to annealing
         the learning rate.
+
+        Parameters
+        ----------
+        gradients : WRITEME
 
         Returns
         -------
@@ -1650,6 +1676,11 @@ class _SGDOptimizer(_Optimizer):
         return updates
 
     def sgd_momentum_updates(self, params, grads, stepsizes, momentum=0.9):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # if stepsizes is just a scalar, expand it to match params
         try:
             iter(stepsizes)

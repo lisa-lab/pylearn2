@@ -120,7 +120,8 @@ class FeatureDump(object):
 
 def make_argument_parser():
     """
-    Creates an ArgumentParser to read the options for this script from sys.argv
+    Creates an ArgumentParser to read the options for this script from
+    sys.argv
     """
     parser = argparse.ArgumentParser(
         description="Launch an experiment from a YAML configuration file.",
@@ -156,9 +157,7 @@ def make_argument_parser():
 
 
 if __name__ == "__main__":
-    """
-    See module-level docstring for a description of the script.
-    """
+    """See module-level docstring for a description of the script."""
     parser = make_argument_parser()
     args = parser.parse_args()
     train_obj = serial.load_train_file(args.config)
