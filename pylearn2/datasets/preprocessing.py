@@ -1080,7 +1080,6 @@ class ZCA(Preprocessor):
             self.P_ = ZCA._gpu_mdmt(eigv, 1.0/sqrt_eigs)
         except MemoryError:
             warnings.warn()
-
             self.P_ = numpy.dot(eigv * (1.0 / sqrt_eigs), eigv.T)
 
         t2 = time.time()
