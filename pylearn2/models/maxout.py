@@ -598,8 +598,8 @@ class MaxoutConvC01B(Layer):
             spatial pooling
         - output: the output of the layer, after sptial pooling,
             can be normalized as well
-    kernel_stride : vertical and horizontal pixel stride between
-                   each detector.
+    kernel_stride : tuple
+        Vertical and horizontal pixel stride between each detector.
     """
 
     def __init__(self,
@@ -1038,8 +1038,8 @@ class MaxoutLocalC01B(Layer):
             spatial pooling
         - output: the output of the layer, after sptial pooling, can be
             normalized as well
-    kernel_stride : vertical and horizontal pixel stride between
-        each detector.
+    kernel_stride : tuple
+        Vertical and horizontal pixel stride between each detector.
 
     """
 
@@ -1073,7 +1073,8 @@ class MaxoutLocalC01B(Layer):
             max_kernel_norm = max_filter_norm
             warnings.warn("max_filter_norm argument is deprecated, use"
                           "max_kernel_norm instead. max_filter_norm "
-                          "will be removed on or after 2014-10-02.", stacklevel=2)
+                          "will be removed on or after 2014-10-02.", 
+                          stacklevel=2)
 
         assert (pool_shape is None) == (pool_stride is None)
 
@@ -1142,10 +1143,11 @@ class MaxoutLocalC01B(Layer):
 
         rng = self.mlp.rng
 
-        output_shape = [int(np.ceil((i_sh + 2. * self.pad - k_sh) / float(k_st))) + 1
-                        for i_sh, k_sh, k_st in zip(self.input_space.shape,
-                                                    self.kernel_shape,
-                                                    self.kernel_stride)]
+        output_shape = \
+            [int(np.ceil((i_sh + 2. * self.pad - k_sh) / float(k_st))) + 1
+             for i_sh, k_sh, k_st in zip(self.input_space.shape,
+                                         self.kernel_shape,
+                                         self.kernel_stride)]
 
         def handle_kernel_shape(idx):
             if self.kernel_shape[idx] < 1:
