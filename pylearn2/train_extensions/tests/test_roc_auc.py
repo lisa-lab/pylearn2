@@ -39,13 +39,11 @@ test_yaml = """
         ],
     },
     algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
-        line_search_mode: 'exhaustive',
-        conjugate: 1,
         monitoring_dataset: {
             'train': *train,
         },
-        monitoring_batches: 1,
         batches_per_iter: 1,
+        monitoring_batches: 1,
         termination_criterion: !obj:pylearn2.termination_criteria.And {
             criteria: [
                 !obj:pylearn2.termination_criteria.EpochCounter {

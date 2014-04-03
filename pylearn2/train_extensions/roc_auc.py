@@ -26,6 +26,7 @@ class ROCAUCScoreOp(gof.Op):
 
     def perform(self, node, inputs, output_storage):
         y_true, y_score = inputs
+        print "Y SIZE", y_true.shape
         try:
             roc_auc = sklearn.metrics.roc_auc_score(y_true, y_score)
         except ValueError:
@@ -51,10 +52,12 @@ class ROCAUCChannel(TrainExtension):
 
     Notes
     -----
-    This monitor will return nan unless both classes are represented in y_true.
+    This monitor will return nan unless both classes are represented in
+    y_true. For this reason, it is recommended to set monitoring_batches
+    to 1, especially when using unbalanced datasets.
 
-    Currently only supports BGD, and requires monitoring_batches and
-    batches_per_iter to be set to 1 to avoid class population issues.
+    Currently, monitoring_batches is overridden by batch_size, so it is
+    also recommended to set batches_per_iter to 1 and not use batch_size.
     """
     def setup(self, model, dataset, algorithm):
         """
