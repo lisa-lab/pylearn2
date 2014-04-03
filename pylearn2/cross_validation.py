@@ -12,8 +12,12 @@ __author__ = "Steven Kearnes"
 from copy import deepcopy
 import numpy as np
 import os
-from sklearn.cross_validation import (KFold, StratifiedKFold, ShuffleSplit,
-                                      StratifiedShuffleSplit)
+import warnings
+try:
+    from sklearn.cross_validation import (KFold, StratifiedKFold, ShuffleSplit,
+                                          StratifiedShuffleSplit)
+except ImportError:
+    warnings.warn("Could not import sklearn")
 
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.models.mlp import Layer, PretrainedLayer

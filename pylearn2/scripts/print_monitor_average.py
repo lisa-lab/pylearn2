@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 """
-Print average channel values for a collection of models, such as that serialized
-by TrainCV. Based on print_monitor.py
+Print average channel values for a collection of models, such as that
+serialized by TrainCV. Based on print_monitor.py
 
 usage: print_monitor_average.py model.pkl
 """
