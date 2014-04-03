@@ -58,7 +58,7 @@ test_yaml = """
         },
     },
     extensions: [
-        !obj:pylearn2.train_extensions.roc_auc.ROCAUCChannel {},
+        !obj:pylearn2.train_extensions.roc_auc.RocAucChannel {},
     ],
 }
 """

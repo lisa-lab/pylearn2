@@ -13,7 +13,7 @@ from theano import tensor as T
 from pylearn2.train_extensions import TrainExtension
 
 
-class ROCAUCScoreOp(gof.Op):
+class RocAucScoreOp(gof.Op):
     """
     Theano Op wrapping sklearn.metrics.roc_auc_score.
     See function roc_auc_score for docstring.
@@ -44,10 +44,10 @@ def roc_auc_score(y_true, y_score):
     y_score: tensor_like
         Predicted values or probabilities for positive class.
     """
-    return ROCAUCScoreOp()(y_true, y_score)
+    return RocAucScoreOp()(y_true, y_score)
 
 
-class ROCAUCChannel(TrainExtension):
+class RocAucChannel(TrainExtension):
     """Adds a ROC AUC channel to the monitor for each monitoring dataset.
 
     Notes
