@@ -37,6 +37,7 @@ class DifferentiableSparseCoding(object):
     init_alpha : WRITEME
     learning_rate : WRITEME
     """
+
     def __init__(self, nvis, nhid,
             init_lambda,
             init_p, init_alpha, learning_rate):
