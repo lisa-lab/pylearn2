@@ -1,12 +1,12 @@
-"""Tests for cross validation module."""
+"""Tests for cross-validation module."""
 __author__ = "Steven Kearnes"
 
 import os
 import tempfile
 import unittest
 
-from pylearn2.testing.skip import skip_if_no_sklearn
 from pylearn2.config import yaml_parse
+from pylearn2.testing.skip import skip_if_no_sklearn
 
 
 class TestCrossValidation(unittest.TestCase):
