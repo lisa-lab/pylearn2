@@ -348,12 +348,13 @@ class MLP(Layer):
         If not specified then must be a positive integer. Mostly useful if
         one of your layers involves a Theano op like convolution that
         requires a hard-coded batch size.
-    nvis : int, optional
-        Number of "visible units" (input units). Equivalent to specifying
-        `input_space=VectorSpace(dim=nvis)`.
     input_space : Space object, optional
         A Space specifying the kind of input the MLP accepts. If None,
         input space is specified by nvis.
+    nvis : int, optional
+        Number of "visible units" (input units). Equivalent to specifying
+        `input_space=VectorSpace(dim=nvis)`.
+    seed : WRITEME
     """
 
     def __init__(self, layers, batch_size=None, input_space=None,
@@ -813,7 +814,9 @@ class MLP(Layer):
     def apply_dropout(self, state, include_prob, scale, theano_rng,
                       input_space, mask_value=0, per_example=True):
         """
-        WRITEME
+        .. todo::
+
+            WRITEME
 
         Parameters
         ----------
@@ -933,6 +936,7 @@ class Softmax(Layer):
     max_col_norm : WRITEME
     init_bias_target_marginals : WRITEME
     """
+
     def __init__(self, n_classes, layer_name, irange=None,
                  istdev=None,
                  sparse_init=None, W_lr_scale=None,
@@ -1247,9 +1251,9 @@ class SoftmaxPool(Layer):
     irange : WRITEME
     sparse_init : WRITEME
     sparse_stdev : WRITEME
-    include_prob : float
-        Probability of including a weight element in the set of weights \
-        initialized to U(-irange, irange). If not included it is \
+    include_prob : float, optional
+        Probability of including a weight element in the set of weights
+        initialized to U(-irange, irange). If not included it is
         initialized to 0.
     init_bias : WRITEME
     W_lr_scale : WRITEME
@@ -1594,11 +1598,11 @@ class Linear(Layer):
     istdev : WRITEME
     sparse_init : WRITEME
     sparse_stdev : WRITEME
-    include_prob : float
+    include_prob : float, optional
         Probability of including a weight element in the set of weights \
         initialized to U(-irange, irange). If not included it is \
         initialized to 0.
-    init_bias : float or ndarray
+    init_bias : float or ndarray, optional
         Anything that can be broadcasted to a numpy vector.
         Provides the initial value of the biases of the model.
         When using this class as an output layer (specifically the Linear
@@ -1609,9 +1613,9 @@ class Linear(Layer):
         all the targets in the training set, so the model is initialized
         to a dummy model that predicts the expected value of each output
         variable.
-    W_lr_scale : float
+    W_lr_scale : float, optional
         Multiply the learning rate on the weights by this constant.
-    b_lr_scale : float
+    b_lr_scale : float, optional
         Multiply the learning rate on the biases by this constant.
     mask_weights : ndarray, optional
         If provided, the weights will be multiplied by this mask after each
@@ -1621,7 +1625,7 @@ class Linear(Layer):
     min_col_norm : WRITEME
     softmax_columns : DEPRECATED
     copy_input : REMOVED
-    use_abs_loss : bool
+    use_abs_loss : bool, optional
         If True, the cost function will be mean absolute error rather
         than mean squared error.
         You can think of mean squared error as fitting a Gaussian
@@ -1630,7 +1634,7 @@ class Linear(Layer):
         You can think of mean absolute error as fitting a Laplace
         distribution with variance 1, or as learning to predict the
         median of the data.
-    use_bias : bool
+    use_bias : bool, optional
         If False, does not add the bias term to the output.
     """
 
@@ -2029,11 +2033,11 @@ class Sigmoid(Linear):
 
     Parameters
     ----------
-    monitor_style: string
+    monitor_style : string
         Values can be either 'detection' or 'classification'.
         'detection' is the default.
 
-        - 'detection' : get_monitor_from_state makes no assumptions about
+          - 'detection' : get_monitor_from_state makes no assumptions about
             target, reports info about how good model is at
             detecting positive bits.
             This will monitor precision, recall, and F1 score
@@ -2043,10 +2047,12 @@ class Sigmoid(Linear):
             dataset fits in one minibatch, this is not the same
             as the true F1 score, etc., and will usually
             seriously overestimate your performance.
-        - 'classification' : get_monitor_from_state assumes target is one-hot
+          - 'classification' : get_monitor_from_state assumes target is one-hot
             class indicator, even though you're training the
             model as k independent sigmoids. gives info on how
             good the argmax is as a classifier
+    kwargs : dict
+        WRITEME
     """
 
     def __init__(self, monitor_style='detection', **kwargs):
@@ -2196,7 +2202,15 @@ class RectifiedLinear(Linear):
     """
     Rectified linear MLP layer (Glorot and Bengio 2011).
 
-    WRITEME parameters list
+    .. todo::
+
+        WRITEME properly
+
+    Parameters
+    ----------
+    left_slope : WRITEME
+    kwargs : dict
+        WRITEME
     """
 
     def __init__(self, left_slope=0.0, **kwargs):
@@ -2224,6 +2238,11 @@ class Softplus(Linear):
     """
     An MLP layer using the softplus nonlinearity
     h = log(1 + exp(Wx + b))
+
+    Parameters
+    ----------
+    kwargs : dict
+        WRITEME
     """
 
     def __init__(self, **kwargs):
@@ -2484,11 +2503,11 @@ class ConvElemwise(Layer):
     border_mode : str, optional
         A string indicating the size of the output:
 
-        - "full" : The output is the full discrete linear convolution of the
+          - "full" : The output is the full discrete linear convolution of the
             inputs.
-        - "valid" : The output consists only of those elements that do not
+          - "valid" : The output consists only of those elements that do not
             rely on the zero-padding. (Default)
-
+    sparse_init : WRITEME
     include_prob : float, optional
         probability of including a weight element in the set of weights
         initialized to U(-irange, irange). If not included it is initialized
@@ -2519,14 +2538,12 @@ class ConvElemwise(Layer):
         network is optionally replaced with normalization(state) at each
         of the 3 points in processing:
 
-        - detector: the maxout units can be normalized prior to the
+          - detector: the maxout units can be normalized prior to the
             spatial pooling
-        - output: the output of the layer, after spatial pooling, can
+          - output: the output of the layer, after sptial pooling, can
             be normalized as well
-
-    kernel_stride : tuple, optional
-        The stride of the convolution kernel. A two-tuple of
-        ints. Default is (1, 1).
+    kernel_stride : 2-tuple of ints, optional
+        The stride of the convolution kernel. Default is (1, 1).
     """
     def __init__(self,
                  output_channels,
@@ -2672,7 +2689,7 @@ class ConvElemwise(Layer):
         self.initialize_transformer(rng)
 
         W, = self.transformer.get_params()
-        W.name = 'W'
+        W.name = self.layer_name + '_W'
 
         if self.tied_b:
             self.b = sharedX(np.zeros((self.detector_space.num_channels)) +
@@ -2680,7 +2697,7 @@ class ConvElemwise(Layer):
         else:
             self.b = sharedX(self.detector_space.get_origin() + self.init_bias)
 
-        self.b.name = 'b'
+        self.b.name = self.layer_name + '_b'
 
         logger.info('Input shape: {0}'.format(self.input_space.shape))
         logger.info('Detector space: {0}'.format(self.detector_space.shape))
@@ -3006,7 +3023,7 @@ class ConvRectifiedLinear(ConvElemwise):
 
 def max_pool(bc01, pool_shape, pool_stride, image_shape):
     """
-    Theano's max pooling op only support pool_stride = pool_shape
+    Theano's max pooling op only supports pool_stride = pool_shape
     so here we have a graph that does max pooling with strides
 
     Parameters
@@ -3105,7 +3122,7 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
 
 def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape):
     """
-    Theano's max pooling op only support pool_stride = pool_shape
+    Theano's max pooling op only supports pool_stride = pool_shape
     so here we have a graph that does max pooling with strides
 
     Parameters
@@ -3521,9 +3538,14 @@ class PretrainedLayer(Layer):
 
         WRITEME properly
 
-    layer_content: A Model that implements "upward_pass", such as an
-        RBM or an Autoencoder
-    freeze_params: If True, regard layer_conent's parameters as fixed
+    Parameters
+    ----------
+    layer_name : WRITEME
+    layer_content : Model
+        A Model that implements "upward_pass", such as an RBM or an
+        Autoencoder
+    freeze_params : bool, optional
+        If True, regard layer_conent's parameters as fixed
         If False, they become parameters of this layer and can be
         fine-tuned to optimize the MLP's cost function.
     """
@@ -3574,6 +3596,9 @@ class CompositeLayer(Layer):
 
         WRITEME properly
 
+    Parameters
+    ----------
+    layer_name : WRITEME
     layers: a list or tuple of Layers.
     """
 
@@ -3719,18 +3744,15 @@ def generate_dropout_mask(mlp, default_include_prob=0.5,
     ----------
     mlp : object
         An MLP object.
-
     default_include_prob : float, optional
         The probability of including an input to a hidden
         layer, for layers not listed in `input_include_probs`.
         Default is 0.5.
-
     input_include_probs : dict, optional
         A dictionary  mapping layer names to probabilities
         of input inclusion for that layer. Default is `None`,
         in which `default_include_prob` is used for all
         layers.
-
     rng : RandomState object or seed, optional
         A `numpy.random.RandomState` object or a seed used to
         create one.
@@ -3774,37 +3796,29 @@ def sampled_dropout_average(mlp, inputs, num_masks,
     ----------
     mlp : object
         An MLP object.
-
     inputs : tensor_like
         A Theano variable representing a minibatch appropriate
         for fpropping through the MLP.
-
     num_masks : int
         The number of masks to sample.
-
     default_input_include_prob : float, optional
         The probability of including an input to a hidden
         layer, for layers not listed in `input_include_probs`.
         Default is 0.5.
-
     input_include_probs : dict, optional
         A dictionary  mapping layer names to probabilities
         of input inclusion for that layer. Default is `None`,
         in which `default_include_prob` is used for all
         layers.
-
     default_input_scale : float, optional
         The amount to scale input in dropped out layers.
-
     input_scales : dict, optional
         A dictionary  mapping layer names to constants by
         which to scale the input.
-
     rng : RandomState object or seed, optional
         A `numpy.random.RandomState` object or a seed used to
         create one.
-
-    per_example : boolean, optional
+    per_example : bool, optional
         If `True`, generate a different mask for every single
         test example, so you have `num_masks` per example
         instead of `num_mask` networks total. If `False`,
@@ -3857,19 +3871,15 @@ def exhaustive_dropout_average(mlp, inputs, masked_input_layers=None,
     ----------
     mlp : object
         An MLP object.
-
     inputs : tensor_like
         A Theano variable representing a minibatch appropriate
         for fpropping through the MLP.
-
     masked_input_layers : list, optional
         A list of layer names whose input should be masked.
         Default is all layers (including the first hidden
         layer, i.e. mask the input).
-
     default_input_scale : float, optional
         The amount to scale input in dropped out layers.
-
     input_scales : dict, optional
         A dictionary  mapping layer names to constants by
         which to scale the input.
