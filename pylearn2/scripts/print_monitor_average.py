@@ -14,6 +14,7 @@ import numpy as np
 
 
 def main():
+    """Print average channel final values for a collection of models."""
     epochs = []
     time = []
     values = {}

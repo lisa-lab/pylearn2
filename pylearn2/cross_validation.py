@@ -17,7 +17,7 @@ try:
     from sklearn.cross_validation import (KFold, StratifiedKFold, ShuffleSplit,
                                           StratifiedShuffleSplit)
 except ImportError:
-    warnings.warn("Could not import sklearn")
+    warnings.warn("Could not import from sklearn")
 
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.models.mlp import Layer, PretrainedLayer
