@@ -1079,10 +1079,7 @@ class ZCA(Preprocessor):
         try:
             self.P_ = ZCA._gpu_mdmt(eigv, 1.0/sqrt_eigs)
         except MemoryError:
-            warnings.warn('M * D * M^T was too big to fit on GPU. '
-                          'Re-doing with CPU. Consider using '
-                          'THEANO_FLAGS="device=cpu" for your next '
-                          'preprocessor run')
+            warnings.warn()
 
             self.P_ = numpy.dot(eigv * (1.0 / sqrt_eigs), eigv.T)
 
