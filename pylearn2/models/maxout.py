@@ -402,7 +402,7 @@ class Maxout(Layer):
         warnings.warn("Layer.get_monitoring_channels is " + \
                     "deprecated. Use get_layer_monitoring_channels " + \
                     "instead. Layer.get_monitoring_channels " + \
-                    "will be removed on or after september 24th 2014", 
+                    "will be removed on or after september 24th 2014",
                     stacklevel=2)
 
         W, = self.transformer.get_params()
@@ -431,7 +431,7 @@ class Maxout(Layer):
         warnings.warn("Layer.get_monitoring_channels_from_state is " + \
                     "deprecated. Use get_layer_monitoring_channels " + \
                     "instead. Layer.get_monitoring_channels_from_state " + \
-                    "will be removed on or after september 24th 2014", 
+                    "will be removed on or after september 24th 2014",
                     stacklevel=2)
 
         P = state
@@ -473,9 +473,9 @@ class Maxout(Layer):
         return rval
 
     @functools.wraps(Layer.get_layer_monitoring_channels)
-    def get_layer_monitoring_channels(self, state_below=None, 
+    def get_layer_monitoring_channels(self, state_below=None,
                                     state=None, targets=None):
-        
+
         W, = self.transformer.get_params()
 
         assert W.ndim == 2
@@ -496,11 +496,11 @@ class Maxout(Layer):
                             ('col_norms_min',  col_norms.min()),
                             ('col_norms_mean', col_norms.mean()),
                             ('col_norms_max',  col_norms.max()), ])
-        
+
         if (state is not None) or (state_below is not None):
             if state is None:
                 state = self.fprop(state_below)
-            
+
             P = state
             if self.pool_size == 1:
                 vars_and_prefixes = [(P, '')]
@@ -515,8 +515,8 @@ class Maxout(Layer):
 
                 # max_x.mean_u is "the mean over *u*nits of the max over
                 # e*x*amples" The x and u are included in the name because
-                # otherwise its hard to remember which axis is which when 
-                # reading the monitor I use inner.outer 
+                # otherwise its hard to remember which axis is which when
+                # reading the monitor I use inner.outer
                 # rather than outer_of_inner or
                 # something like that because I want mean_x.* to appear next to
                 # each other in the alphabetical list, as these are commonly
@@ -536,7 +536,7 @@ class Maxout(Layer):
                     rval[prefix+key] = val
 
         return rval
-        
+
     @functools.wraps(Layer.fprop)
     def fprop(self, state_below):
 
