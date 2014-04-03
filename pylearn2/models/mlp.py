@@ -2672,7 +2672,7 @@ class ConvElemwise(Layer):
         self.initialize_transformer(rng)
 
         W, = self.transformer.get_params()
-        W.name = 'W'
+        W.name = self.layer_name + '_W'
 
         if self.tied_b:
             self.b = sharedX(np.zeros((self.detector_space.num_channels)) +
@@ -2680,7 +2680,7 @@ class ConvElemwise(Layer):
         else:
             self.b = sharedX(self.detector_space.get_origin() + self.init_bias)
 
-        self.b.name = 'b'
+        self.b.name = self.layer_name + '_b'
 
         logger.info('Input shape: {0}'.format(self.input_space.shape))
         logger.info('Detector space: {0}'.format(self.detector_space.shape))
