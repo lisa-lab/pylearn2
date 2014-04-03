@@ -116,21 +116,40 @@ class SubsetIterator(object):
         """
         return True
 
+
+
 class ForcedEvenIterator(SubsetIterator):
     """
     .. todo::
 
         WRITEME
     """
+
     uniform_batch_size = True
 
+    # 
+    fancy = None
 
-    def __init__(self, base_iterator_cls, dataset_size, batch_size, num_batches, *args, **kwargs):
+    #
+    stochastic = None 
+
+    #
+    _base_iterator_cls = None
+
+
+    def __init__(self, dataset_size, batch_size, num_batches, *args, **kwargs):
         """
         .. todo::
 
             WRITEME
         """
+
+        if self.fancy is None or self.stochastic is None or \
+           self._base_iterator_cls is None:
+            raise ValueError("You must pre-define fancy, stochastic and "
+                             "_base_iterator_cls arguments by creating a new "
+                             "class using the metaclass type()."
+                             "See function as_even() for an example.")
 
         if batch_size is None:
             if num_batches is not None:
@@ -150,13 +169,20 @@ class ForcedEvenIterator(SubsetIterator):
             else:
                 num_batches = int(dataset_size / batch_size)
 
-        self._base_iterator = base_iterator_cls(dataset_size, batch_size, num_batches, *args, **kwargs)
-        self._dataset_size = self._base_iterator._dataset_size
-        self._batch_size = self._base_iterator._batch_size
-        self._num_batches = self._base_iterator._num_batches
-        self.fancy = base_iterator_cls.fancy
-        self.stochastic = base_iterator_cls.stochastic
+        self._base_iterator = self._base_iterator_cls(dataset_size, batch_size,
+                                  num_batches, *args, **kwargs)
 
+    @property
+    def _dataset_size(self):
+        return self._base_iterator._dataset_size
+
+    @property
+    def _batch_size(self):
+        return self._base_iterator._batch_size
+    
+    @property
+    def _num_batches(self):
+        return self._base_iterator._num_batches
 
     @property
     def num_examples(self):
@@ -167,7 +193,11 @@ class ForcedEvenIterator(SubsetIterator):
         """
 
         product = self.batch_size * self.num_batches
-        return min(product, self._dataset_size)
+
+        if product > self._dataset_size:
+            return self.batch_size * (self.num_batches - 1)
+        else:
+            return product
 
     def next(self):
         """
@@ -191,18 +221,20 @@ class ForcedEvenIterator(SubsetIterator):
 
 
 def as_even(cls):
-    partial = functools.partial(ForcedEvenIterator, cls)
+    """
+    .. todo::
 
-    # temporarily set cls attributes on partial so they are accessible
-    # before instantiation
-    attributes = inspect.getmembers(cls, lambda a:not(inspect.isroutine(a)))
-    for key, value in attributes:
-        if not(key.startswith('__') and key.endswith('__')):
-            setattr(partial,key,value)
+        WRITEME
+    """
 
-    partial.uniform_batch_size = True
+    dct = ForcedEvenIterator.__dict__.copy()
+    dct["_base_iterator_cls"] = cls
+    dct["fancy"] = cls.fancy
+    dct["stochastic"] = cls.stochastic
 
-    return partial
+    NewForcedEvenClass = type("ForcedEven%s" % cls.__name__, ForcedEvenIterator.__bases__, dct)
+
+    return NewForcedEvenClass
 
 
 class SequentialSubsetIterator(SubsetIterator):
