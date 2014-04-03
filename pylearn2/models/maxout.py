@@ -1050,7 +1050,6 @@ class MaxoutLocalC01B(Layer):
             normalized as well
     kernel_stride : tuple, optional
         Vertical and horizontal pixel stride between each detector.
-
     input_groups : int, optional
         WRITEME
     """
