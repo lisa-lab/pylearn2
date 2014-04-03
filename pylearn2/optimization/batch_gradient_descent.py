@@ -125,7 +125,7 @@ class BatchGradientDescent:
         obj = objective
 
         self.verbose = verbose
-        
+
         # TODO: remove verbose statements (handled by logging)
         if self.verbose > 0:
             logger.setLevel(logging.DEBUG)
@@ -229,12 +229,12 @@ class BatchGradientDescent:
             for elem in grad_shared:
                 grad_to_old_grad[elem] = sharedX(elem.get_value(), 'old_'+elem.name)
 
-            self._store_old_grad = function([norm], updates = OrderedDict([(grad_to_old_grad[g], g * norm)
-                for g in grad_to_old_grad]), mode=self.theano_function_mode,
+            self._store_old_grad = function([norm], updates = OrderedDict([(grad_to_old_grad[g_], g_ * norm)
+                for g_ in grad_to_old_grad]), mode=self.theano_function_mode,
                 name='BatchGradientDescent._store_old_grad')
 
             grad_ordered = list(grad_to_old_grad.keys())
-            old_grad_ordered = [ grad_to_old_grad[g] for g in grad_ordered]
+            old_grad_ordered = [grad_to_old_grad[g_] for g_ in grad_ordered]
 
             def dot_product(x, y):
                 return sum([ (x_elem * y_elem).sum() for x_elem, y_elem in safe_zip(x, y) ])
@@ -245,22 +245,18 @@ class BatchGradientDescent:
 
             beta = T.maximum(beta_pr, 0.)
 
-            """
+            #beta_pr is the Polak-Ribiere formula for beta.
+            #According to wikipedia, the beta to use for NCG is "a matter of heuristics or taste"
+            #but max(0, beta_pr) is "a popular choice... which provides direction reset automatically."
+            #(ie, it is meant to revert to steepest descent when you have traveled far enough that
+            #the objective function is behaving non-quadratically enough that the conjugate gradient
+            #formulas aren't working anymore)
 
-            beta_pr is the Polak-Ribiere formula for beta.
-            According to wikipedia, the beta to use for NCG is "a matter of heuristics or taste"
-            but max(0, beta_pr) is "a popular choice... which provides direction reset automatically."
-            (ie, it is meant to revert to steepest descent when you have traveled far enough that
-            the objective function is behaving non-quadratically enough that the conjugate gradient
-            formulas aren't working anymore)
-
-            http://en.wikipedia.org/wiki/Nonlinear_conjugate_gradient_method
-
-            """
+            #http://en.wikipedia.org/wiki/Nonlinear_conjugate_gradient_method
 
             assert grad not in grad_to_old_grad
 
-            make_conjugate_updates = [(g, g + beta * grad_to_old_grad[g]) for g in grad_ordered]
+            make_conjugate_updates = [(g_, g_ + beta * grad_to_old_grad[g_]) for g_ in grad_ordered]
 
             mode = self.theano_function_mode
             if mode is not None and hasattr(mode, 'record'):
@@ -546,27 +542,29 @@ class BatchGradientDescent:
         return best_obj
 
 class Accumulator(object):
+    """
+    Standin for a theano function with the given inputs, outputs, updates.
+
+    Here in the __init__ method you give the same expression as usual.
+    However, instead of passing __call__ the input variables directly, you
+    pass it batches, where each batch is a list containing the inputs for
+    that batch. It returns the average value of the function, averaged
+    across batches, taking batch size into account. The average of all
+    updates is also applied.
+
+    One extra change: if any of the inputs is a shared variable, then this
+    can assign to that variable, while theano.function would refuse to.
+    Those shared variables will be left with the value of the last batch
+    when __call__ returns.
+
+    Parameters
+    ----------
+    inputs : WRITEME
+    outputs : WRITEME
+    updates : WRITEME
+    """
+
     def __init__(self, inputs, outputs = None, updates = None):
-        """
-        Standin for a theano function with the given inputs, outputs, updates.
-        Here in the __init__ method you give the same expression as usual.
-        However, instead of passing __call__ the input variables directly, you
-        pass it batches, where each batch is a list containing the inputs for
-        that batch. It returns the average value of the function, averaged
-        across batches, taking batch size into account. The average of all
-        updates is also applied.
-
-        One extra change: if any of the inputs is a shared variable, then this
-        can assign to that variable, while theano.function would refuse to.
-        Those shared variables will be left with the value of the last batch
-        when __call__ returns.
-
-        Parameters
-        ----------
-        inputs : WRITEME
-        outputs : WRITEME
-        updates : WRITEME
-        """
         batch_size = T.cast(inputs[0].shape[0], 'float32')
         total_examples = T.scalar()
         transformed_updates = OrderedDict()

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-__author__ = "Ian Goodfellow"
 """
 Usage: print_model.py <pickle file containing a model>
 Prints out a saved model.
 """
+__author__ = "Ian Goodfellow"
 
 import sys
 

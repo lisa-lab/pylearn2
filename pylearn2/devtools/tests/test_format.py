@@ -588,7 +588,8 @@ whitelist_docstrings.extend(['training_algorithms/tests/test_learning_rule.py',
  'scripts/tutorials/deep_trainer/test_deep_trainer.py',
  'scripts/icml_2013_wrepl/black_box/learn_zca.py',
  'train_extensions/tests/test_window_flip.py',
- 'train_extensions/window_flip.py'])
+ 'train_extensions/window_flip.py',
+ 'linear/tests/test_local_c01b.py'])
 
 
 def test_format_pep8():

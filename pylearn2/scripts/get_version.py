@@ -1,12 +1,4 @@
 #!/usr/bin/env python
-__authors__ = "Olivier Dellaleau and Raul Chandias Ferrari"
-__copyright__ = "Copyright 2013, Universite de Montreal"
-__credits__ = ["Olivier Dellaleau", "Raul Chandias Ferrari"]
-__license__ = "3-clause BSD"
-__maintainer__ = "Raul Chandias Ferrari"
-__email__ = "chandiar@iro"
-
-
 """
 Script to obtain version of Python modules and basic information on the
 experiment setup (e.g. cpu, os).
@@ -14,6 +6,13 @@ e.g. numpy:1.6.1 | pylearn:a6e634b83d | pylearn2:57a156beb0
      CPU: x86_64
      OS: Linux-2.6.35.14-106.fc14.x86_64-x86_64-with-fedora-14-Laughlin
 """
+__authors__ = "Olivier Dellaleau and Raul Chandias Ferrari"
+__copyright__ = "Copyright 2013, Universite de Montreal"
+__credits__ = ["Olivier Dellaleau", "Raul Chandias Ferrari"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Raul Chandias Ferrari"
+__email__ = "chandiar@iro"
+
 
 import argparse
 import sys
@@ -25,7 +24,10 @@ def main():
     """
     Executable entry point.
 
-    :return: 0 on success, and a non-zero error code on failure.
+    Returns
+    -------
+    rval : int
+        0 on success, and a non-zero error code on failure.
     """
     args = parse_args()
 
@@ -41,7 +43,10 @@ def parse_args():
     """
     Parse command-line arguments.
 
-    :return: Parsed arguments.
+    Returns
+    -------
+    WRITEME : WRITEME
+        Parsed arguments
     """
     # The global program parser.
     parser = argparse.ArgumentParser(
