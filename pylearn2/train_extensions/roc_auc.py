@@ -41,10 +41,9 @@ class RocAucScoreOp(gof.Op):
         node : Apply instance
             Symbolic inputs and outputs.
         inputs : list
-            Sequence of inputs (immutable).
+            Sequence of inputs.
         output_storage : list
-            List of mutable 1-element lists (do not change the length of
-            these lists).
+            List of mutable 1-element lists.
         """
         y_true, y_score = inputs
         print "Y SIZE", y_true.shape
