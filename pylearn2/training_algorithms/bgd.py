@@ -60,7 +60,7 @@ class BGD(TrainingAlgorithm):
     monitoring_batch_size : int
         Size of monitoring batches.
     monitoring_batches : WRITEME
-    monitoring_dataset: Dataset or dict, optional
+    monitoring_dataset : Dataset or dict, optional
         A Dataset or a dictionary mapping string dataset names to Datasets
     termination_criterion : WRITEME
     set_batch_size : bool, optional
