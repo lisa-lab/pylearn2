@@ -4,7 +4,7 @@ from pylearn2.config import yaml_parse
 from pylearn2.testing.skip import skip_if_no_sklearn
 
 
-class TestROCAUCChannel(unittest.TestCase):
+class TestRocAucChannel(unittest.TestCase):
     """Train a simple model and calculate ROC AUC for monitoring datasets."""
     def setUp(self):
         skip_if_no_sklearn()
