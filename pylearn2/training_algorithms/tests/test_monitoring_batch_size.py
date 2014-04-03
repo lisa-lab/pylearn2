@@ -11,14 +11,15 @@ class TestMonitoringBatchSize(unittest.TestCase):
     def setUp(self):
         datasets = {'train': 1000, 'valid': 500, 'test': 300}
         for name, size in datasets.items():
-            if not name:
-                continue
             X = np.random.random((size, 15))
             y = np.random.randint(2, size=size)
             dataset = DenseDesignMatrix(X=X, y=y)
             dataset.convert_to_one_hot()
-            with open("{}_dataset.pkl".format(name), "w") as f:
-                cPickle.dump(dataset, f, cPickle.HIGHEST_PROTOCOL)
+            try:
+                with open("%(name)s_dataset.pkl" % {'name': name}, "w") as f:
+                    cPickle.dump(dataset, f, cPickle.HIGHEST_PROTOCOL)
+            except ValueError:
+                pass
 
     def test_monitoring_batch_size(self):
         trainer = yaml_parse.load(test_yaml)
