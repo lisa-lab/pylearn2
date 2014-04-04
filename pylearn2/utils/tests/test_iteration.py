@@ -147,10 +147,10 @@ def test_uneven_batches():
     # to do
     dataset_size = 50
     batch_size = 20
-    
+
     def test_ignore_uneven_iterator(Iterator):
         iterator = as_even(Iterator)(dataset_size,batch_size,None)
-        
+
         num = 0
         for iter_slice in iterator:
             if isinstance(iter_slice,slice):
@@ -163,7 +163,7 @@ def test_uneven_batches():
 
     def test_include_uneven_iterator(Iterator):
         iterator = Iterator(dataset_size,batch_size,None)
-        
+
         num = 0
         for iter_slice in iterator:
             if isinstance(iter_slice,slice):
@@ -173,11 +173,11 @@ def test_uneven_batches():
             assert length in [batch_size, dataset_size % batch_size]
             num +=  1
         assert num == 3
-        
+
     test_ignore_uneven_iterator(SequentialSubsetIterator)
     test_ignore_uneven_iterator(ShuffledSequentialSubsetIterator)
     test_ignore_uneven_iterator(BatchwiseShuffledSequentialIterator)
-    
+
     test_include_uneven_iterator(SequentialSubsetIterator)
     test_include_uneven_iterator(ShuffledSequentialSubsetIterator)
     test_include_uneven_iterator(BatchwiseShuffledSequentialIterator)
