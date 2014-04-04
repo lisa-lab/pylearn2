@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -12,6 +17,7 @@ class SamplingProcedure(object):
     """
     Procedure for sampling from a DBM.
     """
+
     def set_dbm(self, dbm):
         """
         .. todo::
@@ -28,20 +34,22 @@ class SamplingProcedure(object):
         Parameters
         ----------
         layer_to_state : dict
-            Maps the DBM's Layer instances to theano variables representing \
+            Maps the DBM's Layer instances to theano variables representing
             batches of samples of them.
         theano_rng : theano.sandbox.rng_mrg.MRG_RandomStreams
             WRITEME
         layer_to_clamp : dict, optional
-            Maps Layers to bools. If a layer is not in the dictionary, \
-            defaults to False. True indicates that this layer should be \
-            clamped, so we are sampling from a conditional distribution \
+            Maps Layers to bools. If a layer is not in the dictionary,
+            defaults to False. True indicates that this layer should be
+            clamped, so we are sampling from a conditional distribution
             rather than the joint distribution.
+        num_steps : int, optional
+            WRITEME
 
         Returns
         -------
         layer_to_updated_state : dict
-            Maps the DBM's Layer instances to theano variables representing \
+            Maps the DBM's Layer instances to theano variables representing
             batches of updated samples of them.
         """
         raise NotImplementedError(str(type(self))+" does not implement " +
@@ -54,6 +62,7 @@ class GibbsEvenOdd(SamplingProcedure):
     layers of model.hidden_layers, then the visible layer and all the
     odd-indexed layers.
     """
+
     def sample(self, layer_to_state, theano_rng, layer_to_clamp=None,
                num_steps=1):
         """

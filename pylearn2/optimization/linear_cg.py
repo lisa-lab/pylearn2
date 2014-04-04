@@ -7,7 +7,7 @@ import theano
 from theano import tensor
 from theano.ifelse import ifelse
 
-def linear_cg(fn, params, tol = 1e-3, max_iters = 1000, floatX = None):
+def linear_cg(fn, params, tol=1e-3, max_iters=1000, floatX=None):
     """
     Minimizes a POSITIVE DEFINITE quadratic function via linear conjugate
     gradient using the R operator to avoid explicitly representing the Hessian.
@@ -18,30 +18,28 @@ def linear_cg(fn, params, tol = 1e-3, max_iters = 1000, floatX = None):
     Hessian. It is also cheaper than nonlinear conjugate gradient which does a
     line search by repeatedly evaluating f.
 
+    For more information about linear conjugate gradient, you may look at
+    http://en.wikipedia.org/wiki/Conjugate_gradient_method .
+
+    (This reference describes linear CG but not converting it to use
+    the R operator instead of an explicit representation of the Hessian)
+
     Parameters
     ----------
+    params : WRITEME
     f : theano_like
-        A theano expression which is quadratic with POSITIVE DEFINITE hessian \
+        A theano expression which is quadratic with POSITIVE DEFINITE hessian
         in x
     x : list
         List of theano shared variables that influence f
-
     tol : float
         Minimization halts when the norm of the gradient is smaller than tol
 
     Returns
     -------
     rval : theano_like
-        The solution in form of a symbolic expression (or list of \
+        The solution in form of a symbolic expression (or list of
         symbolic expressions)
-
-
-    See Also
-    --------
-        http://en.wikipedia.org/wiki/Conjugate_gradient_method
-
-        (This reference describes linear CG but not converting it to use
-        the R operator instead of an explicit representation of the Hessian)
     """
     provided_as_list = True
     if not isinstance(params, (list,tuple)):

@@ -236,6 +236,7 @@ class And(TerminationCriterion):
         should continue.
     """
     def __init__(self, criteria):
+        assert all(isinstance(x,TerminationCriterion) for x in list(criteria))
         self._criteria = list(criteria)
 
     @functools.wraps(TerminationCriterion.continue_learning)
@@ -254,11 +255,12 @@ class Or(TerminationCriterion):
     Parameters
     ----------
     criteria : iterable
-        A sequence of callables representing termination criteria, \
-        with a return value of True indicating that gradient \
+        A sequence of callables representing termination criteria,
+        with a return value of True indicating that gradient
         descent should continue.
     """
     def __init__(self, criteria):
+        assert all(isinstance(x,TerminationCriterion) for x in list(criteria))
         self._criteria = list(criteria)
 
     @functools.wraps(TerminationCriterion.continue_learning)

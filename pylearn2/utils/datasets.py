@@ -3,6 +3,7 @@ Several utilities to evaluate an ALC on the dataset, to iterate over
 minibatches from a dataset, or to merge three data with given proportions
 """
 # Standard library imports
+import logging
 import os
 import functools
 from itertools import repeat
@@ -21,6 +22,10 @@ except ImportError:
 # Local imports
 from pylearn2.utils import sharedX
 from pylearn2.utils.rng import make_np_rng
+
+
+logger = logging.getLogger(__name__)
+
 
 ##################################################
 # 3D Visualization
@@ -62,7 +67,7 @@ def save_plot(repr, path, name="figure.pdf", title="features"):
     # Save the produces figure
     filename = os.path.join(path, name)
     pyplot.savefig(filename, format="pdf")
-    print '... figure saved: %s' % filename
+    logger.info('... figure saved: {0}'.format(filename))
 
 ##################################################
 # Features or examples filtering

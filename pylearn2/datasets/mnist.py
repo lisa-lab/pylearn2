@@ -9,6 +9,7 @@ import numpy as N
 np = N
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.datasets import control
+from pylearn2.datasets import cache
 from pylearn2.utils import serial
 from pylearn2.utils.mnist_ubyte import read_mnist_images
 from pylearn2.utils.mnist_ubyte import read_mnist_labels
@@ -75,6 +76,12 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             # the Deep Learning Tutorials, or in another package).
             im_path = serial.preprocess(im_path)
             label_path = serial.preprocess(label_path)
+
+            # Locally cache the files before reading them
+            datasetCache = cache.datasetCache
+            im_path = datasetCache.cache_file(im_path)
+            label_path = datasetCache.cache_file(label_path)
+
             topo_view = read_mnist_images(im_path, dtype='float32')
             y = read_mnist_labels(label_path)
 

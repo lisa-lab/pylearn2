@@ -1,3 +1,4 @@
+import logging
 import warnings
 
 from .general import is_iterable
@@ -15,6 +16,8 @@ from functools import partial
 WRAPPER_ASSIGNMENTS = ('__module__', '__name__')
 WRAPPER_CONCATENATIONS = ('__doc__',)
 WRAPPER_UPDATES = ('__dict__',)
+
+logger = logging.getLogger(__name__)
 
 
 def make_name(variable, anon="anonymous_variable"):
@@ -388,14 +391,14 @@ def get_choice(choice_to_explanation):
     d = choice_to_explanation
 
     for key in d:
-        print '\t'+key + ': '+d[key]
+        logger.info('\t{0}: {1}'.format(key, d[key]))
     prompt = '/'.join(d.keys())+'? '
 
     first = True
     choice = ''
     while first or choice not in d.keys():
         if not first:
-            print 'unrecognized choice'
+            logger.warning('unrecognized choice')
         first = False
         choice = raw_input(prompt)
     return choice
@@ -511,8 +514,8 @@ def wraps(wrapped,
     Returns a decorator that invokes `update_wrapper()` with the decorated
     function as the wrapper argument and the arguments to `wraps()` as the
     remaining arguments. Default arguments are as for `update_wrapper()`.
-    This is a convenience function to simplify applying `partial()` to
-    `update_wrapper()`.
+    This is a convenience function to simplify applying
+    `functools.partial()` to `update_wrapper()`.
 
     Examples
     --------

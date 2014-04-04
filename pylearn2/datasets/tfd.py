@@ -10,18 +10,21 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
 
     Parameters
     ----------
-    which_set : WRITEME
+    which_set : srt
         Dataset to load. One of ['train','valid','test','unlabeled'].
-    fold : WRITEME
+    fold : int in {0,1,2,3,4}
         TFD contains 5 official folds for train, valid and test.
-    image_size : WRITEME
-        One of [48,96]. Load smaller or larger dataset variant.
-    example_range : WRITEME
-        Array_like. Load only examples in range
-        [example_range[0]:example_range[1]].
-    center : WRITEME
-        Move data from range [0.,255.] to [-127.5,127.5]
-    scale : WRITEME
+    image_size : int in [48,96]
+        Load smaller or larger dataset variant.
+    example_range : array_like.
+        Load only examples in range [example_range[0]:example_range[1]].
+    center : bool
+        Move data from range [0., 255.] to [-127.5, 127.5]
+        False by default.
+    scale : bool
+        Move data from range [0., 255.] to [0., 1.], or
+        from range [-127.5, 127.5] to [-1., 1.] if center is True
+        False by default.
     shuffle : WRITEME
     one_hot : WRITEME
     rng : WRITEME
@@ -37,6 +40,7 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
                  example_range = None, center = False, scale = False,
                  shuffle=False, one_hot = False, rng=None, seed=132987,
                  preprocessor = None, axes = ('b', 0, 1, 'c')):
+
         if which_set not in self.mapper.keys():
             raise ValueError("Unrecognized which_set value: %s. Valid values are %s." % (str(which_set), str(self.mapper.keys())))
         assert (fold >=0) and (fold <5)
@@ -67,11 +71,14 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
         data_x = data_x[ex_range]
         # create dense design matrix from topological view
         data_x = data_x.reshape(data_x.shape[0], image_size ** 2)
-        if center:
-            data_x -= 127.5
-        if scale:
-            assert not center
-            data_x /= 255.
+
+        if center and scale:
+            data_x[:] -= 127.5
+            data_x[:] /= 127.5
+        elif center:
+            data_x[:] -= 127.5
+        elif scale:
+            data_x[:] /= 255.
 
         if shuffle:
             rng = make_np_rng(rng, seed, which_method='permutation')

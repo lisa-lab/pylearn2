@@ -1,9 +1,15 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
+import logging
 import warnings
 import numpy as np
 from theano import tensor as T, config
@@ -16,6 +22,9 @@ from pylearn2.utils import safe_zip, safe_izip
 from pylearn2.utils.rng import make_np_rng
 
 
+logger = logging.getLogger(__name__)
+
+
 class DBM(Model):
     """
     A deep Boltzmann machine.
@@ -26,17 +35,17 @@ class DBM(Model):
     Parameters
     ----------
     batch_size : int
-        The batch size the model should use. Some convolutional \
-        LinearTransforms require a compile-time hardcoded batch size, \
+        The batch size the model should use. Some convolutional
+        LinearTransforms require a compile-time hardcoded batch size,
         otherwise this would not be part of the model specification.
     visible_layer : WRITEME
         The visible layer of the DBM.
     hidden_layers : list
-        The hidden layers. A list of HiddenLayer objects. The first \
-        layer in the list is connected to the visible layer. 
+        The hidden layers. A list of HiddenLayer objects. The first
+        layer in the list is connected to the visible layer.
     niter : int
-        Number of mean field iterations for variational inference \
-        for the positive phase. 
+        Number of mean field iterations for variational inference
+        for the positive phase.
     sampling_procedure : WRITEME
     inference_procedure : WRITEME
     """
@@ -74,15 +83,17 @@ class DBM(Model):
 
     def energy(self, V, hidden):
         """
-        WRITEME
+        .. todo::
+
+            WRITEME
 
         Parameters
         ----------
         V : tensor_like
-            Theano batch of visible unit observations (must be SAMPLES, not \
+            Theano batch of visible unit observations (must be SAMPLES, not
             mean field parameters)
         hidden : list
-            List, one element per hidden layer, of batches of samples (must \
+            List, one element per hidden layer, of batches of samples (must
             be SAMPLES, not mean field parameters)
 
         Returns
@@ -138,21 +149,21 @@ class DBM(Model):
         Parameters
         ----------
         V : tensor_like
-            Theano batch of visible unit observations (must be SAMPLES, not \
-            mean field parameters: the random variables in the expectation \
+            Theano batch of visible unit observations (must be SAMPLES, not
+            mean field parameters: the random variables in the expectation
             are the hiddens only)
         mf_hidden : list
-            List, one element per hidden layer, of batches of variational \
-            parameters (must be VARIATIONAL PARAMETERS, not samples. Layers \
-            with analytically determined variance parameters for their mean \
-            field parameters will use those to integrate over the variational \
-            distribution, so it's not generally the same thing as measuring \
+            List, one element per hidden layer, of batches of variational
+            parameters (must be VARIATIONAL PARAMETERS, not samples. Layers
+            with analytically determined variance parameters for their mean
+            field parameters will use those to integrate over the variational
+            distribution, so it's not generally the same thing as measuring
             the energy at a point.)
 
         Returns
         -------
         rval : tensor_like
-            Vector containing the expected energy of each example under the \
+            Vector containing the expected energy of each example under the
             corresponding variational distribution.
         """
 
@@ -399,14 +410,16 @@ class DBM(Model):
 
     def make_layer_to_state(self, num_examples, rng=None):
         """
-        Makes and returns a dictionary mapping layers to states. By states, we
-        mean here a real assignment, not a mean field state. For example, for a
-        layer containing binary random variables, the state will be a shared
-        variable containing values in {0,1}, not [0,1]. The visible layer will
-        be included.
+        Makes and returns a dictionary mapping layers to states.
+        
+        By states, we mean here a real assignment, not a mean field
+        state. For example, for a layer containing binary random
+        variables, the state will be a shared variable containing
+        values in {0,1}, not [0,1]. The visible layer will be included.
 
-        Uses a dictionary so it is easy to unambiguously index a layer without
-        needing to remember rules like vis layer = 0, hiddens start at 1, etc.
+        Uses a dictionary so it is easy to unambiguously index a layer
+        without needing to remember rules like vis layer = 0, hiddens
+        start at 1, etc.
 
         Parameters
         ----------
@@ -449,14 +462,16 @@ class DBM(Model):
 
             Explain the difference with `make_layer_to_state`
 
-        Makes and returns a dictionary mapping layers to states. By states, we
-        mean here a real assignment, not a mean field state. For example, for a
-        layer containing binary random variables, the state will be a shared
-        variable containing values in {0,1}, not [0,1]. The visible layer will
-        be included.
+        Makes and returns a dictionary mapping layers to states.
 
-        Uses a dictionary so it is easy to unambiguously index a layer without
-        needing to remember rules like vis layer = 0, hiddens start at 1, etc.
+        By states, we mean here a real assignment, not a mean field
+        state. For example, for a layer containing binary random
+        variables, the state will be a shared variable containing
+        values in {0,1}, not [0,1]. The visible layer will be included.
+
+        Uses a dictionary so it is easy to unambiguously index a layer
+        without needing to remember rules like vis layer = 0, hiddens
+        start at 1, etc.
 
         Parameters
         ----------
@@ -497,6 +512,7 @@ class DBM(Model):
                              return_layer_to_updated=False):
         """
         This method is for getting an updates dictionary for a theano function.
+
         It thus implies that the samples are represented as shared variables.
         If you want an expression for a sampling step applied to arbitrary
         theano variables, use the 'mcmc_steps' method. This is a wrapper around
@@ -504,22 +520,26 @@ class DBM(Model):
 
         Parameters
         ----------
-        layer_to_state: dict
-            Dictionary mapping the SuperDBM_Layer instances contained in \
-            self to shared variables representing batches of samples of them. \
+        layer_to_state : dict
+            Dictionary mapping the SuperDBM_Layer instances contained in
+            self to shared variables representing batches of samples of them.
             (you can allocate one by calling self.make_layer_to_state)
-        theano_rng: MRG_RandomStreams
+        theano_rng : MRG_RandomStreams
             WRITEME
-        layer_to_clamp: dict, optional
-            Dictionary mapping layers to bools. If a layer is not in the \
-            dictionary, defaults to False. True indicates that this layer \
-            should be clamped, so we are sampling from a conditional \
+        layer_to_clamp : dict, optional
+            Dictionary mapping layers to bools. If a layer is not in the
+            dictionary, defaults to False. True indicates that this layer
+            should be clamped, so we are sampling from a conditional
             distribution rather than the joint distribution
+        num_steps : int, optional
+            WRITEME
+        return_layer_to_updated : bool, optional
+            WRITEME
 
         Returns
         -------
         rval : dict
-            Dictionary mapping each shared variable to an expression to \
+            Dictionary mapping each shared variable to an expression to
             update it. Repeatedly applying these updates does MCMC sampling.
 
         Notes
@@ -605,7 +625,7 @@ class DBM(Model):
             for new, old in safe_zip(flat_q, flat_prev_q):
                 cur_mx = abs(new - old).max()
                 if new is old:
-                    print new, 'is', old
+                    logger.error('{0} is {1}'.format(new, old))
                     assert False
                 if mx is None:
                     mx = cur_mx
@@ -661,5 +681,10 @@ class DBM(Model):
         return recons
 
     def do_inpainting(self, *args, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+		"""
         self.setup_inference_procedure()
         return self.inference_procedure.do_inpainting(*args, **kwargs)

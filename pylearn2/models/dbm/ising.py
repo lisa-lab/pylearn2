@@ -85,13 +85,13 @@ class IsingVisible(VisibleLayer):
     nvis : int
         The dimension of the space
     beta : theano shared variable
-        Shared variable representing a multiplicative factor of the \
+        Shared variable representing a multiplicative factor of the
         energy function (the inverse temperature)
     learn_beta : boolean, optional
-        Whether or not the inverse temperature should be considered as a \
+        Whether or not the inverse temperature should be considered as a
         learned parameter
     bias_from_marginals : `pylearn2.datasets.dataset.Dataset`, optional
-        A dataset whose marginals are used to initialize the visible \
+        A dataset whose marginals are used to initialize the visible
         biases
     """
 
@@ -273,6 +273,7 @@ class IsingHidden(HiddenLayer):
     b_lr_scale : WRITEME
     max_col_norm : WRITEME
     """
+
     def __init__(self,
                  dim,
                  layer_name,
@@ -807,7 +808,11 @@ class BoltzmannIsingVisible(VisibleLayer):
     bias_from_marginals : `pylearn2.datasets.dataset.Dataset`, optional
         A dataset whose marginals are used to initialize the visible
         biases
+    sampling_b_stdev : WRITEME
+    min_ising_b : WRITEME
+    max_ising_b : WRITEME
     """
+
     def __init__(self, nvis, beta, learn_beta=False, bias_from_marginals=None,
                  sampling_b_stdev=None, min_ising_b=None, max_ising_b=None):
 
@@ -1104,22 +1109,37 @@ class BoltzmannIsingVisible(VisibleLayer):
 class BoltzmannIsingHidden(HiddenLayer):
     """
     An IsingHidden whose parameters are defined in Boltzmann machine space.
-    """
-    """
+
     .. todo::
 
         WRITEME properly
 
     Parameters
     ----------
+    dim : WRITEME
+    layer_name : WRITEME
+    layer_below : WRITEME
     beta : theano shared variable
         Shared variable representing a multiplicative factor of the energy
         function (the inverse temperature)
     learn_beta : boolean, optional
         Whether or not the inverse temperature should be considered as a
         learned parameter
-    bias_from_marginals : `pylearn2.datasets.dataset.Dataset`, optional
-        A dataset whose marginals are used to initialize the visible biases
+    irange : WRITEME
+    sparse_init : WRITEME
+    sparse_stdev : WRITEME
+    include_prob : WRITEME
+    init_bias : WRITEME
+    W_lr_scale : WRITEME
+    b_lr_scale : WRITEME
+    beta_lr_scale : WRITEME
+    max_col_norm : WRITEME
+    min_ising_b : WRITEME
+    max_ising_b : WRITEME
+    min_ising_W : WRITEME
+    max_ising_W : WRITEME
+    sampling_W_stdev : WRITEME
+    sampling_b_stdev : WRITEME
     """
     def __init__(self,
                  dim,

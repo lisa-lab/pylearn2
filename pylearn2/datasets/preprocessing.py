@@ -723,9 +723,9 @@ class PCA(object):
         orig_var = orig_data.var(axis=0)
         proc_var = proc_data.var(axis=0)
         assert proc_var[0] > orig_var.max()
-        # TODO: logging
-        print 'original variance: ' + str(orig_var.sum())
-        print 'processed variance: ' + str(proc_var.sum())
+
+        log.info('original variance: {0}'.format(orig_var.sum()))
+        log.info('processed variance: {0}'.format(proc_var.sum()))
         if hasattr(dataset, 'view_converter'):
             if dataset.view_converter is not None:
                 new_converter = PCA_ViewConverter(self._transform_func,
@@ -1047,8 +1047,8 @@ class ZCA(Preprocessor):
         # Center data
         self.mean_ = numpy.mean(X, axis=0)
         X -= self.mean_
-        # TODO: logging
-        print 'computing zca of a %s matrix' % str(X.shape)
+
+        log.info('computing zca of a {0} matrix'.format(X.shape))
         t1 = time.time()
 
         bias = self.filter_bias * scipy.sparse.identity(X.shape[1],
@@ -1056,12 +1056,12 @@ class ZCA(Preprocessor):
 
         covariance = ZCA._gpu_matrix_dot(X.T, X) / X.shape[0] + bias
         t2 = time.time()
-        print "cov estimate took %g seconds" % (t2-t1)
+        log.info("cov estimate took {0} seconds".format(t2-t1))
 
         t1 = time.time()
         eigs, eigv = linalg.eigh(covariance)
         t2 = time.time()
-        print "eigh() took %g seconds" % (t2 - t1)
+        log.info("eigh() took {0} seconds".format(t2 - t1))
         assert not numpy.any(numpy.isnan(eigs))
         assert not numpy.any(numpy.isnan(eigv))
         assert eigs.min() > 0
@@ -1176,7 +1176,7 @@ class LeCunLCN(ExamplewisePreprocessor):
             stop = (i + numpy.mod(data_size, self._batch_size)
                     if i >= last else
                     i + self._batch_size)
-            print "LCN processing data from %d to %d" % (i, stop)
+            log.info("LCN processing data from {0} to {1}".format(i, stop))
             transformed = self.transform(convert_axes(
                 dataset.get_topological_view(dataset.X[i:stop, :]),
                 dataset.view_converter.axes, axes))
@@ -1271,7 +1271,7 @@ class RGB_YUV(ExamplewisePreprocessor):
             stop = (i + numpy.mod(data_size, self._batch_size)
                     if i >= last else
                     i + self._batch_size)
-            print "RGB_YUV processing data from %d to %d" % (i, stop)
+            log.info("RGB_YUV processing data from {0} to {1}".format(i, stop))
             data = dataset.get_topological_view(X[i:stop])
             transformed = self.transform(data, dataset.view_converter.axes)
 
