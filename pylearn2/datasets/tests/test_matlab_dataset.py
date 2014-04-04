@@ -1,4 +1,4 @@
-"""module for testing datasets.matlab_dataset""
+"""module for testing datasets.matlab_dataset"""
 import numpy as np
 from pylearn2.datasets.matlab_dataset import MatlabDataset
 from pylearn2.testing.skip import skip_if_no_data
