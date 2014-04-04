@@ -41,6 +41,7 @@ class KMeans(Block, Model):
         self.input_space = VectorSpace(nvis)
 
         self.k = k
+        self.mu = None
         self.convergence_th = convergence_th
         if max_iter:
             if max_iter < 0:
