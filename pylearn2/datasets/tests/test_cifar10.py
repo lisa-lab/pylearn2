@@ -11,7 +11,7 @@ class TestCIFAR10(unittest.TestCase):
     def setUp(self):
         """TestCIFAR10 setUp"""
         skip_if_no_data()
-        self.train = CIFAR10(which_set = 'train')
+        train = CIFAR10(which_set = 'train')
         self.test = CIFAR10(which_set = 'test')
 
     def test_topo(self):
