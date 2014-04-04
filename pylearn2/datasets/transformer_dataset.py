@@ -30,7 +30,7 @@ class TransformerDataset(Dataset):
 
             Parameters
             ----------
-            raw : pylearn2 Dataset 
+            raw : pylearn2 Dataset
                 Provides raw data
             transformer: pylearn2 Block
                 To transform the data

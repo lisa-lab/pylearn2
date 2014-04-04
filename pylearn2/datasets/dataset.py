@@ -26,7 +26,7 @@ class Dataset(object):
 
             Parameters : targets
 
-            DWF or LD should fill this in, but IG thinks it is just 
+            DWF or LD should fill this in, but IG thinks it is just
             a bool saying whether to include the targets or not
 
         Parameters

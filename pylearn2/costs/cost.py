@@ -93,7 +93,7 @@ class Cost(object):
     def get_gradients(self, model, data, ** kwargs):
         """
         Provides the gradients of the cost function with respect to the model
-        parameters. 
+        parameters.
 
         These are not necessarily those obtained by theano.tensor.grad
         --you may wish to use approximate or even intentionally incorrect
