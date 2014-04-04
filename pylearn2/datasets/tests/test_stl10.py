@@ -11,8 +11,8 @@ class TestSTL10(unittest.TestCase):
     def setUp(self):
         """This loads train and test sets."""
         skip_if_no_data()
-        self.train = stl10.STL10(which_set='train')
-        self.test = stl10.STL10(which_set='test')
+        train = stl10.STL10(which_set='train')
+        test = stl10.STL10(which_set='test')
 
     def test_restrict(self):
         """This tests the restrict function on each fold of the train set."""
@@ -20,6 +20,7 @@ class TestSTL10(unittest.TestCase):
             train = stl10.STL10(which_set='train')
             stl10.restrict(train, fold)
 
-    def disabled_test_unlabeled(self):
-        """The unlabeled data is 2.4GiB.  This test is disabled by default."""
-        data = stl10.STL10(which_set='unlabeled')
+#    def disabled_test_unlabeled(self):
+#        """The unlabeled data is 2.4GiB.  This test is disabled by default."""
+#        assert 1 == 0
+#        data = stl10.STL10(which_set='unlabeled')
