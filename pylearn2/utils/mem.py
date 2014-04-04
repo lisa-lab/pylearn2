@@ -9,8 +9,8 @@ import os
 
 def get_memory_usage():
     """
-    Return int containing memory used by this process. Don't trust this too
-    much, I'm not totally sure what ps rss measures.
+    Return int containing memory used by this process. Don't trust this
+    too much, I'm not totally sure what ps rss measures.
     """
 
     pid = os.getpid()
