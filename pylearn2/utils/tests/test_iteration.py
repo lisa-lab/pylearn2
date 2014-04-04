@@ -144,7 +144,6 @@ def test_batchwise_shuffled_sequential():
 
 
 def test_uneven_batches():
-    # to do
     dataset_size = 50
     batch_size = 20
 
