@@ -11,33 +11,33 @@ class TestCIFAR100(unittest.TestCase):
     def setUp(self):
         """TestCIFAR100 setUp"""
         skip_if_no_data()
-        self.train_set = CIFAR100(which_set='train')
+        train_set = CIFAR100(which_set='train')
         self.test_set = CIFAR100(which_set='test')
-        assert not np.any(np.isnan(self.train_set.X))
-        assert not np.any(np.isinf(self.train_set.X))
+        assert not np.any(np.isnan(train_set.X))
+        assert not np.any(np.isinf(train_set.X))
         assert not np.any(np.isnan(self.test_set.X))
         assert not np.any(np.isinf(self.test_set.X))
 
     def test_adjust_for_viewer(self):
         """test adjust_for_viewer"""
-        self.train_set.adjust_for_viewer(self.train_set.X)
+        self.test_set.adjust_for_viewer(self.test_set.X)
 
     def test_adjust_to_be_viewed_with(self):
         """tests adjust_to_be_viewed_with method"""
-        self.train_set.adjust_to_be_viewed_with(
-            self.train_set.X,
-            np.ones(self.train_set.X.shape))
+        self.test_set.adjust_to_be_viewed_with(
+            self.test_set.X,
+            np.ones(self.test_set.X.shape))
 
     def test_get_test_set(self):
         """tests get_test_set method"""
-        train_test_set = self.train_set.get_test_set()
+        train_test_set = self.test_set.get_test_set()
         test_test_set = self.test_set.get_test_set()
         assert np.all(train_test_set.X == test_test_set.X)
         assert np.all(train_test_set.X == self.test_set.X)
 
     def test_topo(self):
         """Tests that a topological batch has 4 dimensions"""
-        topo = self.train_set.get_batch_topo(1)
+        topo = self.test_set.get_batch_topo(1)
         assert topo.ndim == 4
 
     def test_topo_c01b(self):
