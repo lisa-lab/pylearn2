@@ -13,34 +13,34 @@ from itertools import izip
 
 def pooling_matrix(groups, per_group, strides=None, dtype=None, sparse=None):
     """
-    Construct a pooling matrix, optionally with overlapping pools arranged in a
-    1 or 2D topology.
+    Construct a pooling matrix, optionally with overlapping pools
+    arranged in a 1 or 2D topology.
 
     Parameters
     ----------
     groups : int or tuple
         The grid dimensions of a 1- or 2-dimensional pooling grid.
     per_group : int or tuple
-        The grid dimensions of a single 1- or 2-dimensional feature \
+        The grid dimensions of a single 1- or 2-dimensional feature
         pool. Must be same length as `groups`.
     strides : int or tuple, optional
-        The stride of the pools along each dimension. A value of `None` \
-        is equivalent to setting equal to `per_group`, i.e. no overlap \
+        The stride of the pools along each dimension. A value of `None`
+        is equivalent to setting equal to `per_group`, i.e. no overlap
     dtype : dtype object or str, optional
         The dtype of the resulting pooling matrix.
     sparse : str, optional
-        If `None`, the function will return a dense matrix (a rank-2 \
-        `numpy.ndarray`). Specifying 'csc' or 'csr' in this argument will \
-        cause the function to return a `scipy.sparse.csc_matrix` or a \
+        If `None`, the function will return a dense matrix (a rank-2
+        `numpy.ndarray`). Specifying 'csc' or 'csr' in this argument will
+        cause the function to return a `scipy.sparse.csc_matrix` or a
         `scipy.sparse.csr_matrix`, instead.
 
     Returns
     -------
     pools : ndarray or sparse matrix
-        Either a dense 2-dimensional NumPy array or one of \
-        `scipy.sparse.csc_matrix` or `scipy.sparse.csr_matrix`, depending \
-        on the value of the `sparse` argument. In any case, the shape is \
-        `(n_pools, n_filters)` and the value of `pools[i, j]` is 1 if \
+        Either a dense 2-dimensional NumPy array or one of
+        `scipy.sparse.csc_matrix` or `scipy.sparse.csr_matrix`, depending
+        on the value of the `sparse` argument. In any case, the shape is
+        `(n_pools, n_filters)` and the value of `pools[i, j]` is 1 if
         feature `j` is in pool `i`, and 0 otherwise.
     """
     # Error-check arguments and fill in row_stride and col_stride

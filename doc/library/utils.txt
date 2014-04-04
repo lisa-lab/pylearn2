@@ -102,6 +102,11 @@ Python26
 .. automodule:: pylearn2.utils.python26
     :members:
 
+RNG
+===
+.. automodule:: pylearn2.utils.rng
+    :members:
+
 Serial
 ======
 .. automodule:: pylearn2.utils.serial
