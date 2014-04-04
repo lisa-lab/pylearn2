@@ -24,9 +24,9 @@ class DataSpecsMapping(object):
     Attributes
     ----------
     specs_to_index : dict
-        Maps one elementary (not composite) data_specs pair to its
-        index in the flattened space.  Not sure if this one should
-        be a member, or passed as a parameter to _fill_mapping. It
+        Maps one elementary (not composite) data_specs pair to its \
+        index in the flattened space.  Not sure if this one should \
+        be a member, or passed as a parameter to _fill_mapping. It \
         might be us
     """
     #might be useful to get the index of one data_specs later
