@@ -1084,7 +1084,7 @@ class MaxoutLocalC01B(Layer):
             max_kernel_norm = max_filter_norm
             warnings.warn("max_filter_norm argument is deprecated, use"
                           "max_kernel_norm instead. max_filter_norm "
-                          "will be removed on or after 2014-10-02.", 
+                          "will be removed on or after 2014-10-02.",
                           stacklevel=2)
 
         assert (pool_shape is None) == (pool_stride is None)
