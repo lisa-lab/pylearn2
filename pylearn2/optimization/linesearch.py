@@ -170,11 +170,11 @@ def scalar_search_wolfe2(phi,
     -------
     alpha_star : float
         Best alpha
-    phi_star: WRITEME
+    phi_star : WRITEME
         phi at alpha_star
-    phi0: WRITEME
+    phi0 : WRITEME
         phi at 0
-    derphi_star: WRITEME
+    derphi_star : WRITEME
         derphi at alpha_star
 
     Notes

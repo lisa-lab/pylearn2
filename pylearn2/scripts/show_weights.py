@@ -1,9 +1,19 @@
 #!/usr/bin/env python
+"""
+.. todo::
+
+    WRITEME
+"""
 #usage: show_weights.py model.pkl
 from pylearn2.gui import get_weights_report
 import argparse
 
 def main():
+    """
+    .. todo::
+
+        WRITEME
+    """
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--rescale", default="individual")

@@ -1,9 +1,15 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
+import logging
 import warnings
 from theano import gof
 import theano.tensor as T
@@ -14,12 +20,16 @@ from pylearn2.models.dbm.layer import Softmax
 from pylearn2.utils import safe_izip, block_gradient, safe_zip
 
 
+logger = logging.getLogger(__name__)
+
+
 class InferenceProcedure(object):
     """
     .. todo::
 
         WRITEME
     """
+
     def set_dbm(self, dbm):
         """
         .. todo::
@@ -202,6 +212,7 @@ class SuperWeightDoubling(WeightDoubling):
 
         WRITEME
     """
+
     def multi_infer(self, V, return_history = False, niter = None, block_grad = None):
         """
         .. todo::
@@ -341,19 +352,19 @@ class SuperWeightDoubling(WeightDoubling):
         V : tensor_like
             Theano batch in `model.input_space`
         Y : tensor_like
-            Theano batch in `model.output_space`, i.e. in the output space of \
-            the last hidden layer. (It's not really a hidden layer anymore, \
-            but oh well. It's convenient to code it this way because the \
-            labels are sort of "on top" of everything else.) *** Y is always \
+            Theano batch in `model.output_space`, i.e. in the output space of
+            the last hidden layer. (It's not really a hidden layer anymore,
+            but oh well. It's convenient to code it this way because the
+            labels are sort of "on top" of everything else.) *** Y is always
             assumed to be a matrix of one-hot category labels. ***
         drop_mask : tensor_like
-            Theano batch in `model.input_space`. Should be all binary, with \
-            1s indicating that the corresponding element of X should be \
-            "dropped", i.e. hidden from the algorithm and filled in as part \
+            Theano batch in `model.input_space`. Should be all binary, with
+            1s indicating that the corresponding element of X should be
+            "dropped", i.e. hidden from the algorithm and filled in as part
             of the inpainting process
         drop_mask_Y : tensor_like
-            Theano vector. Since we assume Y is a one-hot matrix, each row is \
-            a single categorical variable. `drop_mask_Y` is a binary mask \
+            Theano vector. Since we assume Y is a one-hot matrix, each row is
+            a single categorical variable. `drop_mask_Y` is a binary mask
             specifying which *rows* to drop.
         return_history : bool, optional
             WRITEME
@@ -629,19 +640,19 @@ class MoreConsistent2(WeightDoubling):
         V : tensor_like
             Theano batch in `model.input_space`
         Y : tensor_like
-            Theano batch in `model.output_space`, i.e. in the output space of \
-            the last hidden layer. (It's not really a hidden layer anymore, \
-            but oh well. It's convenient to code it this way because the \
-            labels are sort of "on top" of everything else.) *** Y is always \
+            Theano batch in `model.output_space`, i.e. in the output space of
+            the last hidden layer. (It's not really a hidden layer anymore,
+            but oh well. It's convenient to code it this way because the
+            labels are sort of "on top" of everything else.) *** Y is always
             assumed to be a matrix of one-hot category labels. ***
         drop_mask : tensor_like
-            Theano batch in `model.input_space`. Should be all binary, with \
-            1s indicating that the corresponding element of X should be \
-            "dropped", i.e. hidden from the algorithm and filled in as part \
+            Theano batch in `model.input_space`. Should be all binary, with
+            1s indicating that the corresponding element of X should be
+            "dropped", i.e. hidden from the algorithm and filled in as part
             of the inpainting process
         drop_mask_Y : tensor_like
-            Theano vector. Since we assume Y is a one-hot matrix, each row is \
-            a single categorical variable. `drop_mask_Y` is a binary mask \
+            Theano vector. Since we assume Y is a one-hot matrix, each row is
+            a single categorical variable. `drop_mask_Y` is a binary mask
             specifying which *rows* to drop.
         return_history : bool, optional
             WRITEME
@@ -929,13 +940,15 @@ class BiasInit(InferenceProcedure):
             for value in get_debug_values(elem):
                 assert value.shape[0] == dbm.batch_size
             if V not in theano.gof.graph.ancestors([elem]):
-                print str(elem)+" does not have V as an ancestor!"
-                print theano.printing.min_informative_str(V)
+                logger.error("{0} "
+                             "does not have V as an ancestor!".format(elem))
+                logger.error(theano.printing.min_informative_str(V))
                 if elem is V:
-                    print "this variational parameter *is* V"
+                    logger.error("this variational parameter *is* V")
                 else:
-                    print "this variational parameter is not the same as V"
-                print "V is ",V
+                    logger.error("this variational parameter "
+                                 "is not the same as V")
+                logger.error("V is {0}".format(V))
                 assert False
             if Y is not None:
                 assert Y in theano.gof.graph.ancestors([elem])
@@ -982,19 +995,19 @@ class BiasInit(InferenceProcedure):
         V : tensor_like
             Theano batch in `model.input_space`
         Y : tensor_like
-            Theano batch in model.output_space, ie, in the output space of \
-            the last hidden layer (it's not really a hidden layer anymore, \
-            but oh well. It's convenient to code it this way because the \
-            labels are sort of "on top" of everything else). *** Y is always \
+            Theano batch in model.output_space, ie, in the output space of
+            the last hidden layer (it's not really a hidden layer anymore,
+            but oh well. It's convenient to code it this way because the
+            labels are sort of "on top" of everything else). *** Y is always
             assumed to be a matrix of one-hot category labels. ***
         drop_mask : tensor_like
-            A theano batch in `model.input_space`. Should be all binary, with \
-            1s indicating that the corresponding element of X should be \
-            "dropped", ie, hidden from the algorithm and filled in as part of \
+            A theano batch in `model.input_space`. Should be all binary, with
+            1s indicating that the corresponding element of X should be
+            "dropped", ie, hidden from the algorithm and filled in as part of
             the inpainting process
         drop_mask_Y : tensor_like
-            Theano vector. Since we assume Y is a one-hot matrix, each row is \
-            a single categorical variable. `drop_mask_Y` is a binary mask \
+            Theano vector. Since we assume Y is a one-hot matrix, each row is
+            a single categorical variable. `drop_mask_Y` is a binary mask
             specifying which *rows* to drop.
         """
 
@@ -1253,19 +1266,19 @@ class UpDown(InferenceProcedure):
         V : tensor_like
             Theano batch in `model.input_space`
         Y : tensor_like
-            Theano batch in model.output_space, ie, in the output space of \
-            the last hidden layer (it's not really a hidden layer anymore, \
-            but oh well. It's convenient to code it this way because the \
-            labels are sort of "on top" of everything else). *** Y is always \
+            Theano batch in model.output_space, ie, in the output space of
+            the last hidden layer (it's not really a hidden layer anymore,
+            but oh well. It's convenient to code it this way because the
+            labels are sort of "on top" of everything else). *** Y is always
             assumed to be a matrix of one-hot category labels. ***
         drop_mask : tensor_like
-            A theano batch in `model.input_space`. Should be all binary, with \
-            1s indicating that the corresponding element of X should be \
-            "dropped", ie, hidden from the algorithm and filled in as part of \
+            A theano batch in `model.input_space`. Should be all binary, with
+            1s indicating that the corresponding element of X should be
+            "dropped", ie, hidden from the algorithm and filled in as part of
             the inpainting process
         drop_mask_Y : tensor_like
-            Theano vector. Since we assume Y is a one-hot matrix, each row is \
-            a single categorical variable. `drop_mask_Y` is a binary mask \
+            Theano vector. Since we assume Y is a one-hot matrix, each row is
+            a single categorical variable. `drop_mask_Y` is a binary mask
             specifying which *rows* to drop.
         """
 
@@ -1395,4 +1408,3 @@ class UpDown(InferenceProcedure):
             if Y is not None:
                 return V_hat, Y_hat
             return V_hat
-

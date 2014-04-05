@@ -50,18 +50,18 @@ if theano.sparse.enable_sparse:
 
 def _is_batch_all(batch, predicate):
     """
-    Implementation of is_symbolic_batch() and is_numeric_batch().  Returns True
-    iff predicate() returns True for all components of (possibly composite)
-    batch.
+    Implementation of is_symbolic_batch() and is_numeric_batch().
+    Returns True iff predicate() returns True for all components of
+    (possibly composite) batch.
 
-    Parameters:
+    Parameters
     ----------
     batch : any numeric or symbolic batch.
-      This includes numpy.ndarray, theano.gof.Variable, None, or a (nested)
-      tuple thereof.
+        This includes numpy.ndarray, theano.gof.Variable, None, or a (nested)
+        tuple thereof.
 
     predicate : function.
-      A unary function of any non-composite batch that returns True or False.
+        A unary function of any non-composite batch that returns True or False.
     """
     # Catches any CompositeSpace batches that were mistakenly hand-constructed
     # using nested lists rather than nested tuples.
@@ -95,8 +95,8 @@ def is_symbolic_batch(batch):
     """
     Returns True if batch is a symbolic variable.
 
-    Note that a batch may be both a symbolic and numeric variable (e.g. () for
-    empty CompositeSpaces, None for NullSpaces).
+    Note that a batch may be both a symbolic and numeric variable
+    (e.g. () for empty CompositeSpaces, None for NullSpaces).
     """
 
     return _is_batch_all(batch, lambda x: isinstance(x, theano.gof.Variable))
@@ -106,8 +106,8 @@ def is_numeric_batch(batch):
     """
     Returns True if batch is a numeric variable.
 
-    Note that a batch may be both a symbolic and numeric variable (e.g. () for
-    empty CompositeSpaces, None for NullSpaces).
+    Note that a batch may be both a symbolic and numeric variable
+    (e.g. () for empty CompositeSpaces, None for NullSpaces).
     """
     def is_numeric(batch):
         return isinstance(batch, np.ndarray) or scipy.sparse.issparse(batch)
@@ -117,8 +117,9 @@ def is_numeric_batch(batch):
 
 def _dense_to_sparse(batch):
     """
-    Casts dense batches to sparse batches (non-composite). Supports both
-    symbolic and numeric variables.
+    Casts dense batches to sparse batches (non-composite).
+
+    Supports both symbolic and numeric variables.
     """
     if isinstance(batch, tuple):
         raise TypeError("Composite batches not supported.")
@@ -137,10 +138,11 @@ def _reshape(arg, shape):
     """
     Reshapes a tensor. Supports both symbolic and numeric variables.
 
-    This is a hack that first converts from sparse to dense, reshapes the dense
-    tensor, then re-converts from dense to sparse. It is therefore
-    memory-inefficient and unsuitable for large tensors. It will be replaced by
-    a proper sparse reshaping Op once Theano implements that.
+    This is a hack that first converts from sparse to dense, reshapes
+    the dense tensor, then re-converts from dense to sparse. It is
+    therefore memory-inefficient and unsuitable for large tensors. It
+    will be replaced by a proper sparse reshaping Op once Theano
+    implements that.
     """
 
     if isinstance(arg, tuple):
@@ -176,9 +178,9 @@ def _cast(arg, dtype):
     Returns <arg> untouched if <dtype> is None, or dtype is unchanged
     (i.e. casting a float32 batch to float32).
 
-       (One exception: composite batches are never returned as-is. A new tuple
-        will always be returned. However, any components with unchanged dtypes
-        will be returned untouched.)
+       (One exception: composite batches are never returned as-is.
+        A new tuple will always be returned. However, any components
+        with unchanged dtypes will be returned untouched.)
     """
 
     if dtype is None:
@@ -191,6 +193,19 @@ def _cast(arg, dtype):
     elif isinstance(arg, np.ndarray):
         # theano._asarray is a safer drop-in replacement to numpy.asarray.
         return theano._asarray(arg, dtype=dtype)
+    elif str(type(arg)) == "<type 'CudaNdarray'>":  # numeric CUDA array
+        if str(dtype) != 'float32':
+            raise TypeError("Can only cast a numeric CudaNdarray to "
+                            "float32, not %s" % dtype)
+        else:
+            return arg
+    elif (isinstance(arg, theano.gof.Variable) and
+          isinstance(arg.type, CudaNdarrayType)):  # symbolic CUDA array
+        if str(dtype) != 'float32':
+            raise TypeError("Can only cast a theano CudaNdArrayType to "
+                            "float32, not %s" % dtype)
+        else:
+            return arg
     elif scipy.sparse.issparse(arg):
         return arg.astype(dtype)
     elif isinstance(arg, theano.tensor.TensorVariable):
@@ -211,11 +226,12 @@ class Space(object):
 
     Batches may be one of the following types:
 
-      numpy.ndarray
-      scipy.sparse.csr_matrix
-      theano.gof.Variable
-      None (for NullSpace)
-      A (nested) tuple of the above, possibly empty (for CompositeSpace).
+        - numpy.ndarray
+        - scipy.sparse.csr_matrix
+        - theano.gof.Variable
+        - None (for NullSpace)
+        - A (nested) tuple of the above, possibly empty
+          (for CompositeSpace).
 
     Parameters
     ----------
@@ -282,10 +298,20 @@ class Space(object):
 
     @dtype.setter
     def dtype(self, new_value):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError()
 
     @dtype.deleter
     def dtype(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise RuntimeError("You may not delete the dtype of a space, "
                            "though you can set it to None.")
 
@@ -296,7 +322,7 @@ class Space(object):
         Returns
         -------
         origin : ndarray
-            An NumPy array, the shape of a single points in this \
+            An NumPy array, the shape of a single points in this
             space, representing the origin.
         """
         raise NotImplementedError()
@@ -307,9 +333,11 @@ class Space(object):
 
         Parameters
         ----------
-        batch_size: The number of examples in the batch to be returned.
-        dtype : The dtype of the batch to be returned. Default = None.
-                If None, use self.dtype.
+        batch_size : int
+            The number of examples in the batch to be returned.
+        dtype : WRITEME
+            The dtype of the batch to be returned. Default = None.
+            If None, use self.dtype.
 
         Returns
         -------
@@ -349,8 +377,8 @@ class Space(object):
         Returns
         -------
         batch : TensorVariable, SparseVariable, or tuple thereof
-            A batch with the appropriate number of dimensions and \
-            appropriate broadcast flags to represent a batch of \
+            A batch with the appropriate number of dimensions and
+            appropriate broadcast flags to represent a batch of
             points in this space.
         """
         raise NotImplementedError()
@@ -400,7 +428,8 @@ class Space(object):
 
         Returns
         -------
-        The formatted batch.
+        WRITEME
+            The formatted batch
         """
 
         self._check_is_numeric(batch)
@@ -424,6 +453,11 @@ class Space(object):
                              str(other_dimension))
 
     def format_as(self, batch, space):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self._check_is_symbolic(batch)
         return self._format_as(is_numeric=False,
                                batch=batch,
@@ -442,9 +476,9 @@ class Space(object):
 
         Parameters
         ----------
-        is_numeric : bool.
-             Set to True to call np_validate_callbacks().
-             Set to False to call validate_callbacks().
+        is_numeric : bool
+            Set to True to call np_validate_callbacks().
+            Set to False to call validate_callbacks().
         batch : WRITEME
         space : Space
             WRITEME
@@ -474,20 +508,17 @@ class Space(object):
 
         Parameters
         ----------
-
-        is_numeric : bool.
-            Set to True to treat batch as a numeric batch, False to treat it as
-            a symbolic batch. This is necessary because sometimes a batch's
-            numeric/symbolicness can be ambiguous, i.e. when it's the empty
-            tuple ().
-
-        batch : a numpy.ndarray, scipy.sparse matrix, theano symbol, or a
-                nested tuple thereof.
+        is_numeric : bool
+            Set to True to treat batch as a numeric batch, False to
+            treat it as a symbolic batch. This is necessary because
+            sometimes a batch's numeric/symbolicness can be ambiguous,
+            i.e. when it's the empty tuple ().
+        batch : a numpy.ndarray, scipy.sparse matrix, theano symbol, or a \
+                nested tuple thereof
             Implementations of this method may assume that batch lies in this
             space (i.e. that it passed self._validate(batch) without throwing
             an exception).
-
-        target_space : A Space subclass.
+        target_space : A Space subclass
             The space to transform batch into.
 
         Returns
@@ -519,8 +550,8 @@ class Space(object):
 
         Parameters
         ----------
-        batch : a numeric (numpy/scipy.sparse) variable that lies in this
-        space.
+        batch : a numeric (numpy/scipy.sparse) variable that lies in this \
+                space
         """
         self._check_is_numeric(batch)
         self._validate(is_numeric=True, batch=batch)
@@ -534,16 +565,17 @@ class Space(object):
 
         Parameters
         ----------
-        is_numeric : bool. Set to True to call np_validate_callbacks,
-                     False to call validate_callbacks. Necessary because
-                     it can be impossible to tell from the batch whether
-                     it should be treated as a numeric of symbolic batch,
-                     for example when the batch is the empty tuple (),
-                     or NullSpace batch None.
+        is_numeric : bool.
+            Set to True to call np_validate_callbacks,
+            False to call validate_callbacks.
+            Necessary because it can be impossible to tell from the
+            batch whether it should be treated as a numeric of symbolic
+            batch, for example when the batch is the empty tuple (),
+			or NullSpace batch None.
 
-        batch : a theano variable, numpy ndarray, scipy.sparse matrix,
-                or a nested tuple thereof, representing a batch belonging
-                to this space.
+        batch : a theano variable, numpy ndarray, scipy.sparse matrix \
+                or a nested tuple thereof
+            Represents a batch belonging to this space.
         """
 
         if is_numeric:
@@ -573,15 +605,16 @@ class Space(object):
         Parameters
         ----------
 
-        is_numeric : bool. Set to True to treat batch as a numeric type
-                     (numpy.ndarray or scipy.sparse matrix). Set to False to
-                     treat batch as a symbolic (Theano) variable. Necessary
-                     because batch could be (), which could be numeric or
-                     symbolic.
+        is_numeric : bool
+            Set to True to treat batch as a numeric type
+            (numpy.ndarray or scipy.sparse matrix).
+            Set to False to treat batch as a symbolic (Theano) variable.
+            Necessary because batch could be (), which could be numeric
+            or symbolic.
 
-        batch : A numpy ndarray, scipy.sparse matrix, theano variable, or a
-                nested tuple thereof. Must be a valid batch belonging to this
-                space.
+        batch : A numpy ndarray, scipy.sparse matrix, theano variable \
+                or a nested tuple thereof.
+            Must be a valid batch belonging to this space.
         """
         raise NotImplementedError('Class "%s" does not implement '
                                   '_validate_impl()' % type(self))
@@ -607,6 +640,11 @@ class Space(object):
         return self._batch_size(is_numeric=True, batch=batch)
 
     def _batch_size(self, is_numeric, batch):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self._validate(is_numeric, batch)
         return self._batch_size_impl(is_numeric, batch)
 
@@ -636,12 +674,22 @@ class Space(object):
 
     @staticmethod
     def _check_is_numeric(batch):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if not is_numeric_batch(batch):
             raise TypeError('Expected batch to be a numeric variable, but '
                             'instead it was of type "%s"' % type(batch))
 
     @staticmethod
     def _check_is_symbolic(batch):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if not is_symbolic_batch(batch):
             raise TypeError('Expected batch to be a symbolic variable, but '
                             'instead it was of type "%s"' % type(batch))
@@ -693,6 +741,11 @@ class SimplyTypedSpace(Space):
         return super(SimplyTypedSpace, self)._clean_dtype_arg(dtype)
 
     def _validate_impl(self, is_numeric, batch):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if isinstance(batch, tuple):
             raise TypeError("This space only supports simple dtypes, but "
                             "received a composite batch.")
@@ -709,13 +762,28 @@ class SimplyTypedSpace(Space):
 
     @property
     def dtype(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self._dtype
 
     @dtype.setter
     def dtype(self, new_dtype):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self._dtype = super(SimplyTypedSpace, self)._clean_dtype_arg(new_dtype)
 
     def __setstate__(self, state_dict):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.__dict__.update(state_dict)
 
         # When unpickling a Space that was pickled before Spaces had dtypes,
@@ -749,7 +817,8 @@ class IndexSpace(SimplyTypedSpace):
     dtype : str
         A numpy dtype string indicating this space's dtype.
         Must be an integer type e.g. int32 or int64.
-    kwargs: passes on to superclass constructor
+    kwargs : dict
+        Passes on to superclass constructor
     """
     def __init__(self, max_labels, dim, dtype='int64', **kwargs):
         if not 'int' in dtype:
@@ -762,9 +831,7 @@ class IndexSpace(SimplyTypedSpace):
         self.formatter = OneHotFormatter(self.max_labels)
 
     def __str__(self):
-        """
-        Return a string representation.
-        """
+        """Return a string representation"""
         return ('%(classname)s(dim=%(dim)s, max_labels=%(max_labels)s, '
                 'dtype=%(dtype)s)') % dict(classname=self.__class__.__name__,
                                            dim=self.dim,
@@ -772,12 +839,22 @@ class IndexSpace(SimplyTypedSpace):
                                            dtype=self.dtype)
 
     def __eq__(self, other):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return (type(self) == type(other) and
                 self.max_labels == other.max_labels and
                 self.dim == other.dim and
                 self.dtype == other.dtype)
 
     def __ne__(self, other):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return (not self == other)
 
     @functools.wraps(Space.get_total_dimension)
@@ -893,9 +970,9 @@ class VectorSpace(SimplyTypedSpace):
     ----------
     dim : int
         Dimensionality of a vector in this space.
-    sparse: bool
+    sparse : bool, optional
         Sparse vector or not
-    dtype : str
+    dtype : str, optional
         A numpy dtype string (e.g. 'float32') indicating this space's
         dtype, or None for a dtype-agnostic space.
     kwargs : dict
@@ -1114,7 +1191,7 @@ class VectorSpace(SimplyTypedSpace):
                 raise ValueError('VectorSpace batches must be 2D, got %d '
                                  'dimensions' % batch.ndim)
             for val in get_debug_values(batch):
-                self.validate(val)  # sic; should be validate, not _validate
+                self.np_validate(val)  # sic; val is numeric, not symbolic
         else:
             # Use the 'CudaNdarray' string to avoid importing
             # theano.sandbox.cuda when it is not available
@@ -1143,6 +1220,260 @@ class VectorSpace(SimplyTypedSpace):
                                  (str(batch.shape), self.dim))
 
 
+class VectorSequenceSpace(SimplyTypedSpace):
+    """
+    A space representing a single, variable-length sequence of fixed-sized
+    vectors.
+
+    Parameters
+    ----------
+    dim : int
+        Vector size
+    dtype : str, optional
+        A numpy dtype string indicating this space's dtype.
+    kwargs : dict
+        Passes on to superclass constructor
+    """
+    def __init__(self, dim, dtype='floatX', **kwargs):
+        super(VectorSequenceSpace, self).__init__(dtype, **kwargs)
+        self.dim = dim
+
+    def __str__(self):
+        """Return a string representation"""
+        return ('%(classname)s(dim=%(dim)s, dtype=%(dtype)s)' %
+                dict(classname=self.__class__.__name__,
+                     dim=self.dim,
+                     dtype=self.dtype))
+
+    @wraps(Space.__eq__)
+    def __eq__(self, other):
+        return (type(self) == type(other) and
+                self.dim == other.dim and
+                self.dtype == other.dtype)
+
+    @wraps(Space._check_sizes)
+    def _check_sizes(self, space):
+        if not isinstance(space, VectorSequenceSpace):
+            raise ValueError("Can't convert to " + str(space.__class__))
+        else:
+            if space.dim != self.dim:
+                raise ValueError("Can't convert to VectorSequenceSpace of "
+                                 "dim %d" %
+                                 (space.dim,))
+
+    @wraps(Space._format_as_impl)
+    def _format_as_impl(self, is_numeric, batch, space):
+        if isinstance(space, VectorSequenceSpace):
+            if space.dim != self.dim:
+                raise ValueError("The two VectorSequenceSpaces' dim "
+                                 "values don't match. This should have been "
+                                 "caught by "
+                                 "VectorSequenceSpace._check_sizes().")
+
+            return _cast(batch, space.dtype)
+        else:
+            raise ValueError("Can't convert %s to %s" % (self, space))
+
+    @wraps(Space.make_theano_batch)
+    def make_theano_batch(self, name=None, dtype=None, batch_size=None):
+        if batch_size == 1:
+            return tensor.matrix(name=name)
+        else:
+            return ValueError("VectorSequenceSpace does not support batches "
+                              "of sequences.")
+
+    @wraps(Space._batch_size_impl)
+    def _batch_size_impl(self, is_numeric, batch):
+        # Only batch size of 1 is supported
+        return 1
+
+    @wraps(Space._validate_impl)
+    def _validate_impl(self, is_numeric, batch):
+        # checks that batch isn't a tuple, checks batch.type against self.dtype
+        super(VectorSequenceSpace, self)._validate_impl(is_numeric, batch)
+
+        if is_numeric:
+            # Use the 'CudaNdarray' string to avoid importing
+            # theano.sandbox.cuda when it is not available
+            if not isinstance(batch, np.ndarray) \
+               and str(type(batch)) != "<type 'CudaNdarray'>":
+                raise TypeError("The value of a VectorSequenceSpace batch "
+                                "should be a numpy.ndarray, or CudaNdarray, "
+                                "but is %s." % str(type(batch)))
+            if batch.ndim != 2:
+                raise ValueError("The value of a VectorSequenceSpace batch "
+                                 "must be 2D, got %d dimensions for %s."
+                                 % (batch.ndim, batch))
+            if batch.shape[1] != self.dim:
+                raise ValueError("The width of a VectorSequenceSpace 'batch' "
+                                 "must match with the space's window"
+                                 "dimension, but batch has dim %d and "
+                                 "this space's dim is %d."
+                                 % (batch.shape[1], self.dim))
+        else:
+            if not isinstance(batch, theano.gof.Variable):
+                raise TypeError("VectorSequenceSpace batch should be a theano "
+                                "Variable, got " + str(type(batch)))
+            if not isinstance(batch.type, (theano.tensor.TensorType,
+                                           CudaNdarrayType)):
+                raise TypeError("VectorSequenceSpace batch should be "
+                                "TensorType or CudaNdarrayType, got " +
+                                str(batch.type))
+            if batch.ndim != 2:
+                raise ValueError("VectorSequenceSpace 'batches' must be 2D, "
+                                 "got %d dimensions" % batch.ndim)
+            for val in get_debug_values(batch):
+                self.np_validate(val)
+
+
+class IndexSequenceSpace(SimplyTypedSpace):
+    """
+    A space representing a single, variable-length sequence of indexes.
+
+    Parameters
+    ----------
+    max_labels : int
+        The number of possible classes/labels. This means that
+        all labels should be < max_labels.
+    dim : int
+        The number of indices in one element of the sequence
+    dtype : str
+        A numpy dtype string indicating this space's dtype.
+        Must be an integer type e.g. int32 or int64.
+    kwargs : dict
+        Passes on to superclass constructor
+    """
+    def __init__(self, max_labels, dim, dtype='int64', **kwargs):
+        if not 'int' in dtype:
+            raise ValueError("The dtype of IndexSequenceSpace must be an "
+                             "integer type")
+
+        super(IndexSequenceSpace, self).__init__(dtype, **kwargs)
+
+        self.max_labels = max_labels
+        self.dim = dim
+        self.formatter = OneHotFormatter(self.max_labels)
+
+    def __str__(self):
+        """Return a string representation"""
+        return ('%(classname)s(dim=%(dim)s, max_labels=%(max_labels)s, '
+                'dtype=%(dtype)s)') % dict(classname=self.__class__.__name__,
+                                           dim=self.dim,
+                                           max_labels=self.max_labels,
+                                           dtype=self.dtype)
+
+    def __eq__(self, other):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        return (type(self) == type(other) and
+                self.max_labels == other.max_labels and
+                self.dim == other.dim and
+                self.dtype == other.dtype)
+
+    @wraps(Space._check_sizes)
+    def _check_sizes(self, space):
+        if isinstance(space, VectorSequenceSpace):
+            # self.max_labels -> merged onehots
+            # self.dim * self.max_labels -> concatenated
+            if space.dim not in (self.max_labels, self.dim * self.max_labels):
+                raise ValueError("Can't convert to VectorSequenceSpace of "
+                                 "dim %d. Expected either "
+                                 "dim=%d (merged one-hots) or %d "
+                                 "(concatenated one-hots)" %
+                                 (space.dim,
+                                  self.max_labels,
+                                  self.dim * self.max_labels))
+        elif isinstance(space, IndexSequenceSpace):
+            if space.dim != self.dim or space.max_labels != self.max_labels:
+                raise ValueError("Can't convert to IndexSequenceSpace of "
+                                 "dim %d and max_labels %d." %
+                                 (space.dim, self.max_labels))
+        else:
+            raise ValueError("Can't convert to " + str(space.__class__))
+
+    @wraps(Space._format_as_impl)
+    def _format_as_impl(self, is_numeric, batch, space):
+        if isinstance(space, VectorSequenceSpace):
+            if self.max_labels == space.dim:
+                mode = 'merge'
+            elif self.dim * self.max_labels == space.dim:
+                mode = 'concatenate'
+            else:
+                raise ValueError("There is a bug. Couldn't format to a "
+                                 "VectorSequenceSpace because it had an "
+                                 "incorrect size, but this should've been "
+                                 "caught in "
+                                 "IndexSequenceSpace._check_sizes().")
+
+            format_func = (self.formatter.format if is_numeric else
+                           self.formatter.theano_expr)
+            return _cast(format_func(batch, mode=mode), space.dtype)
+        elif isinstance(space, IndexSequenceSpace):
+            if space.dim != self.dim or space.max_labels != self.max_labels:
+                raise ValueError("The two IndexSequenceSpaces' dim and "
+                                 "max_labels values don't match. This should "
+                                 "have been caught by "
+                                 "IndexSequenceSpace._check_sizes().")
+
+            return _cast(batch, space.dtype)
+        else:
+            raise ValueError("Can't convert %s to %s"
+                             % (self, space))
+
+    @wraps(Space.make_theano_batch)
+    def make_theano_batch(self, name=None, dtype=None, batch_size=None):
+        if batch_size == 1:
+            return tensor.matrix(name=name)
+        else:
+            return ValueError("IndexSequenceSpace does not support batches "
+                              "of sequences.")
+
+    @wraps(Space._batch_size_impl)
+    def _batch_size_impl(self, is_numeric, batch):
+        # Only batch size of 1 is supported
+        return 1
+
+    @wraps(Space._validate_impl)
+    def _validate_impl(self, is_numeric, batch):
+        # checks that batch isn't a tuple, checks batch.type against self.dtype
+        super(IndexSequenceSpace, self)._validate_impl(is_numeric, batch)
+
+        if is_numeric:
+            # Use the 'CudaNdarray' string to avoid importing
+            # theano.sandbox.cuda when it is not available
+            if not isinstance(batch, np.ndarray) \
+               and str(type(batch)) != "<type 'CudaNdarray'>":
+                raise TypeError("The value of a IndexSequenceSpace batch "
+                                "should be a numpy.ndarray, or CudaNdarray, "
+                                "but is %s." % str(type(batch)))
+            if batch.ndim != 2:
+                raise ValueError("The value of a IndexSequenceSpace batch "
+                                 "must be 2D, got %d dimensions for %s." %
+                                 (batch.ndim, batch))
+            if batch.shape[1] != self.dim:
+                raise ValueError("The width of a IndexSequenceSpace batch "
+                                 "must match with the space's dimension, but "
+                                 "batch has shape %s and dim = %d." %
+                                 (str(batch.shape), self.dim))
+        else:
+            if not isinstance(batch, theano.gof.Variable):
+                raise TypeError("IndexSequenceSpace batch should be a theano "
+                                "Variable, got " + str(type(batch)))
+            if not isinstance(batch.type, (theano.tensor.TensorType,
+                                           CudaNdarrayType)):
+                raise TypeError("IndexSequenceSpace batch should be "
+                                "TensorType or CudaNdarrayType, got " +
+                                str(batch.type))
+            if batch.ndim != 2:
+                raise ValueError('IndexSequenceSpace batches must be 2D, got '
+                                 '%d dimensions' % batch.ndim)
+            for val in get_debug_values(batch):
+                self.np_validate(val)
+
+
 class Conv2DSpace(SimplyTypedSpace):
     """
     A space whose points are 3-D tensors representing (potentially
@@ -1158,10 +1489,10 @@ class Conv2DSpace(SimplyTypedSpace):
         A tuple indicating the semantics of each axis, containing the
         following elements in some order:
 
-        - 'b' : this axis is the batch index of a minibatch.
-        - 'c' : this axis the channel index of a minibatch.
-        - 0 : topological axis 0 (rows)
-        - 1 : topological axis 1 (columns)
+            - 'b' : this axis is the batch index of a minibatch.
+            - 'c' : this axis the channel index of a minibatch.
+            - 0 : topological axis 0 (rows)
+            - 1 : topological axis 1 (columns)
 
         For example, a PIL image has axes (0, 1, 'c') or (0, 1).
         The pylearn2 image displaying functionality uses
@@ -1170,7 +1501,8 @@ class Conv2DSpace(SimplyTypedSpace):
     dtype : str
         A numpy dtype string (e.g. 'float32') indicating this space's
         dtype, or None for a dtype-agnostic space.
-    kwargs : passed on to superclass constructor
+    kwargs : dict
+        Passed on to superclass constructor
     """
 
 
@@ -1339,6 +1671,11 @@ class Conv2DSpace(SimplyTypedSpace):
 
     @staticmethod
     def convert_numpy(tensor, src_axes, dst_axes):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return Conv2DSpace.convert(tensor, src_axes, dst_axes)
 
     @functools.wraps(Space.get_total_dimension)
@@ -1450,6 +1787,8 @@ class CompositeSpace(Space):
     Parameters
     ----------
     components : WRITEME
+    kwargs : dict
+        WRITEME
     """
     def __init__(self, components, **kwargs):
         super(CompositeSpace, self).__init__(**kwargs)
@@ -1556,8 +1895,10 @@ class CompositeSpace(Space):
     def restrict_batch(self, batch, subset):
         """
         Returns a batch containing only the components whose indices are
-        present in subset. May not be a tuple anymore if there is only one
-        index. Outputs will be ordered in the order that they appear in subset.
+        present in subset.
+
+        May not be a tuple anymore if there is only one index.
+        Outputs will be ordered in the order that they appear in subset.
 
         Only supports symbolic batches.
 
@@ -1695,7 +2036,6 @@ class CompositeSpace(Space):
         for batch_elem, component in zip(batch, self.components):
             component._validate(is_numeric, batch_elem)
 
-    @functools.wraps(Space.get_origin_batch)
     def get_origin_batch(self, batch_size, dtype=None):
         """
         Calls get_origin_batch on all subspaces, and returns a (nested)
@@ -1703,10 +2043,8 @@ class CompositeSpace(Space):
 
         Parameters
         ----------
-
         batch_size : int
             Batch size.
-
         dtype : str
             the dtype to use for all the get_origin_batch() calls on
             subspaces. If dtype is None, or a single dtype string, that will
@@ -1731,17 +2069,14 @@ class CompositeSpace(Space):
 
         Parameters
         ----------
-
         name : str
             Name of the symbolic variable
-
         dtype : str
             The dtype of the returned batch.
             If dtype is a string, it will be applied to all components.
             If dtype is None, C.dtype will be used for each component C.
             If dtype is a nested tuple, its elements will be applied to
             corresponding elements in the components.
-
         batch_size : int
             Batch size.
         """
@@ -1884,10 +2219,20 @@ class NullSpace(Space):
 
     @property
     def dtype(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return "%s's dtype" % self.__class__.__name__
 
     @dtype.setter
     def dtype(self, new_dtype):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if new_dtype != self.dtype:
             raise TypeError('%s can only take the bogus dtype "%s"' %
                             (self.__class__.__name__,

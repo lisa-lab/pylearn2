@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -12,6 +17,11 @@ from optparse import OptionParser
 
 
 def main(options, positional_args):
+    """
+    .. todo::
+
+        WRITEME
+    """
     assert len(positional_args) == 1
 
     path ,= positional_args

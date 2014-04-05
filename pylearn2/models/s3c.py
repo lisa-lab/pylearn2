@@ -8,6 +8,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
 
+import logging
 import time
 import warnings
 
@@ -32,25 +33,24 @@ sys.setrecursionlimit(50000)
 from pylearn2.expr.basic import (full_min,
         full_max, numpy_norms, theano_norms)
 
+logger = logging.getLogger(__name__)
+
+
 def rotate_towards(old_W, new_W, new_coeff):
     """
     .. todo::
 
         WRITEME properly
 
+    For each column, rotates old_w toward new_w by new_coeff * theta,
+    where theta is the angle between them
+
     Parameters
     ----------
-    old_W : WRITME
+    old_W : WRITEME
         every column is a unit vector
-
-    Notes
-    ------
-
-    .. code-block:: none
-
-        for each column, rotates old_w toward
-            new_w by new_coeff * theta where
-            theta is the angle between them
+    new_W : WRITEME
+    new_coeff : WRITEME
     """
 
     norms = theano_norms(new_W)
@@ -79,25 +79,29 @@ def rotate_towards(old_W, new_W, new_coeff):
 
 class SufficientStatistics:
     """
-    The SufficientStatistics class computes several sufficient statistics of a
-    minibatch of examples / variational parameters. This is mostly for
-    convenience since several expressions are easy to express in terms of these
-    same sufficient statistics. Also, re-using the same expression for the
-    sufficient statistics in multiple code locations can reduce theano
-    compilation time. The current version of the S3C code no longer supports
-    features like decaying sufficient statistics since these were not found to
-    be particularly beneficial relative to the burden of computing the
-    O(nhid^2) second moment matrix. The current version of the code merely
-    computes the sufficient statistics apart from the second moment matrix as a
-    notational convenience. Expressions that most naturally are expressed in
-    terms of the second moment matrix are now written with a different order of
-    operations that avoids O(nhid^2) operations but whose dependence on the
-    dataset cannot be expressed in terms only of sufficient statistics.
+    The SufficientStatistics class computes several sufficient 
+    statistics of a minibatch of examples / variational parameters.
+    
+    This is mostly for convenience since several expressions are easy
+    to express in terms of these same sufficient statistics. Also, 
+    re-using the same expression for the sufficient statistics in
+    multiple code locations can reduce theano compilation time. The
+    current version of the S3C code no longer supports features like
+    decaying sufficient statistics since these were not found to be
+    particularly beneficial relative to the burden of computing the
+    O(nhid^2) second moment matrix. The current version of the code
+    merely computes the sufficient statistics apart from the second
+    moment matrix as a notational convenience. Expressions that most
+    naturally are expressed in terms of the second moment matrix are
+    now written with a different order of operations that avoids
+    O(nhid^2) operations but whose dependence on the dataset cannot be
+    expressed in terms only of sufficient statistics.
 
     Parameters
     ----------
     d : WRITEME
     """
+
     def __init__(self, d):
         self. d = {}
         for key in d:
@@ -114,7 +118,7 @@ class SufficientStatistics:
 
         Parameters
         ----------
-        needed_stats: WRITEME
+        needed_stats : WRITEME
             a set of string names of the statistics to include
         V : WRITEME
             a num_examples x nvis matrix of input examples
@@ -273,8 +277,8 @@ class S3C(Model, Block):
         if not None, should be a dataset
         will set W to a batch
     local_rf_src : Dataset, optional
-        if not None, should be a dataset
-        requires the following other params:
+        if not None, it should be a dataset.
+        it requires the following other params:
 
         - local_rf_shape : a 2 tuple
         - One of:
@@ -283,49 +287,51 @@ class S3C(Model, Block):
                 if specified, pull out patches on a regular grid
             - local_rf_max_shape: a 2 tuple or None
                 if specified, pull out patches of random shape and
-                    location
-            - local_rf_draw_patches : if true, local receptive fields
-                are patches from local_rf_src
-                otherwise, they're random patches
-                will initialize the weights to have only local receptive fields. (won't make a sparse
-                matrix or anything like that)
+                location
+            - local_rf_draw_patches : WRITEME
+                if true, local receptive fields are patches from 
+                local_rf_src. otherwise, they're random patches.
+                will initialize the weights to have only local 
+                receptive fields. (won't make a sparse matrix or
+                anything like that)
 
         incompatible with random_patches_src for now
     init_unit_W : bool
         if True, initializes weights with unit norm
     """
+
     def __init__(self, nvis, nhid, irange, init_bias_hid,
                        init_B, min_B, max_B,
                        init_alpha, min_alpha, max_alpha, init_mu,
                        m_step,
-                        min_bias_hid = -1e30,
-                        max_bias_hid = 1e30,
-                        min_mu = -1e30,
-                        max_mu = 1e30,
-                       e_step = None,
-                        tied_B = False,
-                       monitor_stats = None,
-                       monitor_params = None,
-                       monitor_functional = False,
-                       recycle_q = 0,
-                       seed = None,
-                       disable_W_update = False,
-                       constrain_W_norm = False,
-                       monitor_norms = False,
-                       random_patches_src = None,
-                       local_rf_src = None,
-                       local_rf_shape = None,
-                       local_rf_max_shape = None,
-                       local_rf_stride = None,
-                       local_rf_draw_patches = False,
-                       init_unit_W = None,
-                       debug_m_step = False,
-                       print_interval = 10000,
-                       stop_after_hack = None,
-                       set_B_to_marginal_precision = False,
-                       init_momentum = None,
-                       final_momentum = None,
-                       momentum_saturation_example = None):
+                       min_bias_hid=-1e30,
+                       max_bias_hid=1e30,
+                       min_mu=-1e30,
+                       max_mu=1e30,
+                       e_step=None,
+                       tied_B=False,
+                       monitor_stats=None,
+                       monitor_params=None,
+                       monitor_functional=False,
+                       recycle_q=0,
+                       seed=None,
+                       disable_W_update=False,
+                       constrain_W_norm=False,
+                       monitor_norms=False,
+                       random_patches_src=None,
+                       local_rf_src=None,
+                       local_rf_shape=None,
+                       local_rf_max_shape=None,
+                       local_rf_stride=None,
+                       local_rf_draw_patches=False,
+                       init_unit_W=None,
+                       debug_m_step=False,
+                       print_interval=10000,
+                       stop_after_hack=None,
+                       set_B_to_marginal_precision=False,
+                       init_momentum=None,
+                       final_momentum=None,
+                       momentum_saturation_example=None):
         Model.__init__(self)
         Block.__init__(self)
 
@@ -716,7 +722,7 @@ class S3C(Model, Block):
         This implementation returns specification corresponding to unlabeled
         inputs.
 
-        WRITME: Returns section
+        WRITEME: Returns section
         """
         return (self.get_input_space(), self.get_input_source())
 
@@ -994,12 +1000,13 @@ class S3C(Model, Block):
 
 
 
-        print "compiling s3c learning function..."
+        logger.info("compiling s3c learning function...")
         t1 = time.time()
         rval = function([V], updates = learning_updates)
         t2 = time.time()
-        print "... compilation took "+str(t2-t1)+" seconds"
-        print "graph size: ",len(rval.maker.fgraph.toposort())
+        logger.debug("... compilation took {0} seconds".format(t2-t1))
+        logger.debug("graph size: "
+                    "{0}".format(len(rval.maker.fgraph.toposort())))
 
         return rval
 
@@ -1050,7 +1057,7 @@ class S3C(Model, Block):
 
         Parameters
         ----------
-        H_sample: a matrix of values of H
+        H_sample: a matrix of values of H, optional
             if none is provided, samples one from the prior
             (H_sample is used if you want to see what samples due
             to specific hidden units look like, or when sampling
@@ -1480,7 +1487,7 @@ class S3C(Model, Block):
 
         if self.stop_after_hack is not None:
             if self.monitor.examples_seen > self.stop_after_hack:
-                print 'stopping due to too many examples seen'
+                logger.error('stopping due to too many examples seen')
                 quit(-1)
 
         self.learn_mini_batch(dataset.get_batch_design(batch_size))
@@ -1492,26 +1499,29 @@ class S3C(Model, Block):
 
             WRITEME
         """
-        print ""
         b = self.bias_hid.get_value(borrow=True)
         assert not np.any(np.isnan(b))
         p = 1./(1.+np.exp(-b))
-        print 'p: ',(p.min(),p.mean(),p.max())
+        logger.info('p: ({0}, {1}, {2})'.format(p.min(), p.mean(), p.max()))
         B = self.B_driver.get_value(borrow=True)
         assert not np.any(np.isnan(B))
-        print 'B: ',(B.min(),B.mean(),B.max())
+        logger.info('B: ({0}, {1}, {2})'.format(B.min(), B.mean(), B.max()))
         mu = self.mu.get_value(borrow=True)
         assert not np.any(np.isnan(mu))
-        print 'mu: ',(mu.min(),mu.mean(),mu.max())
+        logger.info('mu: ({0}, {1}, {2})'.format(mu.min(), mu.mean(),
+                                                 mu.max()))
         alpha = self.alpha.get_value(borrow=True)
         assert not np.any(np.isnan(alpha))
-        print 'alpha: ',(alpha.min(),alpha.mean(),alpha.max())
+        logger.info('alpha: ({0}, {1}, {2})'.format(alpha.min(), alpha.mean(),
+                                                    alpha.max()))
         W = self.W.get_value(borrow=True)
         assert not np.any(np.isnan(W))
         assert not np.any(np.isinf(W))
-        print 'W: ',(W.min(),W.mean(),W.max())
+        logger.info('W: ({0}, {1}, {2})'.format(W.min(), W.mean(), W.max()))
         norms = numpy_norms(W)
-        print 'W norms:',(norms.min(),norms.mean(),norms.max())
+        logger.info('W norms: '
+                    '({0}, {1}, {2})'.format(norms.min(), norms.mean(),
+                                             norms.max()))
 
     def learn_mini_batch(self, X):
         """
@@ -1649,29 +1659,30 @@ class E_Step(object):
     Parameters
     ----------
     h_new_coeff_schedule : list
-        List of coefficients to put on the new value of h on each damped \
-        fixed point step (coefficients on s are driven by a special \
+        List of coefficients to put on the new value of h on each damped
+        fixed point step (coefficients on s are driven by a special
         formula). Length of this list determines the number of fixed point
-        steps. If None, assumes that the model is not meant to run on its \
-        own (ie a larger model will specify how to do inference in this \
+        steps. If None, assumes that the model is not meant to run on its
+        own (ie a larger model will specify how to do inference in this
         layer)
     s_new_coeff_schedule : list
-        List of coefficients to put on the new value of s on each damped \
-        fixed point step. These are applied AFTER the reflection \
-        clipping, which can be seen as a form of per-unit damping. \
-        s_new_coeff_schedule must have same length as \
-        h_new_coeff_schedule. If s_new_coeff_schedule is not provided, it \
-        will be filled in with all ones, i.e. it will default to no \
+        List of coefficients to put on the new value of s on each damped
+        fixed point step. These are applied AFTER the reflection
+        clipping, which can be seen as a form of per-unit damping.
+        s_new_coeff_schedule must have same length as
+        h_new_coeff_schedule. If s_new_coeff_schedule is not provided, it
+        will be filled in with all ones, i.e. it will default to no
         damping beyond the reflection clipping
     clip_reflections, rho : bool, float
-        If clip_reflections is True, the update to S_hat[i,j] is bounded \
+        If clip_reflections is True, the update to S_hat[i,j] is bounded
         on one side by - rho * S_hat[i,j] and unbounded on the other side
     monitor_ranges : bool
-        If True, adds the channels h_range_<min,mean,max> and \
-        hs_range_<min,mean_max>  showing the amounts that different h_hat \
-        and s_hat variational parameters change across the monitoring \
+        If True, adds the channels h_range_<min,mean,max> and
+        hs_range_<min,mean_max>  showing the amounts that different h_hat
+        and s_hat variational parameters change across the monitoring
         dataset
     """
+
     def get_monitoring_channels(self, V):
         """
         .. todo::
@@ -2085,6 +2096,10 @@ class E_Step(object):
 
     def variational_inference(self, V, return_history = False):
         """
+        .. todo::
+
+            WRITEME
+
         TODO: rename to infer (for now, infer exists as a synonym)
         """
 
@@ -2094,15 +2109,17 @@ class E_Step(object):
 
     def infer(self, V, return_history = False):
         """
-        WRITEME
+        ... todo::
+
+            WRITEME
 
         Parameters
         ----------
         V : WRITEME
         return_history : bool
-            If True, returns a list of dictionaries with showing the history \
-            of the variational parameters throughout fixed point updates \
-            If False, returns a dictionary containing the final variational \
+            If True, returns a list of dictionaries with showing the history
+            of the variational parameters throughout fixed point updates
+            If False, returns a dictionary containing the final variational
             parameters
 
         Returns
@@ -2338,6 +2355,7 @@ class E_Step_Scan(E_Step):
     """
     The heuristic E step implemented using scan rather than unrolled loops
     """
+
     def __init__(self, ** kwargs):
         super(E_Step_Scan, self).__init__( ** kwargs )
 
@@ -2352,9 +2370,9 @@ class E_Step_Scan(E_Step):
         ----------
         V : WRITEME
         return_history : bool
-            If True, returns a list of dictionaries with showing the history \
-            of the variational parameters throughout fixed point updates \
-            If False, returns a dictionary containing the final variational \
+            If True, returns a list of dictionaries with showing the history
+            of the variational parameters throughout fixed point updates
+            If False, returns a dictionary containing the final variational
             parameters
 
         Returns

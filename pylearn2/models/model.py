@@ -46,7 +46,7 @@ class Model(object):
 
         Parameters
         ----------
-        dataset: pylearn2.datasets.dataset.Dataset
+        dataset : pylearn2.datasets.dataset.Dataset
             Dataset object to draw training data from
         """
         raise NotImplementedError(str(type(self)) +
@@ -73,15 +73,15 @@ class Model(object):
 
         Parameters
         ----------
-        dataset: pylearn2.datasets.dataset.Dataset
-                The object to draw training data from.
-        batch_size: int
-                Size of the minibatch to draw from dataset.
+        dataset : pylearn2.datasets.dataset.Dataset
+            The object to draw training data from.
+        batch_size : int
+            Size of the minibatch to draw from dataset.
 
         Returns
         -------
         rval : bool
-            True if the method should be called again for another update. \
+            True if the method should be called again for another update.
             False if convergence has been reached.
         """
         raise NotImplementedError()
@@ -108,15 +108,15 @@ class Model(object):
 
         Parameters
         ----------
-        data: tensor_like, or (possibly nested) tuple of tensor_likes,
-            This is data on which the monitoring quantities will be \
-            calculated (e.g., a validation set). See \
+        data : tensor_like, or (possibly nested) tuple of tensor_likes,
+            This is data on which the monitoring quantities will be
+            calculated (e.g., a validation set). See
             `self.get_monitoring_data_specs()`.
 
         Returns
         -------
         channels : OrderedDict
-            A dictionary with strings as keys, mapping channel names to \
+            A dictionary with strings as keys, mapping channel names to
             symbolic values that depend on the variables in `data`.
 
         Notes
@@ -140,7 +140,9 @@ class Model(object):
         actually need data (for instance, if they only monitor functions
         of the model's parameters).
 
-        WRITEME properly
+        .. todo::
+
+            WRITEME properly
         """
         return (NullSpace(), '')
 
@@ -205,15 +207,15 @@ class Model(object):
         Parameters
         ----------
         V : tensor_like, 2-dimensional
-            A batch of i.i.d. examples with examples indexed along the \
-            first axis and features along the second. This is data on which \
-            the monitoring quantities will be calculated (e.g., a validation \
+            A batch of i.i.d. examples with examples indexed along the
+            first axis and features along the second. This is data on which
+            the monitoring quantities will be calculated (e.g., a validation
             set).
 
         Returns
         -------
         score : tensor_like
-            The gradient of the negative log probability of the model \
+            The gradient of the negative log probability of the model
             on the given datal.
 
         Notes
@@ -240,14 +242,16 @@ class Model(object):
     def censor_updates(self, updates):
         """
         This method should check all updates that act on shared variables
-        held by the model and make sure they are valid. For example, if
-        a given hyperparameter is not meant to be learned, censor_updates
-        should remove it from the dictionary. If a parameter has a restricted
-        range, e.g.. if it is the precision of a normal distribution,
-        censor_updates should clip its update to that range. If a parameter
-        has any other special properties, its updates should be modified
-        to respect that here, e.g. a matrix that must be orthogonal should
-        have its update value modified to be orthogonal here.
+        held by the model and make sure they are valid.
+
+        For example, if a given hyperparameter is not meant to be learned,
+        censor_updates should remove it from the dictionary. If a parameter
+        has a restricted range, e.g.. if it is the precision of a normal
+        distribution, censor_updates should clip its update to that range.
+        If a parameter has any other special properties, its updates should
+        be modified to respect that here, e.g. a matrix that must be
+        orthogonal should have its update value modified to be orthogonal
+        here.
 
         This is the main mechanism used to make sure that generic training
         algorithms such as those found in pylearn2.training_algorithms
@@ -256,7 +260,7 @@ class Model(object):
         Parameters
         ----------
         updates : dict
-            A dictionary mapping shared variables to symbolic values they \
+            A dictionary mapping shared variables to symbolic values they
             will be updated to
         """
 
@@ -302,15 +306,15 @@ class Model(object):
         Parameters
         ----------
         V : tensor_like, 2-dimensional
-            A batch of i.i.d. examples with examples indexed along the \
-            first axis and features along the second. This is data on which \
-            the monitoring quantities will be calculated (e.g., a validation \
+            A batch of i.i.d. examples with examples indexed along the
+            first axis and features along the second. This is data on which
+            the monitoring quantities will be calculated (e.g., a validation
             set).
 
         Returns
         -------
         free_energy : tensor, 1-dimensional
-            A (symbolic) vector of free energies for each data example in \
+            A (symbolic) vector of free energies for each data example in
             `V`, i.e.  `free_energy[i] = F(V[i])`.
         """
         raise NotImplementedError()
@@ -349,14 +353,14 @@ class Model(object):
 
         Parameters
         ----------
-        borrow : bool
-            Flag to be passed to the `.get_value()` method of the \
+        borrow : bool, optional
+            Flag to be passed to the `.get_value()` method of the
             shared variable. If `False`, a copy will always be returned.
 
         Returns
         -------
         params : list
-            A list of `numpy.ndarray` objects containing the current \
+            A list of `numpy.ndarray` objects containing the current
             parameters of the model.
 
         Notes
