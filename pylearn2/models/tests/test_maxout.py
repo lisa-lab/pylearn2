@@ -359,5 +359,6 @@ if __name__ == '__main__':
     t.setUp()
     t.test_maxout_conv_c01b_basic()
 
-    if 0:
+    unittest = 0
+    if unittest:
         unittest.main()
