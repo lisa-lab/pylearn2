@@ -30,7 +30,8 @@ theano.config.warn.sum_div_dimshuffle_bug = False
 
 logger = logging.getLogger(__name__)
 
-if 0:
+use_slow_rng = 0
+if use_slow_rng:
     logger.warning('using SLOW rng')
     RandomStreams = tensor.shared_randomstreams.RandomStreams
 else:
