@@ -137,7 +137,8 @@ class TestLocalDotLargeGray(TestLocalDot32x32):
             cost_ii, = train_fn()
             print 'Cost', ii, cost_ii
 
-        if 0 and show_filters:
+        plot_img = 0
+        if plot_img and show_filters:
             self.A.imshow_gray()
             plt.show()
 
