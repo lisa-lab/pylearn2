@@ -108,13 +108,12 @@ class DenseDesignMatrix(Dataset):
     rng : object, optional
         A random number generator used for picking random \
         indices into the design matrix when choosing minibatches.
-    max_labels : int, optional
-        If y contains labels (usually an IndexSpace) then max_labels \
-        must be passed to indicate the total number of possible labels \
-        e.g. 10 for MNIST, or the size of your target vocabulary in a \
-        language model. Note that this is the same as the size of the \
-        output layer in the case the target labels are formatted as \
-        one-hot vectors (in a VectorSpace).
+    X_labels : int, optional
+        If X contains labels then X_labels must be passed to indicate the total
+        number of possible labels e.g. 10 for MNIST, or the size of your target
+        vocabulary in a language model. This will make the set use IndexSpace.
+    y_labels : int, optional
+        See X_labels.
 
     See Also
     --------
@@ -163,14 +162,30 @@ class DenseDesignMatrix(Dataset):
     def __init__(self, X=None, topo_view=None, y=None,
                  view_converter=None, axes=('b', 0, 1, 'c'),
                  rng=_default_seed, preprocessor=None, fit_preprocessor=False,
-                 max_labels=None):
+                 max_labels=None, X_labels=None, y_labels=None):
         self.X = X
         self.y = y
-        self.max_labels = max_labels
+        self.X_labels = X_labels
+        self.y_labels = y_labels
 
         if max_labels is not None:
+            warnings.warn("The max_labels argument to DenseDesignMatrix is "
+                          "deprecated. Use the y_labels argument instead. The "
+                          "max_labels argument will be removed on or after "
+                          "6 October 2014", stacklevel=2)
+            assert y_labels is None
+            self.y_labels = max_labels
+
+        if X_labels is not None:
+            assert X is not None
+            assert view_converter is None
+            assert X.ndim <= 2
+            assert np.all(X < X_labels)
+
+        if y_labels is not None:
             assert y is not None
-            assert np.all(y < max_labels)
+            assert y.ndim <= 2
+            assert np.all(y < y_labels)
 
         if topo_view is not None:
             assert view_converter is None
@@ -196,17 +211,27 @@ class DenseDesignMatrix(Dataset):
                 self.X_topo_space = None
 
             # Update data specs, if not done in set_topological_view
-            X_space = VectorSpace(dim=self.X.shape[1])
             X_source = 'features'
+            if X_labels is None:
+                X_space = VectorSpace(dim=X.shape[1])
+            else:
+                if X.ndim == 1:
+                    dim = 1
+                else:
+                    dim = X.shape[-1]
+                X_space = IndexSpace(dim=dim, max_labels=X_labels)
             if y is None:
                 space = X_space
                 source = X_source
             else:
-                if self.y.ndim == 1:
+                if y.ndim == 1:
                     dim = 1
                 else:
-                    dim = self.y.shape[-1]
-                y_space = VectorSpace(dim=dim)
+                    dim = y.shape[-1]
+                if y_labels is not None:
+                    y_space = IndexSpace(dim=dim, max_labels=y_labels)
+                else:
+                    y_space = VectorSpace(dim=dim)
                 y_source = 'targets'
 
                 space = CompositeSpace((X_space, y_space))
