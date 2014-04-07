@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import cPickle as pickle
 import itertools
 
@@ -35,6 +40,11 @@ BATCH_SIZE = 100
 ds = MNIST(which_set='train', one_hot=True)
 
 def test_train_ae():
+    """
+    .. todo::
+
+        WRITEME
+    """
     GC = GaussianCorruptor
 
     gsn = GSN.new(
@@ -200,6 +210,11 @@ def test_sample_supervised(idxs=None, noisy=True):
     image.save("gsn_sup_example.png", tiled)
 
 def vis_samples(samples):
+    """
+    .. todo::
+
+        WRITEME
+    """
     from PIL import ImageDraw, ImageFont
     img = image.pil_from_ndarray(np.zeros((28, 28)))
 
@@ -246,6 +261,11 @@ def vis_samples(samples):
 
 # some utility methods for viewing MNIST characters without any GUI
 def print_char(A):
+    """
+    .. todo::
+
+        WRITEME
+    """
     print a_to_s(A.round().reshape((28, 28)))
 
 def a_to_s(A):

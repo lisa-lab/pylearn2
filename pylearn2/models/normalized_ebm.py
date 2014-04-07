@@ -16,6 +16,7 @@ __email__ = "goodfeli@iro"
 class NormalizedEBM(object):
     """
     An Energy-Based Model with an additional parameter representing log Z.
+
     In practice, this parameter is only approximately correct, though it
     can be learned through methods such as noise-contrastive estimation.
 
