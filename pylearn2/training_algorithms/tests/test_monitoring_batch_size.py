@@ -4,7 +4,10 @@ from pylearn2.config import yaml_parse
 
 
 class TestMonitoringBatchSize(unittest.TestCase):
-    """Train a simple model and calculate ROC AUC for monitoring datasets."""
+    """
+    Train a simple model with different values for batch_size and
+    monitoring_batch_size.
+    """
     def test_monitoring_batch_size(self):
         trainer = yaml_parse.load(test_yaml)
         trainer.main_loop()
