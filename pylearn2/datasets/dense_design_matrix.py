@@ -109,13 +109,15 @@ class DenseDesignMatrix(Dataset):
         A random number generator used for picking random \
         indices into the design matrix when choosing minibatches.
     X_labels : int, optional
-        If X contains labels then X_labels must be passed to indicate the total
-        number of possible labels e.g. the size of a the vocabulary when X
-        contains word indices. This will make the set use IndexSpace.
+        If X contains labels then X_labels must be passed to indicate the
+        total number of possible labels e.g. the size of a the vocabulary
+        when X contains word indices. This will make the set use
+        IndexSpace.
     y_labels : int, optional
-        If y contains labels then y_labels must be passed to indicate the total
-        number of possible labels e.g. 10 for the MNIST dataset where the
-        targets are numbers. This will make the set use IndexSpace.
+        If y contains labels then y_labels must be passed to indicate the
+        total number of possible labels e.g. 10 for the MNIST dataset
+        where the targets are numbers. This will make the set use
+        IndexSpace.
 
     See Also
     --------

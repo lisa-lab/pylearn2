@@ -22,7 +22,8 @@ class PennTreebank(DenseDesignMatrix):
         ngram_size : int
             The size of the n-grams
         shuffle : bool
-            Whether to shuffle the samples or go through the dataset linearly
+            Whether to shuffle the samples or go through the dataset
+            linearly
         """
         path = "${PYLEARN2_DATA_PATH}/PennTreebankCorpus/"
         path = serial.preprocess(path)
