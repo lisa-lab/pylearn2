@@ -517,6 +517,7 @@ whitelist_docstrings = [
     'datasets/four_regions.py',
     'datasets/debug.py',
     'datasets/binarizer.py',
+    'datasets/penntree.py',
     'termination_criteria/__init__.py',
     '__init__.py',
     'utils/utlc.py',
