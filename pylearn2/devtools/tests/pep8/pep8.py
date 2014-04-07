@@ -447,7 +447,7 @@ def continued_indentation(logical_line, tokens, indent_level, hang_closing,
     indent = [last_indent[1]]
     if verbose >= 3:
         print(">>> " + tokens[0][4].rstrip())
-
+    last_token_multiline = None
     for token_type, text, start, end, line in tokens:
 
         newline = row < start[0] - first_row
@@ -923,6 +923,7 @@ def explicit_line_join(logical_line, tokens):
     Okay: aaa = "bbb " \\n    "ccc"
     """
     prev_start = prev_end = parens = 0
+    backslash = None
     for token_type, text, start, end, line in tokens:
         if start[0] != prev_start and parens and backslash:
             yield backslash, "E502 the backslash is redundant between brackets"
@@ -1183,9 +1184,9 @@ def parse_udiff(diff, patterns=None, parent='.'):
             if path[:2] == 'b/':
                 path = path[2:]
             rv[path] = set()
-    return dict([(os.path.join(parent, path), rows)
-                 for (path, rows) in rv.items()
-                 if rows and filename_match(path, patterns)])
+    return dict([(os.path.join(parent, p), rows)
+                 for (p, rows) in rv.items()
+                 if rows and filename_match(p, patterns)])
 
 
 def normalize_paths(value, parent=os.curdir):
