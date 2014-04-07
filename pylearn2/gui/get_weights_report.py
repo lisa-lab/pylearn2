@@ -202,7 +202,7 @@ def get_binocular_greyscale_weights_report(model_path=None,
         Filepath of the model to make the report on.
     rescale : str
         A string specifying how to rescale the filter images:
-		
+
           - 'individual' (default) : scale each filter so that it
             uses as much as possible of the dynamic range
             of the display under the constraint that 0
