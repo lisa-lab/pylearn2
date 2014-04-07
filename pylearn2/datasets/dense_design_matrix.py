@@ -110,10 +110,12 @@ class DenseDesignMatrix(Dataset):
         indices into the design matrix when choosing minibatches.
     X_labels : int, optional
         If X contains labels then X_labels must be passed to indicate the total
-        number of possible labels e.g. 10 for MNIST, or the size of your target
-        vocabulary in a language model. This will make the set use IndexSpace.
+        number of possible labels e.g. the size of a the vocabulary when X
+        contains word indices. This will make the set use IndexSpace.
     y_labels : int, optional
-        See X_labels.
+        If y contains labels then y_labels must be passed to indicate the total
+        number of possible labels e.g. 10 for the MNIST dataset where the
+        targets are numbers. This will make the set use IndexSpace.
 
     See Also
     --------
@@ -788,16 +790,15 @@ class DenseDesignMatrix(Dataset):
             space = X_space
             source = X_source
         else:
-            if self.y.ndim != 2:
-                assert self.max_labels
-                # In order to comply with IndexSpace, y must be a 2D array
-                self.y = self.y.reshape((self.y.shape[0], 1))
-                y_space = IndexSpace(max_labels=self.max_labels, dim=1)
-                y_source = 'targets'
+            if self.y.ndim == 1:
+                dim = 1
             else:
-                y_space = VectorSpace(dim=self.y.shape[-1])
-                y_source = 'targets'
-
+                dim = self.y.shape[-1]
+            if self.y_labels is not None:
+                y_space = IndexSpace(dim=dim, max_labels=self.y_labels)
+            else:
+                y_space = VectorSpace(dim=dim)
+            y_source = 'targets'
             space = CompositeSpace((X_space, y_space))
             source = (X_source, y_source)
 
