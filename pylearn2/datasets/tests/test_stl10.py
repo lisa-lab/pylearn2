@@ -22,5 +22,4 @@ class TestSTL10(unittest.TestCase):
 
 #    def disabled_test_unlabeled(self):
 #        """The unlabeled data is 2.4GiB.  This test is disabled by default."""
-#        assert 1 == 0
 #        data = stl10.STL10(which_set='unlabeled')
