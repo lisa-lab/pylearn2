@@ -258,7 +258,6 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         return dict
 
 
-    # TODO: WRITEME
     def validate_options(self):
         """
         Performs the following validations on the constructor's arguments:
