@@ -1,34 +1,32 @@
-"""Tests for cross-validation module."""
+"""
+Tests for cross-validation module.
+"""
 __author__ = "Steven Kearnes"
 
 import os
 import tempfile
-import unittest
 
 from pylearn2.config import yaml_parse
 from pylearn2.testing.skip import skip_if_no_sklearn
 
 
-class TestCrossValidation(unittest.TestCase):
-    """Test cross-validation module."""
-    def setUp(self):
-        skip_if_no_sklearn()
-        handle, path = tempfile.mkstemp()
-        self.tempfile = path
+def test_train_cv():
+    """Test TrainCV class."""
+    skip_if_no_sklearn()
+    handle, path = tempfile.mkstemp()
 
-    def test_train_cv(self):
-        # train the first hidden layer (unsupervised)
-        trainer = yaml_parse.load(test_yaml_layer0 %
-                                  {'filename': self.tempfile})
-        trainer.main_loop()
+    # train the first hidden layer (unsupervised)
+    trainer = yaml_parse.load(test_yaml_layer0 %
+                              {'filename': path})
+    trainer.main_loop()
 
-        # train the full model (supervised)
-        trainer = yaml_parse.load(test_yaml_layer1 %
-                                  {'filename': self.tempfile})
-        trainer.main_loop()
+    # train the full model (supervised)
+    trainer = yaml_parse.load(test_yaml_layer1 %
+                              {'filename': path})
+    trainer.main_loop()
 
-    def tearDown(self):
-        os.remove(self.tempfile)
+    # clean up
+    os.remove(path)
 
 test_yaml_layer0 = """
 !obj:pylearn2.cross_validation.TrainCV {
@@ -56,7 +54,7 @@ test_yaml_layer0 = """
             {},
         termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter
         {
-            max_epochs: 5,
+            max_epochs: 1,
         },
     },
     save_path: %(filename)s,
@@ -96,12 +94,7 @@ test_yaml_layer1 = """
         termination_criterion: !obj:pylearn2.termination_criteria.And {
             criteria: [
                 !obj:pylearn2.termination_criteria.EpochCounter {
-                    max_epochs: 5,
-                },
-                !obj:pylearn2.termination_criteria.MonitorBased {
-                    channel_name: 'train_y_misclass',
-                    prop_decrease: 0.,
-                    N: 2,
+                    max_epochs: 1,
                 },
             ],
         },
