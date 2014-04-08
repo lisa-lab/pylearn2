@@ -155,10 +155,10 @@ def test_sigmoid_detection_cost():
     model.cost(y, y_hat).eval()
 
 if __name__ == "__main__":
-#    test_masked_fprop()
-#    test_sampled_dropout_average()
-#    test_exhaustive_dropout_average()
-#    test_dropout_input_mask_value()
-#    test_sigmoid_layer_misclass_reporting()
-#    test_batchwise_dropout()
+    test_masked_fprop()
+    test_sampled_dropout_average()
+    test_exhaustive_dropout_average()
+    test_dropout_input_mask_value()
+    test_sigmoid_layer_misclass_reporting()
+    test_batchwise_dropout()
     test_sigmoid_detection_cost()
