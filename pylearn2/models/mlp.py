@@ -2424,7 +2424,8 @@ class SigmoidConvNonlinearity(ConvNonlinearity):
 
         orval['precision'] = precision
         orval['recall'] = recall
-        orval['f1'] = 2. * precision * recall / T.maximum(1, precision + recall)
+        orval['f1'] = (2. * precision * recall /
+                       T.maximum(1, precision + recall))
 
         tp = (y * y_hat).sum(axis=[0, 1])
         fp = ((1-y) * y_hat).sum(axis=[0, 1])
