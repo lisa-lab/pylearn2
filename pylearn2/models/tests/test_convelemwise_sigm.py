@@ -37,7 +37,7 @@ def test_conv_sigmoid_basic():
     train = yaml_parse.load(yaml_str)
     train.main_loop()
 
-def test_sigmoid_detection_cost():
+def test_sigmoid_detection_basic():
     """
     Tests whether the sigmoid convolutional layer trains successfully
     as a detection layer.
@@ -90,4 +90,4 @@ def test_sigmoid_detection_cost():
 
 if __name__ == "__main__":
     test_conv_sigmoid_basic()
-    test_sigmoid_detection_cost()
+    test_sigmoid_detection_basic()
