@@ -1,17 +1,15 @@
-import unittest
-
+"""
+Tests for ROC AUC.
+"""
 from pylearn2.config import yaml_parse
 from pylearn2.testing.skip import skip_if_no_sklearn
 
 
-class TestRocAucChannel(unittest.TestCase):
-    """Train a simple model and calculate ROC AUC for monitoring datasets."""
-    def setUp(self):
-        skip_if_no_sklearn()
-
-    def test_roc_auc(self):
-        trainer = yaml_parse.load(test_yaml)
-        trainer.main_loop()
+def test_roc_auc():
+    """Test RocAucChannel."""
+    skip_if_no_sklearn()
+    trainer = yaml_parse.load(test_yaml)
+    trainer.main_loop()
 
 test_yaml = """
 !obj:pylearn2.train.Train {
