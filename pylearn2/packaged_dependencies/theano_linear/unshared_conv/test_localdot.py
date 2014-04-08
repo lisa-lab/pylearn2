@@ -99,8 +99,10 @@ class TestLocalDotLargeGray(TestLocalDot32x32):
         patches /= patches.reshape(self.n_patches, self.imshp[0] * self.imshp[1])\
             .max(axis=1)[:, None, None]
         # TODO: better local contrast normalization
-
-        if 0 and show_filters:
+        
+        # It is not clear why 0 is added
+        plot_patch = 0
+        if plot_patch and show_filters:
             plt.subplot(2, 2, 1); plt.imshow(patches[0], cmap='gray')
             plt.subplot(2, 2, 2); plt.imshow(patches[1], cmap='gray')
             plt.subplot(2, 2, 3); plt.imshow(patches[2], cmap='gray')
@@ -135,7 +137,8 @@ class TestLocalDotLargeGray(TestLocalDot32x32):
             cost_ii, = train_fn()
             print 'Cost', ii, cost_ii
 
-        if 0 and show_filters:
+        plot_img = 0
+        if plot_img and show_filters:
             self.A.imshow_gray()
             plt.show()
 

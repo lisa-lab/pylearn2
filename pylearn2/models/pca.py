@@ -1,3 +1,6 @@
+<<<<<<< HEAD
+# Standard library imports
+=======
 """
 .. todo::
 
@@ -5,6 +8,7 @@
 """
 # Standard library imports
 import logging
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
 import sys
 
 # Third-party imports
@@ -41,12 +45,21 @@ except ImportError:
     try:
         from scipy.sparse.linalg import eigsh as eigen_symmetric
     except ImportError:
+<<<<<<< HEAD
+        # TODO: change this to use warn()
+        print ("couldn't import eigsh / eigen_symmetric from "
+               "scipy.linalg.sparse, some of your pca functions "
+               "may randomly fail later")
+        print ("the fact that somebody is using this doesn't bode well "
+               " since it's unlikely that the covariance matrix is sparse")
+=======
         warnings.warn("couldn't import eigsh / eigen_symmetric from "
                       "scipy.linalg.sparse, some of your pca functions "
                       "may randomly fail later")
         warnings.warn("the fact that somebody is using this doesn't bode well "
                       "since it's unlikely "
                       "that the covariance matrix is sparse")
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
 
 
 # Local imports
@@ -54,9 +67,12 @@ from pylearn2.blocks import Block
 from pylearn2.utils import sharedX
 
 
+<<<<<<< HEAD
+=======
 logger = logging.getLogger()
 
 
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
 class _PCABase(Block):
     """
     Block which transforms its input via Principal Component Analysis.
@@ -66,6 +82,15 @@ class _PCABase(Block):
 
     Parameters
     ----------
+<<<<<<< HEAD
+    num_components : int
+        This many components will be preserved, in decreasing order of variance
+        (default None keeps all)
+    min_variance : float
+        Components with normalized variance [0-1] below this threshold will be
+        discarded
+    whiten : bool
+=======
     num_components : int, optional
         This many components will be preserved, in decreasing order of variance
         (default None keeps all)
@@ -73,6 +98,7 @@ class _PCABase(Block):
         Components with normalized variance [0-1] below this threshold will be
         discarded
     whiten : bool, optional
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
         Whether or not to divide projected features by their standard deviation
     """
 
@@ -110,7 +136,11 @@ class _PCABase(Block):
         ----------
         X : numpy.ndarray
             Matrix of shape (n, d) on which to train PCA
+<<<<<<< HEAD
+        mean : numpy.ndarray
+=======
         mean : numpy.ndarray, optional
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
             Feature means of shape (d,)
         """
 
@@ -207,7 +237,11 @@ class _PCABase(Block):
         Parameters
         ----------
         inputs : WRITEME
+<<<<<<< HEAD
+        add_mean : bool
+=======
         add_mean : bool, optional
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
             WRITEME
 
         Returns
@@ -264,8 +298,11 @@ class SparseMatPCA(_PCABase):
     Parameters
     ----------
     batch_size : WRITEME
+<<<<<<< HEAD
+=======
     kwargs : dict
         WRITEME
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
     """
     def __init__(self, batch_size=50, **kwargs):
         super(SparseMatPCA, self).__init__(**kwargs)
@@ -291,7 +328,11 @@ class SparseMatPCA(_PCABase):
         batch_size = self.minibatch_size
 
         for i in xrange(0, n, batch_size):
+<<<<<<< HEAD
+            print '\tprocessing example', str(i)
+=======
             logger.info('\tprocessing example {0}'.format(i))
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
             end = min(n, i + batch_size)
             x = X[i:end, :].todense() - self.mean_
             assert x.shape[0] == end - i
@@ -303,7 +344,11 @@ class SparseMatPCA(_PCABase):
 
         cov /= n
 
+<<<<<<< HEAD
+        print 'computing eigens'
+=======
         logger.info('computing eigens')
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
         v, W = linalg.eigh(cov, eigvals=(d - self.num_components, d - 1))
 
         # The resulting components are in *ascending* order of eigenvalue, and
@@ -330,7 +375,11 @@ class SparseMatPCA(_PCABase):
         assert sparse.issparse(X)
 
         # Compute feature means.
+<<<<<<< HEAD
+        print 'computing mean'
+=======
         logger.info('computing mean')
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
         self.mean_ = numpy.asarray(X.mean(axis=0))[0, :]
 
         super(SparseMatPCA, self).train(X, mean=self.mean_)
@@ -397,11 +446,20 @@ class OnlinePCA(_PCABase):
             centering=False
         )
 
+<<<<<<< HEAD
+        print >> sys.stderr, '*' * 50
+        for i in range(X.shape[0]):
+            if (i + 1) % (X.shape[0] / 50) == 0:
+                sys.stderr.write('|')  # suppresses newline/whitespace.
+            pca_estimator.observe(X[i, :])
+        print >> sys.stderr
+=======
         logger.debug('*' * 50)
         for i in range(X.shape[0]):
             if (i + 1) % (X.shape[0] / 50) == 0:
                 logger.debug('|')  # suppresses newline/whitespace.
             pca_estimator.observe(X[i, :])
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
 
         v, W = pca_estimator.getLeadingEigen()
 
@@ -413,17 +471,26 @@ class OnlinePCA(_PCABase):
 
 class Cov:
     """
+<<<<<<< HEAD
+    A covariance estimator that computes the covariance in small batches
+    instead of with one huge matrix multiply, in order to prevent memory
+    problems. Its call method has the same functionality as `numpy.cov`.
+=======
     Covariance estimator
 
     It computes the covariance in small batches instead of with one
     huge matrix multiply, in order to prevent memory problems. Its call
     method has the same functionality as `numpy.cov`.
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
 
     Parameters
     ----------
     batch_size : WRITEME
     """
+<<<<<<< HEAD
+=======
 
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
     def __init__(self, batch_size):
         self.batch_size = batch_size
 
@@ -453,7 +520,10 @@ class CovEigPCA(_PCABase):
     ----------
     cov_batch_size : WRITEME
     """
+<<<<<<< HEAD
+=======
 
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
     def __init__(self, cov_batch_size=None, **kwargs):
         super(CovEigPCA, self).__init__(**kwargs)
         if cov_batch_size is not None:
@@ -485,7 +555,10 @@ class SVDPCA(_PCABase):
 
         WRITEME
     """
+<<<<<<< HEAD
+=======
 
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
     def _cov_eigen(self, X):
         """
         Compute covariance matrix eigen{values,vectors} via Singular Value
@@ -513,16 +586,25 @@ class SparsePCA(_PCABase):
 
         WRITEME
     """
+<<<<<<< HEAD
+=======
 
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
     def train(self, X, mean=None):
         """
         .. todo::
 
             WRITEME
         """
+<<<<<<< HEAD
+        print >> sys.stderr, ('WARNING: You should probably be using '
+                              'SparseMatPCA, unless your design matrix fits '
+                              'in memory.')
+=======
         logger.warning('You should probably be using '
                        'SparseMatPCA, unless your design matrix fits '
                        'in memory.')
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
 
         n, d = X.shape
         # Can't subtract a sparse vector from a sparse matrix, apparently,
@@ -616,7 +698,11 @@ class PcaOnlineEstimator(object):
     Example:
 
       pca_esti = \
+<<<<<<< HEAD
+        pca_online_estimator.PcaOnlineEstimator(dimension_of_the_samples)
+=======
               pca_online_estimator.PcaOnlineEstimator(dimension_of_the_samples)
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
 
       for i in range(number_of_samples):
         pca_esti.observe(samples[i])
@@ -707,7 +793,11 @@ class PcaOnlineEstimator(object):
                      (1.0 - self.gamma)
 
         # Now center the observation.
+<<<<<<< HEAD
+        # We will lose the 1st observation as it is the only one in the mean.
+=======
         # We will lose the first observation as it is the only one in the mean.
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
         if self.centering:
             self.Xt[row] -= self.x_sum / normalizer
 
@@ -753,9 +843,15 @@ class PcaOnlineEstimator(object):
         # top ones) but it doesn't look loke it for scipy 0.6.
         self.d, self.V = linalg.eigh(self.G)
 
+<<<<<<< HEAD
+        # Convert the n_eigen LAST eigenvectors of the Gram matrix contained
+        # in V into *unnormalized* eigenvectors U of the covariance 
+        # (unnormalized wrt the eigen values, not the moving average).
+=======
         # Convert the n_eigen LAST eigenvectors of the Gram matrix contained in
         # V into *unnormalized* eigenvectors U of the covariance (unnormalized
         # wrt the eigen values, not the moving average).
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
         self.Ut = numpy.dot(self.V[:,-self.n_eigen:].transpose(), self.Xt)
 
         # Take into account the discount factor.
@@ -788,7 +884,11 @@ class PcaOnlineEstimator(object):
         # We subtract self.minibatch_index in case this call is not right
         # after a reevaluate call.
         normalizer = (1.0 - pow(self.gamma,
+<<<<<<< HEAD
+                                self.n_observations - self.minibatch_index))/\
+=======
                                 self.n_observations - self.minibatch_index)) /\
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
                      (1.0 - self.gamma)
 
         eigvals = self.d[-self.n_eigen:] / normalizer
@@ -866,8 +966,13 @@ if __name__ == "__main__":
     # comprehensions
     train_data, valid_data, test_data = map(lambda(x):
                                             x.get_value(borrow=True), data)
+<<<<<<< HEAD
+    print >> sys.stderr, "Dataset shapes:", map(lambda(x):
+                                                x.get_value().shape, data)
+=======
     logger.info("Dataset shapes: {0}".format(map(lambda(x):
                                              x.get_value().shape, data)))
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
     # PCA base-class constructor arguments.
     conf = {
         'num_components': args.num_components,
@@ -891,7 +996,11 @@ if __name__ == "__main__":
     if args.load_file:
         pca = Block.load(args.load_file)
     else:
+<<<<<<< HEAD
+        print "... computing PCA"
+=======
         logger.info("... computing PCA")
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
         pca = PCAImpl(**conf)
         pca.train(train_data)
         # Save the computed transformation.
@@ -902,7 +1011,12 @@ if __name__ == "__main__":
     pca_transform = theano.function([inputs], pca(inputs))
     valid_pca = pca_transform(valid_data)
     test_pca = pca_transform(test_data)
+<<<<<<< HEAD
+    print >> \
+          sys.stderr, "New shapes:", map(numpy.shape, [valid_pca, test_pca])
+=======
     logger.info("New shapes: {0}".format(map(numpy.shape,
                                          [valid_pca, test_pca])))
+>>>>>>> d413a62db738ebff9614608d782cdf3a06189d97
 
     # TODO: Compute ALC here when the code using the labels is ready.

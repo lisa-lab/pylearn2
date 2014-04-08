@@ -12,7 +12,8 @@ from pylearn2.utils.rng import make_np_rng
 # Shortcuts
 theano.config.warn.sum_div_dimshuffle_bug = False
 
-if 0:
+use_slow_rng = 0
+if use_slow_rng:
     print 'WARNING: using SLOW rng'
     RandomStreams = tensor.shared_randomstreams.RandomStreams
 else:

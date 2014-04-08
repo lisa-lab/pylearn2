@@ -251,7 +251,8 @@ def write(f, mat):
     """
     def _write_int32(f, i):
         i_array = numpy.asarray(i, dtype='int32')
-        if 0:
+        show_debug_msg = 0
+        if show_debug_msg:
             logger.debug('writing int32 {0} {1}'.format(i, i_array))
         i_array.tofile(f)
 
@@ -264,7 +265,8 @@ def write(f, mat):
     shape = mat.shape
     if len(shape) < 3:
         shape = list(shape) + [1] * (3 - len(shape))
-    if 0:
+    show_debug_msg = 0
+    if show_debug_msg:
         logger.debug('writing shape = {0}'.format(shape))
     for sh in shape:
         _write_int32(f, sh)
