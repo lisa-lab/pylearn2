@@ -60,21 +60,24 @@ class SubsetIterator(object):
         A `np.random.RandomState` object or the seed to be
         used to create one. A deterministic default seed is
         used otherwise.
-
-    Attributes
-    ----------
-    batch_size : int
-    num_batches : int
-    num_examples : int
-    uneven : bool
-    fancy : bool
-        `True` if this iterator produces lists of indices,
-        `False` if it produces slices.
-    stochastic : bool
-        `True` if this iterator makes use of the random number
-        generator, and will therefore produce different sequences
-        depending on the RNG state. `False` otherwise.
     """
+    # This breaks the doc generation, so until we figure out why, not in the
+    # docstring.
+    #
+    # Attributes
+    # ----------
+    # batch_size : int
+    # num_batches : int
+    # num_examples : int
+    # uneven : bool
+    # fancy : bool
+    #     `True` if this iterator produces lists of indices,
+    #     `False` if it produces slices.
+    # stochastic : bool
+    #     `True` if this iterator makes use of the random number
+    #     generator, and will therefore produce different sequences
+    #     depending on the RNG state. `False` otherwise.
+
     def __init__(self, dataset_size, batch_size=None,
                  num_batches=None, rng=None):
         raise NotImplementedError()
