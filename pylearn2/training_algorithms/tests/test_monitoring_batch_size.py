@@ -1,16 +1,13 @@
-import unittest
-
+"""
+Tests for monitoring_batch_size.
+"""
 from pylearn2.config import yaml_parse
 
 
-class TestMonitoringBatchSize(unittest.TestCase):
-    """
-    Train a simple model with different values for batch_size and
-    monitoring_batch_size.
-    """
-    def test_monitoring_batch_size(self):
-        trainer = yaml_parse.load(test_yaml)
-        trainer.main_loop()
+def test_monitoring_batch_size():
+    """Test monitoring_batch_size."""
+    trainer = yaml_parse.load(test_yaml)
+    trainer.main_loop()
 
 test_yaml = """
 !obj:pylearn2.train.Train {
