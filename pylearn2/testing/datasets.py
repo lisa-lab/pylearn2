@@ -62,3 +62,24 @@ def random_one_hot_topological_dense_design_matrix(rng, num_examples, shape, cha
         Y[i,idx[i]] = 1
 
     return DenseDesignMatrix(topo_view=X, axes=axes, y=Y)
+
+def random_one_hot_topological_detection_ddm(rng, num_examples, shape, channels, axes, yshape=None):
+
+    dims = {
+            'b': num_examples,
+            'c': channels
+            }
+
+    for i, dim in enumerate(shape):
+        dims[i] = dim
+
+    shape = [dims[axis] for axis in axes]
+
+    X = rng.randn(*shape)
+
+    idx = rng.randint(0, dim, (num_examples,))
+    if yshape is None:
+        Y = np.zeros(shape)
+    else:
+        Y = np.zeros(yshape)
+    return DenseDesignMatrix(topo_view=X, axes=axes, y=Y)
