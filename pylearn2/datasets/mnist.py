@@ -6,6 +6,7 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
 import numpy as N
+import warnings
 np = N
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.datasets import control
@@ -37,7 +38,7 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
     fit_test_preprocessor : WRITEME
     """
     def __init__(self, which_set, center=False, shuffle=False,
-                 one_hot=False, binarize=False, start=None,
+                 one_hot=None, binarize=False, start=None,
                  stop=None, axes=['b', 0, 1, 'c'],
                  preprocessor=None,
                  fit_preprocessor=False,
@@ -88,15 +89,14 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             if binarize:
                 topo_view = (topo_view > 0.5).astype('float32')
 
-            self.one_hot = one_hot
-            if one_hot:
-                one_hot = N.zeros((y.shape[0], 10), dtype='float32')
-                for i in xrange(y.shape[0]):
-                    one_hot[i, y[i]] = 1.
-                y = one_hot
-                max_labels = None
-            else:
-                max_labels = 10
+            max_labels = 10
+            if one_hot is not None:
+                warnings.warn("the `one_hot` parameter is deprecated. To get "
+                              "one-hot encoded targets, request that they "
+                              "live in `VectorSpace` through the `data_specs` "
+                              "parameter of MNIST's iterator method. "
+                              "`one_hot` will be removed on or after "
+                              "September 20, 2014.", stacklevel=2)
 
             m, r, c = topo_view.shape
             assert r == 28
