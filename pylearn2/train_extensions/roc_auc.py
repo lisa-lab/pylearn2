@@ -46,7 +46,6 @@ class RocAucScoreOp(gof.Op):
             List of mutable 1-element lists.
         """
         y_true, y_score = inputs
-        print "Y SIZE", y_true.shape
         try:
             roc_auc = sklearn.metrics.roc_auc_score(y_true, y_score)
         except ValueError:
