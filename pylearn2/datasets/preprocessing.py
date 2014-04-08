@@ -1435,3 +1435,38 @@ class ShuffleAndSplit(Preprocessor):
         dataset.X = X[start:stop, :]
         if y is not None:
             dataset.y = y[start:stop, :]
+
+
+class TorontoPreprocessor(Preprocessor):
+    def __init__(self):
+        """
+        Initialize the TorontoPreprocessor preprocessor.
+        """
+        self._mean = None
+        self._std = None
+
+    def apply(self, dataset, can_fit=False):
+        X = dataset.get_design_matrix()
+        X = X / 255.
+        if can_fit:
+            self._mean = X.mean(axis=0)
+        else:
+            if self._mean is None:
+                raise ValueError("can_fit is False, but TorontoPreprocessor "
+                                    "object has no stored mean")
+        new = X - self._mean
+        dataset.set_design_matrix(new)
+
+
+class CenterPreprocessor(Preprocessor):
+    def apply(self, dataset, can_fit=False):
+        X = dataset.get_design_matrix()
+        X -= 127.5
+        dataset.set_design_matrix(X)
+
+
+class RescalePreprocessor(Preprocessor):
+    def apply(self, dataset, can_fit=False):
+        X = dataset.get_design_matrix()
+        X /= 127.5
+        dataset.set_design_matrix(X)
