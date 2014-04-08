@@ -3736,7 +3736,7 @@ class FlattenerLayer(Layer):
 
 class WindowLayer(Layer):
     """
-    Shallow layer used to select a window of an image input.
+    Layer used to select a window of an image input.
     The input of the layer must be Conv2DSpace.
 
     Parameters
@@ -3759,7 +3759,6 @@ class WindowLayer(Layer):
 
     @wraps(Layer.fprop)
     def fprop(self, state_below):
-
         extracts = [slice(None), slice(None), slice(None), slice(None)]
         extracts[self.rows] = slice(self.window[0], self.window[2] + 1)
         extracts[self.cols] = slice(self.window[1], self.window[3] + 1)
@@ -3769,7 +3768,6 @@ class WindowLayer(Layer):
 
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
-
         self.input_space = space
 
         if not isinstance(space, Conv2DSpace):
