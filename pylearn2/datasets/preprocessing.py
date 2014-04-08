@@ -1443,7 +1443,6 @@ class TorontoPreprocessor(Preprocessor):
         Initialize the TorontoPreprocessor preprocessor.
         """
         self._mean = None
-        self._std = None
 
     def apply(self, dataset, can_fit=False):
         X = dataset.get_design_matrix()
