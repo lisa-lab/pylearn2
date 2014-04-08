@@ -10,6 +10,11 @@ import numpy as np
 N = np
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.expr.preprocessing import global_contrast_normalize
+import warnings
+
+from pylearn2.datasets.preprocessing import GlobalContrastNormalization, \
+    TorontoPreprocessor, CenterPreprocessor, RescalePreprocessor
+from pylearn2.datasets.preprocessing import Pipeline
 
 
 class CIFAR10(dense_design_matrix.DenseDesignMatrix):
@@ -33,10 +38,18 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     """
     def __init__(self, which_set, center = False, rescale = False, gcn = None,
             one_hot = False, start = None, stop = None, axes=('b', 0, 1, 'c'),
-            toronto_prepro = False, preprocessor = None):
+            toronto_prepro = False, preprocessor = None, preprocessors=[]):
         # note: there is no such thing as the cifar10 validation set;
         # pylearn1 defined one but really it should be user-configurable
         # (as it is here)
+
+        self.center = center
+        self.rescale = rescale
+        self.toronto_prepro = toronto_prepro
+        self.gcn = gcn
+        self.preprocessors = preprocessors
+
+        self.validate_options()
 
         self.axes = axes
 
@@ -99,51 +112,42 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
                 one_hot[i,y[i]] = 1.
             y = one_hot
 
-        if center:
-            X -= 127.5
-        self.center = center
 
-        if rescale:
-            X /= 127.5
-        self.rescale = rescale
+        view_converter = dense_design_matrix.DefaultViewConverter((32,32,3), axes)
 
-        if toronto_prepro:
-            assert not center
-            assert not gcn
-            X = X / 255.
-            if which_set == 'test':
-                other = CIFAR10(which_set='train')
-                oX = other.X
-                oX /= 255.
-                X = X - oX.mean(axis=0)
-            else:
-                X = X - X.mean(axis=0)
-        self.toronto_prepro = toronto_prepro
+        super(CIFAR10, self).__init__(X=X, y=y, view_converter=view_converter)
 
-        self.gcn = gcn
-        if gcn is not None:
-            gcn = float(gcn)
-            X = global_contrast_normalize(X, scale=gcn)
+        # TODO: should we check that rescale is not enabled when doing toronto_prepro
+        # Also, if we can do rescale with toronto_prepro, should we make sure
+        # that rescale is done before toronto_prepro? Should we check that
+        # center is done before rescale?
+        for preproc in self.preprocessors:
+            class_name = preproc.__class__.__name__
+            can_fit = class_name == TorontoPreprocessor.__name__
+            if can_fit:
+                if which_set == 'train':
+                    preproc.apply(self, can_fit=can_fit)
+                    continue
+                else:
+                    preproc.apply(CIFAR10(which_set='train'), can_fit=can_fit)
+            preproc.apply(self)
 
         if start is not None:
             # This needs to come after the prepro so that it doesn't change the pixel
             # means computed above for toronto_prepro
             assert start >= 0
             assert stop > start
-            assert stop <= X.shape[0]
-            X = X[start:stop, :]
-            y = y[start:stop]
-            assert X.shape[0] == y.shape[0]
+            assert stop <= self.X.shape[0]
+            self.X = self.X[start:stop, :]
+            self.y = self.y[start:stop]
+            assert self.X.shape[0] == self.y.shape[0]
 
         if which_set == 'test':
-            assert X.shape[0] == 10000
-
-        view_converter = dense_design_matrix.DefaultViewConverter((32,32,3), axes)
-
-        super(CIFAR10, self).__init__(X=X, y=y, view_converter=view_converter)
+            assert self.X.shape[0] == 10000
 
         assert not np.any(np.isnan(self.X))
 
+        # TODO: should we check that preprocessor is not already in `preprocessors`?
         if preprocessor:
             preprocessor.apply(self)
 
@@ -252,3 +256,71 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         dict = cPickle.load(fo)
         fo.close()
         return dict
+
+
+    # TODO: WRITEME
+    def validate_options(self):
+        """
+        Performs the following validations on the constructor's arguments:
+            1) check that `preprocessors` does not have any duplicated
+               preprocessors. If there is duplication, a warning is issued.
+               TODO: should we delete the duplicated preprocessor from `preprocessors`?
+            2) if an option (center, rescale, gcn or toronto_prepro) was
+               specified, then the corresponding preprocessor from the
+               Preprocessor class is instantiated and added to `preprocessors`
+        """
+
+        ### Check that the list of preprocessors `processors` does not have
+        ### duplicated preprocessors
+        self.set_preproc = set()
+        for preproc in self.preprocessors:
+            class_name = preproc.__class__.__name__
+            if class_name in self.set_preproc:
+                warnings.warn("The preprocessor %s is found more than once in the "
+                "list of preprocessors."%class_name)
+            else:
+                self.set_preproc.add(class_name)
+
+        ### Check that any of the options are specified. Issue a warning
+        ### and instantiate the corresponding preprocessor if that's the case
+        if self.center:
+            warnings.warn("The option center is deprecated. The Center "
+                        "preprocessor should be used instead.")
+            if CenterPreprocessor.__name__ in self.set_preproc:
+                warnings.warn("The option center was specified but the list "
+                            "preprocessors already contains CenterPreprocessor.")
+            else:
+                self.preprocessors.append(RescalePreprocessor())
+
+        if self.rescale:
+            warnings.warn("The option rescale is deprecated. The Rescale "
+                        "preprocessor should be used instead.")
+            if RescalePreprocessor.__name__ in self.set_preproc:
+                warnings.warn("The option rescale was specified but the list "
+                            "preprocessors already contains RescalePreprocessor.")
+            else:
+                self.preprocessors.append(RescalePreprocessor())
+
+        if self.gcn:
+            warnings.warn("The option gcn is deprecated. The "
+                        "GlobalContrastNormalization preprocessor should be "
+                        "used instead.")
+            if GlobalContrastNormalization.__name__ in self.set_preproc:
+                warnings.warn("The option gcn was specified but the list "
+                            "preprocessors already contains "
+                            "GlobalContrastNormalization.")
+            else:
+                self.preprocessors.append(GlobalContrastNormalization(scale=float(self.gcn)))
+
+        if self.toronto_prepro:
+            warnings.warn("The option toronto_preproc is deprecated. The "
+                        "TorontoPreprocessor preprocessor should be used "
+                        "instead.")
+            assert not self.center
+            assert not self.gcn
+            if TorontoPreprocessor.__name__ in self.set_preproc:
+                warnings.warn("The option toronto_prepro was specified but the "
+                            "list preprocessors already contains a "
+                            "TorontoPreprocessor.")
+            else:
+                self.preprocessors.append(TorontoPreprocessor())
