@@ -2,7 +2,7 @@
 Utility functions to load data from the UTLC challenge (Unsupervised Transfer Learning).
 
 The user should use the load_ndarray_dataset or load_sparse_dataset function
-See the file ${PYLEARN2_DATA_ROOT}/UTCL/README for details on the datasets.
+See the file ${PYLEARN2_DATA_PATH}/UTLC/README for details on the datasets.
 """
 
 import cPickle
