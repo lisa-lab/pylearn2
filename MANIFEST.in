@@ -1,6 +1,3 @@
 include README.rst
-global-include *.cu
-global-include *.cuh
-global-include *.h
-recursive-include docs
+recursive-include doc *
 
