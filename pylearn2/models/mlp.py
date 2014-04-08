@@ -2088,8 +2088,7 @@ class Sigmoid(Linear):
         - p log sigmoid(z) - (1-p) log sigmoid(-z)
         p softplus(-z) + (1-p) softplus(z)
         """
-        batch_axis = self.output_space.get_batch_axis()
-        total = kl(Y=Y, Y_hat=Y_hat, batch_axis=batch_axis)
+        total = self.kl(Y=Y, Y_hat=Y_hat)
 
         ave = total.mean()
 
@@ -2127,8 +2126,7 @@ class Sigmoid(Linear):
             average kl divergence between Y and Y_hat.
         """
 
-        batch_axis = self.output_space.get_batch_axis()
-        div = kl(Y=Y, Y_hat=Y_hat, batch_axis=batch_axis)
+        div = kl(self, Y=Y, Y_hat=Y_hat, batch_axis=0)
         return div
 
     def get_detection_channels_from_state(self, state, target):
