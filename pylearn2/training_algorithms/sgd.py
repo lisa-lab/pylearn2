@@ -220,7 +220,7 @@ class SGD(TrainingAlgorithm):
 
         # test if force batch size and batch size
         if getattr(model, "force_batch_size", False) and \
-           any(dataset.get_design_matrix().shape[0] % self.batch_size != 0 for \
+           any(dataset.get_design_matrix().shape[0] % self.batch_size != 0 for
                dataset in self.monitoring_dataset.values()) and \
            not has_uniform_batch_size(self.monitor_iteration_mode):
 
@@ -228,7 +228,6 @@ class SGD(TrainingAlgorithm):
                              "You should set monitor_iteration_mode to "
                              "even_sequential, even_shuffled_sequential or "
                              "even_batchwise_shuffled_sequential")
-
 
         data_specs = self.cost.get_data_specs(self.model)
         mapping = DataSpecsMapping(data_specs)

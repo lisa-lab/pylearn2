@@ -226,7 +226,8 @@ def test_revisit():
                 if has_uniform_batch_size(mode) and num_mon_batches is None:
                     num_mon_batches = int(num_examples / float(mon_batch_size))
                 elif num_mon_batches is None:
-                    num_mon_batches = int(np.ceil(float(num_examples) / float(mon_batch_size)))
+                    num_mon_batches = int(np.ceil(float(num_examples) /
+                                          float(mon_batch_size)))
 
                 batches = [ None ] * num_mon_batches
                 visited = [ False ] * num_mon_batches

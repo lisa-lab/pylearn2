@@ -17,7 +17,9 @@ Presets:
     container is empty after num_examples / batch_size calls
 """
 from __future__ import division
-import numpy, functools, inspect
+import numpy
+import functools
+import inspect
 np = numpy
 
 from pylearn2.space import CompositeSpace
@@ -37,6 +39,7 @@ assert """Presets:
 
 - sequential: iterates through fixed slices of the dataset in sequence
 - s""" in __doc__
+
 
 class SubsetIterator(object):
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
@@ -117,10 +120,9 @@ class SubsetIterator(object):
         return True
 
 
-
 class ForcedEvenIterator(SubsetIterator):
     """
-    A class which wraps other iterators to ensure equal batch size. 
+    A class which wraps other iterators to ensure equal batch size.
     This class needs to be completed using type() metaclass, see
     Examples section to see how to use it.
 
@@ -138,7 +140,7 @@ class ForcedEvenIterator(SubsetIterator):
         calculated based on dataset_size.
     *args : Variable length argument list for _base_iterator_cls
     **kwargs : Arbitrary keyword arguments for _base_iterator_cls
-    
+
     Notes
     -----
         This class can not be initialized because it needs to be completed
@@ -153,15 +155,18 @@ class ForcedEvenIterator(SubsetIterator):
     >>> dct["_base_iterator_cls"] = DummyIterator
     >>> dct["fancy"] = DummyIterator.fancy
     >>> dct["stochastic"] = DummyIterator.stochastic
-    >>> 
-    >>> NewForcedEvenClass = type("ForcedEvenDummyIterator", ForcedEvenIterator.__bases__, dct)
-    >>> 
-    >>> even_iterator = NewForcedEvenClass(dataset_size=100, batch_size=30, num_batches=None)
+    >>>
+    >>> NewForcedEvenClass = type("ForcedEvenDummyIterator",
+    ...     ForcedEvenIterator.__bases__, dct)
+    >>>
+    >>> even_iterator = NewForcedEvenClass(dataset_size=100,
+    ...     batch_size=30, num_batches=None)
 
     For a shortcut use function as_even()
 
     >>> NewForcedEvenClass = as_even(DummyIterator)
-    >>> even_iterator = NewForcedEvenClass(dataset_size=100, batch_size=30, num_batches=None)
+    >>> even_iterator = NewForcedEvenClass(dataset_size=100,
+    ...     batch_size=30, num_batches=None)
     """
 
     def __init__(self, dataset_size, batch_size, num_batches, *args, **kwargs):
@@ -184,22 +189,22 @@ class ForcedEvenIterator(SubsetIterator):
                 max_num_batches = int(dataset_size / batch_size)
                 if num_batches > max_num_batches:
                     raise ValueError("dataset of %d examples can only provide "
-                                     "%d batches of equal size with batch_size %d, but %d "
-                                     "batches were requested" %
+                                     "%d batches of equal size with batch_size"
+                                     " %d, but %d batches were requested" %
                                      (dataset_size, max_num_batches,
                                       batch_size, num_batches))
             else:
                 num_batches = int(dataset_size / batch_size)
 
         self._base_iterator = self._base_iterator_cls(dataset_size, batch_size,
-                                  num_batches, *args, **kwargs)
-
+                                                      num_batches, *args,
+                                                      **kwargs)
 
     # Does it ensure that every batch has the same size?
     uniform_batch_size = True
 
     # Does this return subsets that need fancy indexing? (i.e. lists
-    # of indices) 
+    # of indices)
     # Needs to be set before initialization. See Examples section in class docs
     fancy = None
 
@@ -211,7 +216,6 @@ class ForcedEvenIterator(SubsetIterator):
     # Needs to be set before initialization. See Examples section in class docs
     _base_iterator_cls = None
 
-
     @property
     def _dataset_size(self):
         return self._base_iterator._dataset_size
@@ -219,7 +223,7 @@ class ForcedEvenIterator(SubsetIterator):
     @property
     def _batch_size(self):
         return self._base_iterator._batch_size
-    
+
     @property
     def _num_batches(self):
         return self._base_iterator._num_batches
@@ -250,7 +254,7 @@ class ForcedEvenIterator(SubsetIterator):
         Notes
         -----
             Uneven batches may be discarded and StopException
-            will be raised without having iterated throught 
+            will be raised without having iterated throught
             every examples.
         """
 
@@ -260,7 +264,7 @@ class ForcedEvenIterator(SubsetIterator):
         while length != self.batch_size:
             batch = self._base_iterator.next()
 
-            if isinstance(batch,slice):
+            if isinstance(batch, slice):
                 length = batch.stop-batch.start
             else:
                 length = len(batch)
@@ -291,7 +295,8 @@ def as_even(iterator_cls):
     dct["fancy"] = iterator_cls.fancy
     dct["stochastic"] = iterator_cls.stochastic
 
-    NewForcedEvenClass = type("ForcedEven%s" % iterator_cls.__name__, ForcedEvenIterator.__bases__, dct)
+    NewForcedEvenClass = type("ForcedEven%s" % iterator_cls.__name__,
+                              ForcedEvenIterator.__bases__, dct)
 
     return NewForcedEvenClass
 
@@ -403,7 +408,8 @@ class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
             num_batches,
             None
         )
-        self._rng = make_np_rng(rng, which_method=["random_integers", "shuffle"])
+        self._rng = make_np_rng(rng,
+                                which_method=["random_integers", "shuffle"])
         self._shuffled = numpy.arange(self._dataset_size)
         self._rng.shuffle(self._shuffled)
 
@@ -440,7 +446,8 @@ class RandomUniformSubsetIterator(SubsetIterator):
 
             WRITEME
         """
-        self._rng = make_np_rng(rng, which_method=["random_integers", "shuffle"])
+        self._rng = make_np_rng(rng,
+                                which_method=["random_integers", "shuffle"])
         if batch_size is None:
             raise ValueError("batch_size cannot be None for random uniform "
                              "iteration")
@@ -528,7 +535,8 @@ class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
 
             WRITEME
         """
-        self._rng = make_np_rng(rng, which_method=["random_integers", "shuffle"])
+        self._rng = make_np_rng(rng,
+                                which_method=["random_integers", "shuffle"])
         assert num_batches is None or num_batches >= 0
         self._dataset_size = dataset_size
         if batch_size is None:
@@ -586,7 +594,8 @@ _iteration_schemes = {
     'batchwise_shuffled_sequential': BatchwiseShuffledSequentialIterator,
     'even_sequential': as_even(SequentialSubsetIterator),
     'even_shuffled_sequential': as_even(ShuffledSequentialSubsetIterator),
-    'even_batchwise_shuffled_sequential': as_even(BatchwiseShuffledSequentialIterator),
+    'even_batchwise_shuffled_sequential':
+    as_even(BatchwiseShuffledSequentialIterator),
 }
 
 
@@ -603,7 +612,7 @@ def has_uniform_batch_size(mode):
     Returns
     -------
     boolean
-        True if the iteration scheme has uniform batch size, 
+        True if the iteration scheme has uniform batch size,
         False otherwise
     """
     return resolve_iterator_class(mode).uniform_batch_size
