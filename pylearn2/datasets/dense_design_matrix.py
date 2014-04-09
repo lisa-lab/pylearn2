@@ -759,24 +759,14 @@ class DenseDesignMatrix(Dataset):
             space = X_space
             source = X_source
         else:
-            if self.y.ndim == 1:
+            if self.y.ndim != 2:
                 assert self.max_labels
                 # In order to comply with IndexSpace, y must be a 2D array
                 self.y = self.y.reshape((self.y.shape[0], 1))
                 y_space = IndexSpace(max_labels=self.max_labels, dim=1)
                 y_source = 'targets'
-            elif self.y.ndim == 2:
+            else:
                 y_space = VectorSpace(dim=self.y.shape[-1])
-                y_source = 'targets'
-            elif self.y.ndim == len(axes):
-                Y = self.y
-                nchannels = Y.shape[axes.index('c')]
-                rows = Y.shape[axes.index(0)]
-                cols = Y.shape[axes.index(1)]
-                shp = (rows, cols)
-                y_space = Conv2DSpace(num_channels=nchannels,
-                                      shape=shp,
-                                      axes=axes)
                 y_source = 'targets'
 
             space = CompositeSpace((X_space, y_space))
