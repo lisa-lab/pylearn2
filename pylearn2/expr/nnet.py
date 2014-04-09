@@ -89,7 +89,7 @@ def arg_of_softmax(Y_hat):
     assert z.ndim == 2
     return z
 
-def kl(self, Y, Y_hat, batch_axis):
+def kl(Y, Y_hat, batch_axis):
     """
     Warning: This function expects a sigmoid nonlinearity in the
     output layer. Returns a batch (vector) of mean across units of

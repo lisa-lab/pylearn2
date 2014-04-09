@@ -26,6 +26,11 @@ import argparse
 channels = {}
 
 def unique_substring(s, other, min_size=1):
+    """
+    .. todo::
+
+        WRITEME
+    """
     size = min(len(s), min_size)
     while size <= len(s):
         for pos in xrange(0,len(s)-size+1):
@@ -42,10 +47,20 @@ def unique_substring(s, other, min_size=1):
     return s
 
 def unique_substrings(l, min_size=1):
+    """
+    .. todo::
+
+        WRITEME
+    """
     return [unique_substring(s, [x for x in l if x is not s], min_size)
             for s in l]
 
 def main():
+    """
+    .. todo::
+
+        WRITEME
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--out")
     parser.add_argument("model_paths", nargs='+')

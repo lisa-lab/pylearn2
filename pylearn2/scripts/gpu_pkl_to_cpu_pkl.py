@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-__author__ = "Ian Goodfellow"
 """
 Converts a pickle file containing CudaNdarraySharedVariables into
 a pickle file containing only TensorSharedVariables.
@@ -35,6 +34,8 @@ the pickle. You probably want to test that the cpu pickle file can be
 loaded on a machine without GPU to be sure that the script actually
 found them all.
 """
+__author__ = "Ian Goodfellow"
+
 import sys
 import types
 

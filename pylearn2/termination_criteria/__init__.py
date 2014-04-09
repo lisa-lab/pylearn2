@@ -45,6 +45,7 @@ class TerminationCriterion(object):
                       "after July 31, 2014.", stacklevel=2)
         return self.continue_learning(model)
 
+
 class MonitorBased(TerminationCriterion):
     """
     A termination criterion that pulls out the specified channel in
@@ -63,7 +64,7 @@ class MonitorBased(TerminationCriterion):
         has only one channel, this channel will be used; otherwise, an \
         error will be raised.
     """
-    def __init__(self, prop_decrease = .01, N = 5, channel_name=None):
+    def __init__(self, prop_decrease=.01, N=5, channel_name=None):
         self._channel_name = channel_name
         self.prop_decrease = prop_decrease
         self.N = N
@@ -113,6 +114,7 @@ class MonitorBased(TerminationCriterion):
         # enough.
         return self.countdown > 0
 
+
 class MatchChannel(TerminationCriterion):
     """
     Stop training when a cost function reaches the same value as a cost
@@ -148,8 +150,9 @@ class MatchChannel(TerminationCriterion):
         channel = channels[self.channel_name]
 
         current = channel.val_record[-1]
-        rval =  current > self.target
+        rval = current > self.target
         return rval
+
 
 class ChannelTarget(TerminationCriterion):
     """
@@ -173,8 +176,9 @@ class ChannelTarget(TerminationCriterion):
         channels = monitor.channels
         channel = channels[self.channel_name]
 
-        rval =  channel.val_record[-1] > self.target
+        rval = channel.val_record[-1] > self.target
         return rval
+
 
 class ChannelInf(TerminationCriterion):
     """
@@ -197,6 +201,7 @@ class ChannelInf(TerminationCriterion):
         rval = np.isinf(channel.val_record[-1])
         return rval
 
+
 class EpochCounter(TerminationCriterion):
     """
     Learn for a fixed number of epochs.
@@ -211,7 +216,7 @@ class EpochCounter(TerminationCriterion):
         method) after which this termination criterion should
         return `False`.
     """
-    def  __init__(self, max_epochs):
+    def __init__(self, max_epochs):
         self._max_epochs = max_epochs
         self._epochs_done = 0
 
@@ -219,6 +224,7 @@ class EpochCounter(TerminationCriterion):
     def continue_learning(self, model):
         self._epochs_done += 1
         return self._epochs_done < self._max_epochs
+
 
 class And(TerminationCriterion):
     """
@@ -243,6 +249,7 @@ class And(TerminationCriterion):
     def continue_learning(self, model):
         return all(criterion.continue_learning(model)
                    for criterion in self._criteria)
+
 
 class Or(TerminationCriterion):
     """
