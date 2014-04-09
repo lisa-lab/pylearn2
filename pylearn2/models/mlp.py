@@ -2088,8 +2088,7 @@ class Sigmoid(Linear):
         - p log sigmoid(z) - (1-p) log sigmoid(-z)
         p softplus(-z) + (1-p) softplus(z)
         """
-        batch_axis = self.output_space.get_batch_axis()
-        total = kl(Y=Y, Y_hat=Y_hat, batch_axis=batch_axis)
+        total = self.kl(Y=Y, Y_hat=Y_hat)
 
         ave = total.mean()
 
@@ -2126,7 +2125,6 @@ class Sigmoid(Linear):
         ave : Variable
             average kl divergence between Y and Y_hat.
         """
-
         batch_axis = self.output_space.get_batch_axis()
         div = kl(Y=Y, Y_hat=Y_hat, batch_axis=batch_axis)
         return div
@@ -2407,14 +2405,14 @@ class SigmoidConvNonlinearity(ConvNonlinearity):
 
     @wraps(ConvNonlinearity.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target,
-                                           orval=None, cost_fn=None):
-        rval = OrderedDict()
+                                           rval=None, cost_fn=None):
+        orval = OrderedDict()
         y_hat = state > 0.5
         y = target > 0.5
         wrong_bit = T.cast(T.neq(y, y_hat), state.dtype)
 
-        rval['01_loss'] = wrong_bit.mean()
-        rval['kl'] = cost_fn(Y_hat=state, Y=target)
+        orval['01_loss'] = wrong_bit.mean()
+        orval['kl'] = cost_fn(Y_hat=state, Y=target)
 
         y = T.cast(y, state.dtype)
         y_hat = T.cast(y_hat, state.dtype)
@@ -2423,30 +2421,31 @@ class SigmoidConvNonlinearity(ConvNonlinearity):
         precision = tp / T.maximum(1., tp + fp)
         recall = tp / T.maximum(1., y.sum())
 
-        rval['precision'] = precision
-        rval['recall'] = recall
-        rval['f1'] = 2. * precision * recall / T.maximum(1, precision + recall)
+        orval['precision'] = precision
+        orval['recall'] = recall
+        orval['f1'] = (2. * precision * recall /
+                       T.maximum(1, precision + recall))
 
         tp = (y * y_hat).sum(axis=[0, 1])
         fp = ((1-y) * y_hat).sum(axis=[0, 1])
         precision = tp / T.maximum(1., tp + fp)
 
-        rval['per_output_precision.max'] = precision.max()
-        rval['per_output_precision.mean'] = precision.mean()
-        rval['per_output_precision.min'] = precision.min()
+        orval['per_output_precision.max'] = precision.max()
+        orval['per_output_precision.mean'] = precision.mean()
+        orval['per_output_precision.min'] = precision.min()
 
         recall = tp / T.maximum(1., y.sum(axis=[0, 1]))
 
-        rval['per_output_recall.max'] = recall.max()
-        rval['per_output_recall.mean'] = recall.mean()
-        rval['per_output_recall.min'] = recall.min()
+        orval['per_output_recall.max'] = recall.max()
+        orval['per_output_recall.mean'] = recall.mean()
+        orval['per_output_recall.min'] = recall.min()
 
         f1 = 2. * precision * recall / T.maximum(1, precision + recall)
 
-        rval['per_output_f1.max'] = f1.max()
-        rval['per_output_f1.mean'] = f1.mean()
-        rval['per_output_f1.min'] = f1.min()
-        rval = orval.update(rval)
+        orval['per_output_f1.max'] = f1.max()
+        orval['per_output_f1.mean'] = f1.mean()
+        orval['per_output_f1.min'] = f1.min()
+        rval.update(orval)
         return rval
 
 

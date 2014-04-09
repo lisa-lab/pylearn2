@@ -768,6 +768,7 @@ class DenseDesignMatrix(Dataset):
             else:
                 y_space = VectorSpace(dim=self.y.shape[-1])
                 y_source = 'targets'
+
             space = CompositeSpace((X_space, y_space))
             source = (X_source, y_source)
 
