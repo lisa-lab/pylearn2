@@ -1601,7 +1601,7 @@ class Linear(Layer):
     include_prob : float, optional
         Probability of including a weight element in the set of weights \
         initialized to U(-irange, irange). If not included it is \
-        initialized to 0.
+        initialized to 1.
     init_bias : float or ndarray, optional
         Anything that can be broadcasted to a numpy vector.
         Provides the initial value of the biases of the model.
