@@ -68,26 +68,6 @@ class MatrixMul(LinearTransform):
         """
         return T.dot(x, self._W.T)
 
-    def project(self, x):
-        """
-        Takes a sequence of integers and projects (embeds) these labels
-        into a continuous space by concatenating the correspending
-        rows in the projection matrix W i.e. [2, 5] -> [W[2] ... W[5]]
-
-        Parameters
-        ----------
-        x : theano.tensor, int dtype
-            A vector of labels (or a matrix where each row is a sample in
-            a batch) which will be projected
-        """
-        if x.ndim == 2:
-            shape = (x.shape[0], x.shape[1] * self._W.shape[1])
-            return self._W[x.flatten()].reshape(shape)
-        elif x.ndim == 1:
-            return self._W[x].reshape((x.shape[0] * self._W.shape[1],))
-        else:
-            assert ValueError("project needs 1- or 2-dimensional input")
-
 
 def make_local_rfs(dataset, nhid, rf_shape, stride, irange = .05,
         draw_patches = False, rng = None):
