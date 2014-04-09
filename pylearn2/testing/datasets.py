@@ -62,4 +62,3 @@ def random_one_hot_topological_dense_design_matrix(rng, num_examples, shape, cha
         Y[i,idx[i]] = 1
 
     return DenseDesignMatrix(topo_view=X, axes=axes, y=Y)
-
