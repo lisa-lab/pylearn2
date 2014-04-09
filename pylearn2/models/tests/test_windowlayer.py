@@ -35,7 +35,7 @@ def test_windowlayer():
     np.testing.assert_raises(ValueError, build_mlp_fn,
                              -1, -1, 19, 19, 20, 20, 3, ('c', 0, 1, 'b'))
     fprop = build_mlp_fn(5, 5, 10, 15, 20, 20, 2, ('b', 'c', 0, 1))
-    n = np.random.rand(3, 2, 20, 20)
+    n = np.random.rand(3, 2, 20, 20).astype(theano.config.floatX)
     r = fprop(n)
     assert r.shape == (3, 2, 6, 11)
     assert r[0, 0, 0, 0] == n[0, 0, 5, 5]
