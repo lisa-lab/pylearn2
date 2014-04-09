@@ -483,7 +483,8 @@ class BinaryVector(VisibleLayer):
         if self.copies != 1:
             raise NotImplementedError()
         mean = T.nnet.sigmoid(self.bias)
-        rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
+        rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean,
+                                   dtype=theano.config.floatX)
 
         return rval
 
