@@ -2126,7 +2126,7 @@ class Sigmoid(Linear):
             average kl divergence between Y and Y_hat.
         """
         batch_axis = self.output_space.get_batch_axis()
-        div = kl(Y=Y, Y_hat=Y_hat, batch_axis=batch_size)
+        div = kl(Y=Y, Y_hat=Y_hat, batch_axis=batch_axis)
         return div
 
     def get_detection_channels_from_state(self, state, target):
