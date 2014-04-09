@@ -29,6 +29,7 @@ import functools
 import logging
 import numpy as np
 import warnings
+from itertools import izip
 
 from theano.compat.python2x import OrderedDict
 from theano.sandbox import cuda
@@ -586,7 +587,7 @@ class MaxoutConvC01B(Layer):
         same as each other. Otherwise, each bias at each location is
         learned independently.
     max_kernel_norm : float, optional
-        If specifed, each kernel is constrained to have at most this norm.
+        If specified, each kernel is constrained to have at most this norm.
     input_normalization : callable, optional
         see output normalization
     detector_normalization : callable, optional
@@ -1030,7 +1031,7 @@ class MaxoutLocalC01B(Layer):
     max_filter_norm : float, optional
         DEPRECATED, use max_kernel_norm instead.
     max_kernel_norm : float, optional
-        If specifed, each kernel is constrained to have at most this norm.
+        If specified, each kernel is constrained to have at most this norm.
     input_normalization : callable
         see output_normalization
     detector_normalization : callable
@@ -1082,7 +1083,7 @@ class MaxoutLocalC01B(Layer):
 
         if max_filter_norm is not None:
             max_kernel_norm = max_filter_norm
-            warnings.warn("max_filter_norm argument is deprecated, use"
+            warnings.warn("max_filter_norm argument is deprecated, use "
                           "max_kernel_norm instead. max_filter_norm "
                           "will be removed on or after 2014-10-02.",
                           stacklevel=2)
@@ -1156,9 +1157,9 @@ class MaxoutLocalC01B(Layer):
 
         output_shape = \
             [int(np.ceil((i_sh + 2. * self.pad - k_sh) / float(k_st))) + 1
-             for i_sh, k_sh, k_st in zip(self.input_space.shape,
-                                         self.kernel_shape,
-                                         self.kernel_stride)]
+             for i_sh, k_sh, k_st in izip(self.input_space.shape,
+                                          self.kernel_shape,
+                                          self.kernel_stride)]
 
         def handle_kernel_shape(idx):
             if self.kernel_shape[idx] < 1:
@@ -1241,7 +1242,7 @@ class MaxoutLocalC01B(Layer):
 
         assert self.detector_space.num_channels >= 16
 
-        if self.pool_shape is None or np.prod(self.pool_shape)==1:
+        if self.pool_shape is None or np.prod(self.pool_shape) == 1:
             self.output_space = Conv2DSpace(shape=self.detector_space.shape,
                                             num_channels=self.num_channels,
                                             axes=('c', 0, 1, 'b'))
@@ -1259,7 +1260,7 @@ class MaxoutLocalC01B(Layer):
                                             num_channels=self.num_channels,
                                             axes=('c', 0, 1, 'b'))
         else:
-            raise ValueError("Pooling is not implemented for CPU")
+            raise NotImplementedError("Pooling is not implemented for CPU")
 
         logger.info('Output space: {0}'.format(self.output_space.shape))
 
@@ -1415,7 +1416,7 @@ class MaxoutLocalC01B(Layer):
             if self.detector_normalization:
                 z = self.detector_normalization(z)
 
-            if self.pool_shape is None or np.prod(self.pool_shape)==1:
+            if self.pool_shape is None or np.prod(self.pool_shape) == 1:
                 p = z
             else:
                 p = max_pool_c01b(c01b=z,
@@ -1430,7 +1431,7 @@ class MaxoutLocalC01B(Layer):
                                           "never exists as a stage of "
                                           "processing in this "
                                           "implementation.")
-            if self.pool_shape is not None or np.prod(self.pool_shape)>1:
+            if self.pool_shape is not None or np.prod(self.pool_shape) > 1:
                 z = max_pool_c01b(c01b=z,
                                   pool_shape=self.pool_shape,
                                   pool_stride=self.pool_stride,
