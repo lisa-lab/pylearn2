@@ -256,8 +256,10 @@ class TrainCV(object):
             trainer = Train(datasets['train'], this_model, algorithm,
                             this_save_path, this_save_freq, extensions,
                             allow_overwrite)
-            trainer = deepcopy(trainer)  # no shared references
-                                         # between trainers
+
+            # no shared references between trainers are allowed
+            trainer = deepcopy(trainer)
+
             trainer.algorithm._set_monitoring_dataset(datasets)
             trainers.append(trainer)
         self.trainers = trainers
