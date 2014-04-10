@@ -401,11 +401,11 @@ class Maxout(Layer):
 
     @functools.wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
-        warnings.warn("Layer.get_monitoring_channels is " + \
-                    "deprecated. Use get_layer_monitoring_channels " + \
-                    "instead. Layer.get_monitoring_channels " + \
-                    "will be removed on or after september 24th 2014",
-                    stacklevel=2)
+        warnings.warn("Layer.get_monitoring_channels is " +
+                      "deprecated. Use get_layer_monitoring_channels " +
+                      "instead. Layer.get_monitoring_channels " +
+                      "will be removed on or after september 24th 2014",
+                      stacklevel=2)
 
         W, = self.transformer.get_params()
 
@@ -430,11 +430,11 @@ class Maxout(Layer):
 
     @functools.wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state):
-        warnings.warn("Layer.get_monitoring_channels_from_state is " + \
-                    "deprecated. Use get_layer_monitoring_channels " + \
-                    "instead. Layer.get_monitoring_channels_from_state " + \
-                    "will be removed on or after september 24th 2014",
-                    stacklevel=2)
+        warnings.warn("Layer.get_monitoring_channels_from_state is " +
+                      "deprecated. Use get_layer_monitoring_channels " +
+                      "instead. Layer.get_monitoring_channels_from_state " +
+                      "will be removed on or after september 24th 2014",
+                      stacklevel=2)
 
         P = state
 
@@ -476,7 +476,7 @@ class Maxout(Layer):
 
     @functools.wraps(Layer.get_layer_monitoring_channels)
     def get_layer_monitoring_channels(self, state_below=None,
-                                    state=None, targets=None):
+                                      state=None, targets=None):
 
         W, = self.transformer.get_params()
 
