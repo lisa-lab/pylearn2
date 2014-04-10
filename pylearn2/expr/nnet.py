@@ -169,3 +169,67 @@ def softmax_ratio(numer, denom):
     new_den = (T.exp(numer_Z).sum(axis=1).dimshuffle(0, 'x'))
 
     return new_num / new_den
+
+def compute_precision(tp, fp):
+    """
+    Computes the precision for the binary decisions.
+    Computed as tp/(tp + fp).
+
+    Parameters
+    ----------
+    tp : Variable
+        True positives.
+    fp : Variable
+        False positives.
+
+    Returns
+    -------
+    precision : Variable
+        Precision of the binary classifications.
+    """
+    precision = tp / T.maximum(1., tp + fp)
+    return precision
+
+def compute_recall(y, tp):
+    """
+    Computes the recall for the binary classification.
+
+    Parameters
+    ----------
+    y : Variable
+        Targets for the binary classifications.
+    tp : Variable
+        True positives.
+
+    Returns
+    -------
+    recall : Variable
+        Recall for the binary classification.
+    """
+    recall = tp / T.maximum(1., y.sum(axis=0))
+    return recall
+
+def compute_f1(precision, recall):
+    """
+    Computes the f1 score for the binary classification.
+    Computed as,
+
+    f1 = 2 * precision * recall / (precision + recall)
+
+    Parameters
+    ----------
+
+    precision : Variable
+        Precision score of the binary decisions.
+    recall : Variable
+        Recall score of the binary decisions.
+
+    Returns
+    -------
+    f1 : Variable
+        f1 score for the binary decisions.
+    """
+    f1 = (2. * precision * recall /
+            T.maximum(1, precision + recall))
+    return f1
+
