@@ -10,7 +10,7 @@
                 dim: 128,
                 irange: 0.01
             }, !obj:pylearn2.models.mlp.Tanh {
-                layer_name: 'rectified_linear',
+                layer_name: 'tanh',
                 dim: 256,
                 irange: 0.01
             }, !obj:pylearn2.models.mlp.Softmax {
