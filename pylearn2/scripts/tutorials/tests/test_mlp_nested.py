@@ -10,8 +10,6 @@ from pylearn2.testing.skip import skip_if_no_data
 from pylearn2.config import yaml_parse
 
 
-
-
 def test_nested():
     skip_if_no_data()
     with open(os.path.join(pylearn2.__path__[0], 'scripts', 'tutorials',
