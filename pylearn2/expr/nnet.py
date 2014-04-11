@@ -218,7 +218,6 @@ def compute_f1(precision, recall):
 
     Parameters
     ----------
-
     precision : Variable
         Precision score of the binary decisions.
     recall : Variable

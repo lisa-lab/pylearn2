@@ -2339,7 +2339,6 @@ class ConvNonlinearity(object):
             interest for this layer.
         """
         rval = OrderedDict()
-
         return rval
 
 
@@ -2355,13 +2354,10 @@ class LinearConvNonlinearity(ConvNonlinearity):
                                            target,
                                            cost_fn=False):
 
-        rval = super(LinearConvNonlinearity,
-                     self).get_monitoring_channels_from_state(state, target, cost_fn)
-
-        if target is not None:
-            prediction = T.gt(state, 0.5)
-            incorrect = T.new(target, prediction).max(axis=1)
-            rval["misclass"] = T.cast(incorrect, config.floatX).mean()
+        rval = OrderedDict({})
+        prediction = T.gt(state, 0.5)
+        incorrect = T.new(target, prediction).max(axis=1)
+        rval["misclass"] = T.cast(incorrect, config.floatX).mean()
 
         return rval
 
@@ -2819,7 +2815,7 @@ class ConvElemwise(Layer):
 
     def _get_monitoring_channels_for_activations(self, state):
         """
-        Computes the monitoring channels that does not require targets.
+        Computes the monitoring channels which does not require targets.
 
         Parameters
         ----------
