@@ -10,6 +10,8 @@ import theano
 import gzip
 floatX = theano.config.floatX
 logger = logging.getLogger(__name__)
+from pylearn2.space import CompositeSpace, VectorSpace
+from pylearn2.utils import safe_zip
 from pylearn2.utils.iteration import (
     FiniteDatasetIterator,
     resolve_iterator_class
@@ -22,28 +24,31 @@ class SparseDataset(Dataset):
     def __init__(self, load_path=None, from_scipy_sparse_dataset=None, zipped_npy=True):
 
         self.load_path = load_path
+        self.y = None
 
         if self.load_path != None:
             if zipped_npy == True:
                 logger.info('... loading sparse data set from a zip npy file')
-                self.sparse_matrix = scipy.sparse.csr_matrix(
+                self.X = scipy.sparse.csr_matrix(
                     numpy.load(gzip.open(load_path)), dtype=floatX)
             else:
                 logger.info('... loading sparse data set from a npy file')
-                self.sparse_matrix = scipy.sparse.csr_matrix(
+                self.X = scipy.sparse.csr_matrix(
                     numpy.load(load_path).item(), dtype=floatX)
         else:
             logger.info('... building from given sparse dataset')
-            self.sparse_matrix = from_scipy_sparse_dataset
+            self.X = from_scipy_sparse_dataset
 
-        self.X = sparse_matrix
-        X_space = VectorSpace(dim=self.sparse_matrix.shape[1])
+        X_space = VectorSpace(dim=self.X.shape[1])
         self.X_space = X_space
-        self._iter_data_specs = (self.X_space, 'features')
+        space = self.X_space
+        source = 'features'
+        self._iter_data_specs = (space, source)
+        self.data_specs = (space, source)
 
 
     def get_design_matrix(self):
-        return self.sparse_matrix
+        return self.X_space
 
     def get_batch_design(self, batch_size, include_labels=False):
         """
@@ -66,7 +71,7 @@ class SparseDataset(Dataset):
             warnings.warn("Usage of `topo` and `target` arguments are "
                           "being deprecated, and will be removed "
                           "around November 7th, 2013. `data_specs` "
-                          "should be used instead.",
+                          "should be used instead. Here these two arguments are not used",
                           stacklevel=2)
 
         if data_specs is None:
@@ -126,8 +131,32 @@ class SparseDataset(Dataset):
     def next(self):
         indx = self.subset_iterator.next()
         try:
-            mini_batch = self.sparse_matrix[indx]
+            mini_batch = self.X[indx]
         except IndexError:
             # the ind of minibatch goes beyond the boundary
             import ipdb; ipdb.set_trace()
         return mini_batch
+
+
+    def get_data_specs(self):
+        """
+        Returns the data_specs specifying how the data is internally stored.
+
+        This is the format the data returned by `self.get_data()` will be.
+        """
+        return self.data_specs
+
+
+    def get_data(self):
+        """
+        Returns
+        -------
+        data : numpy matrix or 2-tuple of matrices
+            Returns all the data, as it is internally stored.
+            The definition and format of these data are described in
+            `self.get_data_specs()`.
+        """
+        if self.y is None:
+            return self.X
+        else:
+            return (self.X, self.y)
