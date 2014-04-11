@@ -6,7 +6,6 @@ def test_iterator():
     tests wether SparseDataset can be loaded and
     initialize iterator
     """
-    # TODO more through test
 
     x = np.ones((2, 3))
     ds = SparseDataset(from_scipy_sparse_dataset = x)
