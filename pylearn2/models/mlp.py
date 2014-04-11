@@ -3733,6 +3733,75 @@ class FlattenerLayer(Layer):
         return self.raw_layer.get_weights()
 
 
+class WindowLayer(Layer):
+    """
+    Layer used to select a window of an image input.
+    The input of the layer must be Conv2DSpace.
+
+    Parameters
+    ----------
+    layer_name : str
+        A name for this layer.
+    window : tuple
+        A four-tuple of ints indicating respectively
+        the top left x and y position, and
+        the bottom right x and y position of the window.
+    """
+
+    def __init__(self, layer_name, window):
+        super(WindowLayer, self).__init__()
+        self.__dict__.update(locals())
+        del self.self
+        if window[0] < 0 or window[0] > window[2] or \
+           window[1] < 0 or window[1] > window[3]:
+            raise ValueError("WindowLayer: bad window parameter")
+
+    @wraps(Layer.fprop)
+    def fprop(self, state_below):
+        extracts = [slice(None), slice(None), slice(None), slice(None)]
+        extracts[self.rows] = slice(self.window[0], self.window[2] + 1)
+        extracts[self.cols] = slice(self.window[1], self.window[3] + 1)
+        extracts = tuple(extracts)
+
+        return state_below[extracts]
+
+    @wraps(Layer.set_input_space)
+    def set_input_space(self, space):
+        self.input_space = space
+
+        if not isinstance(space, Conv2DSpace):
+            raise TypeError("The input to a Window layer should be a "
+                            "Conv2DSpace,  but layer " + self.layer_name +
+                            " got " + str(type(self.input_space)))
+        axes = space.axes
+        self.rows = axes.index(0)
+        self.cols = axes.index(1)
+
+        nrows = space.shape[0]
+        ncols = space.shape[1]
+
+        if self.window[2] + 1 > nrows or self.window[3] + 1 > ncols:
+            raise ValueError("WindowLayer: bad window shape. "
+                             "Input is [" + str(nrows)  + ", " +
+                             str(ncols) + "], "
+                             "but layer " + self.layer_name + " has window "
+                             + str(self.window))
+        self.output_space = Conv2DSpace(
+                                shape=[self.window[2] - self.window[0] + 1,
+                                       self.window[3] - self.window[1] + 1],
+                                num_channels=space.num_channels,
+                                axes=axes
+                                )
+
+    @wraps(Layer.get_params)
+    def get_params(self):
+        return []
+
+    @wraps(Layer.get_monitoring_channels)
+    def get_monitoring_channels(self):
+        return []
+
+
 def generate_dropout_mask(mlp, default_include_prob=0.5,
                           input_include_probs=None, rng=(2013, 5, 17)):
     """
