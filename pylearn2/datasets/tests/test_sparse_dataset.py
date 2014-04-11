@@ -4,7 +4,7 @@ from pylearn2.datasets.sparse_dataset import SparseDataset
 def test_iterator():
     """
     tests wether SparseDataset can be loaded and
-    initialize iterator
+    initializes iterator
     """
 
     x = np.ones((2, 3))
