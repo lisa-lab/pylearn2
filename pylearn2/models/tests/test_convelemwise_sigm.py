@@ -107,6 +107,7 @@ def test_conv_pooling_nonlin():
                 input_space=input_space)
 
     Y_hat = model.fprop(X)
+    assert "max" in str(Y_hat.name)
     ancestors = theano.gof.graph.ancestors([Y_hat])
     lcond = ["sigm" in str(anc.owner) for anc in ancestors]
     assert np.array(lcond).nonzero()[0].shape[0] > 0, ("Nonlinearity should be "
