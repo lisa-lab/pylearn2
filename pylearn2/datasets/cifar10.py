@@ -117,10 +117,6 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
         super(CIFAR10, self).__init__(X=X, y=y, view_converter=view_converter)
 
-        # TODO: should we check that rescale is not enabled when doing toronto_prepro
-        # Also, if we can do rescale with toronto_prepro, should we make sure
-        # that rescale is done before toronto_prepro? Should we check that
-        # center is done before rescale?
         for preproc in self.preprocessors:
             class_name = preproc.__class__.__name__
             can_fit = class_name == TorontoPreprocessor.__name__
@@ -147,7 +143,6 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
         assert not np.any(np.isnan(self.X))
 
-        # TODO: should we check that preprocessor is not already in `preprocessors`?
         if preprocessor:
             preprocessor.apply(self)
 
