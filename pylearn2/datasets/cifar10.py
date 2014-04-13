@@ -258,7 +258,6 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         Performs the following validations on the constructor's arguments:
             1) check that `preprocessors` does not have any duplicated
                preprocessors. If there is duplication, a warning is issued.
-               TODO: should we delete the duplicated preprocessor from `preprocessors`?
             2) if an option (center, rescale, gcn or toronto_prepro) was
                specified, then the corresponding preprocessor from the
                Preprocessor class is instantiated and added to `preprocessors`
