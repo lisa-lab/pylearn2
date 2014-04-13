@@ -289,7 +289,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
                 warnings.warn("The option center was specified but the list "
                             "preprocessors already contains CenterPreprocessor.")
             else:
-                self.preprocessors.append(RescalePreprocessor())
+                self.preprocessors.append(CenterPreprocessor())
 
         if self.rescale:
             warnings.warn("The option rescale is deprecated. The Rescale "
