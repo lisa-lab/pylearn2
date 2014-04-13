@@ -74,6 +74,46 @@ def test_sigmoid_detection_cost():
                or (cost is None)), ("cost returns illegal "
                                     "value.")
 
+def test_conv_pooling_nonlin():
+    """
+    Tests whether the nonlinearity is applied before the pooling.
+    """
+
+    rng = np.random.RandomState(0)
+    sigm_nonlin = SigmoidConvNonlinearity(monitor_style="detection")
+    (rows, cols) = (5, 5)
+    axes = ('c', 0, 1, 'b')
+    nchs = 1
+
+    space_shp = (nchs, rows, cols, 1)
+    X_vals = np.random.uniform(-0.01, 0.01,
+                               size=space_shp).astype(config.floatX)
+    X = theano.shared(X_vals, name="X")
+
+    conv_elemwise = ConvElemwise(layer_name="h0",
+                                 output_channels=1,
+                                 pool_type="max",
+                                 irange=.005,
+                                 kernel_shape=(1, 1),
+                                 pool_shape=(1, 1),
+                                 pool_stride=(1, 1),
+                                 nonlinearity=sigm_nonlin)
+
+    input_space = pylearn2.space.Conv2DSpace(shape=(rows, cols),
+                                             num_channels=nchs,
+                                             axes=axes)
+    model = MLP(batch_size=1,
+                layers=[conv_elemwise],
+                input_space=input_space)
+
+    Y_hat = model.fprop(X)
+    ancestors = theano.gof.graph.ancestors([Y_hat])
+    lcond = ["sigm" in str(anc.owner) for anc in ancestors]
+    assert np.array(lcond).nonzero()[0].shape[0] > 0, ("Nonlinearity should be "
+                                                       "applied before pooling.")
+
+
 if __name__ == "__main__":
     test_conv_sigmoid_basic()
     test_sigmoid_detection_cost()
+    test_conv_pooling_nonlin()

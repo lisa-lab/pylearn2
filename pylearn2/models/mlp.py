@@ -2575,6 +2575,12 @@ class ConvElemwise(Layer):
                                  "sparse_init when calling the constructor of "
                                  "ConvElemwise and not both.")
 
+        if pool_type is not None:
+            assert pool_shape is not None, ("You should specify the shape of "
+                                           "the spatial %s-pooling." % pool_type)
+            assert pool_stride is not None, ("You should specify the strides of "
+                                            "the spatial %s-pooling." % pool_type)
+
         assert nonlinearity is not None
 
         self.nonlin = nonlinearity
@@ -2856,11 +2862,11 @@ class ConvElemwise(Layer):
                                                       "pooling.")
 
             if self.pool_type == 'max':
-                p = max_pool(bc01=z, pool_shape=self.pool_shape,
+                p = max_pool(bc01=d, pool_shape=self.pool_shape,
                         pool_stride=self.pool_stride,
                         image_shape=self.detector_space.shape)
             elif self.pool_type == 'mean':
-                p = mean_pool(bc01=z, pool_shape=self.pool_shape,
+                p = mean_pool(bc01=d, pool_shape=self.pool_shape,
                         pool_stride=self.pool_stride,
                         image_shape=self.detector_space.shape)
 
