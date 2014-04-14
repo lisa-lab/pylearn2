@@ -190,7 +190,6 @@ class DenseDesignMatrix(Dataset):
                 self.X_topo_space = view_converter.topo_space
             else:
                 self.X_topo_space = None
-
             # Update data specs, if not done in set_topological_view
             X_space = VectorSpace(dim=self.X.shape[1])
             X_source = 'features'

@@ -31,7 +31,7 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
-
+import ipdb
 import functools, warnings
 import numpy as np
 import theano
