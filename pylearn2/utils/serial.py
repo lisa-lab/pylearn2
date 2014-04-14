@@ -22,6 +22,7 @@ import shutil
 logger = logging.getLogger(__name__)
 
 
+
 def raise_cannot_open(path):
     """
     .. todo::
@@ -159,8 +160,15 @@ def load(filepath, recurse_depth=0, retry = True):
         # so we can cut down on mail to pylearn-users by adding a message
         # that makes it clear this exception is caused by their machine not
         # meeting requirements.
-        raise MemoryError("You do not have enough memory to open " +
-                filepath)
+        if os.path.splitext(filepath)[1] == ".pkl":
+            raise TypicalMemoryError("You do not have enough memory to open "
+                                     "%s \n + you might try to save your file "
+                                     "as .npy to save memory during loading"
+                                     % filepath)
+        else:
+            raise TypicalMemoryError("You do not have enough memory to open %s"
+                                     % filepath)
+
     except BadPickleGet, e:
         logger.exception('Failed to open {0} due to BadPickleGet '
                          'with exception string {1}'.format(filepath, e))

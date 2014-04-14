@@ -96,9 +96,9 @@ class KMeans(Block, Model):
             try:
                 dists = numpy.zeros((n, k))
             except MemoryError:
-                logger.error("dying trying to allocate dists matrix ",
-                             "for {0} examples and {1} means".format(n, k))
-                raise
+                raise TypicalMemoryError("dying trying to allocate dists "
+                                         "matrix for {0} examples and {1} "
+                                         "means\n".format(n, k))
 
             old_kills = {}
 

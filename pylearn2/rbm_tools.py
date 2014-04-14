@@ -72,9 +72,9 @@ def compute_log_z(rbm, free_energy_fn, max_bits=15):
     try:
         nFE = numpy.zeros(2 ** width, dtype=config.floatX)
     except MemoryError:
-        raise MemoryError("failed to allocate free energy storage array "
-                          "in compute_log_z; your model is too big to use "
-                          "with this function")
+        raise TypicalMemoryError("failed to allocate free energy storage "
+                                 "array in compute_log_z; your model is too "
+                                 "big to use with this function")
 
     # now loop 2**(width - block_bits) times, filling in the
     # most-significant bits
