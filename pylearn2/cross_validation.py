@@ -19,31 +19,34 @@ try:
 except ImportError:
     warnings.warn("Could not import from sklearn")
 
+from pylearn2.blocks import StackedBlocks
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
+from pylearn2.datasets.transformer_dataset import TransformerDataset
 from pylearn2.models.mlp import Layer, PretrainedLayer
 from pylearn2.train import Train, SerializationGuard
 from pylearn2.utils import safe_zip, serial
 
 
-class DatasetPartitionIterator(object):
-    """Constructs a new DenseDesignMatrix for each subset."""
+class DatasetCV(object):
+    """
+    Construct a new DenseDesignMatrix for each subset.
+
+    Parameters
+    ----------
+    dataset : object
+        Full dataset for use in cross validation.
+    index_iterator : iterable
+        Iterable that returns (train, test) or (train, valid, test) indices
+        for slicing the dataset during cross validation.
+    return_dict : bool
+        Whether to return subset datasets as a dictionary. If True,
+        returns a dict with keys 'train', 'valid', and/or 'test' (if
+        index_iterator returns two slices per partition, 'train' and 'test'
+        are used, and if index_iterator returns three slices per partition,
+        'train', 'valid', and 'test' are used). If False, returns a list of
+        datasets matching the slice order given by index_iterator.
+    """
     def __init__(self, dataset, index_iterator, return_dict=True):
-        """
-        Parameters
-        ----------
-        dataset : object
-            Full dataset for use in cross validation.
-        index_iterator : iterable
-            Iterable that returns (train, test) or (train, valid, test) indices
-            for slicing the dataset during cross validation.
-        return_dict : bool
-            Whether to return subset datasets as a dictionary. If True,
-            returns a dict with keys 'train', 'valid', and/or 'test' (if
-            index_iterator returns two slices per partition, 'train' and 'test'
-            are used, and if index_iterator returns three slices per partition,
-            'train', 'valid', and 'test' are used). If False, returns a list of
-            datasets matching the slice order given by index_iterator.
-        """
         self.dataset = dataset
         self.index_iterator = index_iterator
         dataset_iterator = dataset.iterator(mode='sequential', num_batches=1,
@@ -78,9 +81,9 @@ class DatasetPartitionIterator(object):
             yield datasets
 
 
-class StratifiedDatasetPartitionIterator(DatasetPartitionIterator):
+class StratifiedDatasetCV(DatasetCV):
     """
-    Subclass of DatasetPartitionIterator for stratified experiments, where
+    Subclass of DatasetCV for stratified experiments, where
     the relative class proportions of the full dataset are maintained in
     each partition.
     """
@@ -102,137 +105,175 @@ class StratifiedDatasetPartitionIterator(DatasetPartitionIterator):
         return y
 
 
-class DatasetKFold(DatasetPartitionIterator):
-    """K-fold cross-validation."""
+class DatasetKFold(DatasetCV):
+    """
+    K-fold cross-validation.
+
+    Parameters
+    ----------
+    dataset : object
+        Dataset to use for cross-validation.
+    n_folds : int
+        Number of cross-validation folds.
+    indices : bool
+        Whether to return indices for dataset slicing. If false, returns
+        a boolean mask.
+    shuffle : bool
+        Whether to shuffle the dataset before partitioning.
+    random_state : int or RandomState
+        Random number generator used for shuffling.
+    """
     def __init__(self, dataset, n_folds=3, indices=None, shuffle=False,
                  random_state=None):
-        """
-        Parameters
-        ----------
-        dataset : object
-            Dataset to use for cross-validation.
-        n_folds : int
-            Number of cross-validation folds.
-        indices : bool
-            Whether to return indices for dataset slicing. If false, returns
-            a boolean mask.
-        shuffle : bool
-            Whether to shuffle the dataset before partitioning.
-        random_state : int or RandomState
-            Random number generator used for shuffling.
-        """
         n = dataset.X.shape[0]
         cv = KFold(n, n_folds, indices, shuffle, random_state)
         super(DatasetKFold, self).__init__(dataset, cv)
 
 
-class StratifiedDatasetKFold(StratifiedDatasetPartitionIterator):
-    """Stratified K-fold cross-validation."""
+class StratifiedDatasetKFold(StratifiedDatasetCV):
+    """
+    Stratified K-fold cross-validation.
+
+    Parameters
+    ----------
+    dataset : object
+        Dataset to use for cross-validation.
+    n_folds : int
+        Number of cross-validation folds.
+    indices : bool
+        Whether to return indices for dataset slicing. If false, returns
+        a boolean mask.
+    """
     def __init__(self, dataset, n_folds=3, indices=None):
-        """
-        Parameters
-        ----------
-        dataset : object
-            Dataset to use for cross-validation.
-        n_folds : int
-            Number of cross-validation folds.
-        indices : bool
-            Whether to return indices for dataset slicing. If false, returns
-            a boolean mask.
-        """
         y = self.get_y(dataset)
         cv = StratifiedKFold(y, n_folds, indices)
         super(StratifiedDatasetKFold, self).__init__(dataset, cv)
 
 
-class DatasetShuffleSplit(DatasetPartitionIterator):
-    """Shuffle-split cross-validation."""
+class DatasetShuffleSplit(DatasetCV):
+    """
+    Shuffle-split cross-validation.
+
+    Parameters
+    ----------
+    dataset : object
+        Dataset to use for cross-validation.
+    n_iter : int
+        Number of shuffle-split iterations.
+    test_size : float, int, or None
+        If float, intepreted as the proportion of examples in the test set.
+        If int, interpreted as the absolute number of examples in the test
+        set. If None, adjusted to the complement of train_size.
+    train_size : float, int, or None
+        If float, intepreted as the proportion of examples in the training
+        set. If int, interpreted as the absolute number of examples in the
+        training set. If None, adjusted to the complement of test_size.
+    indices : bool
+        Whether to return indices for dataset slicing. If false, returns
+        a boolean mask.
+    random_state : int or RandomState
+        Random number generator used for shuffling.
+    """
     def __init__(self, dataset, n_iter=10, test_size=0.1, train_size=None,
                  indices=True, random_state=None):
-        """
-        Parameters
-        ----------
-        dataset : object
-            Dataset to use for cross-validation.
-        n_iter : int
-            Number of shuffle-split iterations.
-        test_size : float, int, or None
-            If float, intepreted as the proportion of examples in the test set.
-            If int, interpreted as the absolute number of examples in the test
-            set. If None, adjusted to the complement of train_size.
-        train_size : float, int, or None
-            If float, intepreted as the proportion of examples in the training
-            set. If int, interpreted as the absolute number of examples in the
-            training set. If None, adjusted to the complement of test_size.
-        indices : bool
-            Whether to return indices for dataset slicing. If false, returns
-            a boolean mask.
-        random_state : int or RandomState
-            Random number generator used for shuffling.
-        """
         n = dataset.X.shape[0]
         cv = ShuffleSplit(n, n_iter, test_size, train_size, indices,
                           random_state)
         super(DatasetShuffleSplit, self).__init__(dataset, cv)
 
 
-class StratifiedDatasetShuffleSplit(StratifiedDatasetPartitionIterator):
-    """Stratified shuffle-split cross-validation."""
+class StratifiedDatasetShuffleSplit(StratifiedDatasetCV):
+    """
+    Stratified shuffle-split cross-validation.
+
+    Parameters
+    ----------
+    dataset : object
+        Dataset to use for cross-validation.
+    n_iter : int
+        Number of shuffle-split iterations.
+    test_size : float, int, or None
+        If float, intepreted as the proportion of examples in the test set.
+        If int, interpreted as the absolute number of examples in the test
+        set. If None, adjusted to the complement of train_size.
+    train_size : float, int, or None
+        If float, intepreted as the proportion of examples in the training
+        set. If int, interpreted as the absolute number of examples in the
+        training set. If None, adjusted to the complement of test_size.
+    indices : bool
+        Whether to return indices for dataset slicing. If false, returns
+        a boolean mask.
+    random_state : int or RandomState
+        Random number generator used for shuffling.
+    """
     def __init__(self, dataset, n_iter=10, test_size=0.1, train_size=None,
                  indices=True, random_state=None):
-        """
-        Parameters
-        ----------
-        dataset : object
-            Dataset to use for cross-validation.
-        n_iter : int
-            Number of shuffle-split iterations.
-        test_size : float, int, or None
-            If float, intepreted as the proportion of examples in the test set.
-            If int, interpreted as the absolute number of examples in the test
-            set. If None, adjusted to the complement of train_size.
-        train_size : float, int, or None
-            If float, intepreted as the proportion of examples in the training
-            set. If int, interpreted as the absolute number of examples in the
-            training set. If None, adjusted to the complement of test_size.
-        indices : bool
-            Whether to return indices for dataset slicing. If false, returns
-            a boolean mask.
-        random_state : int or RandomState
-            Random number generator used for shuffling.
-        """
         y = self.get_y(dataset)
         cv = StratifiedShuffleSplit(y, n_iter, test_size, train_size, indices,
                                     random_state)
         super(StratifiedDatasetShuffleSplit, self).__init__(dataset, cv)
 
 
+class TransformerDatasetCV(object):
+    """
+    Cross-validation with dataset transformations. This class returns
+    dataset subsets after transforming them with one or more pretrained
+    models.
+
+    Parameters
+    ----------
+    dataset_iterator : iterable
+        Cross-validation iterator providing (test, train) or (test, valid,
+        train) indices for partitioning the dataset.
+    transformers : Model or iterable
+        Transformer model(s) to use for transforming datasets.
+    """
+    def __init__(self, dataset_iterator, transformers):
+        self.dataset_iterator = dataset_iterator
+        self.transformers = transformers
+
+    def __iter__(self):
+        """
+        Construct a Transformer dataset for each partition.
+        """
+        for k, datasets in enumerate(self.dataset_iterator):
+            if isinstance(self.transformers, list):
+                transformer = self.transformers[k]
+            else:
+                transformer = self.transformers
+            if isinstance(datasets, list):
+                for i, dataset in enumerate(datasets):
+                    datasets[i] = TransformerDataset(dataset, transformer)
+            else:
+                for key, dataset in datasets.items():
+                    datasets[key] = TransformerDataset(dataset, transformer)
+            yield datasets
+
+
 class TrainCV(object):
-    """Wrapper for Train that partitions the dataset according to CV scheme."""
+    """
+    Wrapper for Train that partitions the dataset according to a given
+    cross-validation iterator, returning a Train object for each split.
+
+    Parameters
+    ----------
+    dataset_iterator: iterable
+        Cross validation iterator providing (test, train) or (test, valid,
+        train) indices for partitioning the dataset.
+    models: Model or iterable
+        Training model.
+    save_subsets: bool
+        Whether to write individual files for each subset model.
+    See docstring for Train for other argument descriptions.
+
+    TODO: Implement checkpointing of the entire TrainCV object.
+    It would be ideal to have each trainer's save() method actually write
+    to a master pickle to allow easy restart. But since monitors get
+    mangled when serialized, there's no way to resume training anyway.
+    """
     def __init__(self, dataset_iterator, model, algorithm=None,
                  save_path=None, save_freq=0, extensions=None,
                  allow_overwrite=True, save_subsets=False):
-        """
-        Create a Train object for each (train, valid, test) dataset with
-        partitions given by the cv object.
-
-        Parameters
-        ----------
-        dataset_iterator: iterable
-            Cross validation iterator providing (test, train) or (test, valid,
-            train) indices for partitioning the dataset.
-        models: Model or array_like
-            Training model. If more than one model is provided, then
-        save_subsets: bool
-            Whether to write individual files for each subset model.
-        See docstring for Train for other argument descriptions.
-
-        TODO: Implement checkpointing of the entire TrainCV object.
-        It would be ideal to have each trainer's save() method actually write
-        to a master pickle to allow easy restart. But since monitors get
-        mangled when serialized, there's no way to resume training anyway.
-        """
-        # we need a way to save all the models without writing files
         trainers = []
         for k, datasets in enumerate(dataset_iterator):
             if save_subsets:
@@ -246,10 +287,10 @@ class TrainCV(object):
             # setup pretrained layers
             this_model = model
             if hasattr(model, 'layers') and any(
-                    [isinstance(l, PretrainedLayers) for l in model.layers]):
+                    [isinstance(l, PretrainedLayerCV) for l in model.layers]):
                 this_model = deepcopy(model)
                 for i, layer in enumerate(this_model.layers):
-                    if isinstance(layer, PretrainedLayers):
+                    if isinstance(layer, PretrainedLayerCV):
                         this_model.layers[i] = layer.select_layer(k)
 
             # construct an isolated Train object
@@ -259,7 +300,6 @@ class TrainCV(object):
 
             # no shared references between trainers are allowed
             trainer = deepcopy(trainer)
-
             trainer.algorithm._set_monitoring_dataset(datasets)
             trainers.append(trainer)
         self.trainers = trainers
@@ -293,23 +333,31 @@ class TrainCV(object):
                 trainer.dataset._serialization_guard = None
 
 
-class PretrainedLayers(Layer):
-    """Container of PretrainedLayer objects for use with TrainCV."""
+class PretrainedLayerCV(Layer):
+    """
+    Container of PretrainedLayer objects for use with TrainCV.
+
+    Parameters
+    ----------
+    layer_name: str
+        Name of layer.
+    layer_content: array_like
+        Pretrained layer models for each dataset subset.
+    """
     def __init__(self, layer_name, layer_content):
-        """
-        Parameters
-        ----------
-        layer_name: str
-            Name of layer.
-        layer_content: array_like
-            Pretrained layer models for each dataset subset.
-        """
         self.layer_name = layer_name
         self.layer_content = [PretrainedLayer(layer_name, subset_content)
                               for subset_content in layer_content]
 
     def select_layer(self, k):
-        """Choose a single layer to represent. Could reassign self."""
+        """
+        Choose a single layer to represent.
+
+        Parameters
+        ----------
+        k : int
+            Index of selected layer.
+        """
         return self.layer_content[k]
 
     def set_input_space(self, space):
@@ -326,3 +374,65 @@ class PretrainedLayers(Layer):
 
     def get_monitoring_channels(self, data):
         return self.layer_content[0].get_monitoring_channels()
+
+
+class StackedBlocksCV(object):
+    """
+    Multi-layer transforms using cross-validation models.
+
+    Parameters
+    ----------
+    layers : iterable (list of lists)
+        Cross-validation models for each layer. Should be a list of lists,
+        where the first index is for the layer and the second index is for
+        the cross-validation fold.
+    """
+    def __init__(self, layers):
+        stacked_blocks = []
+        n_folds = len(layers[0])
+        assert all([len(layer) == n_folds for layer in layers])
+
+        # stack the k-th block from each layer
+        for k in xrange(n_folds):
+            this_blocks = []
+            for i, layer in enumerate(layers):
+                this_blocks.append(layer[k])
+            this_stacked_blocks = StackedBlocks(this_blocks)
+            stacked_blocks.append(this_stacked_blocks)
+
+        # _layers contains a StackedBlocks instance for each CV fold
+        self._layers = stacked_blocks
+
+    def select_layer(self, k):
+        """
+        Choose a single layer to represent.
+
+        Parameters
+        ----------
+        k : int
+            Index of selected layer.
+        """
+        return self._layers[k]
+
+    def get_input_space(self):
+        """Get input space."""
+        return self._layers[0][0].get_input_space()
+
+    def get_output_space(self):
+        """Get output space."""
+        return self._layers[0][-1].get_output_space()
+
+    def set_input_space(self, space):
+        """
+        Set input space.
+
+        Parameters
+        ----------
+        space : WRITEME
+            Input space.
+        """
+        for fold in self._layers:
+            this_space = space
+            for layer in fold._layers:
+                layer.set_input_space(this_space)
+                this_space = layer.get_output_space()
