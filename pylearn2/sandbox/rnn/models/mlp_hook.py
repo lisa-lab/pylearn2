@@ -87,27 +87,71 @@ class RNNWrapper(MetaLibVersion):
             The fprop method to be wrapped
         """
         @functools.wraps(fprop)
-        def outer(self, state_below):
+        def outer(self, state_below, return_all=False):
             if self._requires_reshape:
                 if self._requires_unmask:
                     state_below, mask = state_below
-                input_shape = ([state_below.shape[0] *
-                                state_below.shape[1]] +
-                               [state_below.shape[i]
-                                for i in xrange(2, state_below.ndim)])
-                reshaped_state_below = state_below.reshape(input_shape)
-                reshaped_state = fprop(self, reshaped_state_below)
-                output_shape = ([state_below.shape[0],
-                                 state_below.shape[1]] +
-                                [reshaped_state.shape[i]
-                                 for i in xrange(1, reshaped_state.ndim)])
-                state = reshaped_state.reshape(output_shape)
+                if isinstance(state_below, tuple):
+                    ndim = state_below[0].ndim
+                else:
+                    ndim = state_below.ndim
+
+                if ndim > 2:
+                    if isinstance(state_below, tuple):
+                        input_shape = ([[state_below[j].shape[0] *
+                                         state_below[j].shape[1]] +
+                                        [state_below[j].shape[i]
+                                         for i in xrange(2, state_below[j].ndim)]
+                                        for j in xrange(len(state_below))])
+                        reshaped_state_below = ()
+                        for i in xrange(len(state_below)):
+                            reshaped_state_below += (state_below[i].reshape(input_shape[i]),)
+                    else:
+                        input_shape = ([state_below.shape[0] *
+                                        state_below.shape[1]] +
+                                       [state_below.shape[i]
+                                        for i in xrange(2, state_below.ndim)])
+                        reshaped_state_below = state_below.reshape(input_shape)
+                    reshaped_state = fprop(self, reshaped_state_below)
+                    if isinstance(reshaped_state, tuple):
+                        if isinstance(state_below, tuple):
+                            output_shape = ([[state_below[-1].shape[0],
+                                              state_below[-1].shape[1]] +
+                                             [reshaped_state[j].shape[i]
+                                              for i in xrange(1, reshaped_state[j].ndim)]
+                                             for j in xrange(len(reshaped_state))])
+                        else:
+                            output_shape = ([[state_below.shape[0],
+                                              state_below.shape[1]] +
+                                             [reshaped_state[j].shape[i]
+                                              for i in xrange(1, reshaped_state[j].ndim)]
+                                             for j in xrange(len(reshaped_state))])
+                        state = ()
+                        for i in xrange(len(reshaped_state)):
+                            state += (reshaped_state[i].reshape(output_shape[i]),)
+                    else:
+                        if isinstance(state_below, tuple):
+                            output_shape = ([state_below[-1].shape[0],
+                                             state_below[-1].shape[1]] +
+                                            [reshaped_state.shape[i]
+                                             for i in xrange(1, reshaped_state.ndim)])
+                        else:
+                            output_shape = ([state_below.shape[0],
+                                             state_below.shape[1]] +
+                                            [reshaped_state.shape[i]
+                                             for i in xrange(1, reshaped_state.ndim)])
+                        state = reshaped_state.reshape(output_shape)
+                else:
+                    state = fprop(self, state_below)
                 if self._requires_unmask:
                     return (state, mask)
                 else:
                     return state
             else:  # Not RNN-friendly, but not requiring reshape
-                return fprop(self, state_below)
+                if return_all:
+                    return fprop(self, state_below, return_all)
+                else:
+                    return fprop(self, state_below)
         return outer
 
     @classmethod
@@ -189,7 +233,16 @@ class RNNWrapper(MetaLibVersion):
                 input_shape = ([Y.shape[0] * Y.shape[1]] +
                                [Y.shape[i] for i in xrange(2, Y.ndim)])
                 reshaped_Y = Y.reshape(input_shape)
-                reshaped_Y_hat = Y_hat.reshape(input_shape)
+                if isinstance(Y_hat, tuple):
+                    input_shape = ([[Y_hat[j].shape[0] * Y_hat[j].shape[1]] +
+                                    [Y_hat[j].shape[i] for i in xrange(2, Y_hat[j].ndim)]
+                                    for j in xrange(len(Y_hat))])
+                    reshaped_Y_hat = []
+                    for i in xrange(len(Y_hat)):
+                        reshaped_Y_hat.append(Y_hat[i].reshape(input_shape[i]))
+                    reshaped_Y_hat = tuple(reshaped_Y_hat)
+                else:
+                    reshaped_Y_hat = Y_hat.reshape(input_shape)
                 # Here we need to take the indices of only the unmasked data
                 if self._requires_unmask:
                     return cost(self, reshaped_Y[Y_mask.flatten().nonzero()],
@@ -302,8 +355,12 @@ class RNNWrapper(MetaLibVersion):
         @functools.wraps(get_output_space)
         def outer(self):
             if (not self.rnn_friendly and self._requires_reshape and
-                    not isinstance(get_output_space(self), SequenceSpace)):
-                return SequenceSpace(get_output_space(self))
+                    (not isinstance(get_output_space(self), SequenceSpace) and
+                        not isinstance(get_output_space(self), SequenceDataSpace))):
+                if isinstance(self.mlp.input_space, SequenceSpace):
+                    return SequenceSpace(get_output_space(self))
+                elif isinstance(self.mlp.input_space, SequenceDataSpace):
+                    return SequenceDataSpace(get_output_space(self))
             else:
                 return get_output_space(self)
         return outer
@@ -321,9 +378,13 @@ class RNNWrapper(MetaLibVersion):
         @functools.wraps(get_target_space)
         def outer(self):
             if (not self.rnn_friendly and self._requires_reshape and
-                    not isinstance(get_target_space(self), SequenceSpace)):
-                return SequenceSpace(get_target_space(self))
+                    (not isinstance(get_target_space(self), SequenceSpace) and
+                        not isinstance(get_target_space(self), SequenceDataSpace))):
+                if isinstance(self.mlp.input_space, SequenceSpace):
+                    return SequenceSpace(get_target_space(self))
+                elif isinstance(self.mlp.input_space, SequenceDataSpace):
+                    return SequenceDataSpace(get_target_space(self))
             else:
                 return get_target_space(self)
         return outer
-    # Wrap get_input_space?
+   # Wrap get_input_space?

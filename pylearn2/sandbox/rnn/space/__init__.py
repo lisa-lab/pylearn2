@@ -4,8 +4,9 @@ Spaces specific to the RNN framework, specifically the SequenceSpace
 from functools import wraps
 
 import numpy as np
-from theano import scan
+from theano import scan, config
 from theano import tensor
+from theano.tensor import TensorType
 
 from pylearn2 import space
 from pylearn2.utils import is_iterable
@@ -108,35 +109,93 @@ class SequenceDataSpace(space.SimplyTypedSpace):
         if space == self:
             return batch
         else:
-            if not isinstance(space, SequenceDataSpace):
-                raise ValueError("Can only convert SequenceDataSpace to "
-                                 "another SequenceDataSpace, not to %s"
-                                 % space)
-            if is_numeric:
-                formatted_batch = np.transpose(np.asarray([
-                    self.space._format_as_impl(is_numeric, sample, space.space)
-                    for sample in np.transpose(batch, (1, 0, 2))
-                ]), (1, 0, 2))
-            else:
-                formatted_batch, _ = scan(
-                    fn=lambda elem: self.space._format_as_impl(is_numeric,
-                                                               elem,
-                                                               space.space),
-                    sequences=[batch]
-                )
-            return formatted_batch
+            if isinstance(space, SequenceDataSpace):
+                if is_numeric:
+                    formatted_batch = np.transpose(np.asarray([
+                        self.space._format_as_impl(is_numeric, sample, space.space)
+                        for sample in np.transpose(batch, (1, 0, 2))
+                    ]), (1, 0, 2))
+                else:
+                    formatted_batch, _ = scan(
+                        fn=lambda elem: self.space._format_as_impl(is_numeric,
+                                                                   elem,
+                                                                   space.space),
+                        sequences=[batch]
+                    )
+                return formatted_batch
+            elif isinstance(space, space.VectorSpace):
+                row = batch.shape[0] * batch.shape[1]
+                col = self.dim
+                result = tensor.reshape(batch,
+                                        newshape=[row, col],
+                                        ndim=2)
+                return space._cast(result, space.dtype)
+            elif isinstance(space, space.Conv2DSpace):
+                result = batch.dimshuffle(1, 0, 'x', 2)
+                # Newly added part
+                b01c_shape = [result.shape[0],
+                              space.shape[0],
+                              space.shape[1],
+                              space.num_channels]
+                result = result.flatten()
+                result = tensor.reshape(result,
+                                        newshape=b01c_shape,
+                                        ndim=4)
+                # end of newly added part
 
+                return space._cast(result, space.dtype)
+            else:
+                print 'Unexpected space', space
+                raise NotImplementedError
+
+    @wraps(space.Space._check_sizes)
     def _check_sizes(self, space):
-        assert isinstance(space, SequenceDataSpace)
-        return self.space._check_sizes(space.space)
+        """
+        Called by self._format_as(space), to check whether self and space
+        have compatible sizes. Throws a ValueError if they don't.
+        """
+        my_dimension = self.get_total_dimension()
+        other_dimension = space.get_total_dimension()
+        if my_dimension != other_dimension:
+            if isinstance(space, Conv2DSpace):
+                if my_dimension * space.shape[0] !=\
+                        other_dimension:
+                    raise ValueError(str(self)+" with total dimension " +
+                                     str(my_dimension) +
+                                     " can't format a batch into " +
+                                     str(space) + "because its total dimension is " +
+                                     str(other_dimension))
+
+    @wraps(space.Space.get_origin_batch)
+    def get_origin_batch(self, batch_size, dtype=None):
+        dtype = self._clean_dtype_arg(dtype)
+        # Set a number which is not equal to batch_size for comfort debugging
+        time_step = 5
+        return np.zeros((time_step, batch_size, self.dim), dtype=dtype)
 
     @wraps(space.Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
-        sequence = self.space.make_theano_batch(name=None, dtype=dtype,
-                                                batch_size=batch_size)
-        batch_tensor = tensor.TensorType(sequence.dtype,
-                                         (False,) + sequence.broadcastable)
-        return batch_tensor(name)
+
+        dtype = self._clean_dtype_arg(dtype)
+        broadcastable = [False] * 3
+        broadcastable[1] = (batch_size == 1)
+        broadcastable[2] = (self.dim == 1)
+        broadcastable = tuple(broadcastable)
+
+        rval = TensorType(dtype=dtype,
+                          broadcastable=broadcastable
+                          )(name=name)
+
+        if config.compute_test_value != 'off':
+            if batch_size == 1:
+                n = 1
+            else:
+                # TODO: try to extract constant scalar value from batch_size
+                n = 4
+            rval.tag.test_value = self.get_origin_batch(batch_size=n,
+                                                        dtype=dtype)
+
+        return rval
 
     @wraps(space.Space._validate_impl)
     def _validate_impl(self, is_numeric, batch):
