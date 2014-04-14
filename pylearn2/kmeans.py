@@ -98,7 +98,7 @@ class KMeans(Block, Model):
             except MemoryError:
                 raise TypicalMemoryError("dying trying to allocate dists "
                                          "matrix for {0} examples and {1} "
-                                         "means\n".format(n, k))
+                                         "means".format(n, k))
 
             old_kills = {}
 
