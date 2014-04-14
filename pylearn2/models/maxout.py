@@ -8,7 +8,7 @@ If you use this code in your research, please cite this paper.
 
 The objects in this module are Layer objects for use with
 pylearn2.models.mlp.MLP. You need to make an MLP object in
-order for thse to do anything. For an example of how to build
+order for these to do anything. For an example of how to build
 an MLP with maxout hidden layers, see pylearn2/scripts/papers/maxout.
 
 Note that maxout is designed for use with dropout, so you probably should
@@ -26,6 +26,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
 import functools
+import logging
 import numpy as np
 import warnings
 
@@ -46,6 +47,9 @@ from pylearn2.linear import local_c01b
 if cuda.cuda_available:
     from pylearn2.sandbox.cuda_convnet.pool import max_pool_c01b
 from pylearn2.sandbox.cuda_convnet import check_cuda
+
+
+logger = logging.getLogger(__name__)
 
 
 class Maxout(Layer):
@@ -72,7 +76,7 @@ class Maxout(Layer):
         The distance between the start of each max pooling region. Defaults
         to num_pieces, which makes the pooling regions disjoint. If set to
         a smaller number, can do overlapping pools.
-    randomize_pools : bool
+    randomize_pools : bool, optional
         If True, does max pooling over randomized subsets of the linear
         responses, rather than over sequential subsets.
     irange : float, optional
@@ -83,6 +87,8 @@ class Maxout(Layer):
         This is an integer specifying how many weights to make non-zero.
         All non-zero weights will be initialized randomly in
         N(0, sparse_stdev^2)
+    sparse_stdev : float, optional
+        WRITEME
     include_prob : float, optional
         probability of including a weight element in the set
         of weights initialized to U(-irange, irange). If not included
@@ -535,22 +541,22 @@ class MaxoutConvC01B(Layer):
     layer_name : str
         A name for this layer that will be prepended to
         monitoring channels related to this layer.
-    irange : float
+    irange : float, optional
         if specified, initializes each weight randomly in
         U(-irange, irange)
-    init_bias : float
+    init_bias : float, optional
         All biases are initialized to this number
-    W_lr_scale : float
+    W_lr_scale : float, optional
         The learning rate on the weights for this layer is
         multiplied by this scaling factor
-    b_lr_scale : float
+    b_lr_scale : float, optional
         The learning rate on the biases for this layer is
         multiplied by this scaling factor
-    pad : int
+    pad : int, optional
         The amount of zero-padding to implicitly add to the boundary of the
         image when computing the convolution. Useful for making sure pixels
         at the edge still get to influence multiple hidden units.
-    fix_pool_shape : bool
+    fix_pool_shape : bool, optional
         If True, will modify self.pool_shape to avoid having
         pool shape bigger than the entire detector layer.
         If you have this on, you should probably also have
@@ -561,39 +567,43 @@ class MaxoutConvC01B(Layer):
         optimization package, which might often propose sets of
         hyperparameters that are not feasible, but can easily be projected
         back into the feasible set.
-    fix_kernel_shape : bool
+    fix_pool_stride : bool, optional
+        WRITEME
+    fix_kernel_shape : bool, optional
         if True, will modify self.kernel_shape to avoid having the kernel
         shape bigger than the implicitly zero padded input layer
-    partial_sum : int
+    partial_sum : int, optional
         a parameter that controls whether to prefer runtime savings
         or memory savings when computing the gradient with respect to
         the kernels. See pylearn2.sandbox.cuda_convnet.weight_acts.py
         for details. The default is to prefer high speed.
         Note that changing this setting may change the value of computed
         results slightly due to different rounding error.
-    tied_b : bool
+    tied_b : bool, optional
         If true, all biases in the same channel are constrained to be the
         same as each other. Otherwise, each bias at each location is
         learned independently.
-    max_kernel_norm: float
+    max_kernel_norm: float, optional
         If specifed, each kernel is constrained to have at most this norm.
-    input_normalization : callable
+    input_normalization : callable, optional
         see output normalization
-    detector_normalization : callable
+    detector_normalization : callable, optional
         see output normalization
-    output_normalization : callable
+    min_zero : bool, optional
+        WRITEME
+    output_normalization : callable, optional
         if specified, should be a callable object. the state of the
         network is optionally replaced with normalization(state) at each
         of the 3 points in processing:
 
-        - input: the input the layer receives can be normalized right
+          - input: the input the layer receives can be normalized right
             away
-        - detector: the maxout units can be normalized prior to the
+          - detector: the maxout units can be normalized prior to the
             spatial pooling
-        - output: the output of the layer, after sptial pooling,
+          - output: the output of the layer, after sptial pooling,
             can be normalized as well
-    kernel_stride : vertical and horizontal pixel stride between
-                   each detector.
+    kernel_stride : tuple, optional
+        vertical and horizontal pixel stride between each detector.
     """
 
     def __init__(self,
@@ -710,7 +720,7 @@ class MaxoutConvC01B(Layer):
                                         num_channels=self.num_channels,
                                         axes=('c', 0, 1, 'b'))
 
-        print 'Output space: ', self.output_space.shape
+        logger.info('Output space: {0}'.format(self.output_space.shape))
 
     def censor_updates(self, updates):
         """
@@ -961,33 +971,33 @@ class MaxoutLocalC01B(Layer):
         The number of linear pieces used to make each maxout unit.
     kernel_shape : tuple
         The shape of the convolution kernel.
-    pool_shape : tuple
+    layer_name : str
+        A name for this layer that will be prepended to
+        monitoring channels related to this layer.
+    pool_shape : tuple, optional
         The shape of the spatial max pooling. A two-tuple of ints.
         This is redundant as cuda-convnet requires the pool shape to
         be square.
         Defaults to None, which means no spatial pooling
-    pool_stride : tuple
+    pool_stride : tuple, optional
         The stride of the spatial max pooling. Also must be square.
         Defaults to None, which means no spatial pooling.
-    layer_name : str
-        A name for this layer that will be prepended to
-        monitoring channels related to this layer.
-    irange : float
+    irange : float, optional
         if specified, initializes each weight randomly in
         U(-irange, irange)
-    init_bias : float
+    init_bias : float, optional
         All biases are initialized to this number
-    W_lr_scale : float
+    W_lr_scale : float, optional
         The learning rate on the weights for this layer is
         multiplied by this scaling factor
-    b_lr_scale : float
+    b_lr_scale : float, optional
         The learning rate on the biases for this layer is
         multiplied by this scaling factor
-    pad : int
+    pad : int, optional
         The amount of zero-padding to implicitly add to the boundary of the
         image when computing the convolution. Useful for making sure pixels
         at the edge still get to influence multiple hidden units.
-    fix_pool_shape : bool
+    fix_pool_shape : bool, optional
         If True, will modify self.pool_shape to avoid having
         pool shape bigger than the entire detector layer.
         If you have this on, you should probably also have
@@ -998,38 +1008,46 @@ class MaxoutLocalC01B(Layer):
         optimization package, which might often propose sets of
         hyperparameters that are not feasible, but can easily be projected
         back into the feasible set.
-    fix_kernel_shape : bool
+    fix_pool_stride : bool, optional
+        WRITEME
+    fix_kernel_shape : bool, optional
         if True, will modify self.kernel_shape to avoid
         having the kernel shape bigger than the implicitly
         zero padded input layer
-    partial_sum : int
+    partial_sum : int, optional
         a parameter that controls whether to prefer runtime savings
         or memory savings when computing the gradient with respect to
         the kernels. See pylearn2.sandbox.cuda_convnet.weight_acts.py
         for details. The default is to prefer high speed.
         Note that changing this setting may change the value of computed
         results slightly due to different rounding error.
-    tied_b : bool
+    tied_b : bool, optional
         If true, all biases in the same channel are constrained to be the
         same as each other. Otherwise, each bias at each location is
         learned independently.
-    max_kernel_norm : float
-        If specifed, each kernel is constrained to have at most this norm.
+    max_filter_norm : float, optional
+        WRITEME
     input_normalization : callable
         see output_normalization
     detector_normalization : callable
         see output_normalization
+    min_zero : bool, optional
+        WRITEME
     output_normalization : callable
         if specified, should be a callable object. the state of the network
         is optionally replaced with normalization(state) at each of the 3
         points in processing:
 
-        - input: the input the layer receives can be normalized right
+          - input: the input the layer receives can be normalized right
             away
-        - detector: the maxout units can be normalized prior to the
+          - detector: the maxout units can be normalized prior to the
             spatial pooling
-        - output: the output of the layer, after sptial pooling, can be
+          - output: the output of the layer, after sptial pooling, can be
             normalized as well
+    input_groups : int, optional
+        WRITEME
+    kernel_stride : tuple, optional
+        WRITEME
     """
 
     def __init__(self,
@@ -1204,8 +1222,8 @@ class MaxoutLocalC01B(Layer):
             self.b = sharedX(self.detector_space.get_origin() + self.init_bias)
         self.b.name = 'b'
 
-        print 'Input shape: ', self.input_space.shape
-        print 'Detector space: ', self.detector_space.shape
+        logger.info('Input shape: {0}'.format(self.input_space.shape))
+        logger.info('Detector space: {0}'.format(self.detector_space.shape))
 
         assert self.detector_space.num_channels >= 16
 
@@ -1227,7 +1245,7 @@ class MaxoutLocalC01B(Layer):
                                             num_channels=self.num_channels,
                                             axes=('c', 0, 1, 'b'))
 
-        print 'Output space: ', self.output_space.shape
+        logger.info('Output space: {0}'.format(self.output_space.shape))
 
     def censor_updates(self, updates):
         """

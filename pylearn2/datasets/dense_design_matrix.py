@@ -235,9 +235,10 @@ class DenseDesignMatrix(Dataset):
                                  'provided.',
                                  (data_specs, topo, targets))
 
-            warnings.warn("Usage of `topo` and `target` arguments are being "
-                          "deprecated, and will be removed around November "
-                          "7th, 2013. `data_specs` should be used instead.",
+            warnings.warn("Usage of `topo` and `target` arguments are "
+                          "being deprecated, and will be removed "
+                          "around November 7th, 2013. `data_specs` "
+                          "should be used instead.",
                           stacklevel=2)
 
             # build data_specs from topo and targets if needed
@@ -527,7 +528,6 @@ class DenseDesignMatrix(Dataset):
                                          batch_size=size)
             train = dataset_iter.next()
             valid = dataset_iter.next()[:self.num_examples-train.shape[0]]
-            
         return (train, valid)
 
     def split_dataset_nfolds(self, nfolds=0):
@@ -617,6 +617,11 @@ class DenseDesignMatrix(Dataset):
 
         Return to a state specified by an object returned from
         get_stream_position.
+
+        Parameters
+        ----------
+        pos : object
+            WRITEME
         """
         self.rng = copy.copy(pos)
 
@@ -641,6 +646,13 @@ class DenseDesignMatrix(Dataset):
         """
         .. todo::
 
+            WRITEME
+
+        Parameters
+        ----------
+        preprocessor : object
+            preprocessor object
+        can_fit : bool, optional
             WRITEME
         """
         preprocessor.apply(self, can_fit)
@@ -674,14 +686,14 @@ class DenseDesignMatrix(Dataset):
         Parameters
         ----------
         mat : ndarray, 2-dimensional
-            An array containing a design matrix representation of training \
-            examples.
+            An array containing a design matrix representation of
+            training examples.
 
         dspace : Space
-            A Space we want the data in mat to be formatted in. It can be \
-            a VectorSpace for a design matrix output, a Conv2DSpace for a \
-            topological output for instance. Valid values depend on the \
-            type of `self.view_converter`.
+            A Space we want the data in mat to be formatted in.
+            It can be a VectorSpace for a design matrix output,
+            a Conv2DSpace for a topological output for instance.
+            Valid values depend on the type of `self.view_converter`.
 
         Returns
         -------
@@ -718,8 +730,8 @@ class DenseDesignMatrix(Dataset):
         Parameters
         ----------
         V : ndarray
-            An array containing a design matrix representation of training \
-            examples.
+            An array containing a design matrix representation of
+            training examples.
         axes : WRITEME
 
         .. todo::
@@ -748,11 +760,14 @@ class DenseDesignMatrix(Dataset):
         else:
             if self.y.ndim != 2:
                 assert self.max_labels
+                # In order to comply with IndexSpace, y must be a 2D array
+                self.y = self.y.reshape((self.y.shape[0], 1))
                 y_space = IndexSpace(max_labels=self.max_labels, dim=1)
                 y_source = 'targets'
             else:
                 y_space = VectorSpace(dim=self.y.shape[-1])
                 y_source = 'targets'
+
             space = CompositeSpace((X_space, y_space))
             source = (X_source, y_source)
 
@@ -790,6 +805,11 @@ class DenseDesignMatrix(Dataset):
         .. todo::
 
             WRITEME
+
+        Parameters
+        ----------
+        X : ndarray
+            WRITEME
         """
         assert len(X.shape) == 2
         assert not np.any(np.isnan(X))
@@ -816,6 +836,13 @@ class DenseDesignMatrix(Dataset):
         """
         .. todo::
 
+            WRITEME
+
+        Parameters
+        ----------
+        batch_size : int
+            WRITEME
+        include_labels : bool
             WRITEME
         """
         try:
@@ -886,6 +913,13 @@ class DenseDesignMatrix(Dataset):
 
         Restricts the dataset to include only the examples
         in range(start, stop). Ignored if both arguments are None.
+
+        Parameters
+        ----------
+        start : int
+            start index
+        stop : int
+            stop index
         """
         assert (start is None) == (stop is None)
         if start is None:
@@ -908,6 +942,11 @@ class DenseDesignMatrix(Dataset):
 
         If y exists and is a vector of ints, converts it to a binary matrix
         Otherwise will raise some exception
+
+        Parameters
+        ----------
+        min_class : int
+            WRITEME
         """
 
         if self.y is None:
@@ -964,6 +1003,15 @@ class DenseDesignMatrix(Dataset):
         .. todo::
 
             WRITEME
+
+        Parameters
+        ----------
+        X : int
+            WRITEME
+        ref : float
+            WRITEME
+        per_example : obejct, optional
+            WRITEME
         """
         if per_example is not None:
             warnings.warn("ignoring per_example")
@@ -987,6 +1035,11 @@ class DenseDesignMatrix(Dataset):
 
         This function is only useful if you intend to call self.iterator
         without data_specs, and with "topo=True", which is deprecated.
+
+        Parameters
+        ----------
+        axes : WRITEME
+            WRITEME
         """
         assert self.view_converter is not None
 
@@ -1020,6 +1073,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         may want to add one that uses the retina encoding that the U of T group
         uses.
     axes : WRITEME
+        WRITEME
     rng : object, optional
         A random number generator used for picking random indices into the
         design matrix when choosing minibatches.
@@ -1069,6 +1123,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
             examples. If unspecified, the entire dataset (`self.X`) is used \
             instead.
         axes : WRITEME
+            WRITEME
         start : WRITEME
 
         .. todo::

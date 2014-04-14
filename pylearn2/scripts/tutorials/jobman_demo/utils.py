@@ -23,7 +23,7 @@ def log_uniform(low, high):
     """
     log_low = numpy.log(low)
     log_high = numpy.log(high)
-    
+
     log_rval = numpy.random.uniform(log_low, log_high)
     rval = float(numpy.exp(log_rval))
 

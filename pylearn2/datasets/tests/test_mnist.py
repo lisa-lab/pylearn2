@@ -1,4 +1,5 @@
 from pylearn2.datasets.mnist import MNIST
+from pylearn2.space import IndexSpace, VectorSpace
 import unittest
 from pylearn2.testing.skip import skip_if_no_data
 import numpy as np
@@ -6,10 +7,8 @@ import numpy as np
 class TestMNIST(unittest.TestCase):
     def setUp(self):
         skip_if_no_data()
-        # TODO: the one_hot=True is only necessary because one_hot=False is
-        # broken, remove it after one_hot=False is fixed.
-        self.train = MNIST(which_set = 'train', one_hot=True)
-        self.test = MNIST(which_set = 'test', one_hot=True)
+        self.train = MNIST(which_set = 'train')
+        self.test = MNIST(which_set = 'test')
 
     def test_range(self):
         """Tests that the data spans [0,1]"""
@@ -29,10 +28,7 @@ class TestMNIST(unittest.TestCase):
         format.
         """
         batch_size = 100
-        # TODO: the one_hot=True is only necessary because one_hot=False is
-        # broken, remove it after one_hot=False is fixed.
-        c01b_test = MNIST(which_set='test', axes=('c', 0, 1, 'b'),
-                          one_hot=True)
+        c01b_test = MNIST(which_set='test', axes=('c', 0, 1, 'b'))
         c01b_X = c01b_test.X[0:batch_size,:]
         c01b = c01b_test.get_topological_view(c01b_X)
         assert c01b.shape == (1, 28, 28, batch_size)
@@ -44,3 +40,26 @@ class TestMNIST(unittest.TestCase):
         assert b01c_direct.shape == b01c.shape
         assert np.all(b01c_direct == b01c)
 
+    def test_y_index_space(self):
+        """
+        Tests that requesting the targets to be in IndexSpace and iterating
+        over them works
+        """
+        data_specs = (IndexSpace(max_labels=10, dim=1), 'targets')
+        it = self.test.iterator(mode='sequential',
+                                data_specs=data_specs,
+                                batch_size=100)
+        for y in it:
+            pass
+
+    def test_y_vector_space(self):
+        """
+        Tests that requesting the targets to be in VectorSpace and iterating
+        over them works
+        """
+        data_specs = (VectorSpace(dim=10), 'targets')
+        it = self.test.iterator(mode='sequential',
+                                data_specs=data_specs,
+                                batch_size=100)
+        for y in it:
+            pass

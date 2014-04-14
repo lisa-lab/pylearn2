@@ -23,7 +23,7 @@ for i, path in enumerate(paths):
 
 ranked_words = sorted(words.keys(), key=lambda x: -words[x])
 
-ranked_words = [word + '\n' for word in ranked_words[0:4000]]
+ranked_words = [word_ + '\n' for word_ in ranked_words[0:4000]]
 
 
 f = open('wordlist.txt','w')

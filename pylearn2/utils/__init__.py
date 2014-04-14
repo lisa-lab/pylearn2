@@ -1,3 +1,4 @@
+import logging
 import warnings
 
 from .general import is_iterable
@@ -15,6 +16,8 @@ from functools import partial
 WRAPPER_ASSIGNMENTS = ('__module__', '__name__')
 WRAPPER_CONCATENATIONS = ('__doc__',)
 WRAPPER_UPDATES = ('__dict__',)
+
+logger = logging.getLogger(__name__)
 
 
 def make_name(variable, anon="anonymous_variable"):
@@ -388,14 +391,14 @@ def get_choice(choice_to_explanation):
     d = choice_to_explanation
 
     for key in d:
-        print '\t'+key + ': '+d[key]
+        logger.info('\t{0}: {1}'.format(key, d[key]))
     prompt = '/'.join(d.keys())+'? '
 
     first = True
     choice = ''
     while first or choice not in d.keys():
         if not first:
-            print 'unrecognized choice'
+            logger.warning('unrecognized choice')
         first = False
         choice = raw_input(prompt)
     return choice
@@ -437,7 +440,8 @@ def update_wrapper(wrapper,
                    assigned=WRAPPER_ASSIGNMENTS,
                    concatenated=WRAPPER_CONCATENATIONS,
                    append=False,
-                   updated=WRAPPER_UPDATES):
+                   updated=WRAPPER_UPDATES,
+                   replace_before=None):
     """
     A Python decorator which acts like `functools.update_wrapper` but also has
     the ability to concatenate attributes.
@@ -462,6 +466,12 @@ def update_wrapper(wrapper,
         Tuple naming the attributes of the wrapper that are updated with the
         corresponding attribute from the wrapped function. Defaults to
         `functools.WRAPPER_UPDATES`.
+    replace_before : str
+        If `append` is `False` (meaning we are prepending), delete
+        docstring lines occurring before the first line equal to this
+        string (the docstring line is stripped of leading/trailing
+        whitespace before comparison). The newline of the line preceding
+        this string is preserved.
 
     Returns
     -------
@@ -478,6 +488,8 @@ def update_wrapper(wrapper,
     one can simply explain the differences in a 'Notes' section without
     re-writing the whole docstring.
     """
+    assert not (append and replace_before), ("replace_before cannot "
+                                             "be used with append")
     for attr in assigned:
         setattr(wrapper, attr, getattr(wrapped, attr))
     for attr in concatenated:
@@ -491,9 +503,27 @@ def update_wrapper(wrapper,
                     attr,
                     getattr(wrapped, attr) + getattr(wrapper, attr))
         else:
+            if replace_before:
+                assert replace_before.strip() == replace_before, (
+                    'value for replace_before "%s" contains leading/'
+                    'trailing whitespace'
+                )
+                split = getattr(wrapped, attr).split("\n")
+                # Potentially wasting time/memory by stripping everything
+                # and duplicating it but probably not enough to worry about.
+                split_stripped = [line.strip() for line in split]
+                try:
+                    index = split_stripped.index(replace_before.strip())
+                except ValueError:
+                    raise ValueError('no line equal to "%s" in wrapped '
+                                     'function\'s attribute %s' %
+                                     (replace_before, attr))
+                wrapped_val = '\n' + '\n'.join(split[index:])
+            else:
+                wrapped_val = getattr(wrapped, attr)
             setattr(wrapper,
                     attr,
-                    getattr(wrapper, attr) + getattr(wrapped, attr))
+                    getattr(wrapper, attr) + wrapped_val)
     for attr in updated:
         getattr(wrapper, attr).update(getattr(wrapped, attr, {}))
     # Return the wrapper so this can be used as a decorator via partial()
@@ -504,15 +534,16 @@ def wraps(wrapped,
           assigned=WRAPPER_ASSIGNMENTS,
           concatenated=WRAPPER_CONCATENATIONS,
           append=False,
-          updated=WRAPPER_UPDATES):
+          updated=WRAPPER_UPDATES,
+          replace_before=None):
     """
     Decorator factory to apply `update_wrapper()` to a wrapper function
 
     Returns a decorator that invokes `update_wrapper()` with the decorated
     function as the wrapper argument and the arguments to `wraps()` as the
     remaining arguments. Default arguments are as for `update_wrapper()`.
-    This is a convenience function to simplify applying `partial()` to
-    `update_wrapper()`.
+    This is a convenience function to simplify applying
+    `functools.partial()` to `update_wrapper()`.
 
     Examples
     --------
@@ -566,4 +597,5 @@ def wraps(wrapped,
         Also prints the incremented value
     """
     return partial(update_wrapper, wrapped=wrapped, assigned=assigned,
-                   append=append,updated=updated)
+                   append=append,updated=updated,
+                   replace_before=replace_before)

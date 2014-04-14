@@ -130,7 +130,7 @@ class SGD(TrainingAlgorithm):
     batches_per_iter : optional, int
         The number of batches to draw from the iterator over training
         examples.
-        If iterational mode is 'sequential' or 'shuffled_sequential', this
+        If iteration mode is 'sequential' or 'shuffled_sequential', this
         is unnecessary; when unspecified we will iterate over all examples.
     theano_function_mode : optional, a valid argument to theano.function's
         'mode' parameter.
@@ -558,7 +558,7 @@ class MonitorBasedLRAdjuster(TrainExtension):
 
         rval = current_learning_rate
 
-        print "monitoring channel is %s" %self.channel_name
+        log.info("monitoring channel is {0}".format(self.channel_name))
 
         if v[-1] > self.high_trigger * v[-2]:
             rval *= self.shrink_amt

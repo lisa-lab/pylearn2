@@ -8,7 +8,7 @@ class NpyDataset(DenseDesignMatrix):
     """A dense dataset based on a single array stored as a .npy file."""
     def __init__(self, file, mmap_mode=None):
         """
-        Creates an NpzDataset object.
+        Creates an NpyDataset object.
 
         Parameters
         ----------

@@ -5,6 +5,7 @@
 """
 import cPickle
 import pickle
+import logging
 import numpy as np
 import os
 import time
@@ -17,6 +18,9 @@ hdf_reader = None
 import struct
 from pylearn2.utils.string_utils import match
 import shutil
+
+logger = logging.getLogger(__name__)
+
 
 def raise_cannot_open(path):
     """
@@ -60,7 +64,7 @@ def load(filepath, recurse_depth=0, retry = True):
     ----------
     filepath : str
         A path to a file to load. Should be a pickle, Matlab, or NumPy
-        file.
+        file; or a .txt or .amat file that numpy.loadtxt can load.
     recurse_depth : int
         End users should not use this argument. It is used by the function
         itself to implement the `retry` option recursively.
@@ -93,6 +97,14 @@ def load(filepath, recurse_depth=0, retry = True):
     if filepath.endswith('.npy') or filepath.endswith('.npz'):
         return np.load(filepath)
 
+    if filepath.endswith('.amat') or filepath.endswith('txt'):
+        try:
+            return np.loadtxt(filepath)
+        except Exception:
+            logger.exception("{0} cannot be loaded by serial.load (trying to"
+                             " use np.loadtxt)".format(filepath))
+            raise
+
     if filepath.endswith('.mat'):
         global io
         if io is None:
@@ -114,9 +126,9 @@ def load(filepath, recurse_depth=0, retry = True):
 
     def exponential_backoff():
         if recurse_depth > 9:
-            print ('Max number of tries exceeded while trying to open ' +
-                   filepath)
-            print 'attempting to open via reading string'
+            logger.info('Max number of tries exceeded while trying to open '
+                        '{0}'.format(filepath))
+            logger.info('attempting to open via reading string')
             f = open(filepath, 'rb')
             lines = f.readlines()
             f.close()
@@ -124,7 +136,7 @@ def load(filepath, recurse_depth=0, retry = True):
             return cPickle.loads(content)
         else:
             nsec = 0.5 * (2.0 ** float(recurse_depth))
-            print "Waiting " + str(nsec) + " seconds and trying again"
+            logger.info("Waiting {0} seconds and trying again".format(nsec))
             time.sleep(nsec)
             return load(filepath, recurse_depth + 1, retry)
 
@@ -150,23 +162,23 @@ def load(filepath, recurse_depth=0, retry = True):
         raise MemoryError("You do not have enough memory to open " +
                 filepath)
     except BadPickleGet, e:
-        print ('Failed to open ' + str(filepath) +
-               ' due to BadPickleGet with exception string ' + str(e))
+        logger.exception('Failed to open {0} due to BadPickleGet '
+                         'with exception string {1}'.format(filepath, e))
 
         if not retry:
             raise
         obj =  exponential_backoff()
     except EOFError, e:
 
-        print ('Failed to open ' + str(filepath) +
-               ' due to EOFError with exception string ' + str(e))
+        logger.exception('Failed to open {0} due to EOFError '
+                         'with exception string {1}'.format(filepath, e))
 
         if not retry:
             raise
         obj =  exponential_backoff()
     except ValueError, e:
-        print ('Failed to open ' + str(filepath) +
-               ' due to ValueError with string ' + str(e))
+        logger.exception('Failed to open {0} due to ValueError '
+                         'with string {1}'.format(filepath, e))
 
         if not retry:
             raise
@@ -181,10 +193,10 @@ def load(filepath, recurse_depth=0, retry = True):
                             "' due to: " + str(type(e)) + ', ' + str(e) +
                             ". Orig traceback:\n" + tb)
         else:
-            print ("Couldn't open '" + str(filepath) +
-                   "' and exception has no string. Opening it again outside "
-                   "the try/catch so you can see whatever error it prints on "
-                   "its own.")
+            logger.exception("Couldn't open '{0}' and exception has no string."
+                             "Opening it again outside the try/catch "
+                             "so you can see whatever error it prints "
+                             "on its own.".format(filepath))
             f = open(filepath, 'rb')
             obj = cPickle.load(f)
             f.close()
@@ -324,34 +336,31 @@ def _save(filepath, obj):
             with open(filepath, 'wb') as filehandle:
                 cPickle.dump(obj, filehandle, get_pickle_protocol())
     except Exception, e:
-        # TODO: logging, or warning
-        print "cPickle has failed to write an object to " + filepath
+        logger.exception("cPickle has failed to write an object to "
+                         "{0}".format(filepath))
         if str(e).find('maximum recursion depth exceeded') != -1:
             raise
         try:
-            # TODO: logging, or warning
-            print 'retrying with pickle'
+            logger.info('retrying with pickle')
             with open(filepath, "wb") as f:
                 pickle.dump(obj, f)
         except Exception, e2:
             if str(e) == '' and str(e2) == '':
-                # TODO: logging, or warning
-                print (
-                    'neither cPickle nor pickle could write to %s' % filepath
-                )
-                print (
+                logger.exception('neither cPickle nor pickle could write to '
+                                 '{0}'.format(filepath))
+                logger.exception(
                     'moreover, neither of them raised an exception that '
                     'can be converted to a string'
                 )
-                print (
+                logger.exception(
                     'now re-attempting to write with cPickle outside the '
                     'try/catch loop so you can see if it prints anything '
                     'when it dies'
                 )
                 with open(filepath, 'wb') as f:
                     cPickle.dump(obj, f, get_pickle_protocol())
-                print ('Somehow or other, the file write worked once '
-                       'we quit using the try/catch.')
+                logger.info('Somehow or other, the file write worked once '
+                            'we quit using the try/catch.')
             else:
                 if str(e2) == 'env':
                     raise
@@ -364,10 +373,10 @@ def _save(filepath, obj):
                               ' by cPickle due to ' + str(e) +
                               ' nor by pickle due to ' + str(e2) +
                               '. \nTraceback '+ tb)
-        print ('Warning: ' + str(filepath) +
-               ' was written by pickle instead of cPickle, due to '
-               + str(e) +
-               ' (perhaps your object is really big?)')
+        logger.warning('{0} was written by pickle instead of cPickle, due to '
+                       '{1} (perhaps your object'
+                       ' is really big?)'.format(filepath, e))
+
 
 def clone_via_serialize(obj):
     """
