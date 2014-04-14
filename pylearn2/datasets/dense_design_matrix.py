@@ -16,6 +16,7 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 import functools
 
+import logging
 import warnings
 import numpy as np
 from pylearn2.utils.iteration import (
@@ -35,6 +36,9 @@ from pylearn2.space import CompositeSpace, Conv2DSpace, VectorSpace, IndexSpace
 from pylearn2.utils import safe_zip
 from pylearn2.utils.rng import make_np_rng
 from theano import config
+
+
+logger = logging.getLogger(__name__)
 
 
 def ensure_tables():
@@ -1015,7 +1019,7 @@ class DenseDesignMatrix(Dataset):
             WRITEME
         """
         if per_example is not None:
-            warnings.warn("ignoring per_example")
+            logger.warning("ignoring per_example")
         return np.clip(X / np.abs(ref).max(), -1., 1.)
 
     def get_data_specs(self):

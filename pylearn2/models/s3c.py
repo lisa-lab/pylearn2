@@ -25,15 +25,15 @@ from pylearn2.expr.information_theory import entropy_binary_vector
 from pylearn2.models import Model
 from pylearn2.space import VectorSpace
 from pylearn2.utils.rng import make_np_rng
-
-warnings.warn('s3c changing the recursion limit')
-import sys
-sys.setrecursionlimit(50000)
-
 from pylearn2.expr.basic import (full_min,
         full_max, numpy_norms, theano_norms)
 
+
 logger = logging.getLogger(__name__)
+
+logger.warning('s3c changing the recursion limit')
+import sys
+sys.setrecursionlimit(50000)
 
 
 def rotate_towards(old_W, new_W, new_coeff):
@@ -79,11 +79,11 @@ def rotate_towards(old_W, new_W, new_coeff):
 
 class SufficientStatistics:
     """
-    The SufficientStatistics class computes several sufficient 
+    The SufficientStatistics class computes several sufficient
     statistics of a minibatch of examples / variational parameters.
-    
+
     This is mostly for convenience since several expressions are easy
-    to express in terms of these same sufficient statistics. Also, 
+    to express in terms of these same sufficient statistics. Also,
     re-using the same expression for the sufficient statistics in
     multiple code locations can reduce theano compilation time. The
     current version of the S3C code no longer supports features like
@@ -289,9 +289,9 @@ class S3C(Model, Block):
                 if specified, pull out patches of random shape and
                 location
             - local_rf_draw_patches : WRITEME
-                if true, local receptive fields are patches from 
+                if true, local receptive fields are patches from
                 local_rf_src. otherwise, they're random patches.
-                will initialize the weights to have only local 
+                will initialize the weights to have only local
                 receptive fields. (won't make a sparse matrix or
                 anything like that)
 

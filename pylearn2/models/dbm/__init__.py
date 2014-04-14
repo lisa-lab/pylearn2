@@ -15,9 +15,9 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
+import logging
 import numpy as np
 import sys
-import warnings
 
 from theano.compat.python2x import OrderedDict
 
@@ -26,7 +26,10 @@ from pylearn2.blocks import Block
 from pylearn2.utils import block_gradient
 from pylearn2.utils.rng import make_theano_rng
 
-warnings.warn("DBM changing the recursion limit.")
+
+logger = logging.getLogger(__name__)
+
+logger.warning("DBM changing the recursion limit.")
 # We need this to be high enough that the big theano graphs we make
 # when unrolling inference don't cause python to complain.
 # python intentionally declares stack overflow well before the stack

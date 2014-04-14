@@ -3,9 +3,9 @@ Training costs for unsupervised learning of energy-based models
 """
 import functools
 from itertools import izip
+import logging
 import numpy as np
 import sys
-import warnings
 
 from theano.compat.python2x import OrderedDict
 from theano import scan
@@ -16,7 +16,10 @@ from pylearn2.utils import py_integer_types
 from pylearn2.utils.rng import make_theano_rng
 from pylearn2.models.rbm import BlockGibbsSampler
 
-warnings.warn("Cost changing the recursion limit.")
+
+logger = logging.getLogger(__name__)
+
+logger.warning("Cost changing the recursion limit.")
 # We need this to be high enough that the big theano graphs we make
 # when unrolling inference don't cause python to complain.
 # python intentionally declares stack overflow well before the stack
