@@ -1,6 +1,7 @@
 import numpy as np
 from pylearn2.datasets.sparse_dataset import SparseDataset
 
+
 def test_iterator():
     """
     tests wether SparseDataset can be loaded and
@@ -8,9 +9,9 @@ def test_iterator():
     """
 
     x = np.ones((2, 3))
-    ds = SparseDataset(from_scipy_sparse_dataset = x)
+    ds = SparseDataset(from_scipy_sparse_dataset=x)
 
-    it = ds.iterator(mode = 'sequential', batch_size = 1)
+    it = ds.iterator(mode='sequential', batch_size=1)
     it.next()
 
 

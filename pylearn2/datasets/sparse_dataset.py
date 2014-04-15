@@ -17,17 +17,19 @@ from pylearn2.utils.iteration import (
     resolve_iterator_class
 )
 
+
 class SparseDataset(Dataset):
     """
     SparseDataset is by itself an iterator.
     """
-    def __init__(self, load_path=None, from_scipy_sparse_dataset=None, zipped_npy=True):
+    def __init__(self, load_path=None,
+                 from_scipy_sparse_dataset=None, zipped_npy=True):
 
         self.load_path = load_path
         self.y = None
 
-        if self.load_path != None:
-            if zipped_npy == True:
+        if self.load_path is not None:
+            if zipped_npy is True:
                 logger.info('... loading sparse data set from a zip npy file')
                 self.X = scipy.sparse.csr_matrix(
                     numpy.load(gzip.open(load_path)), dtype=floatX)
@@ -46,7 +48,6 @@ class SparseDataset(Dataset):
         self._iter_data_specs = (space, source)
         self.data_specs = (space, source)
 
-
     def get_design_matrix(self):
         return self.X_space
 
@@ -54,7 +55,8 @@ class SparseDataset(Dataset):
         """
         method inherited from Dataset
         """
-        self.iterator(mode='sequential', batch_size=batch_size, num_batches=None, topo=None)
+        self.iterator(mode='sequential',
+                      batch_size=batch_size, num_batches=None, topo=None)
         return self.next()
 
     def get_batch_topo(self, batch_size):
@@ -71,7 +73,8 @@ class SparseDataset(Dataset):
             warnings.warn("Usage of `topo` and `target` arguments are "
                           "being deprecated, and will be removed "
                           "around November 7th, 2013. `data_specs` "
-                          "should be used instead. Here these two arguments are not used",
+                          "should be used instead. Here these two "
+                          "arguments are not used",
                           stacklevel=2)
 
         if data_specs is None:
@@ -132,11 +135,10 @@ class SparseDataset(Dataset):
         indx = self.subset_iterator.next()
         try:
             mini_batch = self.X[indx]
-        except IndexError:
+        except IndexError, e:
+            raise ValueError("Index out of range"+str(e))
             # the ind of minibatch goes beyond the boundary
-            import ipdb; ipdb.set_trace()
         return mini_batch
-
 
     def get_data_specs(self):
         """
@@ -145,7 +147,6 @@ class SparseDataset(Dataset):
         This is the format the data returned by `self.get_data()` will be.
         """
         return self.data_specs
-
 
     def get_data(self):
         """
