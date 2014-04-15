@@ -1,3 +1,7 @@
+"""
+Unit tests for ./yaml_parse.py
+"""
+
 import os
 import numpy as np
 import cPickle
