@@ -51,7 +51,7 @@ class DatasetCV(object):
         self.index_iterator = index_iterator
         dataset_iterator = dataset.iterator(mode='sequential', num_batches=1,
                                             data_specs=dataset.data_specs)
-        self.dataset_iterator = dataset_iterator
+        self._data = tuple(dataset_iterator.next())
         self.return_dict = return_dict
 
     def __iter__(self):
@@ -63,10 +63,7 @@ class DatasetCV(object):
                 labels = ['train', 'test']
             datasets = {}
             for i, subset in enumerate(subsets):
-                subset_data = tuple(
-                    fn(data[subset]) if fn else data[subset]
-                    for data, fn in safe_zip(self.dataset_iterator._raw_data,
-                                             self.dataset_iterator._convert))
+                subset_data = tuple(data[subset] for data in self._data)
                 if len(subset_data) == 2:
                     X, y = subset_data
                 else:
