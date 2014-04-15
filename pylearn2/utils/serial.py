@@ -162,9 +162,11 @@ def load(filepath, recurse_depth=0, retry = True):
         # meeting requirements.
         if os.path.splitext(filepath)[1] == ".pkl":
             raise TypicalMemoryError("You do not have enough memory to open "
-                                     "%s \n + you might try to save your file "
-                                     "as .npy to save memory during loading"
-                                     % filepath)
+                                     "%s \n + Try using numpy.{save,load} (file "
+                                     "with extension '.npy') to save your file. "
+                                     "It uses less memory"
+                                     " when reading and writing files than "
+                                     "pickled files." % filepath)
         else:
             raise TypicalMemoryError("You do not have enough memory to open %s"
                                      % filepath)
