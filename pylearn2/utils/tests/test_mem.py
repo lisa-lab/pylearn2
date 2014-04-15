@@ -5,4 +5,4 @@ def test_typical_memory_error():
     try:
         raise TypicalMemoryError("test")
     except TypicalMemoryError as e:
-        print e
+        pass
