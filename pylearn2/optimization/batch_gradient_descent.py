@@ -126,10 +126,6 @@ class BatchGradientDescent:
 
         self.verbose = verbose
 
-        # TODO: remove verbose statements (handled by logging)
-        if self.verbose > 1:
-            logger.setLevel(logging.DEBUG)
-
         param_to_grad_sym = OrderedDict()
         param_to_grad_shared = OrderedDict()
         updates = OrderedDict()
@@ -437,9 +433,9 @@ class BatchGradientDescent:
                     results.append( (alpha, obj) )
                 if self.verbose > 1:
                     for alpha, obj in results:
-                        logger.debug('\t{0} {1}'.format(alpha, obj))
+                        logger.info('\t{0} {1}'.format(alpha, obj))
 
-                    logger.debug('\t-------')
+                    logger.info('\t-------')
 
                 prev_improvement = 0.
                 while True:
@@ -452,7 +448,7 @@ class BatchGradientDescent:
                         self._goto_alpha(x)
                         res = self.obj(*inputs)
                         if self.verbose > 1:
-                            logger.debug('\t{0} {1}'.format(x, res))
+                            logger.info('\t{0} {1}'.format(x, res))
                         # Regard NaN results as infinitely bad so they won't be picked as the min objective
                         if np.isnan(res):
                             res = np.inf
