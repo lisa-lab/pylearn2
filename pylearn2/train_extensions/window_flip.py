@@ -12,8 +12,9 @@ try:
     from ..utils._window_flip import random_window_and_flip_c01b
     from ..utils._window_flip import random_window_and_flip_b01c
 except ImportError:
-    raise ValueError("You should run setup.py build_ext --inplace in the "
-                     "utils directory.")
+    raise ImportError("Import of Cython module failed. Please make sure you "
+                      "have run 'python setup.py develop' in the pylearn2 "
+                      "directory")
 
 __authors__ = "David Warde-Farley"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
