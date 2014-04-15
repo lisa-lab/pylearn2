@@ -12,6 +12,7 @@ import collections
 is_initialized = False
 additional_environ = None
 
+
 def load(stream, overrides=None, environ=None, **kwargs):
     """
     Loads a YAML configuration from a string or file-like object.
@@ -74,7 +75,7 @@ def load_path(path, overrides=None, environ=None, **kwargs):
         to the desired parameter, e.g. "model.corruptor.corruption_level".
     environ : dict, optional
         A dictionary used for ${FOO} substitutions in addition to
-        environment variables. If a key appears both in `os.environ` 
+        environment variables. If a key appears both in `os.environ`
         and this dictionary, the value in this dictionary is used.
 
     Returns
@@ -336,19 +337,20 @@ def multi_constructor_obj(loader, tag_suffix, node):
     See PyYAML documentation for details on the call signature.
     """
     yaml_src = yaml.serialize(node)
-    construct_mapping(node);
+    construct_mapping(node)
     mapping = loader.construct_mapping(node)
 
     assert hasattr(mapping, 'keys')
     assert hasattr(mapping, 'values')
-    for key,val in mapping.iteritems():
-        if (val == None):
+    for key, val in mapping.iteritems():
+        if (val is None):
             message = "received None as the value for the key %s" % str(key)
             raise TypeError(message)
 
     for key in mapping.keys():
         if not(isinstance(key, basestring)):
-            message = "Received non string object (%s) as keys in mapping." % str(key)
+            message = "Received non string object (%s) as \
+                      key in mapping." % str(key)
             raise TypeError(message)
 
     if '.' not in tag_suffix:
@@ -360,13 +362,15 @@ def multi_constructor_obj(loader, tag_suffix, node):
 
     return rval
 
+
 def multi_constructor_pkl(loader, tag_suffix, node):
     """
     Callback used by PyYAML when a "!pkl:" tag is encountered.
     """
     global additional_environ
     if tag_suffix != "" and tag_suffix != u"":
-        raise AssertionError('Expected tag_suffix to be "" but it is "' + tag_suffix +
+        raise AssertionError('Expected tag_suffix to be "" but it is "'
+                             + tag_suffix +
                              '": Put space between !pkl: and the filename.')
 
     mapping = loader.construct_yaml_str(node)
@@ -375,6 +379,7 @@ def multi_constructor_pkl(loader, tag_suffix, node):
 
     return rval
 
+
 def multi_constructor_import(loader, tag_suffix, node):
     """
     Callback used by PyYAML when a "!import:" tag is encountered.
@@ -382,6 +387,7 @@ def multi_constructor_import(loader, tag_suffix, node):
     if '.' not in tag_suffix:
         raise yaml.YAMLError("!import: tag suffix contains no '.'")
     return try_to_import(tag_suffix)
+
 
 def constructor_import(loader, node):
     """
@@ -393,6 +399,7 @@ def constructor_import(loader, node):
         raise yaml.YAMLError("import tag suffix contains no '.'")
     return try_to_import(value)
 
+
 def constructor_float(loader, node):
     """
     Callback used by PyYAML when a "!float <str>" tag is encountered.
@@ -401,13 +408,16 @@ def constructor_float(loader, node):
     value = loader.construct_scalar(node)
     return float(value)
 
+
 def construct_mapping(node, deep=False):
     # This is a modified version of yaml.BaseConstructor.construct_mapping
     # in which a repeated key raises a ConstructorError
     if not isinstance(node, yaml.nodes.MappingNode):
-        raise yaml.constructor.ConstructorError(None, None,
-                                                "expected a mapping node, but found %s" % node.id,
-                                                node.start_mark)
+        const = yaml.constructor
+        message = "expected a mapping node, but found"
+        raise const.ConstructorError(None, None,
+                                     "%s %s " % (message, node.id),
+                                     node.start_mark)
     mapping = {}
     constructor = yaml.constructor.BaseConstructor()
     for key_node, value_node in node.value:
@@ -415,11 +425,16 @@ def construct_mapping(node, deep=False):
         try:
             hash(key)
         except TypeError, exc:
-            raise yaml.constructor.ConstructorError("while constructing a mapping", node.start_mark,
-                                                    "found unacceptable key (%s)" % exc, key_node.start_mark)
+            const = yaml.constructor
+            raise const.ConstructorError("while constructing a mapping",
+                                         node.start_mark,
+                                         "found unacceptable key (%s)" % exc,
+                                         key_node.start_mark)
         if key in mapping:
-            raise yaml.constructor.ConstructorError("while constructing a mapping", node.start_mark,
-                                                    "found duplicate key (%s)" % key)
+            const = yaml.constructor
+            raise const.ConstructorError("while constructing a mapping",
+                                         node.start_mark,
+                                         "found duplicate key (%s)" % key)
         value = constructor.construct_object(value_node, deep=False)
         mapping[key] = value
     return mapping

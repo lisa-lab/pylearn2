@@ -14,6 +14,7 @@ from pylearn2.space import Conv2DSpace
 from pylearn2.linear.conv2d import make_random_conv2D
 from pylearn2.energy_functions.rbm_energy import grbm_type_1
 
+
 def test_load_path():
     fd, fname = tempfile.mkstemp()
     with os.fdopen(fd, 'wb') as f:
@@ -22,28 +23,34 @@ def test_load_path():
     assert_(loaded['a'] == 23)
     os.remove(fname)
 
+
 def test_obj():
     loaded = load("a: !obj:decimal.Decimal { value : '1.23' }")
     assert_(isinstance(loaded['a'], Decimal))
+
 
 def test_floats():
     loaded = load("a: { a: -1.23, b: 1.23e-1 }")
     assert_(isinstance(loaded['a']['a'], float))
     assert_(isinstance(loaded['a']['b'], float))
-    assert_( (loaded['a']['a'] +1.23) < 1e-3 )
-    assert_( (loaded['a']['b'] -1.23e-1) < 1e-3)
+    assert_((loaded['a']['a'] + 1.23) < 1e-3)
+    assert_((loaded['a']['b'] - 1.23e-1) < 1e-3)
+
 
 def test_import():
     loaded = load("a: !import 'decimal.Decimal'")
     assert_(loaded['a'] == Decimal)
 
+
 def test_import_string():
     loaded = load("a: !import decimal.Decimal")
     assert_(loaded['a'] == Decimal)
 
+
 def test_import_colon():
     loaded = load("a: !import:decimal.Decimal")
     assert_(loaded['a'] == Decimal)
+
 
 def test_preproc_rhs():
     environ['TEST_VAR'] = '10'
@@ -51,6 +58,7 @@ def test_preproc_rhs():
     print "loaded['a'] is %s" % loaded['a']
     assert_(loaded['a'] == "10")
     del environ['TEST_VAR']
+
 
 def test_preproc_pkl():
     fd, fname = tempfile.mkstemp()
@@ -62,15 +70,19 @@ def test_preproc_pkl():
     assert_(loaded['a'] == d)
     del environ['TEST_VAR']
 
+
 def test_late_preproc_pkl():
     fd, fname = tempfile.mkstemp()
     with os.fdopen(fd, 'wb') as f:
         array = np.arange(10)
         np.save(f, array)
     environ['TEST_VAR'] = fname
-    loaded = load('a: !obj:pylearn2.datasets.npy_npz.NpyDataset { file: "${TEST_VAR}" }\n')
-    assert_( loaded['a'].yaml_src.find("${TEST_VAR}") != -1 )   # Assert the unsubstituted TEST_VAR is in yaml_src
+    loaded = load('a: !obj: pylearn2.datasets.npy_npz.NpyDataset \
+                  {file: "${TEST_VAR}"}\n')
+    # Assert the unsubstituted TEST_VAR is in yaml_src
+    assert_(loaded['a'].yaml_src.find("${TEST_VAR}") != -1)
     del environ['TEST_VAR']
+
 
 def test_unpickle():
     fd, fname = tempfile.mkstemp()
@@ -80,6 +92,7 @@ def test_unpickle():
     loaded = load("{'a': !pkl: '%s'}" % fname)
     assert_(loaded['a'] == d)
     os.remove(fname)
+
 
 def test_unpickle_key():
     fd, fname = tempfile.mkstemp()
@@ -152,14 +165,16 @@ def test_duplicate_keywords_2():
                     "shape" : [27,27],
                     "num_channels" : 10
                 },
-                "transformer" : !obj:pylearn2.linear.conv2d.make_random_conv2D {
+                "transformer" :
+                        !obj:pylearn2.linear.conv2d.make_random_conv2D {
                     "irange" : .05,
                     "input_space" : *vis_space,
                     "output_space" : *hid_space,
                     "kernel_shape" : [6,6],
                     "batch_size" : &batch_size 5
                 },
-                "energy_function_class" : !obj:pylearn2.energy_functions.rbm_energy.grbm_type_1 {},
+                "energy_function_class" :
+                     !obj:pylearn2.energy_functions.rbm_energy.grbm_type_1 {},
                 "learn_sigma" : True,
                 "init_sigma" : .3333,
                 "init_bias_hid" : -2.,
