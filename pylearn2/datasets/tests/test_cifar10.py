@@ -16,7 +16,7 @@ class TestCIFAR10(unittest.TestCase):
 
     def test_topo(self):
         """Tests that a topological batch has 4 dimensions"""
-        topo = self.train.get_batch_topo(1)
+        topo = self.test.get_batch_topo(1)
         assert topo.ndim == 4
 
     def test_topo_c01b(self):
