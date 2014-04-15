@@ -1,3 +1,7 @@
+"""
+Unit tests for ../sparse_dataset.py
+"""
+
 import numpy as np
 from pylearn2.datasets.sparse_dataset import SparseDataset
 
