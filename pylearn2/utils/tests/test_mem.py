@@ -1,3 +1,8 @@
+"""
+Tests for pylearn2.utils.mem functions and classes.
+"""
+
+
 from pylearn2.utils.mem import TypicalMemoryError
 
 
