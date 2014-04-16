@@ -24,7 +24,7 @@ from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.datasets.transformer_dataset import TransformerDataset
 from pylearn2.models.mlp import Layer, PretrainedLayer
 from pylearn2.train import Train, SerializationGuard
-from pylearn2.utils import safe_zip, serial
+from pylearn2.utils import serial
 
 
 class DatasetCV(object):
