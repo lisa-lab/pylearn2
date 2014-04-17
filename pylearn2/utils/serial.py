@@ -23,7 +23,6 @@ import shutil
 logger = logging.getLogger(__name__)
 
 
-
 def raise_cannot_open(path):
     """
     .. todo::
