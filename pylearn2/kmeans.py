@@ -8,6 +8,7 @@ from pylearn2.blocks import Block
 from pylearn2.models.model import Model
 from pylearn2.space import VectorSpace
 from pylearn2.utils import sharedX
+from pylearn2.utils.mem import TypicalMemoryError
 import warnings
 
 try:

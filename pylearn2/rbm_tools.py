@@ -6,6 +6,7 @@ import theano
 from theano import tensor, config
 from theano.tensor import nnet
 from pylearn2.utils.rng import make_np_rng, make_theano_rng
+from pylearn2.utils.mem import TypicalMemoryError
 
 
 def compute_log_z(rbm, free_energy_fn, max_bits=15):

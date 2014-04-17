@@ -12,6 +12,7 @@ import time
 import warnings
 import sys
 from pylearn2.utils.string_utils import preprocess
+from pylearn2.utils.mem import TypicalMemoryError
 from cPickle import BadPickleGet
 io = None
 hdf_reader = None
