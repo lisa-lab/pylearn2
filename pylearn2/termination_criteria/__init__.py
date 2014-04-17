@@ -215,7 +215,7 @@ class EpochCounter(TerminationCriterion):
         Number of epochs (i.e. calls to this object's `__call__`
         method) after which this termination criterion should
         return `False`.
-    new_epochs: bool
+    new_epochs: boolean, optional
         If True, epoch counter starts from 0. Otherwise it
         starts from model.monitor.get_epochs_seen()
     """
