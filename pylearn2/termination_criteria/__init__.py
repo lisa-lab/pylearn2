@@ -215,13 +215,26 @@ class EpochCounter(TerminationCriterion):
         Number of epochs (i.e. calls to this object's `__call__`
         method) after which this termination criterion should
         return `False`.
+    new_epochs: bool
+        If True, epoch counter starts from 0. Otherwise it
+        starts from model.monitor.get_epochs_seen()
     """
-    def __init__(self, max_epochs):
+    def __init__(self, max_epochs, new_epochs=True):
         self._max_epochs = max_epochs
-        self._epochs_done = 0
+        self._new_epochs = new_epochs
+
+    def initialize(self, model):
+        if self._new_epochs:
+            self._epochs_done = 0
+        else:
+            # epochs_seen = 1 on first continue_learning() call
+            self._epochs_done = model.monitor.get_epochs_seen() - 1
 
     @functools.wraps(TerminationCriterion.continue_learning)
     def continue_learning(self, model):
+        if not hasattr(self, "_epochs_done"):
+            self.initialize(model)
+
         self._epochs_done += 1
         return self._epochs_done < self._max_epochs
 
@@ -242,7 +255,7 @@ class And(TerminationCriterion):
         should continue.
     """
     def __init__(self, criteria):
-        assert all(isinstance(x,TerminationCriterion) for x in list(criteria))
+        assert all(isinstance(x, TerminationCriterion) for x in list(criteria))
         self._criteria = list(criteria)
 
     @functools.wraps(TerminationCriterion.continue_learning)
@@ -267,7 +280,7 @@ class Or(TerminationCriterion):
         descent should continue.
     """
     def __init__(self, criteria):
-        assert all(isinstance(x,TerminationCriterion) for x in list(criteria))
+        assert all(isinstance(x, TerminationCriterion) for x in list(criteria))
         self._criteria = list(criteria)
 
     @functools.wraps(TerminationCriterion.continue_learning)
