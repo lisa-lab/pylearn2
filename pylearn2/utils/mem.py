@@ -6,6 +6,7 @@
 import subprocess
 import os
 
+
 def get_memory_usage():
     """
     Return int containing memory used by this process. Don't trust this too
@@ -37,10 +38,13 @@ class TypicalMemoryError(MemoryError):
         why the memory error possibly happened.
     """
     def __init__(self, value):
+        super(TypicalMemoryError, self).__init__()
+
         # could add more typical errors to this string
-        self.value += ("\n + Make sure you use a 64bit python version. "
-                       "32bit python version can only access 2GB of memory on "
-                       "windows and 4GB of memory on linux/OSX.")
+        self.value = value + ("\n + Make sure you use a 64bit python version. "
+                              "32bit python version can only access 2GB of "
+                              "memory on windows and 4GB of memory on "
+                              "linux/OSX.")
 
     def __str__(self):
         return repr(self.value)
