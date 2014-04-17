@@ -27,20 +27,20 @@ class TypicalMemoryError(MemoryError):
     as using 32bit python while having more than 2-4GB or RAM computer.
 
     This is to help users understand what could have possibly caused the
-    memory error. A more detailed explanation needs to be given for 
+    memory error. A more detailed explanation needs to be given for
     each case.
 
     Parameters
     ----------
     value: str
-        String explaining what the program was trying to do and 
+        String explaining what the program was trying to do and
         why the memory error possibly happened.
     """
     def __init__(self, value):
         # could add more typical errors to this string
         self.value += ("\n + Make sure you use a 64bit python version. "
-            "32bit python version can only access 2GB of memory on windows "
-            "and 4GB of memory on linux/OSX.")
+                       "32bit python version can only access 2GB of memory on "
+                       "windows and 4GB of memory on linux/OSX.")
 
     def __str__(self):
         return repr(self.value)
