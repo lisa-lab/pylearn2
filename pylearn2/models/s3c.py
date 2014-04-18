@@ -31,7 +31,7 @@ from pylearn2.expr.basic import (full_min,
 
 logger = logging.getLogger(__name__)
 
-logger.warning('s3c changing the recursion limit')
+logger.debug('s3c changing the recursion limit')
 import sys
 sys.setrecursionlimit(50000)
 

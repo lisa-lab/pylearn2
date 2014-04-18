@@ -19,7 +19,7 @@ from pylearn2.models.rbm import BlockGibbsSampler
 
 logger = logging.getLogger(__name__)
 
-logger.warning("Cost changing the recursion limit.")
+logger.debug("Cost changing the recursion limit.")
 # We need this to be high enough that the big theano graphs we make
 # when unrolling inference don't cause python to complain.
 # python intentionally declares stack overflow well before the stack

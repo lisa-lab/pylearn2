@@ -29,7 +29,7 @@ from pylearn2.utils.rng import make_theano_rng
 
 logger = logging.getLogger(__name__)
 
-logger.warning("DBM changing the recursion limit.")
+logger.debug("DBM changing the recursion limit.")
 # We need this to be high enough that the big theano graphs we make
 # when unrolling inference don't cause python to complain.
 # python intentionally declares stack overflow well before the stack

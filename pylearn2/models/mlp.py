@@ -46,7 +46,7 @@ from pylearn2.costs.mlp import WeightDecay as _WD
 
 logger = logging.getLogger(__name__)
 
-logger.warning("MLP changing the recursion limit.")
+logger.debug("MLP changing the recursion limit.")
 # We need this to be high enough that the big theano graphs we make
 # when doing max pooling via subtensors don't cause python to complain.
 # python intentionally declares stack overflow well before the stack
