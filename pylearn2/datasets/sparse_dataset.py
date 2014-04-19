@@ -1,4 +1,5 @@
 from pylearn2.datasets.dataset import Dataset
+from pylearn2.utils import wraps
 import logging
 import numpy
 import warnings
@@ -20,7 +21,16 @@ from pylearn2.utils.iteration import (
 
 class SparseDataset(Dataset):
     """
-    SparseDataset is by itself an iterator.
+    SparseDataset is a class for representing datasets that can be 
+    stored as a sparse matrix.
+
+    Parameters
+    ----------
+    load_path : the path to read the sparse dataset
+    from_scipy_sparse_dataset : In case no load_path is provided, 
+           the dataset is passed directly to the class by using
+           from_scipy_sparse_dataset parameter. 
+    zipped_npy : indicates whether the input matrix is zipped or not.
     """
     def __init__(self, load_path=None,
                  from_scipy_sparse_dataset=None, zipped_npy=True):
@@ -49,22 +59,25 @@ class SparseDataset(Dataset):
         self.data_specs = (space, source)
 
     def get_design_matrix(self):
-        return self.X_space
+        return self.X
 
+    @wraps(Dataset.get_batch_design)
     def get_batch_design(self, batch_size, include_labels=False):
         """
         method inherited from Dataset
         """
-        self.iterator(mode='sequential',
+        self.iterator(mode='shuffled_sequential',
                       batch_size=batch_size, num_batches=None, topo=None)
         return self.next()
 
+    @wraps(Dataset.get_batch_design)
     def get_batch_topo(self, batch_size):
         """
         method inherited from Dataset
         """
         raise NotImplementedError('Not implemented for sparse dataset')
 
+    @wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, targets=None, rng=None, data_specs=None,
                  return_tuple=False):
