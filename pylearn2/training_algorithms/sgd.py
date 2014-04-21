@@ -26,7 +26,7 @@ from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 from pylearn2.training_algorithms.learning_rule import Momentum
 from pylearn2.training_algorithms.learning_rule import MomentumAdjustor \
         as LRMomentumAdjustor
-from pylearn2.utils.iteration import is_stochastic
+from pylearn2.utils.iteration import is_stochastic, has_uniform_batch_size
 from pylearn2.utils import py_integer_types, py_float_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import serial
@@ -217,6 +217,17 @@ class SGD(TrainingAlgorithm):
         model._test_batch_size = self.batch_size
         self.monitor = Monitor.get_monitor(model)
         self.monitor._sanity_check()
+
+        # test if force batch size and batch size
+        if getattr(model, "force_batch_size", False) and \
+           any(dataset.get_design_matrix().shape[0] % self.batch_size != 0 for
+               dataset in self.monitoring_dataset.values()) and \
+           not has_uniform_batch_size(self.monitor_iteration_mode):
+
+            raise ValueError("Dataset size is not a multiple of batch size."
+                             "You should set monitor_iteration_mode to "
+                             "even_sequential, even_shuffled_sequential or "
+                             "even_batchwise_shuffled_sequential")
 
         data_specs = self.cost.get_data_specs(self.model)
         mapping = DataSpecsMapping(data_specs)
