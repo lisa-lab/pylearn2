@@ -34,7 +34,7 @@ from pylearn2.utils import sharedX
 from pylearn2.utils.data_specs import DataSpecsMapping
 from pylearn2.utils.timing import log_timing
 from pylearn2.utils.rng import make_np_rng
-
+from pylearn2.costs.cost import Cost as CostObj
 
 log = logging.getLogger(__name__)
 
@@ -174,7 +174,7 @@ class SGD(TrainingAlgorithm):
             self.learning_rule = learning_rule
 
         self.learning_rate = sharedX(learning_rate, 'learning_rate')
-        self.cost = cost
+        self.cost = cost; assert isinstance(cost,CostObj)
         self.batch_size = batch_size
         self.set_batch_size = set_batch_size
         self.batches_per_iter = batches_per_iter
