@@ -16,83 +16,89 @@ from pylearn2.utils import string_utils as string
 from pylearn2.utils import serial
 import numpy as np
 
-print 'Preparing output directory...'
 
-data_dir = string.preprocess('${PYLEARN2_DATA_PATH}')
-downsampled_dir = data_dir + '/stl10_32x32'
-serial.mkdir( downsampled_dir )
-README = open(downsampled_dir + '/README','w')
+def create_output_dir(data_dir):
+    downsampled_dir = data_dir + '/stl10_32x32'
+    serial.mkdir(downsampled_dir)
+    README = open(downsampled_dir + '/README', 'w')
 
-README.write("""
-The .pkl files in this directory may be opened in python using
-cPickle, pickle, or pylearn2.serial.load. They contain pylearn2
-Dataset objects defining the STL-10 dataset, but downsampled to
-size 32x32 and translated to lie in [-127.5, 127.5 ].
+    README.write("""
+    The .pkl files in this directory may be opened in python using
+    cPickle, pickle, or pylearn2.serial.load. They contain pylearn2
+    Dataset objects defining the STL-10 dataset, but downsampled to
+    size 32x32 and translated to lie in [-127.5, 127.5 ].
 
-They were created with the pylearn2 script make_downsampled_stl10.py
+    They were created with the pylearn2 script make_downsampled_stl10.py
 
-All other files in this directory, including this README, were
-created by the same script and are necessary for the other files
-to function correctly.
-""")
+    All other files in this directory, including this README, were
+    created by the same script and are necessary for the other files
+    to function correctly.
+    """)
 
-README.close()
+    README.close()
 
-preprocessor = Downsample(sampling_factor = [3, 3] )
+    return downsampled_dir
 
 
-#Unlabeled dataset is huge, so do it in chunks
-#(After downsampling it should be small enough to work with)
-final_unlabeled = np.zeros((100*1000,32*32*3),dtype='float32')
+def save_dataset(downsampled_dir, dataset, name):
+    dataset.enable_compression()
+    dataset.use_design_loc(downsampled_dir + '/' + name + '.npy')
+    serial.save(downsampled_dir + '/' + name + '.pkl', dataset)
 
-for i in xrange(10):
-    print 'Loading unlabeled chunk '+str(i+1)+'/10...'
-    unlabeled = STL10(which_set = 'unlabeled', center = True,
-            example_range = (i * 10000, (i+1) * 10000))
+if __name__ == "__main__":
+    data_dir = string.preprocess('${PYLEARN2_DATA_PATH}')
 
-    print 'Preprocessing unlabeled chunk...'
-    print 'before ',(unlabeled.X.min(),unlabeled.X.max())
-    unlabeled.apply_preprocessor(preprocessor)
-    print 'after ',(unlabeled.X.min(), unlabeled.X.max())
+    print 'Preparing output directory...'
+    downsampled_dir = create_output_dir(data_dir)
 
-    final_unlabeled[i*10000:(i+1)*10000,:] = unlabeled.X
+    preprocessor = Downsample(sampling_factor=[3, 3])
 
-unlabeled.set_design_matrix(final_unlabeled)
-print 'Saving unlabeleding set...'
-unlabeled.enable_compression()
-unlabeled.use_design_loc(downsampled_dir + '/unlabeled.npy')
-serial.save(downsampled_dir+'/unlabeled.pkl',unlabeled)
+    # Unlabeled dataset is huge, so do it in chunks
+    # (After downsampling it should be small enough to work with)
+    final_unlabeled = np.zeros((100*1000, 32*32*3), dtype='float32')
 
-del unlabeled
-import gc
-gc.collect()
+    for i in xrange(10):
+        print 'Loading unlabeled chunk '+str(i+1)+'/10...'
+        unlabeled = STL10(which_set='unlabeled', center=True,
+                          example_range=(i * 10000, (i+1) * 10000))
 
-print 'Loading testing set...'
-test = STL10(which_set = 'test', center = True)
+        print 'Preprocessing unlabeled chunk...'
+        print 'before ', (unlabeled.X.min(), unlabeled.X.max())
+        unlabeled.apply_preprocessor(preprocessor)
+        print 'after ', (unlabeled.X.min(), unlabeled.X.max())
 
-print 'Preprocessing testing set...'
-print 'before ',(test.X.min(),test.X.max())
-test.apply_preprocessor(preprocessor)
-print 'after ',(test.X.min(), test.X.max())
+        final_unlabeled[i*10000:(i+1)*10000, :] = unlabeled.X
 
-print 'Saving testing set...'
-test.enable_compression()
-test.use_design_loc(downsampled_dir + '/test.npy')
-serial.save(downsampled_dir+'/test.pkl',test)
-del test
+    unlabeled.set_design_matrix(final_unlabeled)
 
-print 'Loading training set...'
-train = STL10(which_set = 'train', center = True)
+    print 'Saving unlabeleding set...'
+    save_dataset(downsampled_dir, unlabeled, 'unlabeled')
 
-print 'Preprocessing training set...'
-print 'before ',(train.X.min(),train.X.max())
-train.apply_preprocessor(preprocessor)
-print 'after ',(train.X.min(), train.X.max())
+    del unlabeled
+    import gc
+    gc.collect()
 
-print 'Saving training set...'
-train.enable_compression()
-train.use_design_loc(downsampled_dir + '/train.npy')
-serial.save(downsampled_dir+'/train.pkl',train)
+    print 'Loading testing set...'
+    test = STL10(which_set='test', center=True)
 
-del train
+    print 'Preprocessing testing set...'
+    print 'before ', (test.X.min(), test.X.max())
+    test.apply_preprocessor(preprocessor)
+    print 'after ', (test.X.min(), test.X.max())
 
+    print 'Saving testing set...'
+    save_dataset(downsampled_dir, test, 'test')
+    del test
+
+    print 'Loading training set...'
+    train = STL10(which_set='train', center=True)
+
+    print 'Preprocessing training set...'
+    print 'before ', (train.X.min(), train.X.max())
+    train.apply_preprocessor(preprocessor)
+    print 'after ', (train.X.min(), train.X.max())
+
+    print 'Saving training set...'
+    save_dataset(downsampled_dir, train, 'train')
+
+    del train

@@ -9,56 +9,67 @@ from pylearn2.utils import string_utils
 import numpy as np
 from pylearn2.datasets.cifar10 import CIFAR10
 
-data_dir = string_utils.preprocess('${PYLEARN2_DATA_PATH}/cifar10')
 
-print 'Loading CIFAR-10 train dataset...'
-train = CIFAR10(which_set = 'train')
+def create_output_dir(data_dir):
+    output_dir = data_dir + '/pylearn2_whitened'
+    serial.mkdir(output_dir)
+    README = open(output_dir + '/README', 'w')
 
-print "Preparing output directory..."
-output_dir = data_dir + '/pylearn2_whitened'
-serial.mkdir( output_dir )
-README = open(output_dir + '/README','w')
+    README.write("""
+    The .pkl files in this directory may be opened in python using
+    cPickle, pickle, or pylearn2.serial.load.
 
-README.write("""
-The .pkl files in this directory may be opened in python using
-cPickle, pickle, or pylearn2.serial.load.
+    train.pkl, and test.pkl each contain
+    a pylearn2 Dataset object defining a labeled
+    dataset of a 32x32 approximately whitened version of the STL-10
+    dataset. train.pkl contains labeled train examples. test.pkl
+    contains labeled test examples.
 
-train.pkl, and test.pkl each contain
-a pylearn2 Dataset object defining a labeled
-dataset of a 32x32 approximately whitened version of the STL-10
-dataset. train.pkl contains labeled train examples. test.pkl
-contains labeled test examples.
+    preprocessor.pkl contains a pylearn2 ZCA object that was used
+    to approximately whiten the images. You may want to use this
+    object later to preprocess other images.
 
-preprocessor.pkl contains a pylearn2 ZCA object that was used
-to approximately whiten the images. You may want to use this
-object later to preprocess other images.
+    They were created with the pylearn2 script make_cifar10_whitened.py.
 
-They were created with the pylearn2 script make_cifar10_whitened.py.
+    All other files in this directory, including this README, were
+    created by the same script and are necessary for the other files
+    to function correctly.
+    """)
 
-All other files in this directory, including this README, were
-created by the same script and are necessary for the other files
-to function correctly.
-""")
+    README.close()
 
-README.close()
+    return output_dir
 
-print "Learning the preprocessor and preprocessing the unsupervised train data..."
-preprocessor = preprocessing.ZCA()
-train.apply_preprocessor(preprocessor = preprocessor, can_fit = True)
 
-print 'Saving the unsupervised data'
-train.use_design_loc(output_dir+'/train.npy')
-serial.save(output_dir + '/train.pkl', train)
+def save_dataset(output_dir, dataset, name):
+    dataset.use_design_loc(output_dir + '/' + name + '.npy')
+    serial.save(output_dir + '/' + name + '.pkl', dataset)
 
-print "Loading the test data"
-test = CIFAR10(which_set = 'test')
+if __name__ == '__main__':
 
-print "Preprocessing the test data"
-test.apply_preprocessor(preprocessor = preprocessor, can_fit = False)
+    data_dir = string_utils.preprocess('${PYLEARN2_DATA_PATH}/cifar10')
 
-print "Saving the test data"
-test.use_design_loc(output_dir+'/test.npy')
-serial.save(output_dir+'/test.pkl', test)
+    print 'Loading CIFAR-10 train dataset...'
+    train = CIFAR10(which_set='train')
 
-serial.save(output_dir + '/preprocessor.pkl',preprocessor)
+    print "Preparing output directory..."
+    output_dir = create_output_dir(data_dir)
 
+    print ("Learning the preprocessor and preprocessing "
+           "the unsupervised train data...")
+    preprocessor = preprocessing.ZCA()
+    train.apply_preprocessor(preprocessor=preprocessor, can_fit=True)
+
+    print 'Saving the unsupervised data'
+    save_dataset(output_dir, train, 'train')
+
+    print "Loading the test data"
+    test = CIFAR10(which_set='test')
+
+    print "Preprocessing the test data"
+    test.apply_preprocessor(preprocessor=preprocessor, can_fit=False)
+
+    print "Saving the test data"
+    save_dataset(output_dir, test, 'test')
+
+    serial.save(output_dir + '/preprocessor.pkl', preprocessor)
