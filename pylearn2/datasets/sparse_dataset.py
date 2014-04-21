@@ -21,16 +21,22 @@ from pylearn2.utils.iteration import (
 
 class SparseDataset(Dataset):
     """
-    SparseDataset is a class for representing datasets that can be 
+    SparseDataset is a class for representing datasets that can be
     stored as a sparse matrix.
 
     Parameters
     ----------
-    load_path : the path to read the sparse dataset
-    from_scipy_sparse_dataset : In case no load_path is provided, 
-           the dataset is passed directly to the class by using
-           from_scipy_sparse_dataset parameter. 
-    zipped_npy : indicates whether the input matrix is zipped or not.
+    load_path : str or None, optional
+        the path to read the sparse dataset
+        from_scipy_sparse_dataset is not used if load_path is specified
+    from_scipy_sparse_dataset : matrix of type scipy.sparse or None, optional
+        In case load_path is not provided,
+        the sparse dataset is passed directly to the class by
+        using from_scipy_sparse_dataset parameter.
+    zipped_npy : bool, optional
+        used only when load_path is specified.
+        indicates whether the input matrix is zipped or not.
+        defaults to True.
     """
     def __init__(self, load_path=None,
                  from_scipy_sparse_dataset=None, zipped_npy=True):
@@ -50,8 +56,12 @@ class SparseDataset(Dataset):
         else:
             logger.info('... building from given sparse dataset')
             self.X = from_scipy_sparse_dataset
+            if not scipy.sparse.issparse(from_scipy_sparse_dataset):
+                msg = "from_scipy_sparse_dataset is not sparse : %s" \
+                      % type(self.X)
+                raise TypeError(msg)
 
-        X_space = VectorSpace(dim=self.X.shape[1])
+        X_space = VectorSpace(dim=self.X.shape[1], sparse=True)
         self.X_space = X_space
         space = self.X_space
         source = 'features'
