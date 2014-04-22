@@ -1,4 +1,5 @@
-if 0:
+activate_test_spconv = 0
+if activate_test_spconv:
     import sys
     from theano import function, Mode
     from theano.gof import OpWiseCLinker
@@ -66,7 +67,8 @@ if 0:
                     rval_d = f_d(kern_data, img_data)
                 t_d = time.time() - t0
                 #print "Conv2D", t_d,
-                if 0: # sparse with channel_major ordering
+                use_channel_major_ordering = 0
+                if use_channel_major_ordering: # sparse with channel_major ordering
                     sp_output, outshp  = sp.conv2d(imgs, kerns,
                             ishp4_channel_major,
                             kshp4_channel_major,
@@ -86,7 +88,8 @@ if 0:
                     t_s_major = time.time() - t0
                     #print "spconv_major", t_s_major, 'ratio', t_d / t_s_major
 
-                if 1: # sparse with channel_minor ordering
+                use_channel_minor_ordering = 1
+                if use_channel_minor_ordering: # sparse with channel_minor ordering
                     sp_output, outshp  = sp.conv2d_channel_minor(imgs, kerns,
                             ishp4_channel_minor,
                             kshp4_channel_minor,
