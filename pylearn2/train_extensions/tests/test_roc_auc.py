@@ -32,7 +32,7 @@ test_yaml = """
             !obj:pylearn2.models.mlp.Softmax {
                 layer_name: 'y',
                 n_classes: 2,
-                irange: 0.005,
+                irange: 0.,
             }
         ],
     },
@@ -48,7 +48,7 @@ test_yaml = """
                     max_epochs: 1,
                 },
                 !obj:pylearn2.termination_criteria.MonitorBased {
-                    channel_name: 'valid_y_roc_auc',
+                    channel_name: 'train_y_roc_auc',
                     prop_decrease: 0.,
                     N: 1,
                 },
