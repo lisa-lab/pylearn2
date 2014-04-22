@@ -87,8 +87,9 @@ class StratifiedDatasetCV(DatasetCV):
     @staticmethod
     def get_y(dataset):
         """
-        Get target values for dataset, possibly converting from one-hot
-        encoding to a 1D array.
+        Stratified cross-validation requires label information for
+        examples. This function gets target values for a dataset,
+        converting from one-hot encoding to a 1D array as needed.
 
         Parameters
         ----------
