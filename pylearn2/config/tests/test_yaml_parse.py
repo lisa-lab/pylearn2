@@ -81,8 +81,8 @@ def test_late_preproc_pkl():
         array = np.arange(10)
         np.save(f, array)
     environ['TEST_VAR'] = fname
-    loaded = load('a: !obj: pylearn2.datasets.npy_npz.NpyDataset \
-                  {file: "${TEST_VAR}"}\n')
+    loaded = load('a: !obj:pylearn2.datasets.npy_npz.NpyDataset '
+                  '{ file: "${TEST_VAR}"}\n')
     # Assert the unsubstituted TEST_VAR is in yaml_src
     assert_(loaded['a'].yaml_src.find("${TEST_VAR}") != -1)
     del environ['TEST_VAR']
