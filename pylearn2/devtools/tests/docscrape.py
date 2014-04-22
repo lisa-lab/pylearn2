@@ -675,6 +675,13 @@ def handle_module(val, name):
 
 def handle_method(method, method_name, class_name):
     method_errors = []
+
+    # Skip out-of-library inherited methods
+    module = inspect.getmodule(method)
+    if module is not None:
+        if not module.__name__.startswith('pylearn2'):
+            return method_errors
+
     docstring = inspect.getdoc(method)
     if docstring is None:
         method_errors.append((class_name, method_name,
@@ -744,13 +751,6 @@ def docstring_errors(filename, global_dict=None):
                 "due to SkipTest")
     all_errors = []
     for key, val in global_dict.iteritems():
-        # Skip out-of-library members
-        module = inspect.getmodule(val)
-        if module is not None:
-            if not module.__name__.split('.')[0] == 'pylearn2':
-                if not (module.__name__ == '__builtin__'
-                        and not inspect.isbuiltin(val)):
-                    continue
         if not key.startswith('_'):
             module_name = ""
             if hasattr(inspect.getmodule(val), '__name__'):
