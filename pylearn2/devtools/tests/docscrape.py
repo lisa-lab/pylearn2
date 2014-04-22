@@ -748,7 +748,9 @@ def docstring_errors(filename, global_dict=None):
         module = inspect.getmodule(val)
         if module is not None:
             if not module.__name__.split('.')[0] == 'pylearn2':
-                continue
+                if not (module.__name__ == '__builtin__'
+                        and not inspect.isbuiltin(val)):
+                    continue
         if not key.startswith('_'):
             module_name = ""
             if hasattr(inspect.getmodule(val), '__name__'):
