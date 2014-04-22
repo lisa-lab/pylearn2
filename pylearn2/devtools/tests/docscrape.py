@@ -461,9 +461,11 @@ class NumpyClassDocString(NumpyDocString):
     def __init__(self, docstring, class_name, class_object):
         super(NumpyClassDocString, self).__init__(docstring)
         self.class_name = class_name
-        methods = dict((name, func) for name, func in inspect.getmembers(class_object))
+        methods = dict((name, func) for name, func
+                       in inspect.getmembers(class_object))
         if '__init__' in methods:
-            args, varargs, keywords, defaults = inspect.getargspec(methods['__init__'])
+            args, varargs, keywords, defaults = inspect.getargspec(
+                methods['__init__'])
             if (args and args != ['self']) or varargs or keywords or defaults:
                 self.has_parameters = True
             else:
