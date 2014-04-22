@@ -744,7 +744,7 @@ def docstring_errors(filename, global_dict=None):
                 "due to SkipTest")
     all_errors = []
     for key, val in global_dict.iteritems():
-        # Out-of-library
+        # Skip out-of-library members
         module = inspect.getmodule(val)
         if module is not None:
             if not module.__name__.startswith('pylearn2'):
