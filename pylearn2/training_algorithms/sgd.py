@@ -65,6 +65,8 @@ class SGD(TrainingAlgorithm):
         If not specified, the model will be asked for the batch size, so
         you must have specified the batch size there.
         (Some models are rigidly defined to only work with one batch size)
+    monitoring_batch_size : optional, int
+        The size of the monitoring batches.
     monitoring_batches : optional, int
         At the start of each epoch, we run "monitoring", to evaluate
         quantities such as the validation set error.
@@ -149,8 +151,8 @@ class SGD(TrainingAlgorithm):
         training dataset iterator (if any)
     """
     def __init__(self, learning_rate, cost=None, batch_size=None,
-                 monitoring_batches=None, monitoring_dataset=None,
-                 monitor_iteration_mode='sequential',
+                 monitoring_batch_size=None, monitoring_batches=None,
+                 monitoring_dataset=None, monitor_iteration_mode='sequential',
                  termination_criterion=None, update_callbacks=None,
                  learning_rule = None, init_momentum = None,
                  set_batch_size = False,
@@ -179,9 +181,13 @@ class SGD(TrainingAlgorithm):
         self.set_batch_size = set_batch_size
         self.batches_per_iter = batches_per_iter
         self._set_monitoring_dataset(monitoring_dataset)
+        self.monitoring_batch_size = monitoring_batch_size
         self.monitoring_batches = monitoring_batches
         self.monitor_iteration_mode = monitor_iteration_mode
         if monitoring_dataset is None:
+            if monitoring_batch_size is not None:
+                raise ValueError("Specified a monitoring batch size " +
+                                 "but not a monitoring dataset.")
             if monitoring_batches is not None:
                 raise ValueError("Specified an amount of monitoring batches " +
                                  "but not a monitoring dataset.")
@@ -265,9 +271,13 @@ class SGD(TrainingAlgorithm):
         # the cost
         learning_rate = self.learning_rate
         if self.monitoring_dataset is not None:
+            if (self.monitoring_batch_size is None and
+                    self.monitoring_batches is None):
+                self.monitoring_batch_size = self.batch_size
+                self.monitoring_batches = self.batches_per_iter
             self.monitor.setup(dataset=self.monitoring_dataset,
                                cost=self.cost,
-                               batch_size=self.batch_size,
+                               batch_size=self.monitoring_batch_size,
                                num_batches=self.monitoring_batches,
                                extra_costs=self.monitoring_costs,
                                mode=self.monitor_iteration_mode)
