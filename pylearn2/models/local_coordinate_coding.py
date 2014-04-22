@@ -4,7 +4,6 @@
     WRITEME
 """
 import logging
-import warnings
 from theano import function, shared
 from pylearn2.optimization import linear_cg as cg
 from pylearn2.optimization.feature_sign import feature_sign_search
@@ -149,7 +148,8 @@ class LocalCoordinateCoding(object):
 
         #Optimize W
         logger.info('optimizing W')
-        warnings.warn("not tested since switching to Razvan's all-theano implementation of linear cg")
+        logger.warning("not tested since switching to Razvan's all-theano "
+                       "implementation of linear cg")
         cg.linear_cg(J, [self.W], max_iters=3)
 
         err = 0.

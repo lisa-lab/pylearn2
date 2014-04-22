@@ -43,7 +43,10 @@ from pylearn2.expr.nnet import kl
 from pylearn2.costs.mlp import L1WeightDecay as _L1WD
 from pylearn2.costs.mlp import WeightDecay as _WD
 
-warnings.warn("MLP changing the recursion limit.")
+
+logger = logging.getLogger(__name__)
+
+logger.debug("MLP changing the recursion limit.")
 # We need this to be high enough that the big theano graphs we make
 # when doing max pooling via subtensors don't cause python to complain.
 # python intentionally declares stack overflow well before the stack
@@ -58,8 +61,6 @@ warnings.warn("MLP changing the recursion limit.")
 # python interpreter should provide an option to raise the error
 # precisely when you're going to exceed the stack segment.
 sys.setrecursionlimit(40000)
-
-logger = logging.getLogger(__name__)
 
 
 class Layer(Model):
