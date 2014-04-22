@@ -747,7 +747,7 @@ def docstring_errors(filename, global_dict=None):
         # Skip out-of-library members
         module = inspect.getmodule(val)
         if module is not None:
-            if not module.__name__.split('.') == 'pylearn2':
+            if not module.__name__.split('.')[0] == 'pylearn2':
                 continue
         if not key.startswith('_'):
             module_name = ""
