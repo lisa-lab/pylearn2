@@ -93,7 +93,7 @@ def test_training_a_model():
     try:
         train.main_loop()
     except:
-        message = "Could not train a dummy RBM model with sparce dataset"
+        message = "Could not train a dummy SoftMax model with a sparce dataset"
         raise AssertionError(message)
 
 if __name__ == '__main__':
