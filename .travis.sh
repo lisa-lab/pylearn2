@@ -11,5 +11,5 @@ else
     # download each time. If present run: python make_dataset.py
     (cd pylearn2/scripts/tutorials/grbm_smd && wget http://www.iro.umontreal.ca/~lisa/datasets/cifar10_preprocessed_train.pkl)
     nosetests --help
-    THEANO_FLAGS="$FLAGS",warn.ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise TRAVIS=1 theano-nose -v $PART || exit 1
+    THEANO_FLAGS="$FLAGS",warn.ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise TRAVIS=1 theano-nose -v --with-timelimit $PART || exit 1
 fi
