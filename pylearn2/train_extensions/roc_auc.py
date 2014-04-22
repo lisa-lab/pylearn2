@@ -74,9 +74,6 @@ class RocAucChannel(TrainExtension):
     This monitor will return nan unless both classes are represented in
     y_true. For this reason, it is recommended to set monitoring_batches
     to 1, especially when using unbalanced datasets.
-
-    Currently, monitoring_batches is overridden by batch_size, so it is
-    also recommended to set batches_per_iter to 1 and not use batch_size.
     """
     def setup(self, model, dataset, algorithm):
         """
