@@ -1,9 +1,10 @@
 import pylearn2
-from pylearn2.utils.serial import read_bin_lush_matrix
+from pylearn2.utils.serial import read_bin_lush_matrix, load_train_file
 import numpy as np
 
 pylearn2_path = pylearn2.__path__[0]
 example_bin_lush_path = pylearn2_path + '/utils/tests/example_bin_lush/'
+yaml_path = pylearn2_path + '/utils/tests/'
 
 def test_read_bin_lush_matrix_ubyte_scalar():
     #note: this is what happens when you write a scalar from
@@ -93,3 +94,14 @@ def test_read_bin_lush_matrix_double_3tensor():
         for j in xrange(1,result.shape[1]+1):
             for k in xrange(1,result.shape[2]+1):
                 assert np.allclose(result[i-1,j-1,k-1], i + 1.5 * j + (-1.7) ** k)
+
+
+def test_load_train_file():
+    """
+    Loads a YAML file with and without environment variables.
+    """
+    environ = {
+        'PYLEARN2_DATA_PATH': '/just/a/test/path/'
+    }
+    load_train_file(yaml_path + 'test_model.yaml')
+    load_train_file(yaml_path + 'test_model.yaml', environ=environ)
