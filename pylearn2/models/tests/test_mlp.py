@@ -3,7 +3,8 @@ import theano
 from theano import tensor
 from pylearn2.models.mlp import (MLP, Linear, Softmax, Sigmoid,
                                  exhaustive_dropout_average,
-                                 sampled_dropout_average)
+                                 sampled_dropout_average, CompositeLayer)
+from pylearn2.space import VectorSpace, CompositeSpace
 
 
 class IdentityLayer(Linear):
@@ -162,3 +163,58 @@ if __name__ == "__main__":
     test_sigmoid_layer_misclass_reporting()
     test_batchwise_dropout()
     test_sigmoid_detection_cost()
+
+
+def test_composite_layer():
+    """
+    Test the routing functionality of the CompositeLayer
+    """
+    # Without routing
+    composite_layer = CompositeLayer('composite_layer',
+                                     [Linear(2, 'h0', irange=0),
+                                      Linear(2, 'h1', irange=0),
+                                      Linear(2, 'h2', irange=0)])
+    mlp = MLP(nvis=2, layers=[composite_layer])
+    for i in range(3):
+        composite_layer.layers[i].set_weights(
+            np.eye(2, dtype=mlp.get_weights()[0].dtype)
+        )
+        composite_layer.layers[i].set_biases(
+            np.zeros(2, dtype=mlp.get_weights()[0].dtype)
+        )
+    X = theano.tensor.matrix()
+    y = mlp.fprop(X)
+    funs = [theano.function([X], y_elem) for y_elem in y]
+    x_numeric = np.random.rand(2, 2).astype('float32')
+    y_numeric = [f(x_numeric) for f in funs]
+    assert np.all(x_numeric == y_numeric)
+
+    # With routing
+    for inputs_to_layers in [{0: [1], 1: [2], 2: [0]},
+                             {0: [1], 1: [0, 2], 2: []}]:
+        composite_layer = CompositeLayer('composite_layer',
+                                         [Linear(2, 'h0', irange=0),
+                                          Linear(2, 'h1', irange=0),
+                                          Linear(2, 'h2', irange=0)],
+                                         inputs_to_layers)
+        input_space = CompositeSpace([VectorSpace(dim=2),
+                                      VectorSpace(dim=2),
+                                      VectorSpace(dim=2)])
+        mlp = MLP(input_space=input_space, layers=[composite_layer])
+        for i in range(3):
+            composite_layer.layers[i].set_weights(
+                np.eye(2, dtype=mlp.get_weights()[0].dtype)
+            )
+            composite_layer.layers[i].set_biases(
+                np.zeros(2, dtype=mlp.get_weights()[0].dtype)
+            )
+        X = [theano.tensor.matrix() for _ in range(3)]
+        y = mlp.fprop(X)
+        funs = [theano.function(X, y_elem, on_unused_input='ignore')
+                for y_elem in y]
+        x_numeric = [np.random.rand(2, 2).astype(theano.config.floatX)
+                     for _ in range(3)]
+        y_numeric = [f(*x_numeric) for f in funs]
+        assert all([all([np.all(x_numeric[i] == y_numeric[j])
+                         for j in inputs_to_layers[i]])
+                    for i in inputs_to_layers])

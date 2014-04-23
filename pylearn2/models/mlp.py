@@ -4307,9 +4307,9 @@ class CompositeLayer(Layer):
     inputs_to_components : None or dict mapping int to list of int
         Should be None unless the input space is a CompositeSpace
         If inputs_to_components[i] contains j, it means input i will
-        be given as input to component j.
-        If an input does not appear in the dictionary, it will be given
-        to all components.
+        be given as input to component j. If the list is empty, the input
+        will be discarded. If an input does not appear in the dictionary,
+        it will be given to all components.
     """
     def __init__(self, layer_name, layers, inputs_to_layers=None):
         """"
@@ -4319,9 +4319,8 @@ class CompositeLayer(Layer):
         """
         for layer in layers:
             assert isinstance(layer, Layer)
-        if inputs_to_layers is None:
-            self.inputs_to_layers = None
-        else:
+        self.num_layers = len(layers)
+        if inputs_to_layers is not None:
             if not isinstance(inputs_to_layers, dict):
                 raise TypeError("CompositeLayer expected inputs_to_layers to "
                                 "be dict, got " + str(type(inputs_to_layers)))
@@ -4332,13 +4331,17 @@ class CompositeLayer(Layer):
                 value = inputs_to_layers[key]
                 assert isinstance(value, list)
                 assert all([isinstance(elem, int) for elem in value])
-                assert min(value) >= 0
-                assert max(value) < self.num_layers
+                # Check 'not value' to support case of empty list
+                assert not value or min(value) >= 0
+                assert not value or max(value) < self.num_layers
                 self.inputs_to_layers[key] = list(value)
         super(CompositeLayer, self).__init__()
         self.__dict__.update(locals())
         del self.self
-        self.num_layers = len(layers)
+
+    @wraps(Layer.get_weights)
+    def get_weights(self):
+        return [layer.get_weights() for layer in self.layers]
 
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
@@ -4348,14 +4351,14 @@ class CompositeLayer(Layer):
                                  "mapping, but does not have a CompositeSpace "
                                  "as its input space, so there is nothing to "
                                  "map. Received " + str(space) + " as input "
-                                 "space instead.")
+                                 "space.")
             self.routing_needed = False
         else:
             if self.inputs_to_layers is None:
                 self.routing_needed = False
             else:
                 self.routing_needed = True
-                if not max(self.inputs_to_layers) < space.num_layers:
+                if not max(self.inputs_to_layers) < len(space.components):
                     raise ValueError("The inputs_to_layers mapping of "
                                      "CompositeSpace contains they key " +
                                      str(max(self.inputs_to_layers)) + " "
@@ -4366,17 +4369,15 @@ class CompositeLayer(Layer):
                 self.layers_to_inputs = OrderedDict()
                 for i in xrange(self.num_layers):
                     inputs = []
-                    for j in xrange(space.num_layers):
+                    for j in xrange(len(space.components)):
                         if i in self.inputs_to_layers[j]:
-                            inputs.append(i)
-                    if len(inputs) < space.num_layers:
+                            inputs.append(j)
                         self.layers_to_inputs[i] = inputs
         for i, layer in enumerate(self.layers):
             if self.routing_needed and i in self.layers_to_inputs:
                 cur_space = space.restrict(self.layers_to_inputs[i])
             else:
                 cur_space = space
-
             layer.set_input_space(cur_space)
 
         self.input_space = space
@@ -4393,10 +4394,14 @@ class CompositeLayer(Layer):
     @wraps(Layer.fprop)
     def fprop(self, state_below):
         rvals = []
-        state_below = list(state_below)
         for i, layer in enumerate(self.layers):
             if self.routing_needed and i in self.layers_to_inputs:
-                cur_state_below = state_below[self.layers_to_inputs[i]]
+                cur_state_below = [state_below[j] for j in self.layers_to_inputs[i]]
+                # This is to mimic the behavior of CompositeSpace's restrict
+                # method, which only returns a CompositeSpace when the number
+                # of components is greater than 1
+                if len(cur_state_below) == 1:
+                    cur_state_below = cur_state_below[0]
             else:
                 cur_state_below = state_below
             rvals.append(layer.fprop(cur_state_below))
