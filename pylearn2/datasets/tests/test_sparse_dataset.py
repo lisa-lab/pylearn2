@@ -90,6 +90,24 @@ class DummyCost(DefaultDataSpecsMixin, Cost):
         X = data
         return T.square(model(X) - X).mean()
 
+    @wraps(DefaultDataSpecsMixin.get_data_specs)
+    def get_data_specs(self, model):
+        """
+        Parameters
+        ----------
+        model : Model
+            The model to train with this cost
+        Returns
+        -------
+        data_specs : tuple
+            The tuple should be of length two.
+            The first element of the tuple should be a Space (possibly a
+            CompositeSpace) describing how to format the data.
+            The second element of the tuple describes the source of the
+            data. It probably should be a string or nested tuple of strings.
+        """
+        return super(DummyCost, self).get_data_specs(model)
+
 
 def test_iterator():
     """
