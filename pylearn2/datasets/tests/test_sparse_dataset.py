@@ -17,6 +17,21 @@ import theano.tensor as T
 
 
 class SoftmaxModel(Model):
+    """
+    A dummy model used for testing.
+    Important properties:
+    has a parameter (P) for SGD to act on
+    has a get_output_space method, so it can tell the
+    algorithm what kind of space the targets for supervised
+    learning live in
+    has a get_input_space method, so it can tell the
+    algorithm what kind of space the features live in
+
+    Parameters
+    ----------
+    dim : int
+        the input dimension of the Softmax Model
+    """
 
     def __init__(self, dim):
         self.dim = dim
@@ -39,6 +54,14 @@ class SoftmaxModel(Model):
 
 
 class DummyCost(DefaultDataSpecsMixin, Cost):
+    """
+    A dummy cost used for testing.
+    Important properties:
+    has a expr method which takes a model and a 
+    dataset and returns as cost the mean squared 
+    difference between the data and the models'
+    output using that data.
+    """
     def expr(self, model, data):
         space, sources = self.get_data_specs(model)
         space.validate(data)
