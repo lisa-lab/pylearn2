@@ -122,8 +122,9 @@ class FilterActs(Base):
                             raise
                     hidacts[gg, :, mR, mC, :] = rc_hidacts
         ostor[0][0] = hidacts
-
-        if 0:
+        
+        print_sizes = 0
+        if print_sizes:
             print 'FilterActs shapes: images', images.shape
             print 'FilterActs shapes: filters', filters.shape
             print 'FilterActs shapes: hidacts', hidacts.shape

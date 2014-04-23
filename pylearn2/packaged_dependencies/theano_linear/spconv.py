@@ -568,7 +568,8 @@ class ConvolutionIndices(Op):
         assert spmat.format == 'csc'
         sptype = 'csc'
         #sptype = 'csr' if mode=='valid' else 'csc'
-        if 0 and mode=='valid':
+        use_csr_type = 0
+        if use_csr_type and mode=='valid':
             spmat = spmat.tocsr()
 
         rval = (spmat.indices[:spmat.size],
