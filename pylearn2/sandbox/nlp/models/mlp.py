@@ -1,3 +1,6 @@
+"""
+Sandbox multilayer perceptron layers for natural language processing (NLP)
+"""
 import theano.tensor as T
 from pylearn2.models.mlp import Layer
 from pylearn2.space import IndexSpace

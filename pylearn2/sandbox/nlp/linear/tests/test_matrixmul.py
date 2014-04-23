@@ -1,3 +1,6 @@
+"""
+Sandbox tests for the projection operator
+"""
 import numpy as np
 import theano
 

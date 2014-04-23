@@ -1,3 +1,6 @@
+"""
+Sandbox projection operator for natural language processing (NLP)
+"""
 from pylearn2.linear import matrixmul
 
 

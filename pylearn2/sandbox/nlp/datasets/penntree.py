@@ -1,3 +1,9 @@
+"""
+Dataset wrapper for the Penn Treebank dataset
+
+See: http://www.cis.upenn.edu/~treebank/
+"""
+
 __authors__ = "Bart van Merrienboer"
 __copyright__ = "Copyright 2010-2014, Universite de Montreal"
 __license__ = "3-clause BSD"
