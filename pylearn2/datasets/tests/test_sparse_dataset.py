@@ -13,12 +13,21 @@ from scipy.sparse import csr_matrix
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.utils import sharedX
+from pylearn2.utils import wraps
 import theano.tensor as T
 
 
 class SoftmaxModel(Model):
     """
     A dummy model used for testing.
+
+    Parameters
+    ----------
+    dim : int
+        the input dimension of the Softmax Model
+
+    Notes
+    -----
     Important properties:
     has a parameter (P) for SGD to act on
     has a get_output_space method, so it can tell the
@@ -26,29 +35,29 @@ class SoftmaxModel(Model):
     learning live in
     has a get_input_space method, so it can tell the
     algorithm what kind of space the features live in
-
-    Parameters
-    ----------
-    dim : int
-        the input dimension of the Softmax Model
     """
-
     def __init__(self, dim):
         self.dim = dim
         rng = np.random.RandomState([2014, 4, 22])
         self.P = sharedX(rng.uniform(-1., 1., (dim,)))
         self.force_batch_size = None
 
+    @wraps(Model.get_params)
     def get_params(self):
         return [self.P]
 
+    @wraps(Model.get_input_space)
     def get_input_space(self):
         return VectorSpace(self.dim)
 
+    @wraps(Model.get_output_space)
     def get_output_space(self):
         return VectorSpace(self.dim)
 
     def __call__(self, X):
+        """
+        Compute and return the softmax transformation of sparse data.
+        """
         assert X.ndim == 2
         return T.nnet.softmax(X*self.P)
 
@@ -56,13 +65,26 @@ class SoftmaxModel(Model):
 class DummyCost(DefaultDataSpecsMixin, Cost):
     """
     A dummy cost used for testing.
+
+    Parameters
+    ----------
+    No parameters is required for this class.
+
+    Notes
+    -----
     Important properties:
-    has a expr method which takes a model and a 
-    dataset and returns as cost the mean squared 
+    has a expr method which takes a model and a
+    dataset and returns as cost the mean squared
     difference between the data and the models'
     output using that data.
     """
+    @wraps(Cost.expr)
     def expr(self, model, data):
+        """
+        returns as cost the mean squared
+        difference between the data and the models'
+        output using that data.
+        """
         space, sources = self.get_data_specs(model)
         space.validate(data)
         X = data
@@ -116,7 +138,7 @@ def test_training_a_model():
     try:
         train.main_loop()
     except:
-        message = "Could not train a dummy SoftMax model with a sparce dataset"
+        message = "Could not train a dummy SoftMax model with a Sparse dataset"
         raise AssertionError(message)
 
 if __name__ == '__main__':
