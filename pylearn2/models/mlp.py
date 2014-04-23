@@ -4339,10 +4339,6 @@ class CompositeLayer(Layer):
         self.__dict__.update(locals())
         del self.self
 
-    @wraps(Layer.get_weights)
-    def get_weights(self):
-        return [layer.get_weights() for layer in self.layers]
-
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
         if not isinstance(space, CompositeSpace):
