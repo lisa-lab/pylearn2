@@ -53,24 +53,28 @@ def test_train_cv():
 
 def test_dataset_k_fold():
     """Test DatasetKFold."""
+    skip_if_no_sklearn()
     trainer = yaml_parse.load(test_yaml_dataset_k_fold)
     trainer.main_loop()
 
 
 def test_stratified_dataset_k_fold():
     """Test StratifiedDatasetKFold."""
+    skip_if_no_sklearn()
     trainer = yaml_parse.load(test_yaml_stratified_dataset_k_fold)
     trainer.main_loop()
 
 
 def test_dataset_shuffle_split():
     """Test DatasetShuffleSplit."""
+    skip_if_no_sklearn()
     trainer = yaml_parse.load(test_yaml_dataset_shuffle_split)
     trainer.main_loop()
 
 
 def test_stratified_dataset_shuffle_split():
     """Test StratifiedDatasetShuffleSplit."""
+    skip_if_no_sklearn()
     trainer = yaml_parse.load(test_yaml_stratified_dataset_shuffle_split)
     trainer.main_loop()
 
