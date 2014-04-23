@@ -385,13 +385,13 @@ class MLP(Layer):
     nvis : int, optional
         Number of "visible units" (input units). Equivalent to specifying
         `input_space=VectorSpace(dim=nvis)`. Should be None if the MLP is
-        not part of another MLP.
+        part of another MLP.
     input_space : Space object, optional
         A Space specifying the kind of input the MLP accepts. If None,
         input space is specified by nvis. Should be None if the MLP is
         part of another MLP.
     layer_name : name of the MLP layer. Should be None if the MLP is
-        part of another MLP.
+        not part of another MLP.
     seed : WRITEME
     """
 
