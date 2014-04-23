@@ -634,7 +634,7 @@ if use_concat_class: # needs to be brought up to date with LinearTransform metho
                 W.print_status()
 
 use_sum_class = 0
-if use_sum_class = 0: # needs to be brought up to date with LinearTransform method names
+if use_sum_class: # needs to be brought up to date with LinearTransform method names
     class Sum(LinearTransform):
         def __init__(self, terms):
             self.terms = terms
@@ -662,7 +662,7 @@ if use_sum_class = 0: # needs to be brought up to date with LinearTransform meth
             raise NotImplementedError('TODO')
 
 use_compose_class = 0
-if use_compose_class = 0: # This is incomplete
+if use_compose_class: # This is incomplete
     class Compose(LinearTransform):
         """ For linear transformations [A,B,C]
         this represents the linear transformation A(B(C(x))).
