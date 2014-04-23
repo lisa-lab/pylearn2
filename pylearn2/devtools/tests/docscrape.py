@@ -463,13 +463,17 @@ class NumpyClassDocString(NumpyDocString):
         self.class_name = class_name
         methods = dict((name, func) for name, func
                        in inspect.getmembers(class_object))
+
+        self.has_parameters = False
         if '__init__' in methods:
+            # verify if __init__ is a Python function. If it isn't
+            # (e.g. the function is implemented in C), getargspec will fail
+            if not inspect.isfunction(methods['__init__']):
+                return
             args, varargs, keywords, defaults = inspect.getargspec(
                 methods['__init__'])
             if (args and args != ['self']) or varargs or keywords or defaults:
                 self.has_parameters = True
-            else:
-                self.has_parameters = False
 
     def _parse(self):
         self._parsed_data = {
@@ -760,14 +764,9 @@ def docstring_errors(filename, global_dict=None):
             if (inspect.isfunction(val) or inspect.isclass(val)) and\
                     (inspect.getmodule(val) is None
                      or module_name == '__builtin__'):
-                # Functions
-                if type(val) == types.FunctionType:
+                if inspect.isfunction(val):
                     all_errors.extend(handle_function(val, key))
-                # New-style classes
-                elif type(val) == types.TypeType:
-                    all_errors.extend(handle_class(val, key))
-                # Old-style classes
-                elif type(val) == types.ClassType:
+                elif inspect.isclass(val):
                     all_errors.extend(handle_class(val, key))
         elif key == '__doc__':
             all_errors.extend(handle_module(val, key))
