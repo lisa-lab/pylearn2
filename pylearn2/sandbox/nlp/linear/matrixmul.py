@@ -1,11 +1,19 @@
 """
 Sandbox projection operator for natural language processing (NLP)
+    os.path.join(pylearn2.__path__[0],
+                 "sandbox/nlp/scripts/language_model/language_model.yaml")
 """
 from pylearn2.linear import matrixmul
 
 
 class MatrixMul(matrixmul.MatrixMul):
+    """
+    Operations which can be represented as matrix multiplications.
+    """
     def init(self):
+        """
+        Call the parent constructor
+        """
         super(MatrixMul, self).__init__()
 
     def project(self, x):

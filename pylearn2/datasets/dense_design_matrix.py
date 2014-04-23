@@ -355,12 +355,14 @@ class DenseDesignMatrix(Dataset):
 
     def get_data(self):
         """
+        Returns all the data, as it is internally stored.
+        The definition and format of these data are described in
+        `self.get_data_specs()`.
+
         Returns
         -------
         data : numpy matrix or 2-tuple of matrices
-            Returns all the data, as it is internally stored.
-            The definition and format of these data are described in
-            `self.get_data_specs()`.
+            The data
         """
         if self.y is None:
             return self.X
@@ -394,11 +396,13 @@ class DenseDesignMatrix(Dataset):
 
     def get_topo_batch_axis(self):
         """
+        The index of the axis of the batches
+
         Returns
         -------
         axis : int
-            The axis of a topological view of this dataset that corresponds to
-            indexing over different examples.
+            The axis of a topological view of this dataset that corresponds
+            to indexing over different examples.
         """
         axis = self.view_converter.axes.index('b')
         return axis
@@ -570,7 +574,7 @@ class DenseDesignMatrix(Dataset):
         given by the user. Returns an array of folds.
 
         Parameters
-        -----------
+        ----------
         nfolds : int, optional
             The number of folds for the  the validation set.
 
@@ -586,15 +590,17 @@ class DenseDesignMatrix(Dataset):
     def split_dataset_holdout(self, train_size=0, train_prop=0):
         """
         This function splits the dataset according to the number of
-        train_size if defined by the user. Otherwise it will use the
-        train_prop to divide the dataset into a training and holdout
-        validation set. This function returns the training and validation
-        dataset.
+        train_size if defined by the user.
+
+        Otherwise it will use the train_prop to divide the dataset into a
+        training and holdout validation set. This function returns the
+        training and validation dataset.
 
         Parameters
-        -----------
+        ----------
         train_size : int
-            Number of examples that will be assigned to the training dataset.
+            Number of examples that will be assigned to the training
+            dataset.
         train_prop : float
             Proportion of dataset split.
         """
@@ -606,7 +612,7 @@ class DenseDesignMatrix(Dataset):
         n folds. Returns the folds.
 
         Parameters
-        -----------
+        ----------
         nfolds : int
             The number of folds for the  dataset.
         rng : WRITEME
@@ -625,7 +631,7 @@ class DenseDesignMatrix(Dataset):
         train_size defined by the user.
 
         Parameters
-        -----------
+        ----------
         train_size : int
             Number of examples that will be assigned to the training dataset.
         nfolds : int
@@ -698,12 +704,12 @@ class DenseDesignMatrix(Dataset):
         Parameters
         ----------
         mat : ndarray, 2-dimensional, optional
-            An array containing a design matrix representation of training \
-            examples. If unspecified, the entire dataset (`self.X`) is used \
-            instead. \
-            This parameter is not named X because X is generally used to \
-            refer to the design matrix for the current problem. In this \
-            case we want to make it clear that `mat` need not be the design \
+            An array containing a design matrix representation of training
+            examples. If unspecified, the entire dataset (`self.X`) is used
+            instead.
+            This parameter is not named X because X is generally used to
+            refer to the design matrix for the current problem. In this
+            case we want to make it clear that `mat` need not be the design
             matrix defining the dataset.
         """
         if self.view_converter is None:
@@ -746,8 +752,13 @@ class DenseDesignMatrix(Dataset):
 
             WRITEME properly
 
-        Return a view of mat in the topology preserving format.  Currently
+        Return a view of mat in the topology preserving format. Currently
         the same as get_topological_view.
+
+        Parameters
+        ----------
+        mat : ndarray, 2-dimensional
+            WRITEME
         """
 
         if self.view_converter is None:
@@ -816,8 +827,8 @@ class DenseDesignMatrix(Dataset):
         Parameters
         ----------
         topo : ndarray, optional
-            An array containing a topological representation of training \
-            examples. If unspecified, the entire dataset (`self.X`) is used \
+            An array containing a topological representation of training
+            examples. If unspecified, the entire dataset (`self.X`) is used
             instead.
 
         Returns
@@ -899,6 +910,13 @@ class DenseDesignMatrix(Dataset):
         """
         .. todo::
 
+            WRITEME
+
+        Parameters
+        ----------
+        batch_size : int
+            WRITEME
+        include_labels : bool
             WRITEME
         """
 
@@ -1028,6 +1046,11 @@ class DenseDesignMatrix(Dataset):
         .. todo::
 
             WRITEME
+
+        Parameters
+        ----------
+        X : ndarray
+            The data to be adjusted
         """
         return X / np.abs(X).max()
 

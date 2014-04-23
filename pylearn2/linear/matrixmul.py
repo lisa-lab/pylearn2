@@ -40,6 +40,9 @@ class MatrixMul(LinearTransform):
     """
 
     def __init__(self, W):
+        """
+        Sets the initial values of the matrix
+        """
         self._W = W
 
     @functools.wraps(LinearTransform.get_params)
@@ -56,6 +59,11 @@ class MatrixMul(LinearTransform):
         .. todo::
 
             WRITEME
+
+        Parameters
+        ----------
+        x : ndarray, 1d or 2d
+            The input data
         """
 
         return T.dot(x, self._W)
@@ -65,6 +73,11 @@ class MatrixMul(LinearTransform):
         .. todo::
 
             WRITEME
+
+        Parameters
+        ----------
+        x : ndarray, 1d or 2d
+            The input data
         """
         return T.dot(x, self._W.T)
 
