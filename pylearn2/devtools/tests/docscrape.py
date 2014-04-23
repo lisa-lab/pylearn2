@@ -468,7 +468,7 @@ class NumpyClassDocString(NumpyDocString):
         if '__init__' in methods:
             # verify if __init__ is a Python function. If it isn't
             # (e.g. the function is implemented in C), getargspec will fail
-            if not inspect.isfunction(methods['__init__']):
+            if not inspect.ismethod(methods['__init__']):
                 return
             args, varargs, keywords, defaults = inspect.getargspec(
                 methods['__init__'])
