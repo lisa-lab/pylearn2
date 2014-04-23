@@ -177,10 +177,10 @@ def test_composite_layer():
     mlp = MLP(nvis=2, layers=[composite_layer])
     for i in range(3):
         composite_layer.layers[i].set_weights(
-            np.eye(2, dtype=mlp.get_weights()[0].dtype)
+            np.eye(2, dtype=theano.config.floatX)
         )
         composite_layer.layers[i].set_biases(
-            np.zeros(2, dtype=mlp.get_weights()[0].dtype)
+            np.zeros(2, dtype=theano.config.floatX)
         )
     X = theano.tensor.matrix()
     y = mlp.fprop(X)
@@ -203,10 +203,10 @@ def test_composite_layer():
         mlp = MLP(input_space=input_space, layers=[composite_layer])
         for i in range(3):
             composite_layer.layers[i].set_weights(
-                np.eye(2, dtype=mlp.get_weights()[0].dtype)
+                np.eye(2, dtype=theano.config.floatX)
             )
             composite_layer.layers[i].set_biases(
-                np.zeros(2, dtype=mlp.get_weights()[0].dtype)
+                np.zeros(2, dtype=theano.config.floatX)
             )
         X = [theano.tensor.matrix() for _ in range(3)]
         y = mlp.fprop(X)
