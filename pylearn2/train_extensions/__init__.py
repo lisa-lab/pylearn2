@@ -33,16 +33,16 @@ class TrainExtension(object):
         Parameters
         ----------
         model : object
-            The model object being trained (implementing some subset of the \
-            `pylearn2.models` interface).
+            The model object being trained (implementing some subset of
+            the `pylearn2.models` interface).
 
         dataset : object
-            The dataset object being trained (implementing the \
+            The dataset object being trained (implementing the
             `pylearn2.datasets` interface).
 
         algorithm : object
-            The object representing the training algorithm being \
-            used to train the model (and thus implementing the \
+            The object representing the training algorithm being used to
+            train the model (and thus implementing the
             `pylearn2.training_algorithms` interface).
         """
 
@@ -54,16 +54,16 @@ class TrainExtension(object):
         Parameters
         ----------
         model : object
-            The model object being trained (implementing some \
-            subset of the `pylearn2.models` interface).
+            The model object being trained (implementing some subset of
+            the `pylearn2.models` interface).
 
         dataset : object
-            The dataset object being trained (implementing the \
+            The dataset object being trained (implementing the
             `pylearn2.datasets` interface).
 
         algorithm : object
-            The object representing the training algorithm being \
-            used to train the model (and thus implementing the \
+            The object representing the training algorithm being used to
+            train the model (and thus implementing the
             `pylearn2.training_algorithms` interface).
         """
 
@@ -75,18 +75,19 @@ class TrainExtension(object):
         Parameters
         ----------
         model : object
-            The model object being trained (implementing some \
-            subset of the `pylearn2.models` interface).
+            The model object being trained (implementing some subset of
+            the `pylearn2.models` interface).
 
         dataset : object
-            The dataset object being trained (implementing the \
+            The dataset object being trained (implementing the
             `pylearn2.datasets` interface).
 
         algorithm : object
-            The object representing the training algorithm being \
-            used to train the model (and thus implementing the \
+            The object representing the training algorithm being used to
+            train the model (and thus implementing the
             `pylearn2.training_algorithms` interface).
         """
+
 
 class SharedSetter(TrainExtension):
     """
@@ -138,6 +139,7 @@ class SharedSetter(TrainExtension):
                 var, val = update
                 var.set_value(np.cast[var.dtype](val))
         self._count += 1
+
 
 class ChannelSmoother(TrainExtension):
     """
