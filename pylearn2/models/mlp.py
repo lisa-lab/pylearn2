@@ -4305,7 +4305,7 @@ class CompositeLayer(Layer):
     layers : tuple or list
         The component layers to run in parallel.
     inputs_to_components : None or dict mapping int to list of int
-        Should be None unless the input space is a CompositeSpace
+        Should be None unless the input space is a CompositeSpace.
         If inputs_to_components[i] contains j, it means input i will
         be given as input to component j. If the list is empty, the input
         will be discarded. If an input does not appear in the dictionary,
@@ -4392,12 +4392,13 @@ class CompositeLayer(Layer):
         rvals = []
         for i, layer in enumerate(self.layers):
             if self.routing_needed and i in self.layers_to_inputs:
-                cur_state_below = [state_below[j] for j in self.layers_to_inputs[i]]
+                cur_state_below = [state_below[j]
+                                   for j in self.layers_to_inputs[i]]
                 # This is to mimic the behavior of CompositeSpace's restrict
                 # method, which only returns a CompositeSpace when the number
                 # of components is greater than 1
                 if len(cur_state_below) == 1:
-                    cur_state_below = cur_state_below[0]
+                    cur_state_below, = cur_state_below
             else:
                 cur_state_below = state_below
             rvals.append(layer.fprop(cur_state_below))
