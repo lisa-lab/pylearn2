@@ -23,10 +23,6 @@ class TestCIFAR100(unittest.TestCase):
         self.test_set.adjust_for_viewer(self.test_set.X)
 
     def test_adjust_to_be_viewed_with(self):
-        """test adjust_to_be_viewed_with"""
-        self.train_set.adjust_for_viewer(self.train_set.X)
-
-    def test_adjust_to_be_viewed_with(self):
         """tests adjust_to_be_viewed_with method"""
         self.test_set.adjust_to_be_viewed_with(
             self.test_set.X,
