@@ -2313,6 +2313,49 @@ class ConvNonlinearity(object):
         p = linear_response
         return p
 
+    def _get_monitoring_channels_for_activations(self, state):
+        """
+        Computes the monitoring channels which does not require targets.
+
+        Parameters
+        ----------
+        state : member of self.output_space
+            A minibatch of states that this Layer took on during fprop.
+            Provided externally so that we don't need to make a second
+            expression for it. This helps keep the Theano graph smaller
+            so that function compilation runs faster.
+
+        Returns
+        -------
+        rval : OrderedDict
+            A dictionary mapping channel names to monitoring channels of
+            interest for this layer.
+        """
+        rval = OrderedDict({})
+
+        mx = state.max(axis=0)
+        mean = state.mean(axis=0)
+        mn = state.min(axis=0)
+        rg = mx - mn
+
+        rval['range_x_max_u'] = rg.max()
+        rval['range_x_mean_u'] = rg.mean()
+        rval['range_x_min_u'] = rg.min()
+
+        rval['max_x_max_u'] = mx.max()
+        rval['max_x_mean_u'] = mx.mean()
+        rval['max_x_min_u'] = mx.min()
+
+        rval['mean_x_max_u'] = mean.max()
+        rval['mean_x_mean_u'] = mean.mean()
+        rval['mean_x_min_u'] = mean.min()
+
+        rval['min_x_max_u'] = mn.max()
+        rval['min_x_mean_u'] = mn.mean()
+        rval['min_x_min_u'] = mn.min()
+
+        return rval
+
     def get_monitoring_channels_from_state(self, state, target,
                                            cost_fn=None):
         """
@@ -2338,11 +2381,13 @@ class ConvNonlinearity(object):
             A dictionary mapping channel names to monitoring channels of
             interest for this layer.
         """
-        rval = OrderedDict()
+
+        rval = self._get_monitoring_channels_for_activations(state)
+
         return rval
 
 
-class LinearConvNonlinearity(ConvNonlinearity):
+class IdentityConvNonlinearity(ConvNonlinearity):
     """
     Linear convolutional nonlinearity class.
     """
@@ -2350,14 +2395,20 @@ class LinearConvNonlinearity(ConvNonlinearity):
         self.non_lin_name = "linear"
 
     @wraps(ConvNonlinearity.get_monitoring_channels_from_state)
-    def get_monitoring_channels_from_state(self, state,
+    def get_monitoring_channels_from_state(self,
+                                           state,
                                            target,
                                            cost_fn=False):
 
-        rval = OrderedDict({})
-        prediction = T.gt(state, 0.5)
-        incorrect = T.new(target, prediction).max(axis=1)
-        rval["misclass"] = T.cast(incorrect, config.floatX).mean()
+        rval = super(IdentityConvNonlinearity,
+                     self).get_monitoring_channels_from_state(state,
+                                                              target,
+                                                              cost_fn)
+
+        if target is not None:
+            prediction = T.gt(state, 0.5)
+            incorrect = T.new(target, prediction).max(axis=1)
+            rval["misclass"] = T.cast(incorrect, config.floatX).mean()
 
         return rval
 
@@ -2416,49 +2467,54 @@ class SigmoidConvNonlinearity(ConvNonlinearity):
     @wraps(ConvNonlinearity.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target,
                                            cost_fn=None):
-        rval = OrderedDict({})
 
-        y_hat = state > 0.5
-        y = target > 0.5
+        rval = super(SigmoidConvNonlinearity,
+                     self).get_monitoring_channels_from_state(state,
+                                                              target,
+                                                              cost_fn)
 
-        wrong_bit = T.cast(T.neq(y, y_hat), state.dtype)
+        if target is not None:
+            y_hat = state > 0.5
+            y = target > 0.5
 
-        rval['01_loss'] = wrong_bit.mean()
-        rval['kl'] = cost_fn(Y_hat=state, Y=target)
+            wrong_bit = T.cast(T.neq(y, y_hat), state.dtype)
 
-        y = T.cast(y, state.dtype)
-        y_hat = T.cast(y_hat, state.dtype)
-        tp = (y * y_hat).sum()
-        fp = ((1-y) * y_hat).sum()
+            rval['01_loss'] = wrong_bit.mean()
+            rval['kl'] = cost_fn(Y_hat=state, Y=target)
 
-        precision = compute_precision(tp, fp)
-        recall = compute_recall(y, tp)
-        f1 = compute_f1(precision, recall)
+            y = T.cast(y, state.dtype)
+            y_hat = T.cast(y_hat, state.dtype)
+            tp = (y * y_hat).sum()
+            fp = ((1-y) * y_hat).sum()
 
-        rval['precision'] = precision
-        rval['recall'] = recall
-        rval['f1'] = f1
+            precision = compute_precision(tp, fp)
+            recall = compute_recall(y, tp)
+            f1 = compute_f1(precision, recall)
 
-        tp = (y * y_hat).sum(axis=[0, 1])
-        fp = ((1-y) * y_hat).sum(axis=[0, 1])
+            rval['precision'] = precision
+            rval['recall'] = recall
+            rval['f1'] = f1
 
-        precision = compute_precision(tp, fp)
+            tp = (y * y_hat).sum(axis=[0, 1])
+            fp = ((1-y) * y_hat).sum(axis=[0, 1])
 
-        rval['per_output_precision_max'] = precision.max()
-        rval['per_output_precision_mean'] = precision.mean()
-        rval['per_output_precision_min'] = precision.min()
+            precision = compute_precision(tp, fp)
 
-        recall = compute_recall(y, tp)
+            rval['per_output_precision_max'] = precision.max()
+            rval['per_output_precision_mean'] = precision.mean()
+            rval['per_output_precision_min'] = precision.min()
 
-        rval['per_output_recall_max'] = recall.max()
-        rval['per_output_recall_mean'] = recall.mean()
-        rval['per_output_recall_min'] = recall.min()
+            recall = compute_recall(y, tp)
 
-        f1 = compute_f1(precision, recall)
+            rval['per_output_recall_max'] = recall.max()
+            rval['per_output_recall_mean'] = recall.mean()
+            rval['per_output_recall_min'] = recall.min()
 
-        rval['per_output_f1_max'] = f1.max()
-        rval['per_output_f1_mean'] = f1.mean()
-        rval['per_output_f1_min'] = f1.min()
+            f1 = compute_f1(precision, recall)
+
+            rval['per_output_f1_max'] = f1.max()
+            rval['per_output_f1_mean'] = f1.mean()
+            rval['per_output_f1_min'] = f1.min()
 
         return rval
 
@@ -2813,61 +2869,20 @@ class ConvElemwise(Layer):
 
         return np.transpose(raw, (outp, rows, cols, inp))
 
-    def _get_monitoring_channels_for_activations(self, state):
-        """
-        Computes the monitoring channels which does not require targets.
-
-        Parameters
-        ----------
-        state : member of self.output_space
-            A minibatch of states that this Layer took on during fprop.
-            Provided externally so that we don't need to make a second
-            expression for it. This helps keep the Theano graph smaller
-            so that function compilation runs faster.
-
-        Returns
-        -------
-        rval : OrderedDict
-            A dictionary mapping channel names to monitoring channels of
-            interest for this layer.
-        """
-        rval = OrderedDict({})
-
-        mx = state.max(axis=0)
-        mean = state.mean(axis=0)
-        mn = state.min(axis=0)
-        rg = mx - mn
-
-        rval['range_x_max_u'] = rg.max()
-        rval['range_x_mean_u'] = rg.mean()
-        rval['range_x_min_u'] = rg.min()
-
-        rval['max_x_max_u'] = mx.max()
-        rval['max_x_mean_u'] = mx.mean()
-        rval['max_x_min_u'] = mx.min()
-
-        rval['mean_x_max_u'] = mean.max()
-        rval['mean_x_mean_u'] = mean.mean()
-        rval['mean_x_min_u'] = mean.min()
-
-        rval['min_x_max_u'] = mn.max()
-        rval['min_x_mean_u'] = mn.mean()
-        rval['min_x_min_u'] = mn.min()
-
-        return rval
 
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
 
-        rval = self._get_monitoring_channels_for_activations(state)
+        rval = super(ConvElemwise, self).get_monitoring_channels_from_state(state,
+                                                                            target)
 
-        if target is not None:
-            cst = self.cost
-            orval = self.nonlin.get_monitoring_channels_from_state(state,
-                                                                   target,
-                                                                   rval=rval,
-                                                                   cost_fn=cst)
-            rval.update(orval)
+        cst = self.cost
+        orval = self.nonlin.get_monitoring_channels_from_state(state,
+                                                               target,
+                                                               cost_fn=cst)
+
+        rval.update(orval)
+
         return rval
 
     @wraps(Layer.get_monitoring_channels)
@@ -3057,6 +3072,7 @@ class ConvRectifiedLinear(ConvElemwise):
             raise AssertionError("You should specify either irange or "
                                  "sparse_init when calling the constructor of "
                                  "ConvRectifiedLinear and not both.")
+
         #Alias the variables for pep8
         mkn = max_kernel_norm
         dn = detector_normalization
