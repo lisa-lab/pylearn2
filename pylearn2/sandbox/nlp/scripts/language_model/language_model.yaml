@@ -1,3 +1,8 @@
+# This YAML file is an example of a simple language model which can be trained
+# on the Penn Treebank data. It uses a projection layer to embed words in a
+# 128-dimensional space. The concatenated embeddings go through a hidden tanh
+# layer after which a softmax output layer gives the word probabilities.
+
 !obj:pylearn2.train.Train {
     dataset: &train !obj:pylearn2.sandbox.nlp.datasets.penntree.PennTreebank {
         which_set: 'train',
