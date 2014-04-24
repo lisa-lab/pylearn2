@@ -1,7 +1,7 @@
 # This script use same hyperparameters as mnist_valid, but train on the
-# whole dataset. Termination criterion is choosed as the epoch number
-# that mnist_valid reach its lowest validation error. And reaches 1.05%
-# test error.
+# whole dataset. Termination criterion is choosed so that runs as many epochs
+# that mnist_valid reach its lowest validation error.
+# And results in 1.05% test error.
 
 !obj:pylearn2.train.Train {
     dataset: &train !obj:pylearn2.datasets.mnist.MNIST {
