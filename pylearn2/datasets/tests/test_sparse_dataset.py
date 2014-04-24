@@ -93,6 +93,8 @@ class DummyCost(DefaultDataSpecsMixin, Cost):
     @wraps(DefaultDataSpecsMixin.get_data_specs)
     def get_data_specs(self, model):
         """
+        Returns the tuple of (space, source) of the model.
+
         Parameters
         ----------
         model : Model
