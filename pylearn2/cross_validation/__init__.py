@@ -90,9 +90,13 @@ class TrainCV(object):
         try:
             models = []
             for trainer in self.trainers:
+                for extension in trainer.extensions:
+                    extension.on_save(trainer.model, trainer.dataset,
+                                      trainer.algorithm)
                 trainer.dataset._serialization_guard = SerializationGuard()
                 models.append(trainer.model)
-            serial.save(self.save_path, models, on_overwrite='backup')
+            if self.save_path is not None:
+                serial.save(self.save_path, models, on_overwrite='backup')
         finally:
             for trainer in self.trainers:
                 trainer.dataset._serialization_guard = None
