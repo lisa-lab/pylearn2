@@ -69,6 +69,6 @@ if __name__ == '__main__':
     test.apply_preprocessor(preprocessor=preprocessor, can_fit=False)
 
     print "Saving the test data"
-    save_output(output_dir, test, 'test')
+    save_dataset(output_dir, test, 'test')
 
     serial.save(output_dir + '/preprocessor.pkl', preprocessor)
