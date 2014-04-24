@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Determines the contribution of different subcomponents of a file to its file size, serialization time,
+and deserialization time.
+"""
 import sys
 from pylearn2.utils import serial
 import cPickle
@@ -6,10 +10,6 @@ import pickle
 import time
 from theano.printing import min_informative_str
 
-"""
-Determines the contribution of different subcomponents of a file to its file size, serialization time,
-and deserialization time.
-"""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -18,6 +18,11 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
 def usage():
+    """
+    .. todo::
+
+        WRITEME
+    """
     print """
 Usage:
 first argument is a cPickle file to load

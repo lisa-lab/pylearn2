@@ -294,5 +294,5 @@ class SerializationGuard(object):
 
 
 if __name__ == "__main__":
-    print >>sys.stderr, "ERROR: You probably meant to run scripts/train.py"
+    log.error("You probably meant to run scripts/train.py")
     sys.exit(1)

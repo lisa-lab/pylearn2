@@ -8,7 +8,10 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
+import logging
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 class TrainExtension(object):
@@ -191,4 +194,4 @@ class ChannelSmoother(TrainExtension):
         mean = sum(values) / float(len(values))
 
         self.out_ch.val_record[-1] = mean
-        print '\t' + self.channel_to_publish + ': ' + str(mean)
+        logger.info('\t{0}: {1}'.format(self.channel_to_publish, mean))

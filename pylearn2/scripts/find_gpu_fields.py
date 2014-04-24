@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+"""
+.. todo::
+
+    WRITEME
+"""
 #argument: path to a pkl file
 #loads the pkl file and figures out which fields are CudaNDArrays
 

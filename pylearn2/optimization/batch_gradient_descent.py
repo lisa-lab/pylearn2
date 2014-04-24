@@ -10,6 +10,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
+import logging
 import time
 
 import numpy as np
@@ -23,6 +24,9 @@ from pylearn2.utils import function
 from pylearn2.utils import grad
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
+
+
+logger = logging.getLogger(__name__)
 
 
 def norm_sq(s):
@@ -148,7 +152,7 @@ class BatchGradientDescent:
         self.param_to_grad_shared = param_to_grad_shared
 
         if self.verbose:
-            print 'batch gradient class compiling gradient function'
+            logger.info('batch gradient class compiling gradient function')
         t1 = time.time()
         if self.accumulate:
             self._compute_grad = Accumulator(inputs, updates = updates)
@@ -158,10 +162,10 @@ class BatchGradientDescent:
                     name='BatchGradientDescent._compute_grad')
         if self.verbose:
             t2 = time.time()
-            print 'done. Took ',t2-t1
+            logger.info('done. Took {0}'.format(t2-t1))
 
         if self.verbose:
-            print 'batch gradient class compiling objective function'
+            logger.info('batch gradient class compiling objective function')
         if self.accumulate:
             self.obj = Accumulator(inputs, obj)
         else:
@@ -169,7 +173,7 @@ class BatchGradientDescent:
                     name='BatchGradientDescent.obj')
 
         if self.verbose:
-            print 'done'
+            logger.info('done')
 
         self.param_to_cache = OrderedDict()
         alpha = T.scalar(name = 'alpha')
@@ -221,12 +225,12 @@ class BatchGradientDescent:
             for elem in grad_shared:
                 grad_to_old_grad[elem] = sharedX(elem.get_value(), 'old_'+elem.name)
 
-            self._store_old_grad = function([norm], updates = OrderedDict([(grad_to_old_grad[g], g * norm)
-                for g in grad_to_old_grad]), mode=self.theano_function_mode,
+            self._store_old_grad = function([norm], updates = OrderedDict([(grad_to_old_grad[g_], g_ * norm)
+                for g_ in grad_to_old_grad]), mode=self.theano_function_mode,
                 name='BatchGradientDescent._store_old_grad')
 
             grad_ordered = list(grad_to_old_grad.keys())
-            old_grad_ordered = [ grad_to_old_grad[g] for g in grad_ordered]
+            old_grad_ordered = [grad_to_old_grad[g_] for g_ in grad_ordered]
 
             def dot_product(x, y):
                 return sum([ (x_elem * y_elem).sum() for x_elem, y_elem in safe_zip(x, y) ])
@@ -237,22 +241,18 @@ class BatchGradientDescent:
 
             beta = T.maximum(beta_pr, 0.)
 
-            """
+            #beta_pr is the Polak-Ribiere formula for beta.
+            #According to wikipedia, the beta to use for NCG is "a matter of heuristics or taste"
+            #but max(0, beta_pr) is "a popular choice... which provides direction reset automatically."
+            #(ie, it is meant to revert to steepest descent when you have traveled far enough that
+            #the objective function is behaving non-quadratically enough that the conjugate gradient
+            #formulas aren't working anymore)
 
-            beta_pr is the Polak-Ribiere formula for beta.
-            According to wikipedia, the beta to use for NCG is "a matter of heuristics or taste"
-            but max(0, beta_pr) is "a popular choice... which provides direction reset automatically."
-            (ie, it is meant to revert to steepest descent when you have traveled far enough that
-            the objective function is behaving non-quadratically enough that the conjugate gradient
-            formulas aren't working anymore)
-
-            http://en.wikipedia.org/wiki/Nonlinear_conjugate_gradient_method
-
-            """
+            #http://en.wikipedia.org/wiki/Nonlinear_conjugate_gradient_method
 
             assert grad not in grad_to_old_grad
 
-            make_conjugate_updates = [(g, g + beta * grad_to_old_grad[g]) for g in grad_ordered]
+            make_conjugate_updates = [(g_, g_ + beta * grad_to_old_grad[g_]) for g_ in grad_ordered]
 
             mode = self.theano_function_mode
             if mode is not None and hasattr(mode, 'record'):
@@ -290,13 +290,13 @@ class BatchGradientDescent:
         """
 
         if self.verbose:
-            print 'minimizing'
+            logger.info('minimizing')
         alpha_list = list( self.init_alpha )
 
         orig_obj = self.obj(*inputs)
 
         if self.verbose:
-            print orig_obj
+            logger.info(orig_obj)
 
         iters = 0
 
@@ -318,7 +318,8 @@ class BatchGradientDescent:
 
         while iters != self.max_iter:
             if self.verbose:
-                print 'batch gradient descent iteration',iters
+                logger.info('batch gradient descent iteration '
+                            '{0}'.format(iters))
             iters += 1
             self._cache_values()
             if self.conjugate:
@@ -336,7 +337,7 @@ class BatchGradientDescent:
                     self._goto_alpha(alpha)
                     obj = self.obj(*inputs)
                     if self.verbose:
-                        print '\t',alpha,obj
+                        logger.info('\t{0} {1}'.format(alpha, obj))
 
                     #Use <= rather than = so if there are ties
                     #the bigger step size wins
@@ -349,7 +350,7 @@ class BatchGradientDescent:
 
 
                 if self.verbose:
-                    print best_obj
+                    logger.info(best_obj)
 
                 assert not np.isnan(best_obj)
                 assert best_obj <= prev_best_obj
@@ -362,18 +363,18 @@ class BatchGradientDescent:
                 if best_alpha_ind < 1 and alpha_list[0] > self.tol:
                     alpha_list = [ alpha / 3. for alpha in alpha_list ]
                     if self.verbose:
-                        print 'shrinking the step size'
+                        logger.info('shrinking the step size')
                 elif best_alpha_ind > len(alpha_list) -2:
                     alpha_list = [ alpha * 2. for alpha in alpha_list ]
                     if self.verbose:
-                        print 'growing the step size'
+                        logger.info('growing the step size')
                 elif best_alpha_ind == -1 and alpha_list[0] <= self.tol:
                     if alpha_list[-1] > 1:
                         if self.verbose:
-                            print 'converged'
+                            logger.info('converged')
                         break
                     if self.verbose:
-                        print 'expanding the range of step sizes'
+                        logger.info('expanding the range of step sizes')
                     for i in xrange(len(alpha_list)):
                         for j in xrange(i,len(alpha_list)):
                             alpha_list[j] *= 1.5
@@ -391,7 +392,7 @@ class BatchGradientDescent:
                     if s.max() > max_gap:
                         weight = .99
                         if self.verbose:
-                            print 'shrinking the range of step sizes'
+                            logger.info('shrinking the range of step sizes')
                         alpha_list = [ (alpha ** weight) * (best_alpha ** (1.-weight)) for alpha in alpha_list ]
                         assert all([second > first for first, second in safe_zip(alpha_list[:-1], alpha_list[1:])])
                         # y^(weight) best^(1-weight) / x^(weight) best^(1-weight) = (y/x)^weight
@@ -412,17 +413,18 @@ class BatchGradientDescent:
                 # and jumping to its local minima at each step
 
                 if self.verbose > 1:
-                    print 'Exhaustive line search'
+                    logger.info('Exhaustive line search')
 
 
                 obj = self.obj(*inputs)
                 if np.isnan(obj):
-                    print "Objective is NaN for these parameters."
+                    logger.warning("Objective is NaN for these parameters.")
                 results = [ (0., obj ) ]
                 for alpha in alpha_list:
                     if not (alpha > results[-1][0]):
-                        print 'alpha: ',alpha
-                        print 'most recent alpha (should be smaller):',results[-1][0]
+                        logger.error('alpha: {0}'.format(alpha))
+                        logger.error('most recent alpha (should be smaller): '
+                                     '{0}'.format(results[-1][0]))
                         assert False
                     self._goto_alpha(alpha)
                     obj = self.obj(*inputs)
@@ -431,9 +433,9 @@ class BatchGradientDescent:
                     results.append( (alpha, obj) )
                 if self.verbose > 1:
                     for alpha, obj in results:
-                        print '\t',alpha,obj
+                        logger.info('\t{0} {1}'.format(alpha, obj))
 
-                    print '\t-------'
+                    logger.info('\t-------')
 
                 prev_improvement = 0.
                 while True:
@@ -446,7 +448,7 @@ class BatchGradientDescent:
                         self._goto_alpha(x)
                         res = self.obj(*inputs)
                         if self.verbose > 1:
-                            print '\t',x,res
+                            logger.info('\t{0} {1}'.format(x, res))
                         # Regard NaN results as infinitely bad so they won't be picked as the min objective
                         if np.isnan(res):
                             res = np.inf
@@ -489,7 +491,7 @@ class BatchGradientDescent:
                 # used for statistics gathering
                 step_size = x
                 if self.verbose:
-                    print 'best objective: ',mn
+                    logger.info('best objective: {0}'.format(mn))
                 assert not np.isnan(mn)
 
                 if idx == 0:
@@ -536,27 +538,29 @@ class BatchGradientDescent:
         return best_obj
 
 class Accumulator(object):
+    """
+    Standin for a theano function with the given inputs, outputs, updates.
+
+    Here in the __init__ method you give the same expression as usual.
+    However, instead of passing __call__ the input variables directly, you
+    pass it batches, where each batch is a list containing the inputs for
+    that batch. It returns the average value of the function, averaged
+    across batches, taking batch size into account. The average of all
+    updates is also applied.
+
+    One extra change: if any of the inputs is a shared variable, then this
+    can assign to that variable, while theano.function would refuse to.
+    Those shared variables will be left with the value of the last batch
+    when __call__ returns.
+
+    Parameters
+    ----------
+    inputs : WRITEME
+    outputs : WRITEME
+    updates : WRITEME
+    """
+
     def __init__(self, inputs, outputs = None, updates = None):
-        """
-        Standin for a theano function with the given inputs, outputs, updates.
-        Here in the __init__ method you give the same expression as usual.
-        However, instead of passing __call__ the input variables directly, you
-        pass it batches, where each batch is a list containing the inputs for
-        that batch. It returns the average value of the function, averaged
-        across batches, taking batch size into account. The average of all
-        updates is also applied.
-
-        One extra change: if any of the inputs is a shared variable, then this
-        can assign to that variable, while theano.function would refuse to.
-        Those shared variables will be left with the value of the last batch
-        when __call__ returns.
-
-        Parameters
-        ----------
-        inputs : WRITEME
-        outputs : WRITEME
-        updates : WRITEME
-        """
         batch_size = T.cast(inputs[0].shape[0], 'float32')
         total_examples = T.scalar()
         transformed_updates = OrderedDict()

@@ -3,16 +3,22 @@
 
     WRITEME
 """
+import logging
 import sys
 import numpy
 import theano
+import warnings
 from theano.gof import Variable, Op, utils, Type, Constant,  Value, Apply
 from theano.tensor import as_tensor_variable
+
+
+logger = logging.getLogger(__name__)
 
 try:
     import cv
 except ImportError:
-    print >> sys.stderr, "WARNING: cv not available"
+    warnings.warn("cv not available")
+
 
 def cv_available():
     """
@@ -109,7 +115,7 @@ class GaussianPyramid(Op):
             if z0.shape[0] <=2 or z0.shape[1] <= 2:
                 raise ValueError('Cannot downsample an image smaller than 3x3',
                         z0.shape)
-            print z0.shape, z0.dtype, z0.strides
+            logger.info('{0} {1} {2}'.format(z0.shape, z0.dtype, z0.strides))
             out0 = cv.pyrDown(z0)
             assert out0.dtype == x.dtype
             if out0.ndim ==3:

@@ -143,6 +143,17 @@ def test_str():
 
     assert isinstance(s, basestring)
 
+def test_sigmoid_detection_cost():
+    # This is only a smoke test: verifies that it compiles and runs,
+    # not any particular value.
+    rng = np.random.RandomState(0)
+    y = (rng.uniform(size=(4, 3)) > 0.5).astype('uint8')
+    X = theano.shared(rng.uniform(size=(4, 2)))
+    model = MLP(nvis=2, layers=[Sigmoid(monitor_style='detection', dim=3,
+                layer_name='y', irange=0.8)])
+    y_hat = model.fprop(X)
+    model.cost(y, y_hat).eval()
+
 if __name__ == "__main__":
     test_masked_fprop()
     test_sampled_dropout_average()
@@ -150,3 +161,4 @@ if __name__ == "__main__":
     test_dropout_input_mask_value()
     test_sigmoid_layer_misclass_reporting()
     test_batchwise_dropout()
+    test_sigmoid_detection_cost()

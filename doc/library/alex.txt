@@ -13,6 +13,10 @@ Intro
 These are wrappers around some of the GPU code from Alex Krizhevsky cuda-convnet project.
 http://code.google.com/p/cuda-convnet/
 
+Sander Dieleman wrote an `excellent blog post
+<http://benanne.github.io/2014/04/03/faster-convolutions-in-theano.html>`_
+that describes how to use this module without the rest of Pylearn2.
+
 #######
 Modules
 #######

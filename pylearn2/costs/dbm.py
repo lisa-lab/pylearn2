@@ -10,6 +10,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
 import numpy as np
+import logging
 import warnings
 
 from theano.compat.python2x import OrderedDict
@@ -34,6 +35,9 @@ from pylearn2.utils import safe_izip
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
 from pylearn2.utils.rng import make_theano_rng
+
+
+logger = logging.getLogger(__name__)
 
 
 class BaseCD(Cost):
@@ -203,15 +207,16 @@ class BaseCD(Cost):
         .. todo::
 
             WRITEME
+
+        TODO:reduce variance of negative phase by
+             integrating out the even-numbered layers. The
+             Rao-Blackwellize method can do this for you when
+             expected gradient = gradient of expectation, but
+             doing this in general is trickier.
         """
         params = list(model.get_params())
 
-        warnings.warn("""TODO: reduce variance of negative phase by
-                         integrating out the even-numbered layers. The
-                         Rao-Blackwellize method can do this for you when
-                         expected gradient = gradient of expectation, but
-                         doing this in general is trickier.""")
-        #layer_to_chains = model.rao_blackwellize(layer_to_chains)
+        # layer_to_chains = model.rao_blackwellize(layer_to_chains)
         expected_energy_p = model.energy(
             layer_to_chains[model.visible_layer],
             [layer_to_chains[layer] for layer in model.hidden_layers]
@@ -782,7 +787,7 @@ class MF_L1_ActCost(DefaultDataSpecsMixin, Cost):
 
 
         assert T.scalar() != 0. # make sure theano semantics do what I want
-        layer_costs = [ cost for cost in layer_costs if cost != 0.]
+        layer_costs = [cost_ for cost_ in layer_costs if cost_ != 0.]
 
         if len(layer_costs) == 0:
             return T.as_tensor_variable(0.)
@@ -930,7 +935,7 @@ class TorontoSparsity(Cost):
             if term == 0.:
                 continue
             else:
-                print 'term is ',term
+                logger.info('term is {0}'.format(term))
 
             if i == 0:
                 state_below = X
@@ -1425,8 +1430,8 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
 
                 fake_s = T.dot(below, hack_W) + hack_b
                 if fake_s.ndim != real_grads.ndim:
-                    print fake_s.ndim
-                    print real_grads.ndim
+                    logger.error(fake_s.ndim)
+                    logger.error(real_grads.ndim)
                     assert False
                 sources = [ (fake_s, real_grads) ]
 

@@ -17,7 +17,7 @@ People working from the LISA lab can skip this step.
 
 To download the CIFAR-10 dataset and put it in the right place, you can call
 
-pylearn2/scripts/download_cifar10.sh
+pylearn2/scripts/datasets/download_cifar10.sh
 
 from this directory. It will get the python dataset from
 http://www.cs.utoronto.ca/~kriz/cifar.html and extract it into
