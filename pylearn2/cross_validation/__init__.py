@@ -69,6 +69,7 @@ class TrainCV(object):
             trainers.append(trainer)
         self.trainers = trainers
         self.save_path = save_path
+        self.allow_overwrite = allow_overwrite
 
     def main_loop(self, time_budget=None):
         """
@@ -96,6 +97,8 @@ class TrainCV(object):
                 trainer.dataset._serialization_guard = SerializationGuard()
                 models.append(trainer.model)
             if self.save_path is not None:
+                if not self.allow_overwrite and os.path.exists(self.save_path):
+                    raise IOError("Trying to overwrite file when not allowed.")
                 serial.save(self.save_path, models, on_overwrite='backup')
         finally:
             for trainer in self.trainers:
