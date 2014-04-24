@@ -99,6 +99,7 @@ class DummyCost(DefaultDataSpecsMixin, Cost):
         ----------
         model : Model
             The model to train with this cost
+
         Returns
         -------
         data_specs : tuple
