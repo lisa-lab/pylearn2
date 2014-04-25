@@ -4430,7 +4430,8 @@ class CompositeLayer(Layer):
                           for layer in self.layers])
         elif isinstance(coeff, list) or isinstance(coeff, tuple):
             return T.sum([layer.get_weight_decay(layer_coeff) for
-                          layer, layer_coeff in safe_zip(self.layers, coeff)])
+                          layer, layer_coeff in safe_zip(self.layers, coeff)
+                          if layer_coeff > 0])
         else:
             raise TypeError("CompositeLayer's get_weight_decay received "
                             "coefficients of type " + str(type(coeff)) + " "
@@ -4461,7 +4462,8 @@ class CompositeLayer(Layer):
                           for layer in self.layers])
         elif isinstance(coeff, list) or isinstance(coeff, tuple):
             return T.sum([layer.get_l1_weight_decay(layer_coeff) for
-                          layer, layer_coeff in safe_zip(self.layers, coeff)])
+                          layer, layer_coeff in safe_zip(self.layers, coeff)
+                          if layer_coeff > 0])
         else:
             raise TypeError("CompositeLayer's get_l1_weight_decay received "
                             "coefficients of type " + str(type(coeff)) + " "
