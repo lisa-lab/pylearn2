@@ -18,7 +18,10 @@ import functools
 
 import logging
 import warnings
+
 import numpy as np
+
+from pylearn2.datasets import cache
 from pylearn2.utils.iteration import (
     FiniteDatasetIterator,
     resolve_iterator_class
@@ -454,10 +457,10 @@ class DenseDesignMatrix(Dataset):
 
             WRITEME
         """
-
         if d['design_loc'] is not None:
             if control.get_load_data():
-                d['X'] = np.load(d['design_loc'])
+                fname = cache.datasetCache.cache_file(d['design_loc'])
+                d['X'] = np.load(fname)
             else:
                 d['X'] = None
 
