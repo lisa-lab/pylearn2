@@ -60,7 +60,7 @@ class DatasetCV(object):
                 dataset = DenseDesignMatrix(X=X, y=y)
                 datasets[labels[i]] = dataset
             if not self.return_dict:
-                datasets = tuple(datasets[label] for label in labels)
+                datasets = list(datasets[label] for label in labels)
                 if len(datasets) == 1:
                     datasets, = datasets
             yield datasets
