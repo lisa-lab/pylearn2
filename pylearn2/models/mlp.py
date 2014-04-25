@@ -713,8 +713,12 @@ class MLP(Layer):
         if not hasattr(coeffs, '__iter__'):
             coeffs = [coeffs]*len(self.layers)
 
-        layer_costs = [layer.get_weight_decay(coeff) \
-                    for layer, coeff in safe_izip(self.layers, coeffs)]
+        layer_costs = []
+        for layer, coeff in safe_izip(self.layers, coeffs):
+            if coeff != 0.:
+                layer_costs += [layer.get_weight_decay(coeff)]
+            else:
+                layer_costs += [0.]
 
         total_cost = reduce(lambda x, y: x + y, layer_costs)
 
@@ -727,8 +731,12 @@ class MLP(Layer):
         if not hasattr(coeffs, '__iter__'):
             coeffs = [coeffs]*len(self.layers)
 
-        layer_costs = [layer.get_l1_weight_decay(coeff) \
-                    for layer, coeff in safe_izip(self.layers, coeffs)]
+        layer_costs = []
+        for layer, coeff in safe_izip(self.layers, coeffs):
+            if coeff != 0.:
+                layer_costs += [layer.get_l1_weight_decay(coeff)]
+            else:
+                layer_costs += [0.]
 
         total_cost = reduce(lambda x, y: x + y, layer_costs)
 
