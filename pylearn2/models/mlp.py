@@ -37,6 +37,7 @@ from pylearn2.utils import safe_union
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
 from pylearn2.utils import wraps
+from pylearn2.utils import rng
 from pylearn2.expr.nnet import kl
 
 # Only to be used by the deprecation warning wrapper functions
@@ -470,7 +471,9 @@ class MLP(Layer):
 
             WRITEME
         """
-        self.rng = np.random.RandomState(self.seed)
+        self.rng = rng.make_np_rng(rng_or_seed=self.seed,
+                                   default_seed=[2013, 1, 4],
+                                   which_method=["randint"])
 
     @wraps(Layer.get_default_cost)
     def get_default_cost(self):
@@ -700,7 +703,11 @@ class MLP(Layer):
                       "though.")
 
         if theano_rng is None:
-            theano_rng = MRG_RandomStreams(max(self.rng.randint(2 ** 15), 1))
+            theano_rng = rng.make_theano_rng(
+                rng_or_seed=theano_rng,
+                default_seed=max(self.rng.randint(2 ** 15), 1),
+                which_method=["binomial"]
+                )
 
         for layer in self.layers:
             state_below = layer.dropout_fprop(
