@@ -368,11 +368,11 @@ class Layer(Model):
         if input_scales is None:
             input_scales = {}
 
+        layer_name = self.layer_name
+
         if theano_rng is None:
             raise ValueError("theano_rng parameter needs to be specified"
-                             "for the layer: " + self.layer_name)
-
-        layer_name = self.layer_name
+                             "for the layer: " + layer_name)
 
         if layer_name in input_include_probs:
             include_prob = input_include_probs[layer_name]
