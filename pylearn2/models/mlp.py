@@ -3772,6 +3772,10 @@ class WindowLayer(Layer):
 
         return state_below[extracts]
 
+    @wraps(Layer.get_weight_decay)
+    def get_weight_decay(self, coeffs):
+        return 0
+
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
         self.input_space = space
