@@ -7,12 +7,13 @@ import os
 import tempfile
 
 from pylearn2.config import yaml_parse
-from pylearn2.testing.skip import skip_if_no_sklearn
+from pylearn2.testing.skip import skip_if_no_sklearn, skip_if_no_collections
 
 
 def test_train_cv():
     """Test TrainCV class."""
     skip_if_no_sklearn()
+    skip_if_no_collections()
     handle, layer0_filename = tempfile.mkstemp()
     handle, layer1_filename = tempfile.mkstemp()
     handle, layer2_filename = tempfile.mkstemp()
@@ -54,6 +55,7 @@ def test_train_cv():
 def test_dataset_k_fold():
     """Test DatasetKFold."""
     skip_if_no_sklearn()
+    skip_if_no_collections()
     trainer = yaml_parse.load(test_yaml_dataset_k_fold)
     trainer.main_loop()
 
@@ -61,6 +63,7 @@ def test_dataset_k_fold():
 def test_stratified_dataset_k_fold():
     """Test StratifiedDatasetKFold."""
     skip_if_no_sklearn()
+    skip_if_no_collections()
     trainer = yaml_parse.load(test_yaml_stratified_dataset_k_fold)
     trainer.main_loop()
 
@@ -68,6 +71,7 @@ def test_stratified_dataset_k_fold():
 def test_dataset_shuffle_split():
     """Test DatasetShuffleSplit."""
     skip_if_no_sklearn()
+    skip_if_no_collections()
     trainer = yaml_parse.load(test_yaml_dataset_shuffle_split)
     trainer.main_loop()
 
@@ -75,6 +79,7 @@ def test_dataset_shuffle_split():
 def test_stratified_dataset_shuffle_split():
     """Test StratifiedDatasetShuffleSplit."""
     skip_if_no_sklearn()
+    skip_if_no_collections()
     trainer = yaml_parse.load(test_yaml_stratified_dataset_shuffle_split)
     trainer.main_loop()
 
