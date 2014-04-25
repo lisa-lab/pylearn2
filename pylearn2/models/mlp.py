@@ -368,7 +368,8 @@ class Layer(Model):
             input_scales = {}
 
         if theano_rng is None:
-            theano_rng = MRG_RandomStreams(max(self.rng.randint(2 ** 15), 1))
+            raise ValueError("theano_rng parameter needs to be specified"
+                             "for the layer: " + layer.layer_name)
 
         layer_name = self.layer_name
 
@@ -3655,9 +3656,6 @@ class CompositeLayer(Layer):
     def dropout_fprop(self, state_below, default_input_include_prob=0.5,
                       input_include_probs=None, default_input_scale=2.,
                       input_scales=None, per_example=True, theano_rng=None):
-
-        if theano_rng is None:
-            theano_rng = MRG_RandomStreams(max(self.rng.randint(2 ** 15), 1))
 
         state_below = tuple(
                     layer.dropout_fprop(
