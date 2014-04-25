@@ -1,7 +1,5 @@
 """
 Sandbox projection operator for natural language processing (NLP)
-    os.path.join(pylearn2.__path__[0],
-                 "sandbox/nlp/scripts/language_model/language_model.yaml")
 """
 from pylearn2.linear import matrixmul
 
