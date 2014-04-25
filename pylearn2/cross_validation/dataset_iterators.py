@@ -69,13 +69,14 @@ class DatasetCV(object):
     def __iter__(self):
         """Create a DenseDesignMatrix for each dataset subset."""
         for data_subsets in self.get_data_subsets():
-            # datasets is an OrderedDict to maintain label order
-            datasets = OrderedDict()
+            datasets = {}
             for label, data in data_subsets.items():
                 X, y = data
                 datasets[label] = DenseDesignMatrix(X=X, y=y)
             if not self.return_dict:
-                datasets = list(datasets[label] for label in datasets.keys())
+                # data_subsets is an OrderedDict to maintain label order
+                datasets = list(datasets[label]
+                                for label in data_subsets.keys())
                 if len(datasets) == 1:
                     datasets, = datasets
             yield datasets
