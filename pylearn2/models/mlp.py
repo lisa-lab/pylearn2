@@ -335,7 +335,7 @@ class Layer(Model):
 
     def dropout_fprop(self, state_below, default_input_include_prob=0.5,
                       input_include_probs=None, default_input_scale=2.,
-                      input_scales=None, per_example=True, theano_rng=None):
+                      input_scales=None, per_example=True):
         """
         Returns the output of the layer, when applying Dropout to its
         input. Each input to the layer is randomly included or excluded
@@ -357,7 +357,6 @@ class Layer(Model):
         input_include_probs : WRITEME
         default_input_scale : WRITEME
         input_scales : WRITEME
-        theano_rng : WRITEME
         per_example : bool, optional
             Sample a different mask value for every example in a batch.
             Defaults to `True`. If `False`, sample one mask per mini-batch.
@@ -369,10 +368,6 @@ class Layer(Model):
             input_scales = {}
 
         layer_name = self.layer_name
-
-        if theano_rng is None:
-            raise ValueError("theano_rng parameter needs to be specified"
-                             "for the layer: " + layer_name)
 
         if layer_name in input_include_probs:
             include_prob = input_include_probs[layer_name]
@@ -387,7 +382,7 @@ class Layer(Model):
         state_below = apply_dropout(
                 state=state_below,
                 include_prob=include_prob,
-                theano_rng=theano_rng,
+                theano_rng=self.mlp.theano_rng,
                 scale=scale,
                 mask_value=self.dropout_input_mask_value,
                 input_space=self.get_input_space(),
@@ -668,7 +663,7 @@ class MLP(Layer):
     @wraps(Layer.dropout_fprop)
     def dropout_fprop(self, state_below, default_input_include_prob=0.5,
                       input_include_probs=None, default_input_scale=2.,
-                      input_scales=None, per_example=True, theano_rng=None):
+                      input_scales=None, per_example=True):
         """
         Returns the output of the MLP, when applying dropout to the input and
         intermediate layers. Each input to each layer is randomly included or
@@ -690,7 +685,6 @@ class MLP(Layer):
         input_include_probs : WRITEME
         default_input_scale : WRITEME
         input_scales : WRITEME
-        theano_rng : WRITEME
         per_example : bool, optional
             Sample a different mask value for every example in a batch.
             Defaults to `True`. If `False`, sample one mask per mini-batch.
@@ -702,9 +696,9 @@ class MLP(Layer):
                       "fixed_var descr could increase the memory usage "
                       "though.")
 
-        if theano_rng is None:
-            theano_rng = rng.make_theano_rng(
-                rng_or_seed=theano_rng,
+        if self.theano_rng is None:
+            self.theano_rng = rng.make_theano_rng(
+                rng_or_seed=None,
                 default_seed=max(self.rng.randint(2 ** 15), 1),
                 which_method=["binomial"]
                 )
@@ -716,8 +710,7 @@ class MLP(Layer):
                       input_include_probs=input_include_probs,
                       default_input_scale=default_input_scale,
                       input_scales=input_scales,
-                      per_example=per_example,
-                      theano_rng=theano_rng
+                      per_example=per_example
                   )
 
         return state_below
@@ -3662,7 +3655,7 @@ class CompositeLayer(Layer):
     @wraps(Layer.dropout_fprop)
     def dropout_fprop(self, state_below, default_input_include_prob=0.5,
                       input_include_probs=None, default_input_scale=2.,
-                      input_scales=None, per_example=True, theano_rng=None):
+                      input_scales=None, per_example=True):
 
         state_below = tuple(
                     layer.dropout_fprop(
@@ -3671,8 +3664,7 @@ class CompositeLayer(Layer):
                         input_include_probs=input_include_probs,
                         default_input_scale=default_input_scale,
                         input_scales=input_scales,
-                        per_example=per_example,
-                        theano_rng=theano_rng
+                        per_example=per_example
                     )
                     for layer in self.layers
                 )
@@ -3767,7 +3759,7 @@ class FlattenerLayer(Layer):
     @wraps(Layer.dropout_fprop)
     def dropout_fprop(self, state_below, default_input_include_prob=0.5,
                       input_include_probs=None, default_input_scale=2.,
-                      input_scales=None, per_example=True, theano_rng=None):
+                      input_scales=None, per_example=True):
 
         raw = self.raw_layer.dropout_fprop(
                       state_below,
@@ -3775,8 +3767,7 @@ class FlattenerLayer(Layer):
                       input_include_probs=input_include_probs,
                       default_input_scale=default_input_scale,
                       input_scales=input_scales,
-                      per_example=per_example,
-                      theano_rng=theano_rng
+                      per_example=per_example
                   )
 
         return self.raw_layer.get_output_space().format_as(raw,
