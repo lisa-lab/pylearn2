@@ -4546,10 +4546,50 @@ class FlattenerLayer(Layer):
     @wraps(Layer.get_input_space)
     def get_input_space(self):
         return self.raw_layer.get_input_space()
+    @wraps(Layer.get_monitoring_channels)
+    def get_monitoring_channels(self, data):
+        return self.raw_layer.get_monitoring_channels(data)
+
+    @wraps(Layer.get_layer_monitoring_channels)
+    def get_layer_monitoring_channels(self, state_below=None,
+                                      state=None, targets=None):
+        return self.raw_layer.get_layer_monitoring_channels(
+            state_below=state_below,
+            state=state,
+            targets=targets
+            )
+
+    @wraps(Layer.get_monitoring_data_specs)
+    def get_monitoring_data_specs(self):
+        return self.raw_layer.get_monitoring_data_specs()
 
     @wraps(Layer.get_params)
     def get_params(self):
         return self.raw_layer.get_params()
+
+    @wraps(Layer.get_weights)
+    def get_weights(self):
+        return self.raw_layer.get_weights()
+
+    @wraps(Layer.get_weight_decay)
+    def get_weight_decay(self, coeffs):
+        return self.raw_layer.get_weight_decay(coeffs)
+
+    @wraps(Layer.get_l1_weight_decay)
+    def get_l1_weight_decay(self, coeffs):
+        return self.raw_layer.get_l1_weight_decay(coeffs)
+
+    @wraps(Layer.set_batch_size)
+    def set_batch_size(self, batch_size):
+        self.raw_layer.set_batch_size(batch_size)
+
+    @wraps(Layer.censor_updates)
+    def censor_updates(self, updates):
+        self.raw_layer.censor_updates(updates)
+
+    @wraps(Layer.get_lr_scalers)
+    def get_lr_scalers(self):
+        return self.raw_layer.get_lr_scalers()
 
     @wraps(Layer.fprop)
     def fprop(self, state_below):
