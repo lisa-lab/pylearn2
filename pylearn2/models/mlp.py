@@ -351,7 +351,7 @@ class Layer(Model):
         Parameters
         ----------
         state_below : WRITEME
-            The input to the MLP
+            The input to the layer
         default_input_include_prob : WRITEME
         input_include_probs : WRITEME
         default_input_scale : WRITEME
