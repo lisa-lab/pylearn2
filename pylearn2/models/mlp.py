@@ -370,7 +370,7 @@ class Layer(Model):
 
         if theano_rng is None:
             raise ValueError("theano_rng parameter needs to be specified"
-                             "for the layer: " + layer.layer_name)
+                             "for the layer: " + self.layer_name)
 
         layer_name = self.layer_name
 
