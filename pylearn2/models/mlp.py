@@ -4426,10 +4426,10 @@ class CompositeLayer(Layer):
             this layer.
         """
         if isinstance(coeff, float):
-            return T.sum([layer.get_l1_weight_decay(coeff)
+            return T.sum([layer.get_weight_decay(coeff)
                           for layer in self.layers])
         elif isinstance(coeff, list) or isinstance(coeff, tuple):
-            return T.sum([layer.get_l1_weight_decay(layer_coeff) for
+            return T.sum([layer.get_weight_decay(layer_coeff) for
                           layer, layer_coeff in safe_zip(self.layers, coeff)])
         else:
             raise TypeError("CompositeLayer's get_weight_decay received "
