@@ -37,17 +37,22 @@ class Model(object):
 
     def train_all(self, dataset):
         """
-        If implemented, performs one epoch of training.  This method is useful
-        for models with highly specialized training algorithms for which is
-        does not make much sense to factor the training code into a separate
-        class. It is also useful for implementors that want to make their model
-        trainable without enforcing compatibility with pylearn2
-        TrainingAlgorithms.
+        If implemented, performs one epoch of training.
+
 
         Parameters
         ----------
         dataset : pylearn2.datasets.dataset.Dataset
             Dataset object to draw training data from
+
+        Notes
+        -----
+        This method is useful
+        for models with highly specialized training algorithms for which is
+        does not make much sense to factor the training code into a separate
+        class. It is also useful for implementors that want to make their model
+        trainable without enforcing compatibility with pylearn2
+        TrainingAlgorithms.
         """
         raise NotImplementedError(str(type(self)) +
                                   " does not implement train_all.")
@@ -73,9 +78,9 @@ class Model(object):
 
         Parameters
         ----------
-        dataset : pylearn2.datasets.dataset.Dataset
+        dataset: pylearn2.datasets.dataset.Dataset
             The object to draw training data from.
-        batch_size : int
+        batch_size: int
             Size of the minibatch to draw from dataset.
 
         Returns
@@ -88,16 +93,23 @@ class Model(object):
 
     def get_weights_view_shape(self):
         """
+        Returns the shape `PatchViewer` should use to display the
+        weights.
+
         Returns
         -------
         shape : tuple
-            Returns a tuple containing two ints. These are used as the
-            `grid_shape` argument to `PatchViewer` when displaying the
-            weights of this model. This can be useful when there is
-            some geometric significance to the order of your weight
-            vectors. For example, the `Maxout` model makes sure that all of
-            the filters for the same hidden unit appear on the same row
-            of the display.
+            A tuple containing two ints. These are used as the
+            `grid_shape` argument to `PatchViewer` when
+            displaying the weights of this model.
+
+        Notes
+        -----
+        This can be useful when there is some geometric
+        significance to the order of your weight
+        vectors. For example, the `Maxout` model makes sure that all of
+        the filters for the same hidden unit appear on the same row
+        of the display.
         """
         raise NotImplementedError(str(type(self)) + " does not implement "
                                   "get_weights_view_shape (perhaps by design)")
@@ -148,10 +160,11 @@ class Model(object):
 
     def set_batch_size(self, batch_size):
         """
+        Sets the batch size used by the model.
+
         Parameters
         ----------
         batch_size : int
-            Sets the batch size used by the model.
             If None, allows the model to use any batch size.
         """
         pass
@@ -186,6 +199,8 @@ class Model(object):
 
     def get_weights_topo(self):
         """
+        Returns a topological view of the weights.
+
         Returns
         -------
         weights : ndarray
@@ -229,6 +244,8 @@ class Model(object):
 
     def get_lr_scalers(self):
         """
+        Specify how to rescale the learning rate on each parameter.
+
         Returns
         -------
         lr_scalers : OrderedDict
@@ -244,24 +261,26 @@ class Model(object):
         This method should check all updates that act on shared variables
         held by the model and make sure they are valid.
 
-        For example, if a given hyperparameter is not meant to be learned,
-        censor_updates should remove it from the dictionary. If a parameter
-        has a restricted range, e.g.. if it is the precision of a normal
-        distribution, censor_updates should clip its update to that range.
-        If a parameter has any other special properties, its updates should
-        be modified to respect that here, e.g. a matrix that must be
-        orthogonal should have its update value modified to be orthogonal
-        here.
-
-        This is the main mechanism used to make sure that generic training
-        algorithms such as those found in pylearn2.training_algorithms
-        respect the specific properties of the models passed to them.
-
         Parameters
         ----------
         updates : dict
             A dictionary mapping shared variables to symbolic values they
             will be updated to
+
+        Notes
+        -----
+        For example, if
+        a given parameter is not meant to be learned, censor_updates
+        should remove it from the dictionary. If a parameter has a restricted
+        range, e.g.. if it is the precision of a normal distribution,
+        censor_updates should clip its update to that range. If a parameter
+        has any other special properties, its updates should be modified
+        to respect that here, e.g. a matrix that must be orthogonal should
+        have its update value modified to be orthogonal here.
+
+        This is the main mechanism used to make sure that generic training
+        algorithms such as those found in pylearn2.training_algorithms
+        respect the specific properties of the models passed to them.
         """
 
         pass
@@ -373,20 +392,19 @@ class Model(object):
         Parameters may be included here but held constant during
         learning via the `censor_updates` method.
         """
-        # I think there's a bug here, because get_params returns a set
-        # but sets have no defined iteration order, so get_param_values
-        # might return things in one order and set_param_values might
-        # try to put them back in in a different order
         assert not isinstance(self.get_params(), set)
         return [param.get_value(borrow=borrow) for param in self.get_params()]
 
     def set_param_values(self, values, borrow=False):
         """
-        .. todo::
-
-            WRITEME properly
-
         Sets the values of the parameters that define the model
+
+        Parameters
+        ----------
+        values : list
+            list of ndarrays
+        borrow : bool
+            The `borrow` flag to use with `set_value`.
         """
         for param, value in zip(self.get_params(), values):
             param.set_value(value, borrow=borrow)
@@ -394,6 +412,9 @@ class Model(object):
     def redo_theano(self):
         """
         Re-compiles all Theano functions used internally by the model.
+
+        Notes
+        -----
         This function is often called after a model is unpickled from
         disk, since Theano functions are not pickled. However, it is
         not always called. This allows scripts like show_weights.py
@@ -448,10 +469,19 @@ class Model(object):
 
     def get_test_batch_size(self):
         """
-        Batches of examples used to initialize X.tag.test_value should have
-        this many examples if used as input to the model.  (The model specifies
-        the number of examples in case it needs a fixed batch size or to keep
-        the memory usage of testing under control.)
+        Specifies the batch size to use with compute.test_value
+
+        Returns
+        -------
+        test_batch_size : int
+            Number of examples to use in batches with compute.test_value
+
+        Notes
+        -----
+        The model specifies
+        the number of examples in case it needs a fixed batch size or to
+        keep
+        the memory usage of testing under control.
         """
         return self._test_batch_size
 
@@ -459,7 +489,16 @@ class Model(object):
         """
         Print version of the various Python packages and basic information
         about the experiment setup (e.g. cpu, os)
-        e.g.
+
+        Parameters
+        ----------
+        print_theano_config : bool
+            TODO WRITEME
+
+        Notes
+        -----
+
+        Example output:
 
         .. code-block::  none
 
@@ -477,7 +516,7 @@ class Model(object):
         Parameters
         ----------
         names : iterable
-            A collection of strings indicating names of fields on this \
+            A collection of strings indicating names of fields on ts
             object that should not be pickled.
 
         Notes

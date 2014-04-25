@@ -114,6 +114,9 @@ class Layer(Model):
 
     def get_monitoring_channels_from_state(self, state, target=None):
         """
+        Returns monitoring channels based on the values computed by
+        `fprop`.
+
         Parameters
         ----------
         state : member of self.output_space
@@ -154,20 +157,24 @@ class Layer(Model):
 
     def cost(self, Y, Y_hat):
         """
-        The cost of outputting Y_hat when the true output is Y.  Y_hat is
-        assumed to be the output of the same layer's fprop, and the
-        implementation may do things like look at the ancestors of Y_hat in the
-        theano graph. This is useful for, e.g., computing numerically stable
-        log probabilities as the cost when Y_hat is the probability.
+        The cost of outputting Y_hat when the true output is Y.
 
         Parameters
         ----------
-        Y : WRITEME
-        Y_hat : WRITEME
+        Y : theano.gof.Variable
+            The targets
+        Y_hat : theano.gof.Variable
+            The predictions.
+            Assumed to be the output of the layer's `fprop` method.
+            The implmentation is permitted to do things like look at the
+            ancestors of `Y_hat` in the theano graph. This is useful for
+            e.g. computing numerically stable *log* probabilities when
+            `Y_hat` is the *probability*.
 
         Returns
         -------
-        WRITEME
+        cost : theano.gof.Variable
+            A Theano scalar describing the cost.
         """
 
         raise NotImplementedError(str(type(self)) +
@@ -233,6 +240,8 @@ class Layer(Model):
 
     def get_biases(self):
         """
+        Returns the value of the biases of the layer.
+
         Returns
         -------
         biases : ndarray
@@ -463,9 +472,14 @@ class MLP(Layer):
 
     def freeze(self, parameter_set):
         """
-        .. todo::
+        Freezes some of the parameters (new theano functions that implement
+        learning will not use them; existing theano functions will continue
+        to modify them).
 
-            WRITEME
+        Parameters
+        ----------
+        parameter_set : set
+            Set of parameters to freeze.
         """
 
         self.freeze_set = self.freeze_set.union(parameter_set)
@@ -605,16 +619,8 @@ class MLP(Layer):
                       input_scales=None, per_example=True):
         """
         Returns the output of the MLP, when applying dropout to the input and
-        intermediate layers. Each input to each layer is randomly included or
-        excluded for each example. The probability of inclusion is independent
-        for each input and each example. Each layer uses
-        `default_input_include_prob` unless that layer's name appears as a key
-        in input_include_probs, in which case the input inclusion probability
-        is given by the corresponding value.
+        intermediate layers.
 
-        Each feature is also multiplied by a scale factor. The scale factor for
-        each layer's input scale is determined by the same scheme as the input
-        probabilities.
 
         Parameters
         ----------
@@ -627,6 +633,20 @@ class MLP(Layer):
         per_example : bool, optional
             Sample a different mask value for every example in a batch.
             Defaults to `True`. If `False`, sample one mask per mini-batch.
+
+
+        Notes
+        -----
+        Each input to each layer is randomly included or
+        excluded for each example. The probability of inclusion is independent
+        for each input and each example. Each layer uses
+        `default_input_include_prob` unless that layer's name appears as a key
+        in input_include_probs, in which case the input inclusion probability
+        is given by the corresponding value.
+
+        Each feature is also multiplied by a scale factor. The scale factor for
+        each layer's input scale is determined by the same scheme as the input
+        probabilities.
         """
 
         warnings.warn("dropout doesn't use fixed_var_descr so it won't work "
@@ -1601,11 +1621,10 @@ class Linear(Layer):
     istdev : WRITEME
     sparse_init : WRITEME
     sparse_stdev : WRITEME
-    include_prob : float, optional
-        Probability of including a weight element in the set of weights \
-        initialized to U(-irange, irange). If not included it is \
-        initialized to 1.
-    init_bias : float or ndarray, optional
+    include_prob : float
+        Probability of including a weight element in the set of weights
+        initialized to U(-irange, irange). If not included it is
+        initialized to 0.
         Anything that can be broadcasted to a numpy vector.
         Provides the initial value of the biases of the model.
         When using this class as an output layer (specifically the Linear
@@ -2010,6 +2029,11 @@ class Tanh(Linear):
     """
     A layer that performs an affine transformation of its (vectorial)
     input followed by a hyperbolic tangent elementwise nonlinearity.
+
+    Parameters
+    ----------
+    kwargs : dict
+        Keyword arguments to pass through to `Linear` class constructor.
     """
 
     @wraps(Layer.fprop)
@@ -2073,12 +2097,20 @@ class Sigmoid(Linear):
     @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
         """
-        .. todo::
+        Returns a batch (vector) of
+        mean across units of KL divergence for each example.
 
-            WRITEME properly
+        Parameters
+        ----------
+        Y : theano.gof.Variable
+            Targets
+        Y_hat : theano.gof.Variable
+            Output of `fprop`
 
         mean across units, mean across batch of KL divergence
-        KL(P || Q) where P is defined by Y and Q is defined by Y_hat
+        Notes
+        -----
+        Uses KL(P || Q) where P is defined by Y and Q is defined by Y_hat
         Currently Y must be purely binary. If it's not, you'll still
         get the right gradient, but the value in the monitoring channel
         will be wrong.
@@ -2134,9 +2166,20 @@ class Sigmoid(Linear):
 
     def get_detection_channels_from_state(self, state, target):
         """
-        .. todo::
+        Returns monitoring channels when using the layer to do detection
+        of binary events.
 
-            WRITEME
+        Parameters
+        ----------
+        state : theano.gof.Variable
+            Output of `fprop`
+        target : theano.gof.Variable
+            The targets from the dataset
+
+        Returns
+        -------
+        channels : OrderedDict
+            Dictionary mapping channel names to Theano channel values.
         """
 
         rval = OrderedDict()
@@ -2208,15 +2251,12 @@ class RectifiedLinear(Linear):
     """
     Rectified linear MLP layer (Glorot and Bengio 2011).
 
-    .. todo::
-
-        WRITEME properly
-
     Parameters
     ----------
-    left_slope : WRITEME
+    left_slope : float
+        The slope the line should have left of 0.
     kwargs : dict
-        WRITEME
+        Keyword arguments to pass to `Linear` class constructor.
     """
 
     def __init__(self, left_slope=0.0, **kwargs):
@@ -2248,7 +2288,7 @@ class Softplus(Linear):
     Parameters
     ----------
     kwargs : dict
-        WRITEME
+        Keyword arguments to `Linear` constructor.
     """
 
     def __init__(self, **kwargs):
@@ -2269,9 +2309,15 @@ class Softplus(Linear):
 
 class SpaceConverter(Layer):
     """
-    .. todo::
+    A Layer with no parameters that converts the input from
+    one space to another.
 
-        WRITEME
+    Parameters
+    ----------
+    layer_name : str
+        Name of the layer.
+    output_space : Space
+        The space to convert to.
     """
 
     def __init__(self, layer_name, output_space):
@@ -3613,17 +3659,11 @@ class PretrainedLayer(Layer):
     A layer whose weights are initialized, and optionally fixed,
     based on prior training.
 
-    .. todo::
-
-        WRITEME properly
-
     Parameters
     ----------
-    layer_name : WRITEME
     layer_content : Model
-        A Model that implements "upward_pass", such as an RBM or an
-        Autoencoder
-    freeze_params : bool, optional
+        Should implement "upward_pass" (RBM and Autoencoder do this)
+    freeze_params: bool
         If True, regard layer_conent's parameters as fixed
         If False, they become parameters of this layer and can be
         fine-tuned to optimize the MLP's cost function.
@@ -3671,14 +3711,12 @@ class CompositeLayer(Layer):
     """
     A Layer that runs several simpler layers in parallel.
 
-    .. todo::
-
-        WRITEME properly
-
     Parameters
     ----------
-    layer_name : WRITEME
-    layers: a list or tuple of Layers.
+    layer_name : str
+        Name for the layer
+    layers : list or tuple
+        Layers to be run in parallel.
     """
 
     def __init__(self, layer_name, layers):
