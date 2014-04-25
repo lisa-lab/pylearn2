@@ -1,6 +1,7 @@
 """
 Cross-validation dataset iterators.
 """
+from collections import OrderedDict
 import numpy as np
 import warnings
 
@@ -42,14 +43,19 @@ class DatasetCV(object):
         self._data = tuple(dataset_iterator.next())
         self.return_dict = return_dict
 
-    def __iter__(self):
+    def get_data_subsets(self):
+        """
+        Partition the dataset according to cross-validation subsets and
+        return the raw data in each subset.
+        """
         for subsets in self.index_iterator:
             labels = None
             if len(subsets) == 3:
                 labels = ['train', 'valid', 'test']
             elif len(subsets) == 2:
                 labels = ['train', 'test']
-            datasets = {}
+            # data_subsets is an OrderedDict to maintain label order
+            data_subsets = OrderedDict()
             for i, subset in enumerate(subsets):
                 subset_data = tuple(data[subset] for data in self._data)
                 if len(subset_data) == 2:
@@ -57,10 +63,19 @@ class DatasetCV(object):
                 else:
                     X, = subset_data
                     y = None
-                dataset = DenseDesignMatrix(X=X, y=y)
-                datasets[labels[i]] = dataset
+                data_subsets[labels[i]] = (X, y)
+            yield data_subsets
+
+    def __iter__(self):
+        """Create a DenseDesignMatrix for each dataset subset."""
+        for data_subsets in self.get_data_subsets():
+            # datasets is an OrderedDict to maintain label order
+            datasets = OrderedDict()
+            for label, data in data_subsets.items():
+                X, y = data
+                datasets[label] = DenseDesignMatrix(X=X, y=y)
             if not self.return_dict:
-                datasets = list(datasets[label] for label in labels)
+                datasets = list(datasets[label] for label in datasets.keys())
                 if len(datasets) == 1:
                     datasets, = datasets
             yield datasets
