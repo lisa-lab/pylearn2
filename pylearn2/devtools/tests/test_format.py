@@ -536,7 +536,6 @@ whitelist_docstrings = [
     'utils/tests/test_iteration.py',
     'utils/tests/test_string_utils.py',
     'utils/tests/test_insert_along_axis.py',
-    'utils/tests/test_serial.py',
     'utils/tests/test_utlc.py',
     'utils/tests/test_compile.py',
     'utils/tests/test_key_aware.py',

@@ -38,13 +38,18 @@ from pylearn2.utils import safe_zip
 from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
 from pylearn2.utils import wraps
-from pylearn2.expr.nnet import kl
+
+from pylearn2.expr.nnet import (kl, compute_precision,
+                                    compute_recall, compute_f1)
 
 # Only to be used by the deprecation warning wrapper functions
 from pylearn2.costs.mlp import L1WeightDecay as _L1WD
 from pylearn2.costs.mlp import WeightDecay as _WD
 
-warnings.warn("MLP changing the recursion limit.")
+
+logger = logging.getLogger(__name__)
+
+logger.debug("MLP changing the recursion limit.")
 # We need this to be high enough that the big theano graphs we make
 # when doing max pooling via subtensors don't cause python to complain.
 # python intentionally declares stack overflow well before the stack
@@ -59,8 +64,6 @@ warnings.warn("MLP changing the recursion limit.")
 # python interpreter should provide an option to raise the error
 # precisely when you're going to exceed the stack segment.
 sys.setrecursionlimit(40000)
-
-logger = logging.getLogger(__name__)
 
 
 class Layer(Model):
@@ -2589,31 +2592,35 @@ class Sigmoid(Linear):
         y_hat = T.cast(y_hat, state.dtype)
         tp = (y * y_hat).sum()
         fp = ((1-y) * y_hat).sum()
-        precision = tp / T.maximum(1., tp + fp)
-        recall = tp / T.maximum(1., y.sum())
+
+        precision = compute_precision(tp, fp)
+        recall = compute_recall(y, fp)
+        f1 = compute_f1(precision, recall)
+
         rval['precision'] = precision
         rval['recall'] = recall
-        rval['f1'] = 2. * precision * recall / T.maximum(1, precision + recall)
+        rval['f1'] = f1
 
         tp = (y * y_hat).sum(axis=0)
         fp = ((1-y) * y_hat).sum(axis=0)
-        precision = tp / T.maximum(1., tp + fp)
 
-        rval['per_output_precision.max'] = precision.max()
-        rval['per_output_precision.mean'] = precision.mean()
-        rval['per_output_precision.min'] = precision.min()
+        precision = compute_precision(tp, fp)
 
-        recall = tp / T.maximum(1., y.sum(axis=0))
+        rval['per_output_precision_max'] = precision.max()
+        rval['per_output_precision_mean'] = precision.mean()
+        rval['per_output_precision_min'] = precision.min()
 
-        rval['per_output_recall.max'] = recall.max()
-        rval['per_output_recall.mean'] = recall.mean()
-        rval['per_output_recall.min'] = recall.min()
+        recall = compute_recall(y, tp)
 
-        f1 = 2. * precision * recall / T.maximum(1, precision + recall)
+        rval['per_output_recall_max'] = recall.max()
+        rval['per_output_recall_mean'] = recall.mean()
+        rval['per_output_recall_min'] = recall.min()
 
-        rval['per_output_f1.max'] = f1.max()
-        rval['per_output_f1.mean'] = f1.mean()
-        rval['per_output_f1.min'] = f1.min()
+        f1 = compute_f1(precision, recall)
+
+        rval['per_output_f1_max'] = f1.max()
+        rval['per_output_f1_mean'] = f1.mean()
+        rval['per_output_f1_min'] = f1.min()
 
         return rval
 
@@ -2640,6 +2647,7 @@ class Sigmoid(Linear):
                 # it's considered incorrect, so we max over columns.
                 incorrect = T.neq(target, prediction).max(axis=1)
                 rval['misclass'] = T.cast(incorrect, config.floatX).mean()
+
         return rval
 
     @wraps(Layer.get_layer_monitoring_channels)
@@ -2776,8 +2784,51 @@ class ConvNonlinearity(object):
         p = linear_response
         return p
 
+    def _get_monitoring_channels_for_activations(self, state):
+        """
+        Computes the monitoring channels which does not require targets.
+
+        Parameters
+        ----------
+        state : member of self.output_space
+            A minibatch of states that this Layer took on during fprop.
+            Provided externally so that we don't need to make a second
+            expression for it. This helps keep the Theano graph smaller
+            so that function compilation runs faster.
+
+        Returns
+        -------
+        rval : OrderedDict
+            A dictionary mapping channel names to monitoring channels of
+            interest for this layer.
+        """
+        rval = OrderedDict({})
+
+        mx = state.max(axis=0)
+        mean = state.mean(axis=0)
+        mn = state.min(axis=0)
+        rg = mx - mn
+
+        rval['range_x_max_u'] = rg.max()
+        rval['range_x_mean_u'] = rg.mean()
+        rval['range_x_min_u'] = rg.min()
+
+        rval['max_x_max_u'] = mx.max()
+        rval['max_x_mean_u'] = mx.mean()
+        rval['max_x_min_u'] = mx.min()
+
+        rval['mean_x_max_u'] = mean.max()
+        rval['mean_x_mean_u'] = mean.mean()
+        rval['mean_x_min_u'] = mean.min()
+
+        rval['min_x_max_u'] = mn.max()
+        rval['min_x_mean_u'] = mn.mean()
+        rval['min_x_min_u'] = mn.min()
+
+        return rval
+
     def get_monitoring_channels_from_state(self, state, target,
-                                           orval=None, cost_fn=None):
+                                           cost_fn=None):
         """
         Override the default get_monitoring_channels_from_state function.
 
@@ -2792,8 +2843,6 @@ class ConvNonlinearity(object):
             Should be None unless this is the last layer.
             If specified, it should be a minibatch of targets for the
             last layer.
-        orval : Variable or None
-            This is the rval coming from the parent layer.
         cost_fn : theano computational graph or None
             This is the theano computational graph of a cost function.
 
@@ -2803,11 +2852,13 @@ class ConvNonlinearity(object):
             A dictionary mapping channel names to monitoring channels of
             interest for this layer.
         """
-        rval = OrderedDict()
+
+        rval = self._get_monitoring_channels_for_activations(state)
+
         return rval
 
 
-class LinearConvNonlinearity(ConvNonlinearity):
+class IdentityConvNonlinearity(ConvNonlinearity):
     """
     Linear convolutional nonlinearity class.
     """
@@ -2815,12 +2866,22 @@ class LinearConvNonlinearity(ConvNonlinearity):
         self.non_lin_name = "linear"
 
     @wraps(ConvNonlinearity.get_monitoring_channels_from_state)
-    def get_monitoring_channels_from_state(self, state, target,
-                                           cost_fn=False, rval=None):
-        rval = OrderedDict() if rval is None else rval
-        prediction = T.gt(state, 0.5)
-        incorrect = T.new(target, prediction).max(axis=1)
-        rval["misclass"] = T.cast(incorrect, config.floatX).mean()
+    def get_monitoring_channels_from_state(self,
+                                           state,
+                                           target,
+                                           cost_fn=False):
+
+        rval = super(IdentityConvNonlinearity,
+                     self).get_monitoring_channels_from_state(state,
+                                                              target,
+                                                              cost_fn)
+
+        if target is not None:
+            prediction = T.gt(state, 0.5)
+            incorrect = T.new(target, prediction).max(axis=1)
+            rval["misclass"] = T.cast(incorrect, config.floatX).mean()
+
+        return rval
 
 
 class RectifierConvNonlinearity(ConvNonlinearity):
@@ -2876,47 +2937,56 @@ class SigmoidConvNonlinearity(ConvNonlinearity):
 
     @wraps(ConvNonlinearity.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target,
-                                           rval=None, cost_fn=None):
-        orval = OrderedDict()
-        y_hat = state > 0.5
-        y = target > 0.5
-        wrong_bit = T.cast(T.neq(y, y_hat), state.dtype)
+                                           cost_fn=None):
 
-        orval['01_loss'] = wrong_bit.mean()
-        orval['kl'] = cost_fn(Y_hat=state, Y=target)
+        rval = super(SigmoidConvNonlinearity,
+                     self).get_monitoring_channels_from_state(state,
+                                                              target,
+                                                              cost_fn)
 
-        y = T.cast(y, state.dtype)
-        y_hat = T.cast(y_hat, state.dtype)
-        tp = (y * y_hat).sum()
-        fp = ((1-y) * y_hat).sum()
-        precision = tp / T.maximum(1., tp + fp)
-        recall = tp / T.maximum(1., y.sum())
+        if target is not None:
+            y_hat = state > 0.5
+            y = target > 0.5
 
-        orval['precision'] = precision
-        orval['recall'] = recall
-        orval['f1'] = (2. * precision * recall /
-                       T.maximum(1, precision + recall))
+            wrong_bit = T.cast(T.neq(y, y_hat), state.dtype)
 
-        tp = (y * y_hat).sum(axis=[0, 1])
-        fp = ((1-y) * y_hat).sum(axis=[0, 1])
-        precision = tp / T.maximum(1., tp + fp)
+            rval['01_loss'] = wrong_bit.mean()
+            rval['kl'] = cost_fn(Y_hat=state, Y=target)
 
-        orval['per_output_precision.max'] = precision.max()
-        orval['per_output_precision.mean'] = precision.mean()
-        orval['per_output_precision.min'] = precision.min()
+            y = T.cast(y, state.dtype)
+            y_hat = T.cast(y_hat, state.dtype)
+            tp = (y * y_hat).sum()
+            fp = ((1-y) * y_hat).sum()
 
-        recall = tp / T.maximum(1., y.sum(axis=[0, 1]))
+            precision = compute_precision(tp, fp)
+            recall = compute_recall(y, tp)
+            f1 = compute_f1(precision, recall)
 
-        orval['per_output_recall.max'] = recall.max()
-        orval['per_output_recall.mean'] = recall.mean()
-        orval['per_output_recall.min'] = recall.min()
+            rval['precision'] = precision
+            rval['recall'] = recall
+            rval['f1'] = f1
 
-        f1 = 2. * precision * recall / T.maximum(1, precision + recall)
+            tp = (y * y_hat).sum(axis=[0, 1])
+            fp = ((1-y) * y_hat).sum(axis=[0, 1])
 
-        orval['per_output_f1.max'] = f1.max()
-        orval['per_output_f1.mean'] = f1.mean()
-        orval['per_output_f1.min'] = f1.min()
-        rval.update(orval)
+            precision = compute_precision(tp, fp)
+
+            rval['per_output_precision_max'] = precision.max()
+            rval['per_output_precision_mean'] = precision.mean()
+            rval['per_output_precision_min'] = precision.min()
+
+            recall = compute_recall(y, tp)
+
+            rval['per_output_recall_max'] = recall.max()
+            rval['per_output_recall_mean'] = recall.mean()
+            rval['per_output_recall_min'] = recall.min()
+
+            f1 = compute_f1(precision, recall)
+
+            rval['per_output_f1_max'] = f1.max()
+            rval['per_output_f1_mean'] = f1.mean()
+            rval['per_output_f1_min'] = f1.min()
+
         return rval
 
 
@@ -3045,6 +3115,12 @@ class ConvElemwise(Layer):
             raise AssertionError("You should specify either irange or "
                                  "sparse_init when calling the constructor of "
                                  "ConvElemwise and not both.")
+
+        if pool_type is not None:
+            assert pool_shape is not None, ("You should specify the shape of "
+                                           "the spatial %s-pooling." % pool_type)
+            assert pool_stride is not None, ("You should specify the strides of "
+                                            "the spatial %s-pooling." % pool_type)
 
         assert nonlinearity is not None
 
@@ -3264,17 +3340,20 @@ class ConvElemwise(Layer):
 
         return np.transpose(raw, (outp, rows, cols, inp))
 
+
+    @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
 
-        rval = super(ConvElemwise,
-                     self).get_monitoring_channels_from_state(state, target)
+        rval = super(ConvElemwise, self).get_monitoring_channels_from_state(state,
+                                                                            target)
 
-        if target is not None:
-            cst = self.cost
-            rval = self.nonlin.get_monitoring_channels_from_state(state,
-                                                                  target,
-                                                                  rval=rval,
-                                                                  cost_fn=cst)
+        cst = self.cost
+        orval = self.nonlin.get_monitoring_channels_from_state(state,
+                                                               target,
+                                                               cost_fn=cst)
+
+        rval.update(orval)
+
         return rval
 
     @wraps(Layer.get_monitoring_channels)
@@ -3347,11 +3426,11 @@ class ConvElemwise(Layer):
                                                       "pooling.")
 
             if self.pool_type == 'max':
-                p = max_pool(bc01=z, pool_shape=self.pool_shape,
+                p = max_pool(bc01=d, pool_shape=self.pool_shape,
                         pool_stride=self.pool_stride,
                         image_shape=self.detector_space.shape)
             elif self.pool_type == 'mean':
-                p = mean_pool(bc01=z, pool_shape=self.pool_shape,
+                p = mean_pool(bc01=d, pool_shape=self.pool_shape,
                         pool_stride=self.pool_stride,
                         image_shape=self.detector_space.shape)
 
@@ -3484,6 +3563,7 @@ class ConvRectifiedLinear(ConvElemwise):
             raise AssertionError("You should specify either irange or "
                                  "sparse_init when calling the constructor of "
                                  "ConvRectifiedLinear and not both.")
+
         #Alias the variables for pep8
         mkn = max_kernel_norm
         dn = detector_normalization
@@ -4264,6 +4344,75 @@ class FlattenerLayer(Layer):
     def get_weights(self):
 
         return self.raw_layer.get_weights()
+
+
+class WindowLayer(Layer):
+    """
+    Layer used to select a window of an image input.
+    The input of the layer must be Conv2DSpace.
+
+    Parameters
+    ----------
+    layer_name : str
+        A name for this layer.
+    window : tuple
+        A four-tuple of ints indicating respectively
+        the top left x and y position, and
+        the bottom right x and y position of the window.
+    """
+
+    def __init__(self, layer_name, window):
+        super(WindowLayer, self).__init__()
+        self.__dict__.update(locals())
+        del self.self
+        if window[0] < 0 or window[0] > window[2] or \
+           window[1] < 0 or window[1] > window[3]:
+            raise ValueError("WindowLayer: bad window parameter")
+
+    @wraps(Layer.fprop)
+    def fprop(self, state_below):
+        extracts = [slice(None), slice(None), slice(None), slice(None)]
+        extracts[self.rows] = slice(self.window[0], self.window[2] + 1)
+        extracts[self.cols] = slice(self.window[1], self.window[3] + 1)
+        extracts = tuple(extracts)
+
+        return state_below[extracts]
+
+    @wraps(Layer.set_input_space)
+    def set_input_space(self, space):
+        self.input_space = space
+
+        if not isinstance(space, Conv2DSpace):
+            raise TypeError("The input to a Window layer should be a "
+                            "Conv2DSpace,  but layer " + self.layer_name +
+                            " got " + str(type(self.input_space)))
+        axes = space.axes
+        self.rows = axes.index(0)
+        self.cols = axes.index(1)
+
+        nrows = space.shape[0]
+        ncols = space.shape[1]
+
+        if self.window[2] + 1 > nrows or self.window[3] + 1 > ncols:
+            raise ValueError("WindowLayer: bad window shape. "
+                             "Input is [" + str(nrows)  + ", " +
+                             str(ncols) + "], "
+                             "but layer " + self.layer_name + " has window "
+                             + str(self.window))
+        self.output_space = Conv2DSpace(
+                                shape=[self.window[2] - self.window[0] + 1,
+                                       self.window[3] - self.window[1] + 1],
+                                num_channels=space.num_channels,
+                                axes=axes
+                                )
+
+    @wraps(Layer.get_params)
+    def get_params(self):
+        return []
+
+    @wraps(Layer.get_monitoring_channels)
+    def get_monitoring_channels(self):
+        return []
 
 
 def generate_dropout_mask(mlp, default_include_prob=0.5,

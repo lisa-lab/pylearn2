@@ -38,7 +38,9 @@
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
         batch_size: %(batch_size)i,
         learning_rate: .01,
-        init_momentum: .5,
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: .5
+        },
         monitoring_dataset:
             {
                 'valid' : !obj:pylearn2.datasets.mnist.MNIST {
@@ -78,7 +80,7 @@
         [ !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
              channel_name: 'valid_y_misclass',
              save_path: "%(save_path)s/convolutional_network_best.pkl"
-        }, !obj:pylearn2.training_algorithms.sgd.MomentumAdjustor {
+        }, !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
             start: 1,
             saturate: 10,
             final_momentum: .99

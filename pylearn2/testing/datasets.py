@@ -56,7 +56,7 @@ def random_one_hot_topological_dense_design_matrix(rng, num_examples, shape, cha
 
     X = rng.randn(*shape)
 
-    idx = rng.randint(0, dim, (num_examples,))
+    idx = rng.randint(0, num_classes, (num_examples,))
     Y = np.zeros((num_examples,num_classes))
     for i in xrange(num_examples):
         Y[i,idx[i]] = 1

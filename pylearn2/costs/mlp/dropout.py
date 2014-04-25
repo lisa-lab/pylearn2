@@ -47,7 +47,7 @@ class Dropout(DefaultDataSpecsMixin, Cost):
         compensate for fewer of the input units being present. Can be
         overridden by `input_scales`.
     input_scales : dict
-        A dictionarry mapping string layer names to float values to scale that
+        A dictionary mapping string layer names to float values to scale that
         layer's input by. Overrides `default_input_scale` for individual
         layers.
     per_example : bool

@@ -91,7 +91,7 @@ class ZCA_Dataset(DenseDesignMatrix):
         #self.mn = self.X.min()
         #self.mx = self.X.max()
 
-        if preprocessor.inv_P_ is None:
+        if getattr(preprocessor, "inv_P_", None) is None:
             warnings.warn("ZCA preprocessor.inv_P_ was none. Computing "
                           "inverse of preprocessor.P_ now. This will take "
                           "some time. For efficiency, it is recommended that "

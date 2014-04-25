@@ -483,7 +483,8 @@ class BinaryVector(VisibleLayer):
         if self.copies != 1:
             raise NotImplementedError()
         mean = T.nnet.sigmoid(self.bias)
-        rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
+        rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean,
+                                   dtype=theano.config.floatX)
 
         return rval
 
@@ -1891,8 +1892,8 @@ class Softmax(HiddenLayer):
         if not hasattr(self, 'center'):
             self.center = False
         if self.center:
-            warnings.warn("TODO: write a unit test verifying that inference or sampling "
-                    "below a centered Softmax layer works")
+            """TODO: write a unit test verifying that inference or sampling
+                     below a centered Softmax layer works"""
             return state - self.offset
         return state
 
@@ -2101,7 +2102,7 @@ class GaussianVisLayer(VisibleLayer):
             warn = True
             assert self.nvis is None
             rval[self.mu] = 1./num_loc
-            warnings.warn("mu lr_scaler hardcoded to 1/sharing")
+            logger.warning("mu lr_scaler hardcoded to 1/sharing")
 
         return rval
 
@@ -3113,7 +3114,7 @@ class ConvC01B_MaxPool(HiddenLayer):
         ----------
         state : WRITEME
         target : WRITEME
-            if pools contain more than one element, should be a list 
+            if pools contain more than one element, should be a list
             with two elements. the first element is for the pooling
             units and the second for the detector units.
         coeff : WRITEME

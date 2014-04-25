@@ -12,6 +12,7 @@ import time
 import warnings
 import sys
 from pylearn2.utils.string_utils import preprocess
+from pylearn2.utils.mem import TypicalMemoryError
 from cPickle import BadPickleGet
 io = None
 hdf_reader = None
@@ -159,8 +160,17 @@ def load(filepath, recurse_depth=0, retry = True):
         # so we can cut down on mail to pylearn-users by adding a message
         # that makes it clear this exception is caused by their machine not
         # meeting requirements.
-        raise MemoryError("You do not have enough memory to open " +
-                filepath)
+        if os.path.splitext(filepath)[1] == ".pkl":
+            raise TypicalMemoryError("You do not have enough memory to open "
+                                     "%s \n + Try using numpy.{save,load} (file "
+                                     "with extension '.npy') to save your file. "
+                                     "It uses less memory"
+                                     " when reading and writing files than "
+                                     "pickled files." % filepath)
+        else:
+            raise TypicalMemoryError("You do not have enough memory to open %s"
+                                     % filepath)
+
     except BadPickleGet, e:
         logger.exception('Failed to open {0} due to BadPickleGet '
                          'with exception string {1}'.format(filepath, e))
@@ -270,10 +280,10 @@ def save(filepath, obj, on_overwrite = 'ignore'):
             own implementation of pickle.
         """
         if str(e).find('recursion') != -1:
-            warnings.warn('pylearn2.utils.save encountered the following '
-                          'error: ' + str(e) +
-                          '\nAttempting to resolve this error by calling ' +
-                          'sys.setrecusionlimit and retrying')
+            logger.warning('pylearn2.utils.save encountered the following '
+                           'error: ' + str(e) +
+                           '\nAttempting to resolve this error by calling ' +
+                           'sys.setrecusionlimit and retrying')
             old_limit = sys.getrecursionlimit()
             try:
                 sys.setrecursionlimit(50000)
