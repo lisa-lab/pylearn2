@@ -4404,6 +4404,69 @@ class CompositeLayer(Layer):
             rvals.append(layer.fprop(cur_state_below))
         return tuple(rvals)
 
+    def get_weight_decay(self, coeff):
+        """
+        Provides an expresion for a squared L2 penalty on the weights,
+        which is the sum of the squared L2 penalty of the layer
+        components.
+
+        Parameters
+        ----------
+        coeff : float or tuple/list
+            The coefficient on the squared L2 weight decay penalty for
+            this layer. If a single value is provided, this coefficient is
+            used for each component layer. If a list of tuple of
+            coefficients is given they are passed on to the component
+            layers in the given order.
+
+        Returns
+        -------
+        weight_decay : theano.gof.Variable
+            An expression for the squared L2 weight decay penalty term for
+            this layer.
+        """
+        if isinstance(coeff, float):
+            return T.sum([layer.get_l1_weight_decay(coeff)
+                          for layer in self.layers])
+        elif isinstance(coeff, list) or isinstance(coeff, tuple):
+            return T.sum([layer.get_l1_weight_decay(layer_coeff) for
+                          layer, layer_coeff in safe_zip(self.layers, coeff)])
+        else:
+            raise TypeError("CompositeLayer's get_weight_decay received "
+                            "coefficients of type " + str(type(coeff)) + " "
+                            "but must be provided with a float or list/tuple")
+
+    def get_l1_weight_decay(self, coeff):
+        """
+        Provides an expresion for an L1 penalty on the weights, which is
+        the sum of the L1 penalty of the layer components.
+
+        Parameters
+        ----------
+        coeff : float or tuple/list
+            The coefficient on the L1 weight decay penalty for this layer.
+            If a single value is provided, this coefficient is used for
+            each component layer. If a list of tuple of coefficients is
+            given they are passed on to the component layers in the
+            given order.
+
+        Returns
+        -------
+        weight_decay : theano.gof.Variable
+            An expression for the L1 weight decay penalty term for this
+            layer.
+        """
+        if isinstance(coeff, float):
+            return T.sum([layer.get_l1_weight_decay(coeff)
+                          for layer in self.layers])
+        elif isinstance(coeff, list) or isinstance(coeff, tuple):
+            return T.sum([layer.get_l1_weight_decay(layer_coeff) for
+                          layer, layer_coeff in safe_zip(self.layers, coeff)])
+        else:
+            raise TypeError("CompositeLayer's get_l1_weight_decay received "
+                            "coefficients of type " + str(type(coeff)) + " "
+                            "but must be provided with a float or list/tuple")
+
     @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
         return sum(layer.cost(Y_elem, Y_hat_elem)
