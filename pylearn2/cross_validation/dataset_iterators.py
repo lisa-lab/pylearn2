@@ -36,7 +36,7 @@ class DatasetCV(object):
     """
     def __init__(self, dataset, index_iterator, return_dict=True):
         self.dataset = dataset
-        self.index_iterator = index_iterator
+        self.index_iterator = list(index_iterator)  # allow reuse of generators
         dataset_iterator = dataset.iterator(mode='sequential', num_batches=1,
                                             data_specs=dataset.data_specs)
         self._data = tuple(dataset_iterator.next())
