@@ -156,11 +156,7 @@ def test_training_a_model():
     train = Train(dataset, model, algorithm, save_path=None,
                   save_freq=0, extensions=None)
 
-    try:
-        train.main_loop()
-    except:
-        message = "Could not train a dummy SoftMax model with a Sparse dataset"
-        raise AssertionError(message)
+    train.main_loop()
 
 if __name__ == '__main__':
     test_iterator()
