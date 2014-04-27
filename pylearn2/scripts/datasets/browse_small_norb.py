@@ -8,24 +8,58 @@ from matplotlib import pyplot
 from pylearn2.datasets import norb
 
 
-class SmallNorbBrowser():
+class SmallNorbBrowser(object):
+    """
+    Simple browser for the small norb dataset.
 
-    def __init__(self):
-        self.axes = []
-        self.current_labels = []
-        self.current_label_type = []
-        self.figure = None
-        self.instance_index = []
-        self.label_text = ''
-        self.label_to_index = []
-        self.new_to_old_instance = []
-        self.num_labels_by_type = []
-        self.num_label_types = 0
+    Parameters
+    ----------
+    labels: Numpy array
+            Labels for the specified dataset.
+    which_set: String
+               Dataset to browse (train or test).
+    """
+    def __init__(self, labels, which_set):
+        self.labels = labels
+        self.which_set = which_set
+        self.instance_index = norb.SmallNORB.label_type_to_index['instance']
+        self.num_label_types = len(norb.SmallNORB.num_labels_by_type)
+        self.current_labels = np.zeros(self.num_label_types, 'int')
+        self.current_label_type = [0, ]
+        self.figure, self.axes = pyplot.subplots(1, 2, squeeze=True)
 
-    def remap_instances(self, which_set, labels):
-        if which_set == 'train':
+        self.figure.canvas.set_window_title('Small NORB dataset (%sing set)' %
+                                            self.which_set)
+
+        # shift subplots down to make more room for the text
+        self.figure.subplots_adjust(bottom=0.05)
+
+        self.label_text = self.figure.suptitle("title text", x=0.1,
+                                               horizontalalignment="left")
+
+        self.figure.canvas.mpl_connect('key_press_event', self.on_key_press)
+
+        # For programming convenience, internally remap the instance labels
+        # to be 0-4, and the azimuth labels to be 0-17. The user will still
+        # only see the original, unmodified label values.
+        self.remap_instances()
+
+        # Maps a label vector to the corresponding index in <values>
+        self.num_labels_by_type = np.array(norb.SmallNORB.num_labels_by_type,
+                                           'int')
+        instance_length = len(self.new_to_old_instance)
+        self.num_labels_by_type[self.instance_index] = instance_length
+
+        self.label_to_index = np.ndarray(self.num_labels_by_type, 'int')
+        self.label_to_index.fill(-1)
+
+        for i, label in enumerate(self.labels):
+            self.label_to_index[tuple(label)] = i
+
+    def remap_instances(self):
+        if self.which_set == 'train':
             self.new_to_old_instance = [4, 6, 7, 8, 9]
-        elif which_set == 'test':
+        elif self.which_set == 'test':
             self.new_to_old_instance = [0, 1, 2, 3, 5]
 
         num_inst = len(self.new_to_old_instance)
@@ -34,21 +68,30 @@ class SmallNorbBrowser():
         old_to_new_instance[self.new_to_old_instance] = np.arange(num_inst)
 
         instance_slice = np.index_exp[:, self.instance_index]
-        old_instances = labels[instance_slice]
+        old_instances = self.labels[instance_slice]
 
         new_instances = old_to_new_instance[old_instances]
-        labels[instance_slice] = new_instances
+        self.labels[instance_slice] = new_instances
 
         azimuth_index = norb.SmallNORB.label_type_to_index['azimuth']
         azimuth_slice = np.index_exp[:, azimuth_index]
-        labels[azimuth_slice] = labels[azimuth_slice] / 2
-
-        return self.new_to_old_instance, labels
+        self.labels[azimuth_slice] = self.labels[azimuth_slice] / 2
 
     def get_new_azimuth_degrees(self, scalar_label):
+        """Change azimuth by 20 degrees"""
         return 20 * scalar_label
 
     def redraw(self, redraw_text, redraw_images):
+        """
+        Redraw pyplot figure with the new parameters.
+
+        Parameters
+        ----------
+        redraw_text: Bool
+                     Option to redraw the text.
+        redraw_images: Bool
+                       Option to redraw images.
+        """
         if redraw_text:
             cl = self.current_labels
 
@@ -76,7 +119,14 @@ class SmallNorbBrowser():
         self.figure.canvas.draw()
 
     def on_key_press(self, event):
+        """
+        Actions on key pressed event.
 
+        Parameters
+        ----------
+        event: matplotlib event
+               Event corresponding to a key pressed.
+        """
         def add_mod(arg, step, size):
             return (arg + size + step) % size
 
@@ -107,6 +157,7 @@ class SmallNorbBrowser():
 
 
 def parse_args():
+    """Parse arguments provided by the user"""
     parser = argparse.ArgumentParser(
         description="Browser for SmallNORB dataset.")
 
@@ -128,6 +179,14 @@ def parse_args():
 
 
 def get_data(args):
+    """
+    Retrieve the dataset asked by the user with provided preprocessing.
+
+    Parameters
+    ----------
+    args: Namespace
+          Arguments provided by the user
+    """
     if args.which_set in ('train', 'test'):
         dataset = norb.SmallNORB(args.which_set, True)
     else:
@@ -158,43 +217,7 @@ if __name__ == '__main__':
     args = parse_args()
     values, labels, which_set = get_data(args)
 
-    browser = SmallNorbBrowser()
-
-    browser.instance_index = norb.SmallNORB.label_type_to_index['instance']
-    browser.num_label_types = len(norb.SmallNORB.num_labels_by_type)
-    browser.current_labels = np.zeros(browser.num_label_types, 'int')
-    browser.current_label_type = [0, ]
-    browser.figure, browser.axes = pyplot.subplots(1, 2, squeeze=True)
-
-    browser.figure.canvas.set_window_title('Small NORB dataset (%sing set)' %
-                                           which_set)
-
-    # shift subplots down to make more room for the text
-    browser.figure.subplots_adjust(bottom=0.05)
-
-    browser.label_text = browser.figure.suptitle("title text",
-                                                 x=0.1,
-                                                 horizontalalignment="left")
-
-    browser.figure.canvas.mpl_connect('key_press_event', browser.on_key_press)
-
-    # For programming convenience, internally remap the instance labels to be
-    # 0-4, and the azimuth labels to be 0-17. The user will still only see the
-    # original, unmodified label values.
-    new_to_old_instance, new_labels = browser.remap_instances(which_set,
-                                                              labels)
-
-    # Maps a label vector to the corresponding index in <values>
-    browser.num_labels_by_type = np.array(norb.SmallNORB.num_labels_by_type,
-                                          'int')
-    instance_length = len(new_to_old_instance)
-    browser.num_labels_by_type[browser.instance_index] = instance_length
-
-    browser.label_to_index = np.ndarray(browser.num_labels_by_type, 'int')
-    browser.label_to_index.fill(-1)
-
-    for i, label in enumerate(new_labels):
-        browser.label_to_index[tuple(label)] = i
+    browser = SmallNorbBrowser(labels, which_set)
 
     # all elements have been set
     assert not np.any(browser.label_to_index == -1)

@@ -99,24 +99,21 @@ def test_stl10_whitened_output():
 
 def test_small_norb_browser_remap():
     """Test if the remapping of label and instances is correct"""
-    train_labels = numpy.asarray([[0, 8, 6, 4, 4], [0, 0, 0, 0, 0]])
-    test_labels = numpy.asarray([[2, 5, 8, 34, 5], [0, 0, 0, 0, 0]])
-    browser = browse_small_norb.SmallNorbBrowser()
+    train_labels = numpy.array([[0, 8, 6, 4, 4], [0, 0, 0, 0, 0]], 'int')
+    test_labels = numpy.array([[2, 5, 8, 34, 5], [0, 0, 0, 0, 0]], 'int')
 
-    browser.instance_index = norb.SmallNORB.label_type_to_index['instance']
-    train_instance, new_train_labels = browser.remap_instances('train',
-                                                               train_labels)
-    test_instance, new_test_labels = browser.remap_instances('test',
-                                                             test_labels)
+    browser_train = browse_small_norb.SmallNorbBrowser(train_labels, 'train')
+    browser_test = browse_small_norb.SmallNorbBrowser(test_labels, 'test')
 
-    assert new_train_labels[0, :].tolist() == [0, 3, 6, 2, 4]
-    assert train_instance == [4, 6, 7, 8, 9]
-    assert new_test_labels[0, :].tolist() == [2, 4, 8, 17, 5]
-    assert test_instance == [0, 1, 2, 3, 5]
+    assert browser_train.labels[0, :].tolist() == [0, 3, 6, 2, 4]
+    assert browser_train.new_to_old_instance == [4, 6, 7, 8, 9]
+    assert browser_test.labels[0, :].tolist() == [2, 4, 8, 17, 5]
+    assert browser_test.new_to_old_instance == [0, 1, 2, 3, 5]
 
 
 def test_small_norb_browser_get_new_azimuth():
     """Test the get_new_azimuth_degrees method"""
-    browser = browse_small_norb.SmallNorbBrowser()
+    labels = numpy.asarray([[0, 8, 6, 4, 4], [0, 0, 0, 0, 0]])
+    browser = browse_small_norb.SmallNorbBrowser(labels, 'train')
 
     assert browser.get_new_azimuth_degrees(4) == 80
