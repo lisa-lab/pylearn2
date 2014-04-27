@@ -10,18 +10,17 @@ from pylearn2.datasets import norb
 
 class SmallNorbBrowser():
 
-    def __init__(self, instance_index, current_labels, current_label_type,
-                 label_text, figure, axes, num_label_types):
-        self.instance_index = instance_index
-        self.current_labels = current_labels
-        self.new_to_old_instance = []
-        self.current_label_type = current_label_type
-        self.label_text = label_text
+    def __init__(self):
+        self.axes = []
+        self.current_labels = []
+        self.current_label_type = []
+        self.figure = None
+        self.instance_index = []
+        self.label_text = ''
         self.label_to_index = []
+        self.new_to_old_instance = []
         self.num_labels_by_type = []
-        self.num_label_types = num_label_types
-        self.figure = figure
-        self.axes = axes
+        self.num_label_types = 0
 
     def remap_instances(self, which_set, labels):
         if which_set == 'train':
@@ -83,7 +82,7 @@ class SmallNorbBrowser():
 
         def incr_label_type(step):
             self.current_label_type[0] = add_mod(self.current_label_type[0],
-                                                 step, num_label_types)
+                                                 step, self.num_label_types)
 
         def incr_label(step):
             lt = self.current_label_type[0]
@@ -159,26 +158,23 @@ if __name__ == '__main__':
     args = parse_args()
     values, labels, which_set = get_data(args)
 
-    instance_index = norb.SmallNORB.label_type_to_index['instance']
-    num_label_types = len(norb.SmallNORB.num_labels_by_type)
-    current_labels = np.zeros(num_label_types, 'int')
-    current_label_type = [0, ]
+    browser = SmallNorbBrowser()
 
-    figure, axes = pyplot.subplots(1, 2, squeeze=True)
+    browser.instance_index = norb.SmallNORB.label_type_to_index['instance']
+    browser.num_label_types = len(norb.SmallNORB.num_labels_by_type)
+    browser.current_labels = np.zeros(browser.num_label_types, 'int')
+    browser.current_label_type = [0, ]
+    browser.figure, browser.axes = pyplot.subplots(1, 2, squeeze=True)
 
-    figure.canvas.set_window_title('Small NORB dataset (%sing set)' %
-                                   which_set)
+    browser.figure.canvas.set_window_title('Small NORB dataset (%sing set)' %
+                                           which_set)
 
     # shift subplots down to make more room for the text
-    figure.subplots_adjust(bottom=0.05)
+    browser.figure.subplots_adjust(bottom=0.05)
 
-    label_text = figure.suptitle("title text",
-                                 x=0.1,
-                                 horizontalalignment="left")
-
-    browser = SmallNorbBrowser(instance_index, current_labels,
-                               current_label_type, label_text, figure, axes,
-                               num_label_types)
+    browser.label_text = browser.figure.suptitle("title text",
+                                                 x=0.1,
+                                                 horizontalalignment="left")
 
     browser.figure.canvas.mpl_connect('key_press_event', browser.on_key_press)
 
@@ -191,7 +187,8 @@ if __name__ == '__main__':
     # Maps a label vector to the corresponding index in <values>
     browser.num_labels_by_type = np.array(norb.SmallNORB.num_labels_by_type,
                                           'int')
-    browser.num_labels_by_type[instance_index] = len(new_to_old_instance)
+    instance_length = len(new_to_old_instance)
+    browser.num_labels_by_type[browser.instance_index] = instance_length
 
     browser.label_to_index = np.ndarray(browser.num_labels_by_type, 'int')
     browser.label_to_index.fill(-1)
