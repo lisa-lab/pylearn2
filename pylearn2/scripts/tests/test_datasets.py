@@ -23,7 +23,7 @@ from pylearn2.testing.datasets import ArangeDataset
 
 def dataset_output(dataset_script):
     """
-    Method to verify the creation of an output folder for a specific script
+    Function to verify the creation of an output folder for a specific script
 
     Parameters
     ----------
