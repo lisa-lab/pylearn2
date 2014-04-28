@@ -280,10 +280,10 @@ def save(filepath, obj, on_overwrite = 'ignore'):
             own implementation of pickle.
         """
         if str(e).find('recursion') != -1:
-            warnings.warn('pylearn2.utils.save encountered the following '
-                          'error: ' + str(e) +
-                          '\nAttempting to resolve this error by calling ' +
-                          'sys.setrecusionlimit and retrying')
+            logger.warning('pylearn2.utils.save encountered the following '
+                           'error: ' + str(e) +
+                           '\nAttempting to resolve this error by calling ' +
+                           'sys.setrecusionlimit and retrying')
             old_limit = sys.getrecursionlimit()
             try:
                 sys.setrecursionlimit(50000)

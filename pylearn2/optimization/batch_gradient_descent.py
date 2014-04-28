@@ -126,10 +126,6 @@ class BatchGradientDescent:
 
         self.verbose = verbose
 
-        # TODO: remove verbose statements (handled by logging)
-        if self.verbose > 0:
-            logger.setLevel(logging.DEBUG)
-
         param_to_grad_sym = OrderedDict()
         param_to_grad_shared = OrderedDict()
         updates = OrderedDict()
@@ -156,7 +152,7 @@ class BatchGradientDescent:
         self.param_to_grad_shared = param_to_grad_shared
 
         if self.verbose:
-            logger.debug('batch gradient class compiling gradient function')
+            logger.info('batch gradient class compiling gradient function')
         t1 = time.time()
         if self.accumulate:
             self._compute_grad = Accumulator(inputs, updates = updates)
@@ -166,10 +162,10 @@ class BatchGradientDescent:
                     name='BatchGradientDescent._compute_grad')
         if self.verbose:
             t2 = time.time()
-            logger.debug('done. Took {0}'.format(t2-t1))
+            logger.info('done. Took {0}'.format(t2-t1))
 
         if self.verbose:
-            logger.debug('batch gradient class compiling objective function')
+            logger.info('batch gradient class compiling objective function')
         if self.accumulate:
             self.obj = Accumulator(inputs, obj)
         else:
@@ -177,7 +173,7 @@ class BatchGradientDescent:
                     name='BatchGradientDescent.obj')
 
         if self.verbose:
-            logger.debug('done')
+            logger.info('done')
 
         self.param_to_cache = OrderedDict()
         alpha = T.scalar(name = 'alpha')
@@ -294,13 +290,13 @@ class BatchGradientDescent:
         """
 
         if self.verbose:
-            logger.debug('minimizing')
+            logger.info('minimizing')
         alpha_list = list( self.init_alpha )
 
         orig_obj = self.obj(*inputs)
 
         if self.verbose:
-            logger.debug(orig_obj)
+            logger.info(orig_obj)
 
         iters = 0
 
@@ -322,8 +318,8 @@ class BatchGradientDescent:
 
         while iters != self.max_iter:
             if self.verbose:
-                logger.debug('batch gradient descent iteration '
-                             '{0}'.format(iters))
+                logger.info('batch gradient descent iteration '
+                            '{0}'.format(iters))
             iters += 1
             self._cache_values()
             if self.conjugate:
@@ -341,7 +337,7 @@ class BatchGradientDescent:
                     self._goto_alpha(alpha)
                     obj = self.obj(*inputs)
                     if self.verbose:
-                        logger.debug('\t{0} {1}'.format(alpha, obj))
+                        logger.info('\t{0} {1}'.format(alpha, obj))
 
                     #Use <= rather than = so if there are ties
                     #the bigger step size wins
@@ -354,7 +350,7 @@ class BatchGradientDescent:
 
 
                 if self.verbose:
-                    logger.debug(best_obj)
+                    logger.info(best_obj)
 
                 assert not np.isnan(best_obj)
                 assert best_obj <= prev_best_obj
@@ -367,18 +363,18 @@ class BatchGradientDescent:
                 if best_alpha_ind < 1 and alpha_list[0] > self.tol:
                     alpha_list = [ alpha / 3. for alpha in alpha_list ]
                     if self.verbose:
-                        logger.debug('shrinking the step size')
+                        logger.info('shrinking the step size')
                 elif best_alpha_ind > len(alpha_list) -2:
                     alpha_list = [ alpha * 2. for alpha in alpha_list ]
                     if self.verbose:
-                        logger.debug('growing the step size')
+                        logger.info('growing the step size')
                 elif best_alpha_ind == -1 and alpha_list[0] <= self.tol:
                     if alpha_list[-1] > 1:
                         if self.verbose:
-                            logger.debug('converged')
+                            logger.info('converged')
                         break
                     if self.verbose:
-                        logger.debug('expanding the range of step sizes')
+                        logger.info('expanding the range of step sizes')
                     for i in xrange(len(alpha_list)):
                         for j in xrange(i,len(alpha_list)):
                             alpha_list[j] *= 1.5
@@ -396,7 +392,7 @@ class BatchGradientDescent:
                     if s.max() > max_gap:
                         weight = .99
                         if self.verbose:
-                            logger.debug('shrinking the range of step sizes')
+                            logger.info('shrinking the range of step sizes')
                         alpha_list = [ (alpha ** weight) * (best_alpha ** (1.-weight)) for alpha in alpha_list ]
                         assert all([second > first for first, second in safe_zip(alpha_list[:-1], alpha_list[1:])])
                         # y^(weight) best^(1-weight) / x^(weight) best^(1-weight) = (y/x)^weight
@@ -417,7 +413,7 @@ class BatchGradientDescent:
                 # and jumping to its local minima at each step
 
                 if self.verbose > 1:
-                    logger.debug('Exhaustive line search')
+                    logger.info('Exhaustive line search')
 
 
                 obj = self.obj(*inputs)
@@ -437,9 +433,9 @@ class BatchGradientDescent:
                     results.append( (alpha, obj) )
                 if self.verbose > 1:
                     for alpha, obj in results:
-                        logger.debug('\t{0} {1}'.format(alpha, obj))
+                        logger.info('\t{0} {1}'.format(alpha, obj))
 
-                    logger.debug('\t-------')
+                    logger.info('\t-------')
 
                 prev_improvement = 0.
                 while True:
@@ -452,7 +448,7 @@ class BatchGradientDescent:
                         self._goto_alpha(x)
                         res = self.obj(*inputs)
                         if self.verbose > 1:
-                            logger.debug('\t{0} {1}'.format(x, res))
+                            logger.info('\t{0} {1}'.format(x, res))
                         # Regard NaN results as infinitely bad so they won't be picked as the min objective
                         if np.isnan(res):
                             res = np.inf
@@ -495,7 +491,7 @@ class BatchGradientDescent:
                 # used for statistics gathering
                 step_size = x
                 if self.verbose:
-                    logger.debug('best objective: {0}'.format(mn))
+                    logger.info('best objective: {0}'.format(mn))
                 assert not np.isnan(mn)
 
                 if idx == 0:

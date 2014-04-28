@@ -10,7 +10,6 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
 import logging
-import warnings
 from theano import gof
 import theano.tensor as T
 import theano
@@ -381,9 +380,9 @@ class SuperWeightDoubling(WeightDoubling):
 
         dbm = self.dbm
 
-        warnings.warn("""Should add unit test that calling this with a batch of
-                different inputs should yield the same output for each if noise
-                is False and drop_mask is all 1s""")
+        """TODO: Should add unit test that calling this with a batch of
+                 different inputs should yield the same output for each
+                 if noise is False and drop_mask is all 1s"""
 
         if niter is None:
             niter = dbm.niter
@@ -668,10 +667,9 @@ class MoreConsistent2(WeightDoubling):
         """
 
         dbm = self.dbm
-
-        warnings.warn("""Should add unit test that calling this with a batch of
-                different inputs should yield the same output for each if noise
-                is False and drop_mask is all 1s""")
+        """TODO: Should add unit test that calling this with a batch of
+                 different inputs should yield the same output for each
+                 if noise is False and drop_mask is all 1s"""
 
         if niter is None:
             niter = dbm.niter
@@ -1013,9 +1011,9 @@ class BiasInit(InferenceProcedure):
 
         dbm = self.dbm
 
-        warnings.warn("""Should add unit test that calling this with a batch of
-                different inputs should yield the same output for each if noise
-                is False and drop_mask is all 1s""")
+        """TODO: Should add unit test that calling this with a batch of
+                 different inputs should yield the same output for each
+                 if noise is False and drop_mask is all 1s"""
 
         if niter is None:
             niter = dbm.niter
@@ -1287,9 +1285,9 @@ class UpDown(InferenceProcedure):
 
         model = self.dbm
 
-        warnings.warn("""Should add unit test that calling this with a batch of
-                different inputs should yield the same output for each if noise
-                is False and drop_mask is all 1s""")
+        """TODO: Should add unit test that calling this with a batch of
+                 different inputs should yield the same output for each
+                 if noise is False and drop_mask is all 1s"""
 
         if niter is None:
             niter = model.niter

@@ -60,6 +60,8 @@
         learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
             init_momentum: .5,
         },
+        train_iteration_mode: 'even_shuffled_sequential',
+        monitor_iteration_mode: 'even_sequential',
         monitoring_dataset:
             {
                 'valid' : !obj:pylearn2.datasets.mnist.MNIST {

@@ -107,7 +107,7 @@ class KMeans(Block, Model):
             mmd = prev_mmd = float('inf')
             while True:
                 if self.verbose:
-                    logger.debug('kmeans iter {0}'.format(iter))
+                    logger.info('kmeans iter {0}'.format(iter))
 
                 #print 'iter:',iter,' conv crit:',abs(mmd-prev_mmd)
                 #if numpy.sum(numpy.isnan(mu)) > 0:

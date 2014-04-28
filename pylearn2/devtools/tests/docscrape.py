@@ -700,7 +700,7 @@ def handle_class(val, class_name):
         ]
         # Get public methods and parse their docstrings
         methods = dict(((name, func) for name, func in inspect.getmembers(val)
-                        if not name.startswith('_') and callable(func)))
+                        if not name.startswith('_') and callable(func) and type(func) is not type))
         for m_name, method in methods.iteritems():
             cls_errors.extend(handle_method(method, m_name, class_name))
     return cls_errors
