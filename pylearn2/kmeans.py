@@ -8,6 +8,7 @@ from pylearn2.blocks import Block
 from pylearn2.models.model import Model
 from pylearn2.space import VectorSpace
 from pylearn2.utils import sharedX
+from pylearn2.utils.mem import TypicalMemoryError
 import warnings
 
 try:
@@ -96,9 +97,9 @@ class KMeans(Block, Model):
             try:
                 dists = numpy.zeros((n, k))
             except MemoryError:
-                logger.error("dying trying to allocate dists matrix ",
-                             "for {0} examples and {1} means".format(n, k))
-                raise
+                raise TypicalMemoryError("dying trying to allocate dists "
+                                         "matrix for {0} examples and {1} "
+                                         "means".format(n, k))
 
             old_kills = {}
 
@@ -106,7 +107,7 @@ class KMeans(Block, Model):
             mmd = prev_mmd = float('inf')
             while True:
                 if self.verbose:
-                    logger.debug('kmeans iter {0}'.format(iter))
+                    logger.info('kmeans iter {0}'.format(iter))
 
                 #print 'iter:',iter,' conv crit:',abs(mmd-prev_mmd)
                 #if numpy.sum(numpy.isnan(mu)) > 0:

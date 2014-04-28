@@ -1,0 +1,33 @@
+!obj:pylearn2.train.Train {
+    dataset: &train !obj:pylearn2.datasets.dataset.Dataset {},
+    model: !obj:pylearn2.models.mlp.MLP {
+        layers: [
+            !obj:pylearn2.models.mlp.Sigmoid {
+                layer_name: 'h0',
+                dim: 500,
+                sparse_init: 15,
+            }, !obj:pylearn2.models.mlp.Softmax {
+                layer_name: 'y',
+                n_classes: 10,
+                irange: 0.
+            }
+        ],
+        nvis: 784,
+    },
+    algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
+        batch_size: 10000,
+        line_search_mode: 'exhaustive',
+        conjugate: 1,
+        updates_per_batch: 10,
+        monitoring_dataset: {
+            'train': *train
+        },
+        termination_criterion: !obj:pylearn2.termination_criteria.And {
+            criteria: [
+                !obj:pylearn2.termination_criteria.EpochCounter {
+                    max_epochs: 10000
+                }
+            ]
+        }
+    }
+}

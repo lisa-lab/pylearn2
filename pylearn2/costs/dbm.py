@@ -207,15 +207,16 @@ class BaseCD(Cost):
         .. todo::
 
             WRITEME
+
+        TODO:reduce variance of negative phase by
+             integrating out the even-numbered layers. The
+             Rao-Blackwellize method can do this for you when
+             expected gradient = gradient of expectation, but
+             doing this in general is trickier.
         """
         params = list(model.get_params())
 
-        warnings.warn("""TODO: reduce variance of negative phase by
-                         integrating out the even-numbered layers. The
-                         Rao-Blackwellize method can do this for you when
-                         expected gradient = gradient of expectation, but
-                         doing this in general is trickier.""")
-        #layer_to_chains = model.rao_blackwellize(layer_to_chains)
+        # layer_to_chains = model.rao_blackwellize(layer_to_chains)
         expected_energy_p = model.energy(
             layer_to_chains[model.visible_layer],
             [layer_to_chains[layer] for layer in model.hidden_layers]

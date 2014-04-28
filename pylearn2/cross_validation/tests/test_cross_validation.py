@@ -83,6 +83,38 @@ def test_stratified_dataset_shuffle_split():
     trainer = yaml_parse.load(test_yaml_stratified_dataset_shuffle_split)
     trainer.main_loop()
 
+
+def test_which_set():
+    skip_if_no_sklearn()
+    skip_if_no_collections()
+
+    # one label
+    this_yaml = test_yaml_which_set % {'which_set': 'train'}
+    trainer = yaml_parse.load(this_yaml)
+    trainer.main_loop()
+
+    # multiple labels
+    this_yaml = test_yaml_which_set % {'which_set': ['train', 'test']}
+    trainer = yaml_parse.load(this_yaml)
+    trainer.main_loop()
+
+    # improper label (iterator only returns 'train' and 'test' subsets)
+    this_yaml = test_yaml_which_set % {'which_set': 'valid'}
+    try:
+        trainer = yaml_parse.load(this_yaml)
+        trainer.main_loop()
+        raise AssertionError
+    except ValueError:
+        pass
+
+    # bogus label (not in approved list)
+    this_yaml = test_yaml_which_set % {'which_set': 'bogus'}
+    try:
+        yaml_parse.load(this_yaml)
+        raise AssertionError
+    except ValueError:
+        pass
+
 test_yaml_layer0 = """
 !obj:pylearn2.cross_validation.TrainCV {
     dataset_iterator:
@@ -100,7 +132,7 @@ test_yaml_layer0 = """
         nvis: 64,
         nhid: 32,
         act_enc: 'sigmoid',
-        act_dec: null
+        act_dec: 'linear'
     },
     algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
         batch_size: 100,
@@ -138,7 +170,7 @@ test_yaml_layer1 = """
         nvis: 32,
         nhid: 16,
         act_enc: 'sigmoid',
-        act_dec: null
+        act_dec: 'linear'
     },
     algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
         batch_size: 100,
@@ -181,7 +213,7 @@ test_yaml_layer2 = """
         nvis: 16,
         nhid: 8,
         act_enc: 'sigmoid',
-        act_dec: null
+        act_dec: 'linear'
     },
     algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
         batch_size: 100,
@@ -262,7 +294,7 @@ test_yaml_dataset_k_fold = """
         nvis: 64,
         nhid: 32,
         act_enc: 'sigmoid',
-        act_dec: null
+        act_dec: 'linear'
     },
     algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
         batch_size: 100,
@@ -295,7 +327,7 @@ test_yaml_stratified_dataset_k_fold = """
         nvis: 64,
         nhid: 32,
         act_enc: 'sigmoid',
-        act_dec: null
+        act_dec: 'linear'
     },
     algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
         batch_size: 100,
@@ -328,7 +360,7 @@ test_yaml_dataset_shuffle_split = """
         nvis: 64,
         nhid: 32,
         act_enc: 'sigmoid',
-        act_dec: null
+        act_dec: 'linear'
     },
     algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
         batch_size: 100,
@@ -362,7 +394,41 @@ test_yaml_stratified_dataset_shuffle_split = """
         nvis: 64,
         nhid: 32,
         act_enc: 'sigmoid',
-        act_dec: null
+        act_dec: 'linear'
+    },
+    algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
+        batch_size: 100,
+        line_search_mode: 'exhaustive',
+        conjugate: 1,
+        termination_criterion:
+            !obj:pylearn2.termination_criteria.EpochCounter {
+                    max_epochs: 1,
+        },
+        cost: !obj:pylearn2.costs.autoencoder.MeanSquaredReconstructionError {
+        },
+    },
+}
+"""
+
+test_yaml_which_set = """
+!obj:pylearn2.cross_validation.TrainCV {
+    dataset_iterator:
+        !obj:pylearn2.cross_validation.dataset_iterators.DatasetKFold {
+        dataset:
+            !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix
+            {
+                rng: !obj:numpy.random.RandomState { seed: 1 },
+                num_examples: 1000,
+                dim: 64,
+                num_classes: 2,
+            },
+        which_set: %(which_set)s,
+    },
+    model: !obj:pylearn2.models.autoencoder.Autoencoder {
+        nvis: 64,
+        nhid: 32,
+        act_enc: 'sigmoid',
+        act_dec: 'linear'
     },
     algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
         batch_size: 100,

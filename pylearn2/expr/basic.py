@@ -234,6 +234,7 @@ def is_binary(x):
     """
     return np.all( (x == 0) + (x == 1))
 
+
 class Identity(Block):
     """
     A Block that computes the identity transformation. Mostly useful as a

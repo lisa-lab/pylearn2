@@ -31,6 +31,10 @@ class DatasetCV(object):
     index_iterator : iterable
         Iterable that returns (train, test) or (train, valid, test) indices
         for slicing the dataset during cross validation.
+    which_set : str, list or None
+        If None, return all subset datasets. If one or more of 'train',
+        'valid', or 'test', return only the dataset(s) corresponding to the
+        given subset(s).
     return_dict : bool
         Whether to return subset datasets as a dictionary. If True,
         returns a dict with keys 'train', 'valid', and/or 'test' (if
@@ -39,12 +43,21 @@ class DatasetCV(object):
         'train', 'valid', and 'test' are used). If False, returns a list of
         datasets matching the slice order given by index_iterator.
     """
-    def __init__(self, dataset, index_iterator, return_dict=True):
+    def __init__(self, dataset, index_iterator, which_set=None,
+                 return_dict=True):
         self.dataset = dataset
         self.index_iterator = list(index_iterator)  # allow reuse of generators
         dataset_iterator = dataset.iterator(mode='sequential', num_batches=1,
                                             data_specs=dataset.data_specs)
         self._data = tuple(dataset_iterator.next())
+        self.which_set = which_set
+        if which_set is not None:
+            which_set = np.atleast_1d(which_set)
+            assert len(which_set)
+            for label in which_set:
+                if label not in ['train', 'valid', 'test']:
+                    raise ValueError("Unrecognized subset '{}'".format(label))
+            self.which_set = which_set
         self.return_dict = return_dict
 
     def get_data_subsets(self):
@@ -67,7 +80,12 @@ class DatasetCV(object):
                 else:
                     X, = subset_data
                     y = None
-                data_subsets[labels[i]] = (X, y)
+                label = labels[i]
+                if self.which_set is None or label in self.which_set:
+                    data_subsets[labels[i]] = (X, y)
+            if not len(data_subsets):
+                raise ValueError("No matching dataset(s) for " +
+                                 "{}".format(self.which_set))
             yield data_subsets
 
     def __iter__(self):
@@ -157,6 +175,10 @@ class DatasetKFold(DatasetCV):
     ----------
     dataset : object
         Dataset to use for cross-validation.
+    which_set : str, list or None
+        If None, return all subset datasets. If one or more of 'train',
+        'valid', or 'test', return only the dataset(s) corresponding to the
+        given subset(s).
     n_folds : int
         Number of cross-validation folds.
     indices : bool
@@ -167,11 +189,11 @@ class DatasetKFold(DatasetCV):
     random_state : int or RandomState
         Random number generator used for shuffling.
     """
-    def __init__(self, dataset, n_folds=3, indices=None, shuffle=False,
-                 random_state=None):
+    def __init__(self, dataset, which_set=None, n_folds=3, indices=None,
+                 shuffle=False, random_state=None):
         n = dataset.X.shape[0]
         cv = KFold(n, n_folds, indices, shuffle, random_state)
-        super(DatasetKFold, self).__init__(dataset, cv)
+        super(DatasetKFold, self).__init__(dataset, cv, which_set)
 
 
 class StratifiedDatasetKFold(StratifiedDatasetCV):
@@ -182,16 +204,20 @@ class StratifiedDatasetKFold(StratifiedDatasetCV):
     ----------
     dataset : object
         Dataset to use for cross-validation.
+    which_set : str, list or None
+        If None, return all subset datasets. If one or more of 'train',
+        'valid', or 'test', return only the dataset(s) corresponding to the
+        given subset(s).
     n_folds : int
         Number of cross-validation folds.
     indices : bool
         Whether to return indices for dataset slicing. If false, returns
         a boolean mask.
     """
-    def __init__(self, dataset, n_folds=3, indices=None):
+    def __init__(self, dataset, which_set=None, n_folds=3, indices=None):
         y = self.get_y(dataset)
         cv = StratifiedKFold(y, n_folds, indices)
-        super(StratifiedDatasetKFold, self).__init__(dataset, cv)
+        super(StratifiedDatasetKFold, self).__init__(dataset, cv, which_set)
 
 
 class DatasetShuffleSplit(DatasetCV):
@@ -202,6 +228,10 @@ class DatasetShuffleSplit(DatasetCV):
     ----------
     dataset : object
         Dataset to use for cross-validation.
+    which_set : str, list or None
+        If None, return all subset datasets. If one or more of 'train',
+        'valid', or 'test', return only the dataset(s) corresponding to the
+        given subset(s).
     n_iter : int
         Number of shuffle-split iterations.
     test_size : float, int, or None
@@ -218,12 +248,12 @@ class DatasetShuffleSplit(DatasetCV):
     random_state : int or RandomState
         Random number generator used for shuffling.
     """
-    def __init__(self, dataset, n_iter=10, test_size=0.1, train_size=None,
-                 indices=True, random_state=None):
+    def __init__(self, dataset, which_set=None, n_iter=10, test_size=0.1,
+                 train_size=None, indices=True, random_state=None):
         n = dataset.X.shape[0]
         cv = ShuffleSplit(n, n_iter, test_size, train_size, indices,
                           random_state)
-        super(DatasetShuffleSplit, self).__init__(dataset, cv)
+        super(DatasetShuffleSplit, self).__init__(dataset, cv, which_set)
 
 
 class StratifiedDatasetShuffleSplit(StratifiedDatasetCV):
@@ -234,6 +264,10 @@ class StratifiedDatasetShuffleSplit(StratifiedDatasetCV):
     ----------
     dataset : object
         Dataset to use for cross-validation.
+    which_set : str, list or None
+        If None, return all subset datasets. If one or more of 'train',
+        'valid', or 'test', return only the dataset(s) corresponding to the
+        given subset(s).
     n_iter : int
         Number of shuffle-split iterations.
     test_size : float, int, or None
@@ -250,9 +284,10 @@ class StratifiedDatasetShuffleSplit(StratifiedDatasetCV):
     random_state : int or RandomState
         Random number generator used for shuffling.
     """
-    def __init__(self, dataset, n_iter=10, test_size=0.1, train_size=None,
-                 indices=True, random_state=None):
+    def __init__(self, dataset, which_set=None, n_iter=10, test_size=0.1,
+                 train_size=None, indices=True, random_state=None):
         y = self.get_y(dataset)
         cv = StratifiedShuffleSplit(y, n_iter, test_size, train_size, indices,
                                     random_state)
-        super(StratifiedDatasetShuffleSplit, self).__init__(dataset, cv)
+        super(StratifiedDatasetShuffleSplit, self).__init__(dataset, cv,
+                                                            which_set)
