@@ -4,7 +4,11 @@ import argparse
 import pickle
 import sys
 import numpy as np
-from matplotlib import pyplot
+import warnings
+try:
+    from matplotlib import pyplot
+except ImportError:
+    warning.warn('Could not import matplotlib')
 from pylearn2.datasets import norb
 
 
@@ -20,24 +24,15 @@ class SmallNorbBrowser(object):
                Dataset to browse (train or test).
     """
     def __init__(self, labels, which_set):
+        self.figure = None
+        self.axes = None
+        self.label_text = ''
         self.labels = labels
         self.which_set = which_set
         self.instance_index = norb.SmallNORB.label_type_to_index['instance']
         self.num_label_types = len(norb.SmallNORB.num_labels_by_type)
         self.current_labels = np.zeros(self.num_label_types, 'int')
         self.current_label_type = [0, ]
-        self.figure, self.axes = pyplot.subplots(1, 2, squeeze=True)
-
-        self.figure.canvas.set_window_title('Small NORB dataset (%sing set)' %
-                                            self.which_set)
-
-        # shift subplots down to make more room for the text
-        self.figure.subplots_adjust(bottom=0.05)
-
-        self.label_text = self.figure.suptitle("title text", x=0.1,
-                                               horizontalalignment="left")
-
-        self.figure.canvas.mpl_connect('key_press_event', self.on_key_press)
 
         # For programming convenience, internally remap the instance labels
         # to be 0-4, and the azimuth labels to be 0-17. The user will still
@@ -221,6 +216,15 @@ if __name__ == '__main__':
 
     # all elements have been set
     assert not np.any(browser.label_to_index == -1)
+
+    browser.figure, browser.axes = pyplot.subplots(1, 2, squeeze=True)
+    browser.figure.canvas.set_window_title('Small NORB dataset (%sing set)' %
+                                           browser.which_set)
+    # shift subplots down to make more room for the text
+    browser.figure.subplots_adjust(bottom=0.05)
+    browser.label_text = browser.figure.suptitle("title text", x=0.1,
+                                                 horizontalalignment="left")
+    browser.figure.canvas.mpl_connect('key_press_event', browser.on_key_press)
 
     browser.redraw(True, True)
 
