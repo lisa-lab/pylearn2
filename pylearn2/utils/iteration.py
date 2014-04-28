@@ -20,6 +20,7 @@ from __future__ import division
 import functools
 import inspect
 import numpy as np
+import warnings
 
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_zip, safe_izip, wraps
@@ -708,6 +709,11 @@ class FiniteDatasetIterator(object):
     -----
     See the documentation for :py:class:`SubsetIterator` for
     attribute documentation.
+
+    The dataset should provide a `get` method which accepts a tuple of source
+    identifiers and a list or slice of indexes and returns a tuple of batches
+    of examples, one for each source. The old interface using `get_data` is
+    deprecated and will become unsupported as of October 28, 2014.
     """
     def __init__(self, dataset, subset_iterator, data_specs=None,
                  return_tuple=False, convert=None):
@@ -748,6 +754,11 @@ class FiniteDatasetIterator(object):
         # If `dataset` is incompatible with the new interface, fall back to the
         # old interface
         if not hasattr(self._dataset, 'get'):
+            warnings.warn("dataset is using the old iterator interface which "
+                          "is deprecated and will become officially "
+                          "unsupported as of October 28, 2014. The dataset "
+                          "should implement a `get` method respecting the new "
+                          "interface.")
             all_data = self._dataset.get_data()
             if not isinstance(all_data, tuple):
                 all_data = (all_data,)
