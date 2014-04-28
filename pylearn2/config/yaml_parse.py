@@ -349,7 +349,7 @@ def multi_constructor_obj(loader, tag_suffix, node):
 
     for key in mapping.keys():
         if not isinstance(key, basestring):
-            message = "Received non string object (%s) as" \
+            message = "Received non string object (%s) as " \
                       "key in mapping." % str(key)
             raise TypeError(message)
 
