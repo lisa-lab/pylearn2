@@ -8,7 +8,7 @@ import warnings
 try:
     from matplotlib import pyplot
 except ImportError:
-    warning.warn('Could not import matplotlib')
+    warnings.warn('Could not import matplotlib')
 from pylearn2.datasets import norb
 
 
