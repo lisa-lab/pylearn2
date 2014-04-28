@@ -696,9 +696,8 @@ class MLP(Layer):
                       "fixed_var descr could increase the memory usage "
                       "though.")
 
-        if self.theano_rng is None:
-            self.theano_rng = rng.make_theano_rng(
-                rng_or_seed=None,
+        self.theano_rng = rng.make_theano_rng(
+                rng_or_seed=self.theano_rng,
                 default_seed=max(self.rng.randint(2 ** 15), 1),
                 which_method=["binomial"]
                 )
