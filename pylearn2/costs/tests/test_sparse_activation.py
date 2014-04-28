@@ -23,7 +23,7 @@ test_yaml = """
         nvis: 15,
         nhid: 30,
         act_enc: sigmoid,
-        act_dec: null
+        act_dec: linear,
     },
     algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
         batch_size: 100,
