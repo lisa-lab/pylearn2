@@ -520,9 +520,8 @@ class SparsePCA(_PCABase):
 
             WRITEME
         """
-        logger.warning('You should probably be using '
-                       'SparseMatPCA, unless your design matrix fits '
-                       'in memory.')
+        warnings.warn('You should probably be using SparseMatPCA, '
+                      'unless your design matrix fits in memory.')
 
         n, d = X.shape
         # Can't subtract a sparse vector from a sparse matrix, apparently,

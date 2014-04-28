@@ -1,5 +1,4 @@
 import os
-import logging
 import gc
 import warnings
 try:
@@ -51,8 +50,9 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
             mode = 'r'
         else:
             mode = 'r+'
-            logging.warning("Because path is not same as PYLEARN2_DATA_PATH "\
-                "be aware that data might have been modified or pre-processed.")
+            warnings.warn("Because path is not same as PYLEARN2_DATA_PATH "
+                          "be aware that data might have been "
+                          "modified or pre-processed.")
 
         if mode == 'r' and (scale or center or (start != None) or
                         (stop != None)):

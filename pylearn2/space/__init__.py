@@ -212,6 +212,8 @@ def _cast(arg, dtype):
         return theano.tensor.cast(arg, dtype)
     elif isinstance(arg, theano.sparse.SparseVariable):
         return theano.sparse.cast(arg, dtype)
+    elif isinstance(arg, theano.sandbox.cuda.var.CudaNdarrayVariable):
+        return arg
     else:
         raise TypeError("Unsupported arg type '%s'" % str(type(arg)))
 
@@ -265,6 +267,17 @@ class Space(object):
         """
         raise NotImplementedError("__eq__ not implemented in class %s." %
                                   type(self))
+
+    def get_batch_axis(self):
+        """
+        Returns the batch axis of the output space.
+
+        Return
+        ------
+        batch_axis : int
+            the axis of the batch in the output space.
+        """
+        return 0
 
     def __ne__(self, other):
         """
@@ -1518,6 +1531,7 @@ class Conv2DSpace(SimplyTypedSpace):
                  axes=None,
                  dtype='floatX',
                  **kwargs):
+
         super(Conv2DSpace, self).__init__(dtype, **kwargs)
 
         assert (channels is None) + (num_channels is None) == 1
@@ -1587,6 +1601,10 @@ class Conv2DSpace(SimplyTypedSpace):
                      self.num_channels,
                      self.axes,
                      self.dtype))
+
+    @functools.wraps(Space.get_batch_axis)
+    def get_batch_axis(self):
+        return self.axes.index('b')
 
     @functools.wraps(Space.get_origin)
     def get_origin(self):
