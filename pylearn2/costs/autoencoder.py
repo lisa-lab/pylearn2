@@ -200,7 +200,8 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
 class SparseActivation(DefaultDataSpecsMixin, Cost):
     """
     Regularize on KL divergence from desired average activation of each
-    hidden unit as described in Andrew Ng's CS294A Lecture Notes.
+    hidden unit as described in Andrew Ng's CS294A Lecture Notes. See
+    http://www.stanford.edu/class/cs294a/sparseAutoencoder_2011new.pdf.
 
     Parameters
     ----------
