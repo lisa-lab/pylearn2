@@ -85,6 +85,7 @@ def test_stratified_dataset_shuffle_split():
 
 
 def test_which_set():
+    """Test which_set selector."""
     skip_if_no_sklearn()
     skip_if_no_collections()
 
