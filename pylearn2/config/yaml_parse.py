@@ -346,10 +346,6 @@ def multi_constructor_obj(loader, tag_suffix, node):
 
     assert hasattr(mapping, 'keys')
     assert hasattr(mapping, 'values')
-    for key, val in mapping.iteritems():
-        if val is None:
-            message = "received None as the value for the key %s" % str(key)
-            raise TypeError(message)
 
     for key in mapping.keys():
         if not isinstance(key, basestring):
