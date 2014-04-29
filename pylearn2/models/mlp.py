@@ -428,6 +428,7 @@ class MLP(Layer):
             seed = [2013, 1, 4]
 
         self.seed = seed
+        self.theano_rng = None
         self.setup_rng()
 
         assert isinstance(layers, list)
