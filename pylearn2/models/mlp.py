@@ -37,6 +37,7 @@ from pylearn2.utils import safe_union
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
 from pylearn2.utils import wraps
+from pylearn2.utils import rng
 
 from pylearn2.expr.nnet import (kl, compute_precision,
                                     compute_recall, compute_f1)
@@ -334,6 +335,65 @@ class Layer(Model):
         raise NotImplementedError(str(type(self)) + " does not implement "
                 "set_input_space.")
 
+    def dropout_fprop(self, state_below, default_input_include_prob=0.5,
+                      input_include_probs=None, default_input_scale=2.,
+                      input_scales=None, per_example=True):
+        """
+        Returns the output of the layer, when applying Dropout to its
+        input. Each input to the layer is randomly included or excluded
+        for each example. The probability of inclusion is independent
+        for each input and each example. Each layer uses
+        `default_input_include_prob` unless that layer's name appears
+        as a key in input_include_probs, in which case the input
+        inclusion probability is given by the corresponding value.
+
+        Each feature is also multiplied by a scale factor.
+        The scale factor for each layer's input scale is determined by
+        the same scheme as the input probabilities.
+
+        Parameters
+        ----------
+        state_below : WRITEME
+            The input to the layer
+        default_input_include_prob : WRITEME
+        input_include_probs : WRITEME
+        default_input_scale : WRITEME
+        input_scales : WRITEME
+        per_example : bool, optional
+            Sample a different mask value for every example in a batch.
+            Defaults to `True`. If `False`, sample one mask per mini-batch.
+        """
+        if input_include_probs is None:
+            input_include_probs = {}
+
+        if input_scales is None:
+            input_scales = {}
+
+        layer_name = self.layer_name
+
+        if layer_name in input_include_probs:
+            include_prob = input_include_probs[layer_name]
+        else:
+            include_prob = default_input_include_prob
+
+        if layer_name in input_scales:
+            scale = input_scales[layer_name]
+        else:
+            scale = default_input_scale
+
+        state_below = apply_dropout(
+                state=state_below,
+                include_prob=include_prob,
+                theano_rng=self.mlp.theano_rng,
+                scale=scale,
+                mask_value=self.dropout_input_mask_value,
+                input_space=self.get_input_space(),
+                per_example=per_example
+        )
+        state_below = self.fprop(state_below)
+
+        return state_below
+
 
 class MLP(Layer):
     """
@@ -368,6 +428,7 @@ class MLP(Layer):
             seed = [2013, 1, 4]
 
         self.seed = seed
+        self.theano_rng = None
         self.setup_rng()
 
         assert isinstance(layers, list)
@@ -408,7 +469,9 @@ class MLP(Layer):
 
             WRITEME
         """
-        self.rng = np.random.RandomState(self.seed)
+        self.rng = rng.make_np_rng(rng_or_seed=self.seed,
+                                   default_seed=[2013, 1, 4],
+                                   which_method=["randint"])
 
     @wraps(Layer.get_default_cost)
     def get_default_cost(self):
@@ -600,6 +663,7 @@ class MLP(Layer):
 
         return self.layers[0].get_weights_topo()
 
+    @wraps(Layer.dropout_fprop)
     def dropout_fprop(self, state_below, default_input_include_prob=0.5,
                       input_include_probs=None, default_input_scale=2.,
                       input_scales=None, per_example=True):
@@ -635,40 +699,21 @@ class MLP(Layer):
                       "fixed_var descr could increase the memory usage "
                       "though.")
 
-        if input_include_probs is None:
-            input_include_probs = {}
-
-        if input_scales is None:
-            input_scales = {}
-
-        self._validate_layer_names(list(input_include_probs.keys()))
-        self._validate_layer_names(list(input_scales.keys()))
-
-        theano_rng = MRG_RandomStreams(max(self.rng.randint(2 ** 15), 1))
+        self.theano_rng = rng.make_theano_rng(
+                rng_or_seed=self.theano_rng,
+                default_seed=max(self.rng.randint(2 ** 15), 1),
+                which_method=["binomial"]
+                )
 
         for layer in self.layers:
-            layer_name = layer.layer_name
-
-            if layer_name in input_include_probs:
-                include_prob = input_include_probs[layer_name]
-            else:
-                include_prob = default_input_include_prob
-
-            if layer_name in input_scales:
-                scale = input_scales[layer_name]
-            else:
-                scale = default_input_scale
-
-            state_below = self.apply_dropout(
-                state=state_below,
-                include_prob=include_prob,
-                theano_rng=theano_rng,
-                scale=scale,
-                mask_value=layer.dropout_input_mask_value,
-                input_space=layer.get_input_space(),
-                per_example=per_example
-            )
-            state_below = layer.fprop(state_below)
+            state_below = layer.dropout_fprop(
+                      state_below,
+                      default_input_include_prob=default_input_include_prob,
+                      input_include_probs=input_include_probs,
+                      default_input_scale=default_input_scale,
+                      input_scales=input_scales,
+                      per_example=per_example
+                  )
 
         return state_below
 
@@ -813,52 +858,6 @@ class MLP(Layer):
         if return_all:
             return rlist
         return rval
-
-    def apply_dropout(self, state, include_prob, scale, theano_rng,
-                      input_space, mask_value=0, per_example=True):
-        """
-        .. todo::
-
-            WRITEME
-
-        Parameters
-        ----------
-        state: WRITEME
-        include_prob : WRITEME
-        scale : WRITEME
-        theano_rng : WRITEME
-        input_space : WRITEME
-        mask_value : WRITEME
-        per_example : bool, optional
-            Sample a different mask value for every example in a batch.
-            Defaults to `True`. If `False`, sample one mask per mini-batch.
-        """
-        if include_prob in [None, 1.0, 1]:
-            return state
-        assert scale is not None
-        if isinstance(state, tuple):
-            return tuple(self.apply_dropout(substate, include_prob,
-                                            scale, theano_rng, mask_value)
-                         for substate in state)
-        # TODO: all of this assumes that if it's not a tuple, it's
-        # a dense tensor. It hasn't been tested with sparse types.
-        # A method to format the mask (or any other values) as
-        # the given symbolic type should be added to the Spaces
-        # interface.
-        if per_example:
-            mask = theano_rng.binomial(p=include_prob, size=state.shape,
-                                       dtype=state.dtype)
-        else:
-            batch = input_space.get_origin_batch(1)
-            mask = theano_rng.binomial(p=include_prob, size=batch.shape,
-                                       dtype=state.dtype)
-            rebroadcast = T.Rebroadcast(*zip(xrange(batch.ndim),
-                                             [s == 1 for s in batch.shape]))
-            mask = rebroadcast(mask)
-        if mask_value == 0:
-            return state * mask * scale
-        else:
-            return T.switch(mask, state * scale, mask_value)
 
     @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
@@ -3726,6 +3725,24 @@ class CompositeLayer(Layer):
         for layer in self.layers:
             layer.set_mlp(mlp)
 
+    @wraps(Layer.dropout_fprop)
+    def dropout_fprop(self, state_below, default_input_include_prob=0.5,
+                      input_include_probs=None, default_input_scale=2.,
+                      input_scales=None, per_example=True):
+
+        state_below = tuple(
+                    layer.dropout_fprop(
+                        state_below,
+                        default_input_include_prob=default_input_include_prob,
+                        input_include_probs=input_include_probs,
+                        default_input_scale=default_input_scale,
+                        input_scales=input_scales,
+                        per_example=per_example
+                    )
+                    for layer in self.layers
+                )
+
+        return state_below
 
 class FlattenerLayer(Layer):
     """
@@ -3812,6 +3829,22 @@ class FlattenerLayer(Layer):
 
         return self.raw_layer.get_weights()
 
+    @wraps(Layer.dropout_fprop)
+    def dropout_fprop(self, state_below, default_input_include_prob=0.5,
+                      input_include_probs=None, default_input_scale=2.,
+                      input_scales=None, per_example=True):
+
+        raw = self.raw_layer.dropout_fprop(
+                      state_below,
+                      default_input_include_prob=default_input_include_prob,
+                      input_include_probs=input_include_probs,
+                      default_input_scale=default_input_scale,
+                      input_scales=input_scales,
+                      per_example=per_example
+                  )
+
+        return self.raw_layer.get_output_space().format_as(raw,
+                                                           self.output_space)
 
 class WindowLayer(Layer):
     """
@@ -3880,6 +3913,53 @@ class WindowLayer(Layer):
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
         return []
+
+
+def apply_dropout(state, include_prob, scale, theano_rng,
+                  input_space, mask_value=0, per_example=True):
+        """
+        Apply Dropout
+
+        Parameters
+        ----------
+        state: Layer input/output to which we want to apply dropout.
+        include_prob : The probability of keeping an unit. Do not apply
+            Dropout if is None or 1.
+        scale : To which scalar the non-dropped units are multiplied.
+        theano_rng : WRITEME
+        input_space : WRITEME
+        mask_value : Replaces the values of the dropped units with this
+            value. Defaults to 0.
+        per_example : bool, optional
+            Sample a different mask value for every example in a batch.
+            Defaults to `True`. If `False`, sample one mask per mini-batch.
+        """
+        if include_prob in [None, 1.0, 1]:
+            return state
+        assert scale is not None
+        if isinstance(state, tuple):
+            return tuple(apply_dropout(substate, include_prob,
+                                       scale, theano_rng, mask_value)
+                         for substate in state)
+        # TODO: all of this assumes that if it's not a tuple, it's
+        # a dense tensor. It hasn't been tested with sparse types.
+        # A method to format the mask (or any other values) as
+        # the given symbolic type should be added to the Spaces
+        # interface.
+        if per_example:
+            mask = theano_rng.binomial(p=include_prob, size=state.shape,
+                                       dtype=state.dtype)
+        else:
+            batch = input_space.get_origin_batch(1)
+            mask = theano_rng.binomial(p=include_prob, size=batch.shape,
+                                       dtype=state.dtype)
+            rebroadcast = T.Rebroadcast(*zip(xrange(batch.ndim),
+                                             [s == 1 for s in batch.shape]))
+            mask = rebroadcast(mask)
+        if mask_value == 0:
+            return state * mask * scale
+        else:
+            return T.switch(mask, state * scale, mask_value)
 
 
 def generate_dropout_mask(mlp, default_include_prob=0.5,
