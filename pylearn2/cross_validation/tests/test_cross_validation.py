@@ -122,6 +122,14 @@ def test_which_set():
     except ValueError:
         pass
 
+
+def test_no_targets():
+    """Test cross-validation without targets."""
+    skip_if_no_sklearn()
+    skip_if_no_collections()
+    trainer = yaml_parse.load(test_yaml_no_targets)
+    trainer.main_loop()
+
 test_yaml_layer0 = """
 !obj:pylearn2.cross_validation.TrainCV {
     dataset_iterator:
@@ -330,6 +338,39 @@ test_yaml_which_set = """
                 num_classes: 2,
             },
         which_set: %(which_set)s,
+    },
+    model: !obj:pylearn2.models.autoencoder.Autoencoder {
+        nvis: 64,
+        nhid: 32,
+        act_enc: 'sigmoid',
+        act_dec: 'linear'
+    },
+    algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
+        batch_size: 100,
+        line_search_mode: 'exhaustive',
+        conjugate: 1,
+        termination_criterion:
+            !obj:pylearn2.termination_criteria.EpochCounter {
+                    max_epochs: 1,
+        },
+        cost: !obj:pylearn2.costs.autoencoder.MeanSquaredReconstructionError {
+        },
+    },
+}
+"""
+
+test_yaml_no_targets = """
+!obj:pylearn2.cross_validation.TrainCV {
+    dataset_iterator:
+        !obj:pylearn2.cross_validation.dataset_iterators.DatasetKFold {
+        dataset:
+            !obj:pylearn2.testing.datasets.random_dense_design_matrix
+            {
+                rng: !obj:numpy.random.RandomState { seed: 1 },
+                num_examples: 1000,
+                dim: 64,
+                num_classes: 0,
+            },
     },
     model: !obj:pylearn2.models.autoencoder.Autoencoder {
         nvis: 64,

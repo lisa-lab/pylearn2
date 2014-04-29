@@ -47,8 +47,9 @@ class DatasetCV(object):
         self.dataset = dataset
         self.subset_iterator = list(subset_iterator)  # allow generator reuse
         dataset_iterator = dataset.iterator(mode='sequential', num_batches=1,
-                                            data_specs=dataset.data_specs)
-        self._data = tuple(dataset_iterator.next())
+                                            data_specs=dataset.data_specs,
+                                            return_tuple=True)
+        self._data = dataset_iterator.next()
         self.which_set = which_set
         if which_set is not None:
             which_set = np.atleast_1d(which_set)
