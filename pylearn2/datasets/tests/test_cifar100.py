@@ -7,9 +7,19 @@ from pylearn2.testing.skip import skip_if_no_data
 
 
 class TestCIFAR100(unittest.TestCase):
-    """class for testing datasets/cifar100.py"""
+    """
+    Class for testing datasets/cifar100.py
+
+    Parameters
+    ----------
+    """
     def setUp(self):
-        """TestCIFAR100 setUp"""
+        """
+        TestCIFAR100 setUp
+
+        Parameters
+        ----------
+        """
         skip_if_no_data()
         train_set = CIFAR100(which_set='train')
         self.test_set = CIFAR100(which_set='test')
@@ -19,24 +29,45 @@ class TestCIFAR100(unittest.TestCase):
         assert not np.any(np.isinf(self.test_set.X))
 
     def test_adjust_for_viewer(self):
-        """test adjust_for_viewer"""
+        """
+        test adjust_for_viewer
+
+        Parameters
+        ----------
+        """
         self.test_set.adjust_for_viewer(self.test_set.X)
 
     def test_adjust_to_be_viewed_with(self):
-        """tests adjust_to_be_viewed_with method"""
+        """
+        tests adjust_to_be_viewed_with method
+
+        Parameters
+        ----------
+        """
         self.test_set.adjust_to_be_viewed_with(
             self.test_set.X,
             np.ones(self.test_set.X.shape))
 
     def test_get_test_set(self):
-        """tests get_test_set method"""
+        """
+        tests get_test_set method
+
+        Parameters
+        ----------
+        """
         train_test_set = self.test_set.get_test_set()
         test_test_set = self.test_set.get_test_set()
         assert np.all(train_test_set.X == test_test_set.X)
         assert np.all(train_test_set.X == self.test_set.X)
 
     def test_topo(self):
-        """Tests that a topological batch has 4 dimensions"""
+        """
+        Tests that a topological batch has 4 dimensions
+
+        Parameters
+        ----------
+        """
+
         topo = self.test_set.get_batch_topo(1)
         assert topo.ndim == 4
 
@@ -45,6 +76,9 @@ class TestCIFAR100(unittest.TestCase):
         Tests that a topological batch with axes ('c',0,1,'b')
         can be dimshuffled back to match the standard ('b',0,1,'c')
         format.
+
+        Parameters
+        ----------
         """
         batch_size = 100
         c01b_test = CIFAR100(which_set='test', axes=('c', 0, 1, 'b'))
@@ -67,6 +101,9 @@ class TestCIFAR100(unittest.TestCase):
 
         Also check that samples from iterators with the same data_specs
         with Conv2DSpace do not depend on the axes of the dataset
+
+        Parameters
+        ----------
         """
         batch_size = 100
         b01c_X = self.test_set.X[0:batch_size, :]
