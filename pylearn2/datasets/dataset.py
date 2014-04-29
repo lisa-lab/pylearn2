@@ -157,6 +157,6 @@ class Dataset(object):
         The first index is over different examples, and has length
         batch_size. The next indices are the topologically significant
         dimensions of the data, i.e. for images, image rows followed by
-        image columns.  The last index is over separate channels.
-        """
-        raise NotImplementedError()
+        image columns.	The last index is over separate channels.
+	"""
+	raise NotImplementedError()
