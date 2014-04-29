@@ -1,8 +1,6 @@
 """
 Tests for cross-validation module.
 """
-__author__ = "Steven Kearnes"
-
 import os
 import tempfile
 

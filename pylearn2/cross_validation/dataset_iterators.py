@@ -81,6 +81,7 @@ class DatasetCV(object):
                     X, = subset_data
                     y = None
                 label = labels[i]
+                print "DATASET", label, X.shape
                 if self.which_set is None or label in self.which_set:
                     data_subsets[labels[i]] = (X, y)
             if not len(data_subsets):
@@ -189,7 +190,7 @@ class DatasetKFold(DatasetCV):
     random_state : int or RandomState
         Random number generator used for shuffling.
     """
-    def __init__(self, dataset, which_set=None, n_folds=3, indices=None,
+    def __init__(self, dataset, which_set=None, n_folds=3, indices=True,
                  shuffle=False, random_state=None):
         n = dataset.X.shape[0]
         cv = KFold(n, n_folds, indices, shuffle, random_state)
@@ -214,7 +215,7 @@ class StratifiedDatasetKFold(StratifiedDatasetCV):
         Whether to return indices for dataset slicing. If false, returns
         a boolean mask.
     """
-    def __init__(self, dataset, which_set=None, n_folds=3, indices=None):
+    def __init__(self, dataset, which_set=None, n_folds=3, indices=True):
         y = self.get_y(dataset)
         cv = StratifiedKFold(y, n_folds, indices)
         super(StratifiedDatasetKFold, self).__init__(dataset, cv, which_set)
