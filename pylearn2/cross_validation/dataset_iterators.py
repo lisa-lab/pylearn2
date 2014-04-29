@@ -81,7 +81,6 @@ class DatasetCV(object):
                     X, = subset_data
                     y = None
                 label = labels[i]
-                print "DATASET", label, X.shape
                 if self.which_set is None or label in self.which_set:
                     data_subsets[labels[i]] = (X, y)
             if not len(data_subsets):
