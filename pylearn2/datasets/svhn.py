@@ -161,11 +161,16 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
         def split_train_valid(path, num_valid_train = 400,
                                     num_valid_extra = 200):
-            """ Extract number of class balanced samples from train and extra
+            """
+            Extract number of class balanced samples from train and extra
             sets for validation, and regard the remaining as new train set.
 
-            num_valid_train: Number of samples per class from train
-            num_valid_extra: Number of samples per class from extra
+            Parameters
+            ----------
+            num_valid_train : int, optional
+                Number of samples per class from train
+            num_valid_extra : int, optional
+                Number of samples per class from extra
             """
 
             # load difficult train
@@ -376,12 +381,16 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
 
         def split_train_valid(path, num_valid_train = 400,
                                     num_valid_extra = 200):
-            """ 
+            """
             Extract number of class balanced samples from train and extra
             sets for validation, and regard the remaining as new train set.
 
-            num_valid_train: Number of samples per class from train
-            num_valid_extra: Number of samples per class from extra
+            Parameters
+            ----------
+            num_valid_train : int, optional
+                Number of samples per class from train
+            num_valid_extra : int, optional
+                Number of samples per class from extra
             """
 
             # load difficult train
