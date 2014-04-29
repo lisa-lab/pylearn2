@@ -3,13 +3,11 @@ Cross-validation dataset iterators.
 """
 import numpy as np
 import warnings
-
 try:
     from sklearn.cross_validation import (KFold, StratifiedKFold, ShuffleSplit,
                                           StratifiedShuffleSplit)
 except ImportError:
     warnings.warn("Could not import from sklearn.")
-
 try:
     from collections import OrderedDict
 except ImportError:
@@ -47,7 +45,7 @@ class DatasetCV(object):
     def __init__(self, dataset, subset_iterator, which_set=None,
                  return_dict=True):
         self.dataset = dataset
-        self.subset_iterator = list(subset_iterator)  # allow reuse of generators
+        self.subset_iterator = list(subset_iterator)  # allow generator reuse
         dataset_iterator = dataset.iterator(mode='sequential', num_batches=1,
                                             data_specs=dataset.data_specs)
         self._data = tuple(dataset_iterator.next())
