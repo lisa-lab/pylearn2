@@ -86,7 +86,9 @@ class Reader(object):
             yield line
 
 class NumpyDocString(object):
-    def __init__(self, docstring):
+    def __init__(self, docstring, name=None):
+        if name:
+            self.name = name
         docstring = docstring.split('\n')
 
         # De-indent paragraph
@@ -385,8 +387,12 @@ class NumpyDocString(object):
         self._doc.reset()
         for j, line in enumerate(self._doc):
             if len(line) > 75:
-                errors.append("Line %d exceeds 75 chars"
-                        ": \"%s\"..." % (j+1, line[:30]))
+                if hasattr(self, 'name'):
+                    errors.append("%s: Line %d exceeds 75 chars"
+                            ": \"%s\"..." % (self.name, j+1, line[:30]))
+                else:
+                    errors.append("Line %d exceeds 75 chars"
+                                  ": \"%s\"..." % (j+1, line[:30]))
 
         if check_order:
             canonical_order = ['Signature', 'Summary', 'Extended Summary',
@@ -696,7 +702,7 @@ def handle_class(val, class_name):
     else:
         cls_errors = [
             (e,) for e in
-            NumpyClassDocString(docstring).get_errors()
+            NumpyClassDocString(docstring, class_name).get_errors()
         ]
         # Get public methods and parse their docstrings
         methods = dict(((name, func) for name, func in inspect.getmembers(val)

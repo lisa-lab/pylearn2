@@ -117,7 +117,7 @@ def test_multi_constructor_obj():
     try:
         loaded = load("a: !obj:decimal.Decimal { 1 }")
     except TypeError as e:
-        assert str(e) == "received None as the value for the key 1"
+        assert str(e) == "Received non string object (1) as key in mapping."
         pass
     except Exception, e:
         error_msg = "Got the unexpected error: %s" % (e)
@@ -189,6 +189,22 @@ def test_duplicate_keywords_2():
     }"""
 
     loaded = load(yamlfile)
+
+def test_parse_null_as_none():
+    """
+    Tests whether None may be passed via yaml kwarg null.
+    """ 
+    initialize()
+    yamlfile = """{
+             "model": !obj:pylearn2.models.autoencoder.Autoencoder {
+
+                 "nvis" : 1024,
+                 "nhid" : 64,
+                 "act_enc" : Null,
+                 "act_dec" : null
+
+             }
+    }"""
 
 if __name__ == "__main__":
     test_multi_constructor_obj()
