@@ -28,9 +28,9 @@ class DatasetCV(object):
     ----------
     dataset : object
         Full dataset for use in cross validation.
-    index_iterator : iterable
+    subset_iterator : iterable
         Iterable that returns (train, test) or (train, valid, test) indices
-        for slicing the dataset during cross validation.
+        or masks for partitioning the dataset during cross-validation.
     which_set : str, list or None
         If None, return all subset datasets. If one or more of 'train',
         'valid', or 'test', return only the dataset(s) corresponding to the
@@ -38,15 +38,16 @@ class DatasetCV(object):
     return_dict : bool
         Whether to return subset datasets as a dictionary. If True,
         returns a dict with keys 'train', 'valid', and/or 'test' (if
-        index_iterator returns two slices per partition, 'train' and 'test'
-        are used, and if index_iterator returns three slices per partition,
-        'train', 'valid', and 'test' are used). If False, returns a list of
-        datasets matching the slice order given by index_iterator.
+        subset_iterator returns two subsets per partition, 'train' and
+        'test' are used, and if subset_iterator returns three subsets per
+        partition, 'train', 'valid', and 'test' are used). If False,
+        returns a list of datasets matching the subset order given by
+        subset_iterator.
     """
-    def __init__(self, dataset, index_iterator, which_set=None,
+    def __init__(self, dataset, subset_iterator, which_set=None,
                  return_dict=True):
         self.dataset = dataset
-        self.index_iterator = list(index_iterator)  # allow reuse of generators
+        self.subset_iterator = list(subset_iterator)  # allow reuse of generators
         dataset_iterator = dataset.iterator(mode='sequential', num_batches=1,
                                             data_specs=dataset.data_specs)
         self._data = tuple(dataset_iterator.next())
@@ -65,7 +66,7 @@ class DatasetCV(object):
         Partition the dataset according to cross-validation subsets and
         return the raw data in each subset.
         """
-        for subsets in self.index_iterator:
+        for subsets in self.subset_iterator:
             labels = None
             if len(subsets) == 3:
                 labels = ['train', 'valid', 'test']
