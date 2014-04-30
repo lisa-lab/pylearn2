@@ -147,6 +147,7 @@ class Dataset(object):
             library.
 
         """
+        # now I add a really way too much long line that exceeds 79 caracters and format test should fail
         raise NotImplementedError(str(type(self))+" does not implement "
                 "get_batch_design.")
 
