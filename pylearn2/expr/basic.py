@@ -126,17 +126,21 @@ def symGivens2(a, b):
 
     * This method gives c and s such that
 
-      [ c  s ][a] = [d],
-      [ s -c ][b]   [0]
+      .. math::
+
+          \\begin{pmatrix} c & s \\\ s & -c \\end{pmatrix}
+          \\begin{pmatrix} a \\\ b \\end{pmatrix} =
+          \\begin{pmatrix} d \\\ 0 \\end{pmatrix}
 
       where
 
-      d = two norm of vector [a, b],
-      c = a / sqrt(a^2 + b^2) = a / d,
-      s = b / sqrt(a^2 + b^2) = b / d.
+      :math:`d = \\left\Vert \\begin{pmatrix} a \\\ b \\end{pmatrix}
+      \\right\Vert _{2}`,
+      :math:`c = a / \sqrt{a^2 + b^2} = a / d`,
+      :math:`s = b / \sqrt{a^2 + b^2} = b / d`.
 
       The implementation guards against overflow in computing
-      sqrt(a^2 + b^2).
+      :math:`\sqrt{a^2 + b^2}`.
 
     * Observation: Implementing this function as a single op in C might
       improve speed considerably .
