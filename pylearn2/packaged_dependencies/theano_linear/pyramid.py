@@ -7,6 +7,7 @@ import logging
 import sys
 import numpy
 import theano
+import warnings
 from theano.gof import Variable, Op, utils, Type, Constant,  Value, Apply
 from theano.tensor import as_tensor_variable
 
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 try:
     import cv
 except ImportError:
-    logger.warning("cv not available")
+    warnings.warn("cv not available")
 
 
 def cv_available():

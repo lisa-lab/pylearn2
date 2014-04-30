@@ -229,7 +229,7 @@ yaml_string_maxout_conv_c01b_cifar10 = """
             stop: 50000
         },
         model: !obj:pylearn2.models.mlp.MLP {
-            batch_size: 128,
+            batch_size: 100,
             input_space: !obj:pylearn2.space.Conv2DSpace {
                 shape: [32, 32],
                 num_channels: 3,
@@ -262,7 +262,7 @@ yaml_string_maxout_conv_c01b_cifar10 = """
                     ],
         },
         algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
-            batch_size: 128,
+            batch_size: 100,
             learning_rate: .01,
             init_momentum: .9,
             monitoring_dataset:

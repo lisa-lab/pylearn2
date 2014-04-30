@@ -13,6 +13,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
+import logging
 import numpy as np
 import warnings
 
@@ -22,6 +23,10 @@ from pylearn2.utils import sharedX
 from pylearn2.utils.rng import make_np_rng
 from pylearn2.linear.conv2d import default_seed, default_sparse_seed
 from pylearn2.linear.linear_transform import LinearTransform
+
+
+logger = logging.getLogger(__name__)
+
 
 class Local(LinearTransform, LocalDot):
     """
@@ -49,7 +54,10 @@ class Local(LinearTransform, LocalDot):
                  message='', partial_sum=None):
         self.input_groups = input_groups
 
-        warnings.warn("Local ignores partial_sum argument, TODO figure out how James' code controls it")
+        """TODO: Local ignores partial_sum argument,
+                 figure out how James' code controls it"""
+
+        logger.warning("partial_sum argument ignored")
 
         LocalDot.__init__(self,
             filters=filters,
