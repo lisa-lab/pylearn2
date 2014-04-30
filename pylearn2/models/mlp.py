@@ -87,6 +87,8 @@ class Layer(Model):
 
     def get_mlp(self):
         """
+        Returns the MLP that this layer belongs to.
+
         Returns
         -------
         mlp : MLP
@@ -526,12 +528,14 @@ class MLP(Layer):
 
         return rval
 
-    @wraps(Layer.get_monitoring_data_specs)
     def get_monitoring_data_specs(self):
         """
-        Notes
-        -----
-        In this case, we want the inputs and targets.
+        Returns data specs requiring both inputs and targets.
+
+        Returns
+        -------
+        data_specs: TODO
+            The data specifications for both inputs and targets.
         """
         space = CompositeSpace((self.get_input_space(),
                                 self.get_output_space()))
@@ -2131,17 +2135,8 @@ class Sigmoid(Linear):
 
     def kl(self, Y, Y_hat):
         """
-        Warning: This function expects a sigmoid nonlinearity in the
-        output layer and it uses kl function under pylearn2/expr/nnet/.
-        Returns a batch (vector) of mean across units of KL
-        divergence for each example,
-        KL(P || Q) where P is defined by Y and Q is defined by Y_hat:
+        Computes the KL divergence.
 
-        p log p - p log q + (1-p) log (1-p) - (1-p) log (1-q)
-        For binary p, some terms drop out:
-        - p log q - (1-p) log (1-q)
-        - p log sigmoid(z) - (1-p) log sigmoid(-z)
-        p softplus(-z) + (1-p) softplus(z)
 
         Parameters
         ----------
@@ -2159,6 +2154,20 @@ class Sigmoid(Linear):
         -------
         ave : Variable
             average kl divergence between Y and Y_hat.
+
+        Notes
+        -----
+        Warning: This function expects a sigmoid nonlinearity in the
+        output layer and it uses kl function under pylearn2/expr/nnet/.
+        Returns a batch (vector) of mean across units of KL
+        divergence for each example,
+        KL(P || Q) where P is defined by Y and Q is defined by Y_hat:
+
+        p log p - p log q + (1-p) log (1-p) - (1-p) log (1-q)
+        For binary p, some terms drop out:
+        - p log q - (1-p) log (1-q)
+        - p log sigmoid(z) - (1-p) log sigmoid(-z)
+        p softplus(-z) + (1-p) softplus(z)
         """
         batch_axis = self.output_space.get_batch_axis()
         div = kl(Y=Y, Y_hat=Y_hat, batch_axis=batch_axis)
@@ -2462,6 +2471,11 @@ class IdentityConvNonlinearity(ConvNonlinearity):
 class RectifierConvNonlinearity(ConvNonlinearity):
     """
     A simple rectifier nonlinearity class for convolutional layers.
+
+    Parameters
+    ----------
+    left_slope : float
+        The slope of the left half of the activation function.
     """
     def __init__(self, left_slope=0.0):
         """
@@ -2487,16 +2501,15 @@ class RectifierConvNonlinearity(ConvNonlinearity):
 class SigmoidConvNonlinearity(ConvNonlinearity):
     """
     Sigmoid nonlinearity class for convolutional layers.
+
+    Parameters
+    ----------
+    monitor_style : str, optional
+        default monitor_style is "classification".
+        This determines whether to do classification or detection.
     """
 
     def __init__(self, monitor_style="classification"):
-        """
-        Parameters
-        ----------
-        monitor_style : str, optional
-            default monitor_style is "classification".
-            This determines whether to do classification or detection.
-        """
         assert monitor_style in ['classification', 'detection']
         self.monitor_style = monitor_style
         self.non_lin_name = "sigmoid"
@@ -3003,6 +3016,23 @@ class ConvElemwise(Layer):
 
     def cost(self, Y, Y_hat):
         """
+        Cost for convnets is hardcoded to be the cost for sigmoids.
+        TODO: move the cost into the non-linearity class.
+
+        Parameters
+        ----------
+        Y : theano.gof.Variable
+            Output of `fprop`
+        Y_hat : theano.gof.Variable
+            Targets
+
+        Returns
+        -------
+        cost : theano.gof.Variable
+            0-D tensor describing the cost
+
+        Notes
+        -----
         Cost mean across units, mean across batch of KL divergence
         KL(P || Q) where P is defined by Y and Q is defined by Y_hat
         KL(P || Q) = p log p - p log q + (1-p) log (1-p) - (1-p) log (1-q)

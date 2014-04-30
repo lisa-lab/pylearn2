@@ -26,6 +26,8 @@ class Model(object):
 
     def get_default_cost(self):
         """
+        Returns the default cost to use with this model.
+
         Returns
         -------
         default_cost : Cost
@@ -152,9 +154,11 @@ class Model(object):
         actually need data (for instance, if they only monitor functions
         of the model's parameters).
 
-        .. todo::
+        Returns
+        -------
+        data_specs : TODO WRITEME
+            TODO WRITEME
 
-            WRITEME properly
         """
         return (NullSpace(), '')
 
@@ -171,6 +175,9 @@ class Model(object):
 
     def get_weights(self):
         """
+        Returns the weights (of the first layer if more than one layer is
+        present).
+
         Returns
         -------
         weights : ndarray
@@ -187,6 +194,9 @@ class Model(object):
 
     def get_weights_format(self):
         """
+        Returns a description of how to interpret the return value of
+        `get_weights`.
+
         Returns
         -------
         format : tuple
