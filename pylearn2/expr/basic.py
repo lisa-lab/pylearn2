@@ -199,7 +199,9 @@ def sqrt_inner_product(xs, ys=None):
     Parameters
     ----------
     xs : list of theano expressions
-    ys : None or list of theano expressions
+        WRITEME
+    ys : None or list of theano expressions, optional
+        WRITEME
     """
     if ys is None:
         ys = [x for x in xs]
@@ -222,7 +224,9 @@ def inner_product(xs, ys=None):
     Parameters
     ----------
     xs : list of theano expressions
-    ys : None or list of theano expressions
+        WRITEME
+    ys : None or list of theano expressions, optional
+        WRITEME
     """
     if ys is None:
         ys = [x for x in xs]
