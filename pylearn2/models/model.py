@@ -7,6 +7,7 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
 from itertools import izip as izip_no_length_check
+import warnings
 
 from theano.compat.python2x import OrderedDict
 from theano import tensor as T
@@ -19,10 +20,65 @@ from pylearn2.utils.track_version import MetaLibVersion
 class Model(object):
     """
     A class representing a model with learnable parameters.
+
+    Parameters
+    ----------
+    extensions : list of ModelExtension
+        Plugins to extend the model's functionality
     """
 
     __metaclass__ = MetaLibVersion
     _test_batch_size = 2
+
+    def __init__(self, extensions = None):
+        if extensions is None:
+            extensions = []
+
+        self.__dict__.update(locals())
+        del self.self
+
+        self._disallow_censor_updates()
+
+        self.names_to_del = set()
+
+    def _disallow_censor_updates(self):
+        """
+        Don't let subclasses use censor_updates.
+        """
+        if hasattr(self, '_censor_updates_message_shown'):
+            return
+        if self._overrides_censor_updates():
+            self._censor_updates_message_shown = True
+            warnings.warn(str(type(self)) + " overrides "
+                    "Model.censor_updates, which is deprecated. Change "
+                    "this to _modify_updates. censor_updates will no "
+                    "longer be called on or after 2014-11-01.")
+
+
+    def _ensure_extensions(self):
+        """
+        Makes sure the model has an "extensions" field.
+        """
+
+        if not hasattr(self, "extensions"):
+            warnings.warn("The " + str(type(self)) + " Model subclass " + \
+                    "seems not to call the Model constructor. This " + \
+                    "behavior may be considered an error on or after " + \
+                    "2014-11-01.")
+            self.extensions = []
+
+    def __setstate__(self, d):
+        """
+        An implementation of __setstate__ that patches old pickle files.
+        """
+
+        self._disallow_censor_updates()
+
+        self.__dict__.update(d)
+
+        # Patch old pickle files
+        if not 'extensions' in d:
+            self.extensions = []
 
     def get_default_cost(self):
         """
@@ -266,10 +322,33 @@ class Model(object):
         """
         return OrderedDict()
 
+    def _overrides_censor_updates(self):
+
+        return type(self).censor_updates != Model.censor_updates
+
     def censor_updates(self, updates):
         """
-        This method should check all updates that act on shared variables
-        held by the model and make sure they are valid.
+        Deprecated method. Callers should call modify_updates instead.
+        Subclasses should override _modify_updates instead.
+
+        Parameters
+        ----------
+        updates : dict
+            A dictionary mapping shared variables to symbolic values they
+            will be updated to.
+        """
+
+        warnings.warn("censor_updates is deprecated, call modify_updates "
+                "instead. This will become an error on or after "
+                "2014-11-01.")
+
+        self.modify_updates(updates)
+
+    def modify_updates(self, updates):
+        """"
+        Modifies the parameters before a learning update is applied. Behavior
+        is defined by subclass's implementation of _modify_updates and any
+        ModelExtension's implementation of post_modify_updates.
 
         Parameters
         ----------
@@ -279,11 +358,12 @@ class Model(object):
 
         Notes
         -----
-        For example, if
-        a given parameter is not meant to be learned, censor_updates
+        For example, if a given parameter is not meant to be learned, a
+        subclass or extension
         should remove it from the dictionary. If a parameter has a restricted
         range, e.g.. if it is the precision of a normal distribution,
-        censor_updates should clip its update to that range. If a parameter
+        a subclass or extension should clip its update to that range. If a
+        parameter
         has any other special properties, its updates should be modified
         to respect that here, e.g. a matrix that must be orthogonal should
         have its update value modified to be orthogonal here.
@@ -293,7 +373,28 @@ class Model(object):
         respect the specific properties of the models passed to them.
         """
 
-        pass
+        self._modify_updates(updates)
+
+        self._ensure_extensions()
+        for extension in self.extensions:
+            extension.post_modify_updates(updates)
+
+    def _modify_updates(self, updates):
+        """
+        Subclasses may override this method to add functionality to
+        modify_updates.
+
+        Parameters
+        ----------
+        updates : dict
+            A dictionary mapping shared variables to symbolic values they
+            will be updated to.
+        """
+
+        # Support subclasses that use the deprecated interface.
+        if self._overrides_censor_updates():
+            self.censor_updates(updates)
+
 
     def get_input_space(self):
         """
@@ -459,23 +560,16 @@ class Model(object):
         `self.fields_to_del`. In particular, this should include all Theano
         functions, since they do not play nice with pickling.
         """
+
+        self._disallow_censor_updates()
+
         d = OrderedDict()
         names_to_del = getattr(self, 'names_to_del', set())
         names_to_keep = set(self.__dict__.keys()).difference(names_to_del)
         for name in names_to_keep:
             d[name] = self.__dict__[name]
+
         return d
-
-    def __setstate__(self, d):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        self.__dict__.update(d)
-
-    def __init__(self):
-        self.names_to_del = set()
 
     def get_test_batch_size(self):
         """
