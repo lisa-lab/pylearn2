@@ -652,6 +652,6 @@ class Model(object):
         """
         params = self.get_params()
         updates = OrderedDict(izip_no_length_check(params, params))
-        self.censor_updates(updates)
+        self.modify_updates(updates)
         f = function([], updates=updates)
         f()
