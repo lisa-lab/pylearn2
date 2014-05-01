@@ -579,11 +579,11 @@ class MLP(Layer):
         for layer in self.layers:
             layer.set_batch_size(batch_size)
 
-    @wraps(Layer.censor_updates)
-    def censor_updates(self, updates):
+    @wraps(Layer._modify_updates)
+    def _modify_updates(self, updates):
 
         for layer in self.layers:
-            layer.censor_updates(updates)
+            layer.modify_updates(updates)
 
     @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
@@ -1249,8 +1249,8 @@ class Softmax(Layer):
         W = self.W
         return coeff * abs(W).sum()
 
-    @wraps(Layer.censor_updates)
-    def censor_updates(self, updates):
+    @wraps(Layer._modify_updates)
+    def _modify_updates(self, updates):
 
         if self.no_affine:
             return
@@ -1404,8 +1404,8 @@ class SoftmaxPool(Layer):
                                  str(self.mask_weights.shape))
             self.mask = sharedX(self.mask_weights)
 
-    @wraps(Layer.censor_updates)
-    def censor_updates(self, updates):
+    @wraps(Layer._modify_updates)
+    def _modify_updates(self, updates):
 
         # Patch old pickle files
         if not hasattr(self, 'mask_weights'):
@@ -1798,8 +1798,8 @@ class Linear(Layer):
                                  str(self.mask_weights.shape))
             self.mask = sharedX(self.mask_weights)
 
-    @wraps(Layer.censor_updates)
-    def censor_updates(self, updates):
+    @wraps(Layer._modify_updates)
+    def _modify_updates(self, updates):
 
         if self.mask_weights is not None:
             W, = self.transformer.get_params()
@@ -2847,8 +2847,8 @@ class ConvElemwise(Layer):
         self.initialize_output_space()
 
 
-    @wraps(Layer.censor_updates)
-    def censor_updates(self, updates):
+    @wraps(Layer._modify_updates)
+    def _modify_updates(self, updates):
         if self.max_kernel_norm is not None:
             W, = self.transformer.get_params()
             if W in updates:
@@ -3591,10 +3591,10 @@ class LinearGaussian(Linear):
         return (0.5 * T.dot(T.sqr(Y-Y_hat), self.beta).mean() -
                 0.5 * T.log(self.beta).sum())
 
-    @wraps(Layer.censor_updates)
-    def censor_updates(self, updates):
+    @wraps(Layer._modify_updates)
+    def _modify_updates(self, updates):
 
-        super(LinearGaussian, self).censor_updates(updates)
+        super(LinearGaussian, self)._modify_updates(updates)
 
         if self.beta in updates:
             updates[self.beta] = T.clip(updates[self.beta],
