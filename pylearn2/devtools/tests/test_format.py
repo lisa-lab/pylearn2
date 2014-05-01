@@ -373,7 +373,6 @@ whitelist_docstrings = [
     'models/tests/test_rbm.py',
     'models/tests/test_s3c_misc.py',
     'models/gsn.py',
-    'models/model.py',
     'models/dbm/sampling_procedure.py',
     'models/dbm/layer.py',
     'models/dbm/__init__.py',
@@ -700,7 +699,6 @@ whitelist_docstrings.extend([
 # add files which fail to run to whitelist_docstrings
 whitelist_docstrings.extend([
     'training_algorithms/tests/test_learning_rule.py',
-    'models/__init__.py',
     'models/pca.py',
     'datasets/tests/test_hdf5.py',
     'linear/tests/test_conv2d_c01b.py',
