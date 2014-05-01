@@ -373,7 +373,6 @@ whitelist_docstrings = [
     'models/tests/test_rbm.py',
     'models/tests/test_s3c_misc.py',
     'models/gsn.py',
-    'models/model.py',
     'models/dbm/sampling_procedure.py',
     'models/dbm/layer.py',
     'models/dbm/__init__.py',
