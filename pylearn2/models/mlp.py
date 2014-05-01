@@ -71,6 +71,11 @@ class Layer(Model):
 
     May only belong to one MLP.
 
+    Parameters
+    ----------
+    kwargs : dict
+        Passed on to the superclass.
+
     Notes
     -----
     This is not currently a Block because as far as I know the Block interface
@@ -79,6 +84,7 @@ class Layer(Model):
     Block interface were upgraded to be that flexible, then we could make this
     a block.
     """
+
 
     # When applying dropout to a layer's input, use this for masked values.
     # Usually this will be 0, but certain kinds of layers may want to override
@@ -369,11 +375,13 @@ class MLP(Layer):
         Number of "visible units" (input units). Equivalent to specifying
         `input_space=VectorSpace(dim=nvis)`.
     seed : WRITEME
+    kwargs : dict
+        Passed on to the superclass
     """
 
     def __init__(self, layers, batch_size=None, input_space=None,
-                 nvis=None, seed=None):
-        super(MLP, self).__init__()
+                 nvis=None, seed=None, **kwargs):
+        super(MLP, self).__init__(**kwargs)
 
         if seed is None:
             seed = [2013, 1, 4]
