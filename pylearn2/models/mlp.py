@@ -3832,6 +3832,10 @@ class FlattenerLayer(Layer):
         total_dim = self.raw_layer.get_output_space().get_total_dimension()
         self.output_space = VectorSpace(total_dim)
 
+    @wraps(Layer.get_input_space)
+    def get_input_space(self):
+        return self.raw_layer.get_input_space()
+
     @wraps(Layer.get_params)
     def get_params(self):
         return self.raw_layer.get_params()
