@@ -12,6 +12,7 @@ import warnings
 from theano.compat.python2x import OrderedDict
 from theano import tensor as T
 
+from pylearn2.model_extensions.model_extension import ModelExtension
 from pylearn2.space import NullSpace
 from pylearn2.utils import function
 from pylearn2.utils.track_version import MetaLibVersion
@@ -33,6 +34,10 @@ class Model(object):
     def __init__(self, extensions = None):
         if extensions is None:
             extensions = []
+        else:
+            assert isinstance(extensions, list)
+            assert all(isinstance(extensions, ModelExtension) for extension in
+                    extensions)
 
         self.__dict__.update(locals())
         del self.self
