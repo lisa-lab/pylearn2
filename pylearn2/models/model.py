@@ -345,7 +345,7 @@ class Model(object):
 
         warnings.warn("censor_updates is deprecated, call modify_updates "
                 "instead. This will become an error on or after "
-                "2014-11-01.")
+                "2014-11-01.", stacklevel=2)
 
         self.modify_updates(updates)
 
