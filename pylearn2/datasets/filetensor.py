@@ -27,6 +27,11 @@ logger = logging.getLogger(__name__)
 
 
 def _prod(lst):
+    """
+    .. todo::
+
+        WRITEME
+    """
     p = 1
     for l in lst:
         p *= l
@@ -61,7 +66,7 @@ def _read_header(f, debug=False, fromgzip=None):
     ----------
     f : file or gzip.GzipFile
         An open file handle.
-    fromgzip: bool or None
+    fromgzip : bool or None
         If None determine the type of file handle.
 
     Returns
@@ -146,6 +151,11 @@ class arraylike(object):
     """
 
     def __init__(self, f, rank=0, debug=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.f = f
         self.magic_t, self.elsize, self.ndim, self.dim, self.dim_size = _read_header(f,debug)
         self.f_start = f.tell()
@@ -171,9 +181,19 @@ class arraylike(object):
                                                      self.readsize))
 
     def __len__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return _prod(self.dim[:self.ndim-len(self.readshape)])
 
     def __getitem__(self, idx):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if idx >= len(self):
             raise IndexError(idx)
         self.f.seek(self.f_start + idx * self.elsize * self.readsize)

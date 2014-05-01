@@ -22,11 +22,11 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
     stop : WRITEME
     one_hot : WRITEME
     """
+
     def __init__(self, which_set, center = False,
             gcn = None, toronto_prepro = False,
             axes = ('b', 0, 1, 'c'),
             start = None, stop = None, one_hot = False):
-
         assert which_set in ['train','test']
 
         path = "${PYLEARN2_DATA_PATH}/cifar100/cifar-100-python/"+which_set

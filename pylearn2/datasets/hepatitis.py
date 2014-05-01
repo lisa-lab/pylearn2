@@ -18,6 +18,7 @@ class Hepatitis(DenseDesignMatrix):
 
         WRITEME
     """
+
     def __init__(self, preprocessor=None, start=None, stop=None):
         """
         .. todo::

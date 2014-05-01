@@ -1,5 +1,6 @@
 """
 Classes representing loss functions.
+
 Currently, these are primarily used to specify the objective function for the
 SGD and BGD training algorithms.
 """
@@ -27,6 +28,7 @@ class DefaultDataSpecsMixin(object):
 
         WRITEME
     """
+
     def get_data_specs(self, model):
         """
         .. todo::
@@ -48,6 +50,7 @@ class NullDataSpecsMixin(object):
 
         WRITEME
     """
+
     def get_data_specs(self, model):
         """
         .. todo::
@@ -58,6 +61,7 @@ class NullDataSpecsMixin(object):
 
 
 class Cost(object):
+
     """
     Represents a cost that can be called either as a supervised cost or an
     unsupervised cost.
@@ -71,18 +75,17 @@ class Cost(object):
         """
         Returns a theano expression for the cost function.
 
-        Parameters
-        ----------
-        model: a pylearn2 Model instance
-        data : a batch in cost.get_data_specs() form
-        kwargs : dict
-            Optional extra arguments. Not used by the base class.
-
         Returns a symbolic expression for a cost function applied to the
         minibatch of data.
         Optionally, may return None. This represents that the cost function
         is intractable but may be optimized via the get_gradients method.
 
+        Parameters
+        ----------
+        model : a pylearn2 Model instance
+        data : a batch in cost.get_data_specs() form
+        kwargs : dict
+            Optional extra arguments. Not used by the base class.
         """
         raise NotImplementedError(str(type(self)) + " does not implement "
                                   "expr.")
@@ -90,9 +93,11 @@ class Cost(object):
     def get_gradients(self, model, data, ** kwargs):
         """
         Provides the gradients of the cost function with respect to the model
-        parameters. These are not necessarily those obtained by
-        theano.tensor.grad--you may wish to use approximate or even
-        intentionally incorrect gradients in some cases.
+        parameters.
+
+        These are not necessarily those obtained by theano.tensor.grad
+        --you may wish to use approximate or even intentionally incorrect
+        gradients in some cases.
 
         Parameters
         ----------
@@ -103,7 +108,7 @@ class Cost(object):
 
         Returns
         -------
-        gradients: OrderedDict
+        gradients : OrderedDict
             a dictionary mapping from the model's parameters
             to their gradients
             The default implementation is to compute the gradients
@@ -111,7 +116,7 @@ class Cost(object):
             However, subclasses may return other values for the gradient.
             For example, an intractable cost may return a sampling-based
             approximation to its gradient.
-        updates: OrderedDict
+        updates : OrderedDict
             a dictionary mapping shared variables to updates that must
             be applied to them each time these gradients are computed.
             This is to facilitate computation of sampling-based approximate
@@ -154,11 +159,13 @@ class Cost(object):
 
             WRITEME
 
+        .. todo::
+
+            how do you do prereqs in this setup? (I think PL changed
+            it, not sure if there still is a way in this context)
+
         Returns a dictionary mapping channel names to expressions for
         channel values.
-
-        TODO: how do you do prereqs in this setup? (I think PL changed
-        it, not sure if there still is a way in this context)
 
         Parameters
         ----------
@@ -170,6 +177,7 @@ class Cost(object):
         kwargs : dict
             used so that custom algorithms can use extra variables
             for monitoring.
+
         Returns
         -------
         rval : dict
@@ -192,9 +200,10 @@ class Cost(object):
         data : theano.gof.Variable or tuple
             A valid member of the Space used to train `model` with this
             cost.
+
         Returns
         -------
-        fixed_var_descr: FixedVarDescr
+        fixed_var_descr : FixedVarDescr
             A description of how to hold the necessary variables constant
         """
         self.get_data_specs(model)[0].validate(data)
@@ -203,10 +212,20 @@ class Cost(object):
 
     def get_data_specs(self, model):
         """
+        .. todo ::
+
+            WRITEME
+
+        .. todo ::
+
+            figure out return format for sure. PL seems to have documented
+            this method incorrectly.
+
         Parameters
         ----------
         model : Model
             The model to train with this cost
+
         Returns
         -------
         data_specs : tuple
@@ -215,10 +234,6 @@ class Cost(object):
             CompositeSpace) describing how to format the data.
             The second element of the tuple describes the source of the
             data. It probably should be a string or nested tuple of strings.
-        ..todo ::
-
-            figure out return format for sure. PL seems to have documented
-            this method incorrectly.
         """
         raise NotImplementedError(str(type(self)) + " does not implement " +
                                   "get_data_specs.")
@@ -230,10 +245,20 @@ class SumOfCosts(Cost):
 
     Parameters
     ----------
-    costs: list
+    costs : list
         List of Cost objects or (coeff, Cost) pairs
     """
+
     def __init__(self, costs):
+        """
+        Initialize the SumOfCosts object and make sure that the list of costs
+        contains only Cost instances.
+
+        Parameters
+        ----------
+        costs : list
+            List of Cost objects or (coeff, Cost) pairs
+        """
         assert isinstance(costs, list)
         assert len(costs) > 0
 
@@ -418,6 +443,10 @@ class SumOfCosts(Cost):
 
     def get_fixed_var_descr(self, model, data):
         """
+        .. todo::
+
+            WRITEME
+
         Parameters
         ----------
         model : Model
@@ -441,7 +470,7 @@ def scaled_cost(cost, scaling):
 
     Parameters
     ----------
-    cost: Cost
+    cost : Cost
         cost to be scaled
     scaling : float
         scaling of the cost
@@ -459,14 +488,22 @@ class LpPenalty(NullDataSpecsMixin, Cost):
     """
     L-p penalty of the tensor variables provided.
 
-    Parameters:
-    -----------
-    variables: list
+    Parameters
+    ----------
+    variables : list
         list of tensor variables to be regularized
-    p: int
+    p : int
         p in "L-p penalty"
     """
     def __init__(self, variables, p):
+        """
+        Parameters
+        ----------
+        variables : list
+            list of tensor variables to be regularized
+        p : int
+            p in "L-p penalty"
+        """
         self.variables = variables
         self.p = p
 
@@ -495,6 +532,7 @@ class CrossEntropy(DefaultDataSpecsMixin, Cost):
     """
     DEPRECATED
     """
+
     def __init__(self):
         warnings.warn("CrossEntropy is deprecated. You should use a "
                 "model-specific cross entropy cost function. CrossEntropy"
@@ -519,14 +557,27 @@ class MethodCost(Cost):
 
     Parameters
     ----------
-    method: a string specifying the name of the method of the model
+    method : a string specifying the name of the method of the model
             that should be called to generate the objective function.
-    data_specs: a string specifying the name of a method/property of
+    data_specs : a string specifying the name of a method/property of
             the model that describe the data specs required by
             method
     """
 
     def __init__(self, method, data_specs=None):
+        """
+        .. todo::
+
+            WRITEME
+
+        Parameters
+        ----------
+        method : a string specifying the name of the method of the model
+                that should be called to generate the objective function.
+        data_specs : a string specifying the name of a method/property of
+                the model that describe the data specs required by
+                method
+        """
         self.method = method
         self.data_specs = data_specs
 

@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -15,16 +20,30 @@ class TransformerDataset(Dataset):
         A dataset that applies a transformation on the fly
         as examples are requested.
     """
+
     def __init__(self, raw, transformer, cpu_only = False,
             space_preserving=False):
         """
-            raw: a pylearn2 Dataset that provides raw data
-            transformer: a pylearn2 Block to transform the data
+            .. todo::
+
+                WRITEME properly
+
+            Parameters
+            ----------
+            raw : pylearn2 Dataset
+                Provides raw data
+            transformer: pylearn2 Block
+                To transform the data
         """
         self.__dict__.update(locals())
         del self.self
 
     def get_batch_design(self, batch_size, include_labels=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raw = self.raw.get_batch_design(batch_size, include_labels)
         if include_labels:
             X, y = raw
@@ -36,6 +55,11 @@ class TransformerDataset(Dataset):
         return X
 
     def get_test_set(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return TransformerDataset(raw=self.raw.get_test_set(),
                 transformer=self.transformer,
                 cpu_only=self.cpu_only,
@@ -57,7 +81,11 @@ class TransformerDataset(Dataset):
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, targets=None, rng=None, data_specs=None,
                  return_tuple=False):
+        """
+        .. todo::
 
+            WRITEME
+        """
         # Build the right data_specs to query self.raw
         if data_specs is not None:
             assert is_flat_specs(data_specs)
@@ -106,30 +134,65 @@ class TransformerDataset(Dataset):
         return final_iterator
 
     def has_targets(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.raw.has_targets()
 
     def adjust_for_viewer(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.space_preserving:
             return self.raw.adjust_for_viewer(X)
         return X
 
     def get_weights_view(self, *args, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.space_preserving:
             return self.raw.get_weights_view(*args, **kwargs)
         raise NotImplementedError()
 
     def get_topological_view(self, *args, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.space_preserving:
             return self.raw.get_weights_view(*args, **kwargs)
         raise NotImplementedError()
 
     def adjust_to_be_viewed_with(self, *args, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.raw.adjust_to_be_viewed_with(*args, **kwargs)
 
 
 class TransformerIterator(object):
+    """
+    .. todo::
+
+        WRITEME
+    """
 
     def __init__(self, raw_iterator, transformer_dataset, data_specs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.raw_iterator = raw_iterator
         self.transformer_dataset = transformer_dataset
         self.stochastic = raw_iterator.stochastic
@@ -137,9 +200,19 @@ class TransformerIterator(object):
         self.data_specs = data_specs
 
     def __iter__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self
 
     def next(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raw_batch = self.raw_iterator.next()
 
         # Apply transformation on raw_batch, and format it
@@ -173,4 +246,9 @@ class TransformerIterator(object):
 
     @property
     def num_examples(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.raw_iterator.num_examples
