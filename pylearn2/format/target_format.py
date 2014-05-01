@@ -1,6 +1,4 @@
-"""
-Code for reformatting supervised learning targets.
-"""
+"""Code for reformatting supervised learning targets."""
 import numpy as np
 import scipy
 import scipy.sparse
@@ -55,11 +53,11 @@ class OneHotFormatter(object):
             The way in which to convert the labels to arrays. Takes
             three different options:
 
-            - "concatenate" : concatenates the one-hot vectors from
+              - "concatenate" : concatenates the one-hot vectors from
                 multiple labels
-            - "stack" : returns a matrix where each row is the
+              - "stack" : returns a matrix where each row is the
                 one-hot vector of a label
-            - "merge" : merges the one-hot vectors together to
+              - "merge" : merges the one-hot vectors together to
                 form a vector where the elements are
                 the result of an indicator function
                 NB: As the result of an indicator function
@@ -130,11 +128,11 @@ class OneHotFormatter(object):
             The way in which to convert the labels to arrays. Takes
             three different options:
 
-            - "concatenate" : concatenates the one-hot vectors from
+              - "concatenate" : concatenates the one-hot vectors from
                 multiple labels
-            - "stack" : returns a matrix where each row is the
+              - "stack" : returns a matrix where each row is the
                 one-hot vector of a label
-            - "merge" : merges the one-hot vectors together to
+              - "merge" : merges the one-hot vectors together to
                 form a vector where the elements are
                 the result of an indicator function
                 NB: As the result of an indicator function
@@ -238,11 +236,11 @@ def convert_to_one_hot(integer_vector, dtype=None, max_labels=None,
         The way in which to convert the labels to arrays. Takes
         three different options:
 
-        - "concatenate" : concatenates the one-hot vectors from
+          - "concatenate" : concatenates the one-hot vectors from
             multiple labels
-        - "stack" : returns a matrix where each row is the
+          - "stack" : returns a matrix where each row is the
             one-hot vector of a label
-        - "merge" : merges the one-hot vectors together to
+          - "merge" : merges the one-hot vectors together to
             form a vector where the elements are
             the result of an indicator function
     sparse : bool
@@ -252,10 +250,10 @@ def convert_to_one_hot(integer_vector, dtype=None, max_labels=None,
 
     Returns
     -------
-    one_hot : a NumPy array (can be 1D-3D depending on settings) where
-              normally the first axis are the different batch items,
-              the second axis the labels, the third axis the one_hot
-              vectors. Can be dense or sparse.
+    one_hot : NumPy array
+       Can be 1D-3D depending on settings. Normally, the first axis are
+       the different batch items, the second axis the labels, the third
+       axis the one_hot vectors. Can be dense or sparse.
     """
     if dtype is None:
         dtype = config.floatX

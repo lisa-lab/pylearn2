@@ -50,7 +50,8 @@ class Conv2D(LinearTransform):
 
     Parameters
     ----------
-    filters : WRITEME
+    filters : Theano shared variable
+        4-tensor of shape (in channels, rows, cols, out channels)
     input_axes : WRITEME
     batch_size : WRITEME
     output_axes : WRITEME
@@ -64,15 +65,6 @@ class Conv2D(LinearTransform):
                  batch_size=None, output_axes=('c', 0, 1, 'b'),
                  kernel_stride=(1, 1), pad=0, message='',
                  partial_sum=None):
-        """
-        .. todo::
-
-            WRITEME properly
-
-        filters: Theano shared variable. 4-tensor of shape (in channels, rows,
-        cols, out channels)
-        """
-
         if len(kernel_stride) != 2:
             raise ValueError("kernel_stride must have length 2")
         elif kernel_stride[0] != kernel_stride[1]:
@@ -343,17 +335,18 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange="not specified"):
     Parameters
     ----------
     layer : object
-        Any python object that allows the modifications described below and \
-        has the following attributes: \
-        * pad: int describing amount of zero padding to add \
-        * kernel_shape: 2-element tuple or list describing spatial shape of \
-          kernel \
-        * fix_kernel_shape: bool, if true, will shrink the kernel shape to \
-          make it feasible, as needed (useful for hyperparameter searchers) \
-        * detector_channels: The number of channels in the detector layer \
-        * init_bias: numeric constant added to a tensor of zeros to \
-          initialize the bias \
-        * tied_b: If true, biases are shared across all spatial locations
+        Any python object that allows the modifications described below and
+        has the following attributes:
+
+          * pad : int describing amount of zero padding to add
+          * kernel_shape : 2-element tuple or list describing spatial shape of
+            kernel
+          * fix_kernel_shape : bool, if true, will shrink the kernel shape to
+            make it feasible, as needed (useful for hyperparameter searchers)
+          * detector_channels : The number of channels in the detector layer
+          * init_bias : numeric constant added to a tensor of zeros to
+            initialize the bias
+          * tied_b : If true, biases are shared across all spatial locations
     input_space : WRITEME
         A Conv2DSpace to be used as input to the layer
     rng : WRITEME
