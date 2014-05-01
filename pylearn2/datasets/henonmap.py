@@ -105,6 +105,8 @@ class HenonMap(DenseDesignMatrix):
         X = X[:-1, :]
 
         # Reshape data in to dense matrix
+        # TODO This should be refactored to be more memory efficient by
+        # eliminating redudancy.
         final_rows = X.shape[0] - self.frame_length/2
         Z = np.zeros((final_rows, self.frame_length))
         for i in range(final_rows):
