@@ -328,6 +328,11 @@ class Model(object):
         return OrderedDict()
 
     def _overrides_censor_updates(self):
+        """
+        Returns true if the model overrides censor_updates.
+        (It shouldn't do so because it's deprecated, and we have
+        to take special action to handle this case)
+        """
 
         return type(self).censor_updates != Model.censor_updates
 
