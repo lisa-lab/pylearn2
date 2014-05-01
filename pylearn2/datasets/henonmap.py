@@ -19,6 +19,30 @@ class HenonMap(DenseDesignMatrix):
 
        x_{n+1} = 1 - \alpha*x_n^2 + y_n
        y_{n+1} = \beta*x_n
+
+    Parameters
+    ----------
+    alpha : double
+        Alpha parameter in equations above.
+    beta : double
+        Beta parameter in equations above.
+    init_state : ndarray
+        The initial state of the system of size 2.
+    samples : int
+        Number of desired samples. Must be an integer multiple of
+        frame_length.
+    frame_length : int
+        Number of samples contained in a frame. Must divide samples.
+    rng : int
+        Seed for random number generator.
+    load_path : string
+        Path from which to load data.
+    save_path : string
+        Path to which the data should be saved.
+    load_path : string
+        Path from which to load data.
+    save_path : string
+        Path to which the data should be saved.
     """
     _default_seed = 1
 
@@ -27,32 +51,6 @@ class HenonMap(DenseDesignMatrix):
         samples=1000, frame_length=10, rng=None,
         load_path=None, save_path=None
     ):
-        """
-        Parameters
-        ----------
-        alpha : double
-           Alpha parameter in equations above.
-        beta : double
-           Beta parameter in equations above.
-        init_state : ndarray
-           The initial state of the system of size 2.
-        samples : int
-           Number of desired samples. Must be an integer multiple of
-           frame_length.
-        frame_length : int
-           Number of samples contained in a frame. Must divide samples.
-        rng : int
-            Seed for random number generator.
-        load_path : string
-            Path from which to load data.
-        save_path : string
-            Path to which the data should be saved.
-        load_path : string
-            Path from which to load data.
-        save_path : string
-            Path to which the data should be saved.
-        """
-
         # Validate parameters and set member variables
         self.alpha = alpha
         self.beta = beta
