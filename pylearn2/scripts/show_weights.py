@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """
-.. todo::
-
-    WRITEME
+Visualizes the weight matrices of a pickled model
 """
 import argparse
 
@@ -11,9 +9,7 @@ from pylearn2.gui import get_weights_report
 
 def main():
     """
-    .. todo::
-
-        WRITEME
+    Executes this script
     """
     parser = argparse.ArgumentParser()
 

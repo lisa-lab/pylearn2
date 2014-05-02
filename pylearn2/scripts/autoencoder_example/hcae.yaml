@@ -24,7 +24,6 @@
                 [0.5, !obj:pylearn2.costs.cost.MethodCost { "method": 'higher_order_penalty' } ],
             ]
         },
-
         "termination_criterion" : !obj:pylearn2.termination_criteria.EpochCounter {
             "max_epochs": 1,
         },

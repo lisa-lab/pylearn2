@@ -9,7 +9,7 @@ import pylearn2
 
 def test_hcae_yaml():
     """
-    Trains a higher order contractive autoencoder for a single epoch
+    Train a higher order contractive autoencoder for a single epoch
     """
     limited_epoch_train(os.path.join(pylearn2.__path__[0],
                                      "scripts/autoencoder_example/hcae.yaml"))
@@ -17,7 +17,7 @@ def test_hcae_yaml():
 
 def test_dae_yaml():
     """
-    Trains a denoising autoencoder for a single epoch
+    Train a denoising autoencoder for a single epoch
     """
     limited_epoch_train(os.path.join(pylearn2.__path__[0],
                                      "scripts/autoencoder_example/dae.yaml"))
