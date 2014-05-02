@@ -20,7 +20,12 @@ from pylearn2.utils import serial
 
 def main(path):
     """
-    Executes this cript
+    Summarize the model
+
+    Parameters
+    ----------
+    path : str
+        The path to the pickled model to summarize
     """
     model = serial.load(path)
     for param in model.get_params():
