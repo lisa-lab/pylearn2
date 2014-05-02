@@ -4,9 +4,10 @@
 
     WRITEME
 """
-#usage: show_weights.py model.pkl
-from pylearn2.gui import get_weights_report
 import argparse
+
+from pylearn2.gui import get_weights_report
+
 
 def main():
     """
@@ -31,6 +32,7 @@ def main():
         pv.show()
     else:
         pv.save(options.out)
+
 
 if __name__ == "__main__":
     main()
