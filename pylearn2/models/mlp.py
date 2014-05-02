@@ -4300,7 +4300,7 @@ class CompositeLayer(Layer):
 
     Parameters
     ----------
-    layer_name : string
+    layer_name : str
         The name of this layer
     layers : tuple or list
         The component layers to run in parallel.
