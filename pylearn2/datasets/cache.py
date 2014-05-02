@@ -47,7 +47,7 @@ class LocalDatasetCache:
             # Local cache seems to be deactivated
             self.dataset_remote_dir = ""
             self.dataset_local_dir = ""
-            
+
         if self.dataset_remote_dir == "" or self.dataset_local_dir == "":
             log.warning("Local dataset cache is deactivated")
 
