@@ -959,7 +959,7 @@ class S3C(Model, Block):
             learning_updates[self.prev_H] = H_hat
             learning_updates[self.prev_S] = S_hat
 
-        self.censor_updates(learning_updates)
+        self.modify_updates(learning_updates)
 
         if self.debug_m_step:
             energy_functional_before = self.energy_functional(H = hidden_obs['H'],
@@ -1010,7 +1010,7 @@ class S3C(Model, Block):
 
         return rval
 
-    def censor_updates(self, updates):
+    def _modify_updates(self, updates):
         """
         .. todo::
 

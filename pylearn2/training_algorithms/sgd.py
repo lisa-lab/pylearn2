@@ -347,7 +347,7 @@ class SGD(TrainingAlgorithm):
         for param in params:
             if updates[param].name is None:
                 updates[param].name = 'sgd_update(' + param.name + ')'
-        model.censor_updates(updates)
+        model.modify_updates(updates)
         for param in params:
             update = updates[param]
             if update.name is None:

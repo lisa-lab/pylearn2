@@ -52,14 +52,13 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
     ----------
     which_set: str
         Must be 'train' or 'test'.
-    multi_target: bool
+    multi_target: bool, optional
         If False, each label is an integer labeling the image catergory. If
         True, each label is a vector: [category, instance, lighting, elevation,
         azimuth]. All labels are given as integers. Use the categories,
         elevation_degrees, and azimuth_degrees arrays to map from these
         integers to actual values.
     """
-
 
     # Actual image shape may change, e.g. after being preprocessed by
     # datasets.preprocessing.Downsample
@@ -159,9 +158,7 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
     @classmethod
     def load(cls, which_set, filetype):
-        """
-        Reads and returns a single file as a numpy array.
-        """
+        """Reads and returns a single file as a numpy array."""
 
         assert which_set in ['train', 'test']
         assert filetype in ['dat', 'cat', 'info']
@@ -182,6 +179,10 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
         def parseNORBFile(file_handle, subtensor=None, debug=False):
             """
             Load all or part of file 'file_handle' into a numpy ndarray
+
+            .. todo::
+
+                WRITEME properly
 
             :param file_handle: file from which to read file can be opended
               with open(), gzip.open() and bz2.BZ2File()
@@ -209,6 +210,10 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
             def readHeader(file_handle, debug=False, from_gzip=None):
                 """
+                .. todo::
+
+                    WRITEME properly
+
                 :param file_handle: an open file handle.
                 :type file_handle: a file or gzip.GzipFile object
 
@@ -296,6 +301,11 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
         return parseNORBFile(file_handle)
 
     def get_topological_view(self, mat=None, single_tensor=True):
+        """
+        .. todo::
+
+            WRITEME
+        """
         result = super(SmallNORB, self).get_topological_view(mat)
 
         if single_tensor:
@@ -386,6 +396,11 @@ class StereoViewConverter(object):
         self.storage_space = VectorSpace(dim=numpy.prod(shape))
 
     def get_formatted_batch(self, batch, space):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.storage_space.np_format_as(batch, space)
 
     def design_mat_to_topo_view(self, design_mat):
@@ -408,12 +423,27 @@ class StereoViewConverter(object):
         return self.topo_space.np_format_as(topo_batch, self.storage_space)
 
     def view_shape(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.shape
 
     def weights_view_shape(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.view_shape()
 
     def set_axes(self, axes):
+        """
+        .. todo::
+
+            WRITEME
+        """
         axes = tuple(axes)
 
         if len(axes) != 5:

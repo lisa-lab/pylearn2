@@ -84,7 +84,7 @@ def load_path(path, overrides=None, environ=None, **kwargs):
     Returns
     -------
     graph : dict or object
-        The dictionary or object (if the top-level element specified an \
+        The dictionary or object (if the top-level element specified a \
         Python object to instantiate).
 
     Notes
@@ -346,14 +346,10 @@ def multi_constructor_obj(loader, tag_suffix, node):
 
     assert hasattr(mapping, 'keys')
     assert hasattr(mapping, 'values')
-    for key, val in mapping.iteritems():
-        if val is None:
-            message = "received None as the value for the key %s" % str(key)
-            raise TypeError(message)
 
     for key in mapping.keys():
         if not isinstance(key, basestring):
-            message = "Received non string object (%s) as" \
+            message = "Received non string object (%s) as " \
                       "key in mapping." % str(key)
             raise TypeError(message)
 

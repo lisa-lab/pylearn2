@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __author__ = "Ian Goodfellow"
 
 # TODO: add citation
@@ -7,9 +12,18 @@ import numpy as np
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 
 class Iris(DenseDesignMatrix):
+    """
+    .. todo::
+
+        WRITEME
+    """
 
     def __init__(self, preprocessor=None):
+        """
+        .. todo::
 
+            WRITEME
+        """
         self.class_names = ['Iris-setosa', 'Iris-versicolor', 'Iris-virginica']
         lines = iris_data.split('\n')
         X = []
