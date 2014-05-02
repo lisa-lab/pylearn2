@@ -118,10 +118,8 @@ class Test_DiagonalMND:
                     objective = kl,
                     conjugate = True,
                     params = [ p.mu, p.beta, q.mu, q.beta ],
-                    param_constrainers = [ p.censor_updates,
-                        q.censor_updates ])
-
-        #optimizer.verbose = True
+                    param_constrainers = [ p.modify_updates,
+                        q.modify_updates ])
 
         kl = optimizer.minimize()
 

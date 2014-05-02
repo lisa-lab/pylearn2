@@ -481,7 +481,7 @@ class Model(object):
         so that the model's parameter set is more predictable.
 
         Parameters may be included here but held constant during
-        learning via the `censor_updates` method.
+        learning via the `modify_updates` method.
         """
         return list(self._params)
 
@@ -500,16 +500,6 @@ class Model(object):
         params : list
             A list of `numpy.ndarray` objects containing the current
             parameters of the model.
-
-        Notes
-        -----
-        This is the main  mechanism by which generic training algorithms
-        like SGD know which values to update, however, even model
-        parameters that should not be learned ought to be included here,
-        so that the model's parameter set is more predictable.
-
-        Parameters may be included here but held constant during
-        learning via the `censor_updates` method.
         """
         assert not isinstance(self.get_params(), set)
         return [param.get_value(borrow=borrow) for param in self.get_params()]
@@ -651,7 +641,7 @@ class Model(object):
 
     def enforce_constraints(self):
         """
-        Enforces all constraints encoded by self.censor_updates.
+        Enforces all constraints encoded by self.modify_updates.
         """
         params = self.get_params()
         updates = OrderedDict(izip_no_length_check(params, params))
