@@ -11,14 +11,14 @@ __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
-import sys
+import argparse
 
 import numpy as np
 
 from pylearn2.utils import serial
 
-if __name__ == "__main__":
-    path = sys.argv[1]
+
+def main(path):
     model = serial.load(path)
     for param in model.get_params():
         name = param.name
@@ -32,14 +32,14 @@ if __name__ == "__main__":
             print 'abs(' + name + '): ' + str((v.min(), v.mean(), v.max()))
         if v.ndim == 2:
             row_norms = np.sqrt(np.square(v).sum(axis=1))
-            print name + " row norms: ",
+            print name + " row norms:",
             print (row_norms.min(), row_norms.mean(), row_norms.max())
             col_norms = np.sqrt(np.square(v).sum(axis=0))
-            print name + " col norms: ",
+            print name + " col norms:",
             print (col_norms.min(), col_norms.mean(), col_norms.max())
 
     if hasattr(model, 'monitor'):
-        print 'trained on', model.monitor.get_examples_seen(), ' examples'
+        print 'trained on', model.monitor.get_examples_seen(), 'examples'
         print 'which corresponds to',
         print model.monitor.get_batches_seen(), 'batches'
         try:
@@ -55,3 +55,23 @@ if __name__ == "__main__":
         else:
             print ('This pickle file is damaged, or was made before the ' +
                    'Monitor tracked whether training completed.')
+
+
+def make_argument_parser():
+    """
+    Creates an ArgumentParser to read the options for this script from
+    sys.argv
+    """
+    parser = argparse.ArgumentParser(
+        description="Print some parameter statistics of a pickled model "
+                    "and check if it completed training succesfully."
+    )
+    parser.add_argument('path',
+                        help='The pickled model to summarize')
+    return parser
+
+
+if __name__ == "__main__":
+    parser = make_argument_parser()
+    args = parser.parse_args()
+    main(args.path)
