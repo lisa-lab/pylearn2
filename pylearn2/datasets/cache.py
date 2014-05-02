@@ -120,11 +120,11 @@ class LocalDatasetCache:
             # There is enough space; make a local copy of the file
             self.copy_from_server_to_local(remote_name, local_name)
             log.debug("File %s has been locally cached to %s" %
-                     (remote_name, local_name))
+                      (remote_name, local_name))
 
         else:
             log.debug("File %s has previously been locally cached to %s" %
-                     (remote_name, local_name))
+                      (remote_name, local_name))
 
         # Obtain a readlock on the downloaded file before releasing the
         # writelock. This is to prevent having a moment where there is no
