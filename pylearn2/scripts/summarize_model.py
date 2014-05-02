@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """
-.. todo::
-
-    WRITEME
+This script summarizes a model by showing some statistics about
+the parameters and checking whether the model completed
+training succesfully
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
@@ -19,6 +19,9 @@ from pylearn2.utils import serial
 
 
 def main(path):
+    """
+    Executes this cript
+    """
     model = serial.load(path)
     for param in model.get_params():
         name = param.name
