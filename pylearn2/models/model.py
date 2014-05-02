@@ -31,13 +31,13 @@ class Model(object):
     __metaclass__ = MetaLibVersion
     _test_batch_size = 2
 
-    def __init__(self, extensions = None):
+    def __init__(self, extensions=None):
         if extensions is None:
             extensions = []
         else:
             assert isinstance(extensions, list)
             assert all(isinstance(extensions, ModelExtension) for extension in
-                    extensions)
+                       extensions)
 
         self.__dict__.update(locals())
         del self.self
@@ -55,10 +55,9 @@ class Model(object):
         if self._overrides_censor_updates():
             self._censor_updates_message_shown = True
             warnings.warn(str(type(self)) + " overrides "
-                    "Model.censor_updates, which is deprecated. Change "
-                    "this to _modify_updates. censor_updates will no "
-                    "longer be called on or after 2014-11-01.")
-
+                          "Model.censor_updates, which is deprecated. Change "
+                          "this to _modify_updates. censor_updates will no "
+                          "longer be called on or after 2014-11-01.")
 
     def _ensure_extensions(self):
         """
@@ -66,10 +65,10 @@ class Model(object):
         """
 
         if not hasattr(self, "extensions"):
-            warnings.warn("The " + str(type(self)) + " Model subclass " + \
-                    "seems not to call the Model constructor. This " + \
-                    "behavior may be considered an error on or after " + \
-                    "2014-11-01.")
+            warnings.warn("The " + str(type(self)) + " Model subclass "
+                          "seems not to call the Model constructor. This "
+                          "behavior may be considered an error on or after "
+                          "2014-11-01.")
             self.extensions = []
 
     def __setstate__(self, d):
@@ -82,7 +81,7 @@ class Model(object):
         self.__dict__.update(d)
 
         # Patch old pickle files
-        if not 'extensions' in d:
+        if 'extensions' not in d:
             self.extensions = []
 
     def get_default_cost(self):
@@ -349,8 +348,8 @@ class Model(object):
         """
 
         warnings.warn("censor_updates is deprecated, call modify_updates "
-                "instead. This will become an error on or after "
-                "2014-11-01.", stacklevel=2)
+                      "instead. This will become an error on or after "
+                      "2014-11-01.", stacklevel=2)
 
         self.modify_updates(updates)
 
@@ -404,7 +403,6 @@ class Model(object):
         # Support subclasses that use the deprecated interface.
         if self._overrides_censor_updates():
             self.censor_updates(updates)
-
 
     def get_input_space(self):
         """
