@@ -10,7 +10,8 @@ __email__ = "webbd@iro"
 
 import numpy as np
 from pylearn2.datasets import DenseDesignMatrix
-import cPickle
+import pylearn2.utils.serial
+import theano
 
 
 class HenonMap(DenseDesignMatrix):
@@ -35,10 +36,6 @@ class HenonMap(DenseDesignMatrix):
         Number of samples contained in a frame. Must divide samples.
     rng : int
         Seed for random number generator.
-    load_path : string
-        Path from which to load data.
-    save_path : string
-        Path to which the data should be saved.
     load_path : string
         Path from which to load data.
     save_path : string
@@ -76,10 +73,10 @@ class HenonMap(DenseDesignMatrix):
         if (load_path is None):
             (X, y) = self._generate_data()
         else:
-            (X, y) = cPickle.load(open(load_path, 'rb'))
+            (X, y) = serial.load(load_path)
 
         if (save_path is not None):
-            cPickle.dump((X, y), open(save_path, 'wb'))
+            serial.save(save_path, (X, y))
 
         # Setup the parent class
         super(HenonMap, self).__init__(X=X, y=y)
@@ -90,9 +87,9 @@ class HenonMap(DenseDesignMatrix):
         function.
         """
         # Create space for the data
-        X = np.zeros((self.samples+1, 2))
+        X = np.zeros((self.samples+1, 2), dtype=theano.config.floatX)
         X[0, :] = self.init_state
-        y = np.zeros(self.samples)
+        y = np.zeros(self.samples, dtype=theano.config.floatX)
 
         # Generate data
         for i in range(1, X.shape[0]):
@@ -108,14 +105,17 @@ class HenonMap(DenseDesignMatrix):
         # TODO This should be refactored to be more memory efficient by
         # eliminating redudancy.
         final_rows = X.shape[0] - self.frame_length/2
-        Z = np.zeros((final_rows, self.frame_length))
+        Z = np.zeros(
+            (final_rows, self.frame_length),
+            dtype=theano.config.floatX
+        )
         for i in range(final_rows):
             record = X[i:i+self.frame_length/2].reshape(1, self.frame_length)
             Z[i, :] = record
 
         # Grab the targets from the training data. They happen to be the last
         # two columns of every row except the first. Also add the last target.
-        y = np.zeros((Z.shape[0], 2))
+        y = np.zeros((Z.shape[0], 2), dtype=theano.config.floatX)
         y[:-1, :] = Z[1:, self.frame_length-2:self.frame_length]
         y[-1, :] = last_target
 
