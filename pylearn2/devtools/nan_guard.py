@@ -28,11 +28,11 @@ class NanGuardMode(Mode):
     nan_is_error : bool
         If True, raise an error anytime a NaN is encountered
     inf_is_error: bool
-        If True, raise an error anytime an Inf is encountered.  Note that some \
+        If True, raise an error anytime an Inf is encountered.  Note that some
         pylearn2 modules currently use np.inf as a default value (e.g.
         mlp.max_pool) and these will cause an error if inf_is_error is True.
     big_is_error: bool
-        If True, raise an error anytime an value greater than 1e10 is encountered
+        If True, raise an error when a value greater than 1e10 is encountered.
     """
     def __init__(self, nan_is_error, inf_is_error, big_is_error=True):
         def do_check_on(var, nd, f, is_input):
