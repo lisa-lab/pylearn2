@@ -1,6 +1,4 @@
-"""
-Functionality for detecting NaNs in a Theano graph.
-"""
+"""Functionality for detecting NaNs in a Theano graph."""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -20,39 +18,36 @@ logger = logging.getLogger(__name__)
 
 class NanGuardMode(Mode):
     """
-    A Theano compilation Mode that makes the compiled function automatically
-    detect NaNs and Infs and detect an error if they occur.
+A Theano compilation Mode that makes the compiled function automatically
+detect NaNs and Infs and detect an error if they occur.
 
-    Parameters
-    ----------
-    nan_is_error : bool
-        If True, raise an error anytime a NaN is encountered
-    inf_is_error: bool
-        If True, raise an error anytime an Inf is encountered.  Note that some \
-        pylearn2 modules currently use np.inf as a default value (e.g.
-        mlp.max_pool) and these will cause an error if inf_is_error is True.
-    big_is_error: bool
-        If True, raise an error anytime an value greater than 1e10 is encountered
-    """
-    def __init__(self, nan_is_error, inf_is_error, big_is_error=True):
+Parameters
+----------
+nan_is_error : bool
+If True, raise an error anytime a NaN is encountered
+inf_is_error : bool
+If True, raise an error anytime an Inf is encountered
+"""
+
+    def __init__(self, nan_is_error, inf_is_error):
         def do_check_on(var, nd, f, is_input):
             """
-            Checks `var` for NaNs / Infs. If detected, raises an exception
-            and / or prints information about `nd`, `f`, and `is_input` to
-            help the user determine the cause of the invalid values.
+Checks `var` for NaNs / Infs. If detected, raises an exception
+and / or prints information about `nd`, `f`, and `is_input` to
+help the user determine the cause of the invalid values.
 
-            Parameters
-            ----------
-            var : numpy.ndarray
-                The value to be checked.
-            nd : theano.gof.Apply
-                The Apply node being executed
-            f : callable
-                The thunk for the apply node
-            is_input : bool
-                If True, `var` is an input to `nd`.
-                If False, it is an output.
-            """
+Parameters
+----------
+var : numpy.ndarray
+The value to be checked.
+nd : theano.gof.Apply
+The Apply node being executed
+f : callable
+The thunk for the apply node
+is_input : bool
+If True, `var` is an input to `nd`.
+If False, it is an output.
+"""
             error = False
             if nan_is_error:
                 if np.any(np.isnan(var)):
@@ -62,10 +57,9 @@ class NanGuardMode(Mode):
                 if np.any(np.isinf(var)):
                     logger.error('Inf detected')
                     error = True
-            if big_is_error:
-                if np.abs(var).max() > 1e10:
-                    logger.error('Big value detected')
-                    error = True
+            if np.abs(var).max() > 1e10:
+                logger.error('Big value detected')
+                error = True
             if error:
                 if is_input:
                     logger.error('In an input')
@@ -84,16 +78,16 @@ class NanGuardMode(Mode):
 
         def nan_check(i, node, fn):
             """
-            Runs `fn` while checking its inputs and outputs for NaNs / Infs
+Runs `fn` while checking its inputs and outputs for NaNs / Infs
 
-            Parameters
-            ----------
-            i : currently ignored (TODO: determine why it is here or remove)
-            node : theano.gof.Apply
-                The Apply node currently being executed
-            fn : callable
-                The thunk to execute for this Apply node
-            """
+Parameters
+----------
+i : currently ignored (TODO: determine why it is here or remove)
+node : theano.gof.Apply
+The Apply node currently being executed
+fn : callable
+The thunk to execute for this Apply node
+"""
             inputs = fn.inputs
             # TODO: figure out why individual inputs are themselves lists sometimes
             for x in flatten(inputs):
