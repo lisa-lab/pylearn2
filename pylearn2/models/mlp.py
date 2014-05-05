@@ -155,6 +155,8 @@ class Layer(Model):
     def get_layer_monitoring_channels(self, state_below=None,
                                     state=None, targets=None):
         """
+        Returns monitoring channels.
+
         Parameters
         ----------
         state_below : member of self.input_space
