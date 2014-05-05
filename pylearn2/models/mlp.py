@@ -570,14 +570,13 @@ class MLP(Layer):
 
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
-        """
-        Notes
-        -----
-        We are only monitoring the last layer for data dependent channels.
-        If you want to monitor every inner layer you should change the
-        get_monitoring_channels_from_state method.
+        #
+        # Notes
+        # -----
+        # We are only monitoring the last layer for data dependent channels.
+        # If you want to monitor every inner layer you should change the
+        # get_monitoring_channels_from_state method.
 
-        """
         warnings.warn("Layer.get_monitoring_channels_from_state is " + \
                     "deprecated. Use get_layer_monitoring_channels " + \
                     "instead. Layer.get_monitoring_channels_from_state " + \
