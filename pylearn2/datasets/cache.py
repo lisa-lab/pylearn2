@@ -120,15 +120,20 @@ class LocalDatasetCache:
             self.copy_from_server_to_local(remote_name, local_name)
             log.info("File %s has been locally cached to %s" %
                      (remote_name, local_name))
-        elif os.path.getmtime(remote_name) > os.path.getmtime(local_name):
+        elif os.path.getmtime(remote_name) != os.path.getmtime(local_name):
+            if os.path.getmtime(remote_name) > os.path.getmtime(local_name):
+                relation = 'newer'
+            else:
+                relation = 'older'
             log.warning("File %s not cached: The remote file (modified "
-                        "%s) is newer than the locally cached file %s "
+                        "%s) is %s than the locally cached file %s "
                         "(modified %s)"
                         % (remote_name,
                            time.strftime(
                                '%Y-%m-%d %H:%M:%S',
                                time.localtime(os.path.getmtime(remote_name))
                            ),
+                           relation,
                            local_name,
                            time.strftime(
                                '%Y-%m-%d %H:%M:%S',
@@ -138,7 +143,7 @@ class LocalDatasetCache:
         elif os.path.getsize(local_name) != os.path.getsize(remote_name):
             log.warning("File %s not cached: The remote file (%d bytes) is of "
                         "a different size than the locally cached file %s "
-                        "(%d bytes)"
+                        "(%d bytes). The local cache might be corrupt."
                         % (remote_name, os.path.getsize(remote_name),
                            local_name, os.path.getsize(local_name)))
             return filename
