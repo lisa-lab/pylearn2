@@ -638,7 +638,6 @@ whitelist_docstrings = [
     'scripts/icml_2013_wrepl/black_box/black_box_dataset.py',
     'scripts/icml_2013_wrepl/black_box/make_submission.py',
     'scripts/icml_2013_wrepl/black_box/__init__.py',
-    'scripts/train.py',
     'scripts/diff_monitor.py',
     'base.py',
     'devtools/tests/test_via_pyflakes.py',

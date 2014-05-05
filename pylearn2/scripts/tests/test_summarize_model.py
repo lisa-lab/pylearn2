@@ -1,11 +1,11 @@
 """
 A unit test for the summarize_model.py script
 """
-import os
-import subprocess
+import cPickle
 
-import pylearn2
 from pylearn2.testing.skip import skip_if_no_matplotlib
+from pylearn2.models.mlp import MLP, Linear
+from pylearn2.scripts.summarize_model import summarize
 
 
 def test_summarize_model():
@@ -14,7 +14,7 @@ def test_summarize_model():
     check that it completes succesfully
     """
     skip_if_no_matplotlib()
-    assert not subprocess.call([
-        os.path.join(pylearn2.__path__[0], "scripts/summarize_model.py"),
-        os.path.join(pylearn2.__path__[0], "scripts/tests/model.pkl")
-    ])
+    with open('model.pkl', 'wb') as f:
+        cPickle.dump(MLP(layers=[Linear(dim=5, layer_name='h0', irange=0.1)],
+                         nvis=10), f, protocol=cPickle.HIGHEST_PROTOCOL)
+    summarize('model.pkl')

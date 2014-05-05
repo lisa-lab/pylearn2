@@ -18,7 +18,7 @@ import numpy as np
 from pylearn2.utils import serial
 
 
-def main(path):
+def summarize(path):
     """
     Summarize the model
 
@@ -82,4 +82,4 @@ def make_argument_parser():
 if __name__ == "__main__":
     parser = make_argument_parser()
     args = parser.parse_args()
-    main(args.path)
+    summarize(args.path)
