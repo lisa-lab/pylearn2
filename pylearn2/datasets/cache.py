@@ -111,7 +111,7 @@ class LocalDatasetCache:
 
             # Check that there is enough space to cache the file
             if not self.check_enough_space(remote_name, local_name):
-                log.warning("Not enough free space: file %s not cached" %
+                log.warning("File %s not cached: Not enough free space" %
                             remote_name)
                 self.release_writelock()
                 return filename
@@ -120,10 +120,25 @@ class LocalDatasetCache:
             self.copy_from_server_to_local(remote_name, local_name)
             log.info("File %s has been locally cached to %s" %
                      (remote_name, local_name))
+        elif os.path.getmtime(remote_name) > os.path.getmtime(local_name):
+            log.warning("File %s not cached: The remote file (modified "
+                        "%s) is newer than the locally cached file %s "
+                        "(modified %s)"
+                        % (remote_name,
+                           time.strftime(
+                               '%Y-%m-%d %H:%M:%S',
+                               time.localtime(os.path.getmtime(remote_name))
+                           ),
+                           local_name,
+                           time.strftime(
+                               '%Y-%m-%d %H:%M:%S',
+                               time.localtime(os.path.getmtime(local_name))
+                           )))
+            return filename
         elif os.path.getsize(local_name) != os.path.getsize(remote_name):
-            log.warning("Filename conflict: File %s (%d bytes) cannot be "
-                        "cached because of a filename conflict with locally "
-                        "cached file %s (%d bytes)"
+            log.warning("File %s not cached: The remote file (%d bytes) is of "
+                        "a different size than the locally cached file %s "
+                        "(%d bytes)"
                         % (remote_name, os.path.getsize(remote_name),
                            local_name, os.path.getsize(local_name)))
             return filename
