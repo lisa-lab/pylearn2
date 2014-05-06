@@ -189,6 +189,19 @@ class KMeans(Block, Model):
         self._params = [ self.mu ]
         return True
 
+    def continue_learning(self):
+        """
+        Overriding Model.continue_learning because train_all is used to train
+        the model.
+        
+        Returns
+        -------
+        rval : bool
+            True if training should continue
+
+        """
+        return False
+        
     def get_params(self):
         """
         .. todo::
