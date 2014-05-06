@@ -120,7 +120,7 @@ class LocalDatasetCache:
             # There is enough space; make a local copy of the file
             self.copy_from_server_to_local(remote_name, local_name)
             log.info("File %s has been locally cached to %s" %
-                      (remote_name, local_name))
+                     (remote_name, local_name))
 
         else:
             log.debug("File %s has previously been locally cached to %s" %
