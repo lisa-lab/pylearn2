@@ -416,7 +416,7 @@ class MLP(Layer):
         not part of another MLP.
     seed : WRITEME
     kwargs : dict
-        Passed on to the superclass
+        Passed on to the superclass.
     """
 
     def __init__(self, layers, batch_size=None, input_space=None,
