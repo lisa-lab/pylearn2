@@ -49,7 +49,7 @@ class LocalDatasetCache:
             self.dataset_local_dir = ""
 
         if self.dataset_remote_dir == "" or self.dataset_local_dir == "":
-            log.warning("Local dataset cache is deactivated")
+            log.debug("Local dataset cache is deactivated")
 
     def cache_file(self, filename):
         """
@@ -119,7 +119,7 @@ class LocalDatasetCache:
 
             # There is enough space; make a local copy of the file
             self.copy_from_server_to_local(remote_name, local_name)
-            log.debug("File %s has been locally cached to %s" %
+            log.info("File %s has been locally cached to %s" %
                       (remote_name, local_name))
 
         else:
