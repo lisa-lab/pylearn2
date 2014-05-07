@@ -18,6 +18,20 @@ class Softmax(mlp.Softmax):
     """
     An extension of the MLP's softmax layer which monitors
     the perplexity
+
+    Parameters
+    ----------
+    n_classes : WRITEME
+    layer_name : WRITEME
+    irange : WRITEME
+    istdev : WRITEME
+    sparse_init : WRITEME
+    W_lr_scale : WRITEME
+    b_lr_scale : WRITEME
+    max_row_norm : WRITEME
+    no_affine : WRITEME
+    max_col_norm : WRITEME
+    init_bias_target_marginals : WRITEME
     """
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
@@ -45,24 +59,24 @@ class ProjectionLayer(Layer):
     This layer can be used to project discrete labels into a continous space
     as done in e.g. language models. It takes labels as an input (IndexSpace)
     and maps them to their continous embeddings and concatenates them.
+
+    Parameters
+        ----------
+    dim : int
+        The dimension of the embeddings. Note that this means that the
+        output dimension is (dim * number of input labels)
+    layer_name : string
+        Layer name
+    irange : numeric
+       The range of the uniform distribution used to initialize the
+       embeddings. Can't be used with istdev.
+    istdev : numeric
+        The standard deviation of the normal distribution used to
+        initialize the embeddings. Can't be used with irange.
     """
     def __init__(self, dim, layer_name, irange=None, istdev=None):
         """
         Initializes a projection layer.
-
-        Parameters
-        ----------
-        dim : int
-            The dimension of the embeddings. Note that this means that the
-            output dimension is (dim * number of input labels)
-        layer_name : string
-            Layer name
-        irange : numeric
-           The range of the uniform distribution used to initialize the
-           embeddings. Can't be used with istdev.
-        istdev : numeric
-            The standard deviation of the normal distribution used to
-            initialize the embeddings. Can't be used with irange.
         """
         super(ProjectionLayer, self).__init__()
         self.dim = dim

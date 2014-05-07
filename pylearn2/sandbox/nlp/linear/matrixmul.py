@@ -7,6 +7,10 @@ from pylearn2.linear import matrixmul
 class MatrixMul(matrixmul.MatrixMul):
     """
     Operations which can be represented as matrix multiplications.
+
+    Parameters
+    ----------
+    W : WRITEME
     """
     def project(self, x):
         """

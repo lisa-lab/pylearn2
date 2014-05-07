@@ -20,19 +20,21 @@ from pylearn2.utils.iteration import resolve_iterator_class
 class PennTreebank(DenseDesignMatrix):
     """
     Loads the Penn Treebank corpus.
+
+    Parameters
+    ----------
+    which_set : {'train', 'valid', 'test'}
+        Choose the set to use
+    context_len : int
+        The size of the context i.e. the number of words used
+        to predict the subsequent word.
+    shuffle : bool
+        Whether to shuffle the samples or go through the dataset
+        linearly
     """
     def __init__(self, which_set, context_len, shuffle=True):
         """
-        Parameters
-        ----------
-        which_set : {'train', 'valid', 'test'}
-            Choose the set to use
-        context_len : int
-            The size of the context i.e. the number of words used
-            to predict the subsequent word.
-        shuffle : bool
-            Whether to shuffle the samples or go through the dataset
-            linearly
+        Loads the data and turns it into n-grams
         """
         path = ("${PYLEARN2_DATA_PATH}/PennTreebankCorpus/" +
                 "penntree_char_and_word.npz")
