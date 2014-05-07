@@ -8,12 +8,6 @@ class MatrixMul(matrixmul.MatrixMul):
     """
     Operations which can be represented as matrix multiplications.
     """
-    def init(self):
-        """
-        Call the parent constructor
-        """
-        super(MatrixMul, self).__init__()
-
     def project(self, x):
         """
         Takes a sequence of integers and projects (embeds) these labels
