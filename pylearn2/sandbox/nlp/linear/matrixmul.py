@@ -24,6 +24,6 @@ class MatrixMul(matrixmul.MatrixMul):
             shape = (x.shape[0], x.shape[1] * self._W.shape[1])
             return self._W[x.flatten()].reshape(shape)
         elif x.ndim == 1:
-            return self._W[x].reshape((x.shape[0] * self._W.shape[1],))
+            return self._W[x].flatten()
         else:
             assert ValueError("project needs 1- or 2-dimensional input")

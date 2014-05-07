@@ -20,7 +20,10 @@ def test_matrixmul():
     tensor_x = [
         tensor.wmatrix(),
         tensor.imatrix(),
-        tensor.lmatrix()
+        tensor.lmatrix(),
+        tensor.wvector(),
+        tensor.ivector(),
+        tensor.lvector()
     ]
     np_W, np_x = [], []
     for dtype in dtypes:
@@ -29,6 +32,11 @@ def test_matrixmul():
             0, 10, (rng.random_integers(5),
                     rng.random_integers(5))
         ).astype(dtype))
+    for dtype in dtypes:
+        np_W.append(rng.rand(10, np.random.randint(1, 10)))
+        np_x.append(
+            rng.randint(0, 10, (rng.random_integers(5),)).astype(dtype)
+        )
 
     tensor_W = [sharedX(W) for W in np_W]
     matrixmul = [MatrixMul(W) for W in tensor_W]
@@ -38,5 +46,8 @@ def test_matrixmul():
           for x, mm in zip(tensor_x, matrixmul)]
     for W, x, f in zip(np_W, np_x, fn):
         W_x = W[x]
-        W_x = W_x.reshape((W_x.shape[0], np.prod(W_x.shape[1:])))
+        if x.ndim == 2:
+            W_x = W_x.reshape((W_x.shape[0], np.prod(W_x.shape[1:])))
+        else:
+            W_x = W_x.flatten()
         np.testing.assert_allclose(f(x), W_x)
