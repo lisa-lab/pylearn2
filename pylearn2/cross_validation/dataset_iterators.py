@@ -107,6 +107,26 @@ class StratifiedDatasetCV(DatasetCV):
     Subclass of DatasetCV for stratified experiments, where
     the relative class proportions of the full dataset are maintained in
     each partition.
+
+    Parameters
+    ----------
+    dataset : object
+        Full dataset for use in cross validation.
+    subset_iterator : iterable
+        Iterable that returns (train, test) or (train, valid, test) indices
+        or masks for partitioning the dataset during cross-validation.
+    which_set : str, list or None
+        If None, return all subset datasets. If one or more of 'train',
+        'valid', or 'test', return only the dataset(s) corresponding to the
+        given subset(s).
+    return_dict : bool
+        Whether to return subset datasets as a dictionary. If True,
+        returns a dict with keys 'train', 'valid', and/or 'test' (if
+        subset_iterator returns two subsets per partition, 'train' and
+        'test' are used, and if subset_iterator returns three subsets per
+        partition, 'train', 'valid', and 'test' are used). If False,
+        returns a list of datasets matching the subset order given by
+        subset_iterator.
     """
     @staticmethod
     def get_y(dataset):

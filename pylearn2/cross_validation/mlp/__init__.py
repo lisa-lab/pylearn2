@@ -32,16 +32,28 @@ class PretrainedLayerCV(Layer):
         return self._folds[k]
 
     def set_input_space(self, space):
+        """
+        Set input space.
+
+        Parameters
+        ----------
+        space : Space
+            The input space for this layer.
+        """
         return [fold.set_input_space(space) for fold in self._folds]
 
     def get_params(self):
+        """Get parameters."""
         return self._folds[0].get_params()
 
     def get_input_space(self):
+        """Get input space."""
         return self._folds[0].get_input_space()
 
     def get_output_space(self):
+        """Get output space."""
         return self._folds[0].get_output_space()
 
-    def get_monitoring_channels(self, data):
+    def get_monitoring_channels(self):
+        """Get monitoring channels."""
         return self._folds[0].get_monitoring_channels()
