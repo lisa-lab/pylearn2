@@ -8,10 +8,8 @@ try:
                                           StratifiedShuffleSplit)
 except ImportError:
     warnings.warn("Could not import from sklearn.")
-try:
-    from collections import OrderedDict
-except ImportError:
-    warnings.warn("Could not import from collections.")
+
+from theano.compat import OrderedDict
 
 from pylearn2.cross_validation.blocks import StackedBlocksCV
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix

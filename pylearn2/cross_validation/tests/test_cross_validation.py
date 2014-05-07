@@ -5,13 +5,12 @@ import os
 import tempfile
 
 from pylearn2.config import yaml_parse
-from pylearn2.testing.skip import skip_if_no_sklearn, skip_if_no_collections
+from pylearn2.testing.skip import skip_if_no_sklearn
 
 
 def test_train_cv():
     """Test TrainCV class."""
     skip_if_no_sklearn()
-    skip_if_no_collections()
     handle, layer0_filename = tempfile.mkstemp()
     handle, layer1_filename = tempfile.mkstemp()
     handle, layer2_filename = tempfile.mkstemp()
@@ -53,7 +52,6 @@ def test_train_cv():
 def test_dataset_k_fold():
     """Test DatasetKFold."""
     skip_if_no_sklearn()
-    skip_if_no_collections()
     mapping = {'dataset_iterator': 'DatasetKFold'}
     test_yaml = test_yaml_dataset_iterator % mapping
     trainer = yaml_parse.load(test_yaml)
@@ -63,7 +61,6 @@ def test_dataset_k_fold():
 def test_stratified_dataset_k_fold():
     """Test StratifiedDatasetKFold."""
     skip_if_no_sklearn()
-    skip_if_no_collections()
     mapping = {'dataset_iterator': 'StratifiedDatasetKFold'}
     test_yaml = test_yaml_dataset_iterator % mapping
     trainer = yaml_parse.load(test_yaml)
@@ -73,7 +70,6 @@ def test_stratified_dataset_k_fold():
 def test_dataset_shuffle_split():
     """Test DatasetShuffleSplit."""
     skip_if_no_sklearn()
-    skip_if_no_collections()
     mapping = {'dataset_iterator': 'DatasetShuffleSplit'}
     test_yaml = test_yaml_dataset_iterator % mapping
     trainer = yaml_parse.load(test_yaml)
@@ -83,7 +79,6 @@ def test_dataset_shuffle_split():
 def test_stratified_dataset_shuffle_split():
     """Test StratifiedDatasetShuffleSplit."""
     skip_if_no_sklearn()
-    skip_if_no_collections()
     mapping = {'dataset_iterator': 'StratifiedDatasetShuffleSplit'}
     test_yaml = test_yaml_dataset_iterator % mapping
     trainer = yaml_parse.load(test_yaml)
@@ -93,7 +88,6 @@ def test_stratified_dataset_shuffle_split():
 def test_which_set():
     """Test which_set selector."""
     skip_if_no_sklearn()
-    skip_if_no_collections()
 
     # one label
     this_yaml = test_yaml_which_set % {'which_set': 'train'}
@@ -126,7 +120,6 @@ def test_which_set():
 def test_no_targets():
     """Test cross-validation without targets."""
     skip_if_no_sklearn()
-    skip_if_no_collections()
     trainer = yaml_parse.load(test_yaml_no_targets)
     trainer.main_loop()
 

@@ -31,12 +31,6 @@ try:
 except ImportError:
     h5py_works = False
 
-collections_works = True
-try:
-    import collections
-except ImportError:
-    collections_works = False
-
 def skip_if_no_data():
     if 'PYLEARN2_DATA_PATH' not in os.environ:
         raise SkipTest()
@@ -55,8 +49,4 @@ def skip_if_no_gpu():
 
 def skip_if_no_h5py():
     if not h5py_works:
-        raise SkipTest()
-
-def skip_if_no_collections():
-    if not collections_works:
         raise SkipTest()
