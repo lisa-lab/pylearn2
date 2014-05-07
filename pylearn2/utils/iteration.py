@@ -835,8 +835,6 @@ class FiniteDatasetIterator(object):
         return rval
 
     def _next(self, next_index):
-        # TODO: handle fancy-index copies by allocating a buffer and
-        # using numpy.take()
         return tuple(
             fn(batch) if fn else batch for batch, fn in
             safe_zip(self._dataset.get(self._source, next_index),
