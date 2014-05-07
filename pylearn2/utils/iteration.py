@@ -203,9 +203,9 @@ class ForcedEvenIterator(SubsetIterator):
     Examples
     --------
     >>> dct = ForcedEvenIterator.__dict__.copy()
-    >>> dct["_base_iterator_cls"] = DummyIterator
-    >>> dct["fancy"] = DummyIterator.fancy
-    >>> dct["stochastic"] = DummyIterator.stochastic
+    >>> dct["_base_iterator_cls"] = SequentialSubsetIterator
+    >>> dct["fancy"] = SequentialSubsetIterator.fancy
+    >>> dct["stochastic"] = SequentialSubsetIterator.stochastic
     >>>
     >>> NewForcedEvenClass = type("ForcedEvenDummyIterator",
     ...     ForcedEvenIterator.__bases__, dct)
@@ -215,7 +215,7 @@ class ForcedEvenIterator(SubsetIterator):
 
     For a shortcut use function as_even()
 
-    >>> NewForcedEvenClass = as_even(DummyIterator)
+    >>> NewForcedEvenClass = as_even(SequentialSubsetIterator)
     >>> even_iterator = NewForcedEvenClass(dataset_size=100,
     ...     batch_size=30, num_batches=None)
     """

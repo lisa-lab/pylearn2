@@ -8,7 +8,6 @@ class Dataset(object):
     Abstract interface for Datasets.
     """
 
-
     def __iter__(self):
         """
         .. todo::
@@ -22,6 +21,13 @@ class Dataset(object):
         """
         Return an iterator for this dataset with the specified
         behaviour. Unspecified values are filled-in by the default.
+
+        .. todo::
+
+            Parameters : targets
+
+            DWF or LD should fill this in, but IG thinks it is just
+            a bool saying whether to include the targets or not
 
         Parameters
         ----------
@@ -52,9 +58,8 @@ class Dataset(object):
             through the dataset and may potentially be shared by
             multiple iterator objects simultaneously (see "Notes"
             below).
-        targets: TODO WRITEME: DWF or LD should fill this in, but
-            IG thinks it is just a bool saying whether to include
-            the targets or not
+        targets: TODO
+            TODO
 
         Returns
         -------
@@ -126,6 +131,12 @@ class Dataset(object):
         strongly discouraged. All code that depends on any particular
         example sampling properties should use Dataset.iterator.
 
+        .. todo::
+
+            Refactor to use `include_targets` rather than `include_labels`,
+            to make the terminology more consistent with the rest of the
+            library.
+
         Parameters
         ----------
         batch_size : int
@@ -139,13 +150,6 @@ class Dataset(object):
         batch : member of feature space, or member of (feature, target) space.
             Either numpy value of the features, or a (features, targets) tuple
             of numpy values, depending on the value of `include_labels`.
-
-        ..todo
-
-            Refactor to use `include_targets` rather than `include_labels`,
-            to make the terminology more consistent with the rest of the
-            library.
-
         """
         raise NotImplementedError(str(type(self))+" does not implement "
                 "get_batch_design.")

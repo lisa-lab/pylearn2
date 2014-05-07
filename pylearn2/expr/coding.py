@@ -13,10 +13,17 @@ def triangle_code(X, centroids):
     Compute the triangle activation function used in Adam Coates' AISTATS 2011
     paper
 
-    X: a design matrix
-    centroids: a k-means dictionary, one centroid in each row
+    Parameters
+    ----------
+    X : WRITEME
+        design matrix
+    centroids : WRITEME
+        k-means dictionary, one centroid in each row
 
-    Returns a design matrix of triangle code activations
+    Returns
+    -------
+    WRITEME
+        A design matrix of triangle code activations
     """
 
     X_sqr = T.sqr(X).sum(axis=1).dimshuffle(0,'x')

@@ -84,7 +84,7 @@ def load_path(path, overrides=None, environ=None, **kwargs):
     Returns
     -------
     graph : dict or object
-        The dictionary or object (if the top-level element specified an \
+        The dictionary or object (if the top-level element specified a \
         Python object to instantiate).
 
     Notes

@@ -4,7 +4,6 @@ Datasets introduced in:
     An Empirical Evaluation of Deep Architectures on Problems with Many Factors of Variation
     Hugo Larochelle, Dumitru Erhan, Aaron Courville, James Bergstra and Yoshua Bengio,
     International Conference on Machine Learning, 2007
-
 """
 
 import os
@@ -15,13 +14,13 @@ from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix, DefaultView
 
 
 class ICML07DataSet(DenseDesignMatrix):
-    """ Base class for ICML07 datasets.
+    """
+    Base class for ICML07 datasets.
     
     All these datasets can be displayed as 28x28 pixel datapoints.
     """
+
     def __init__(self, npy_filename, which_set, one_hot, split):
-        """
-        """
         assert which_set in ['train', 'valid', 'test']
 
         self.one_hot = one_hot
@@ -63,19 +62,23 @@ class ICML07DataSet(DenseDesignMatrix):
         super(ICML07DataSet, self).__init__(X = data_x, y = data_y, view_converter = view_converter)
     
     def get_test_set(self):
-        return self.__class__(which_set='test', one_hot=self.one_hot, split=self.split)
+        """
+        .. todo::
 
+            WRITEME
+        """
+        return self.__class__(which_set='test', one_hot=self.one_hot, split=self.split)
 
 #
 # Actual datasets
 
 
 class MNIST_rotated_background(ICML07DataSet):
-    """ ICML07: Rotated MNIST dataset with background.
+    """ ICML07: Rotated MNIST dataset with background."""
 
-    """
     def __init__(self, which_set, one_hot=False, split=(10000, 2000, 10000)):
-        """ Load ICML07 Rotated MNIST with background dataset.
+        """
+        Load ICML07 Rotated MNIST with background dataset.
 
         Parameters
         ----------
@@ -92,12 +95,14 @@ class MNIST_rotated_background(ICML07DataSet):
    
 
 class Convex(ICML07DataSet):
-    """ ICML07: Recognition of Convex Sets datasets.
+    """
+    ICML07: Recognition of Convex Sets datasets.
 
     All data values are binary, and the classification task is binary.
     """
     def __init__(self, which_set, one_hot=False, split=(6000, 2000, 50000) ):
-        """ Load ICML07 Convex shapes dataset.
+        """
+        Load ICML07 Convex shapes dataset.
 
         Parameters
         ----------
@@ -115,12 +120,14 @@ class Convex(ICML07DataSet):
 
 
 class Rectangles(ICML07DataSet):
-    """ ICML07: Discrimination between Tall and Wide Rectangles.
+    """
+    ICML07: Discrimination between Tall and Wide Rectangles.
 
     All data values are binary, and the classification task is binary.
     """
     def __init__(self, which_set, one_hot=False, split=(1000,200,50000)):
-        """ Load ICML07 Rectangle dataset:
+        """
+        Load ICML07 Rectangle dataset:
 
         Parameters
         ----------
@@ -137,12 +144,14 @@ class Rectangles(ICML07DataSet):
 
 
 class RectanglesImage(ICML07DataSet):
-    """ ICML07: Discrimination between tall and wide rectangles.
+    """
+    ICML07: Discrimination between tall and wide rectangles.
 
     The classification task is binary.
     """
     def __init__(self, which_set, one_hot=False, split=(10000, 2000, 50000)):
-        """ Load ICML07 Rectangles/images dataset:
+        """
+        Load ICML07 Rectangles/images dataset:
  
         Parameters
         ----------

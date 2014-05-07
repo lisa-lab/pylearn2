@@ -38,8 +38,10 @@ class UniformHypersphere(object):
 
             WRITEME properly
 
-        Parameters:
-            X: Must contain only examples that lie on the hypersphere
+        Parameters
+        ----------
+        X : WRITEME
+            Must contain only examples that lie on the hypersphere
         """
         #design matrix format
 

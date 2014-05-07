@@ -276,7 +276,7 @@ class Maxout(Layer):
                                  str(self.mask_weights.shape))
             self.mask = sharedX(self.mask_weights)
 
-    def censor_updates(self, updates):
+    def _modify_updates(self, updates):
         """
         Replaces the values in `updates` if needed to enforce the options set
         in the __init__ method, including `mask_weights` and `max_col_norm`.
@@ -725,7 +725,7 @@ class MaxoutConvC01B(Layer):
 
         logger.info('Output space: {0}'.format(self.output_space.shape))
 
-    def censor_updates(self, updates):
+    def _modify_updates(self, updates):
         """
         Replaces the values in `updates` if needed to enforce the options set
         in the __init__ method, including `max_kernel_norm`.
@@ -1264,7 +1264,7 @@ class MaxoutLocalC01B(Layer):
 
         logger.info('Output space: {0}'.format(self.output_space.shape))
 
-    def censor_updates(self, updates):
+    def _modify_updates(self, updates):
         """
         Replaces the values in `updates` if needed to enforce the options set
         in the __init__ method, including `max_kernel_norm`.

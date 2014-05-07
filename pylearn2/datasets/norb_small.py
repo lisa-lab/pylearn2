@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import numpy
 np = numpy
 import os
@@ -21,7 +26,11 @@ class NORBSmall(dense_design_matrix.DenseDesignMatrix):
 
     @classmethod
     def load(cls, which_set, desc):
+        """
+        .. todo::
 
+            WRITEME
+        """
         assert desc in ['dat','cat','info']
 
         base = '%s/norb_small/original_npy/smallnorb-' % os.getenv('PYLEARN2_DATA_PATH')
@@ -143,7 +152,11 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         self.y = self.y.astype('float32')
 
     def get_test_set(self):
+        """
+        .. todo::
 
+            WRITEME
+        """
         test_args = {'which_set' : 'test'}
 
         for key in self.args:
@@ -154,7 +167,11 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         return FoveatedNORB(**test_args)
 
     def restrict_instances(self, instances):
+        """
+        .. todo::
 
+            WRITEME
+        """
         mask = reduce(np.maximum, [self.instance == ins for ins in instances])
         mask = mask.astype('bool')
         self.instance = self.instance[mask]

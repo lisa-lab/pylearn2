@@ -48,6 +48,9 @@ class LocalDatasetCache:
             self.dataset_remote_dir = ""
             self.dataset_local_dir = ""
 
+        if self.dataset_remote_dir == "" or self.dataset_local_dir == "":
+            log.debug("Local dataset cache is deactivated")
+
     def cache_file(self, filename):
         """
         Caches a file locally if possible. If caching was succesfull, or if
@@ -72,8 +75,6 @@ class LocalDatasetCache:
         # Check if a local directory for data has been defined. Otherwise,
         # do not locally copy the data
         if self.dataset_local_dir == "":
-            log.warning("Local cache deactivated : file %s not cached" %
-                        remote_name)
             return filename
 
         # Make sure the file to cache exists and really is a file
@@ -122,8 +123,8 @@ class LocalDatasetCache:
                      (remote_name, local_name))
 
         else:
-            log.info("File %s has previously been locally cached to %s" %
-                     (remote_name, local_name))
+            log.debug("File %s has previously been locally cached to %s" %
+                      (remote_name, local_name))
 
         # Obtain a readlock on the downloaded file before releasing the
         # writelock. This is to prevent having a moment where there is no

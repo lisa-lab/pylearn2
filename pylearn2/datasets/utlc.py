@@ -20,14 +20,14 @@ from pylearn2.utils.rng import make_np_rng
 def load_ndarray_dataset(name, normalize=True, transfer=False,
                          normalize_on_the_fly=False, randomize_valid=False,
                          randomize_test=False):
-    """ Load the train,valid,test data for the dataset `name` and return it in ndarray format.
+    """ 
+    Load the train,valid,test data for the dataset `name` and return it in ndarray format.
 
     We suppose the data was created with ift6266h11/pretraitement/to_npy.py that
     shuffle the train. So the train should already be shuffled.
 
     Parameters
     ----------
-
     name : 'avicenna', 'harry', 'rita', 'sylvester' or 'ule'
         Which dataset to load
     normalize : bool
@@ -51,10 +51,10 @@ def load_ndarray_dataset(name, normalize=True, transfer=False,
 
     Returns
     -------
-    train, valid, test: ndarrays
-        Datasets returned if ransfer = Flase
-    train, valid, test, transfer: ndarrays
-        Datasets returned if ransfer = Flase
+    train, valid, test : ndarrays
+        Datasets returned if transfer = False
+    train, valid, test, transfer : ndarrays
+        Datasets returned if transfer = False
     
     """
     assert not (normalize and normalize_on_the_fly), "Can't normalize in 2 way at the same time!"
@@ -128,7 +128,8 @@ def load_ndarray_dataset(name, normalize=True, transfer=False,
 def load_sparse_dataset(name, normalize=True, transfer=False,
                         randomize_valid=False,
                         randomize_test=False):
-    """ Load the train,valid,test data for the dataset `name` and return it in sparse format.
+    """ 
+    Load the train,valid,test data for the dataset `name` and return it in sparse format.
 
     We suppose the data was created with ift6266h11/pretraitement/to_npy.py that
     shuffle the train. So the train should already be shuffled.
@@ -148,10 +149,10 @@ def load_sparse_dataset(name, normalize=True, transfer=False,
 
     Returns
     -------
-    train, valid, test: ndarrays
-        Datasets returned if ransfer = Flase
-    train, valid, test, transfer: ndarrays
-        Datasets returned if ransfer = Flase
+    train, valid, test : ndarrays
+        Datasets returned if transfer = False
+    train, valid, test, transfer : ndarrays
+        Datasets returned if transfer = False
     """
     assert name in ['harry','terry','ule']
     common = os.path.join(preprocess('${PYLEARN2_DATA_PATH}'),'UTLC','sparse',name+'_')
@@ -212,7 +213,7 @@ def load_ndarray_transfer(name):
 
     Returns
     -------
-    transfe : ndarray
+    transfer : ndarray
         Transfer dataset loaded
     """
     assert name in ['avicenna','harry','rita','sylvester','terry','ule']
@@ -246,6 +247,11 @@ def load_ndarray_label(name):
     return trainl, validl, testl
 
 def load_filetensor(fname):
+    """
+    .. todo::
+
+        WRITEME
+    """
     f = None
     try:
         if not os.path.exists(fname):
@@ -263,6 +269,11 @@ def load_filetensor(fname):
     return d
 
 def load_sparse(fname):
+    """
+    .. todo::
+
+        WRITEME
+    """
     f = None
     try:
         if not os.path.exists(fname):
@@ -277,4 +288,3 @@ def load_sparse(fname):
         if f:
             f.close()
     return d
-

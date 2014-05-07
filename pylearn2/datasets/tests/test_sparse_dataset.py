@@ -4,7 +4,6 @@ Unit tests for ../sparse_dataset.py
 
 import numpy as np
 from pylearn2.datasets.sparse_dataset import SparseDataset
-from pylearn2.training_algorithms.default import DefaultTrainingAlgorithm
 from pylearn2.train import Train
 from pylearn2.models.model import Model
 from pylearn2.space import VectorSpace

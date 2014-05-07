@@ -150,6 +150,7 @@ Roughly in order of what you'll want to check out:
   place to start if you want to really learn the library.
 * :ref:`libdoc` -- Documentation of the library modules.
 * :ref:`cluster` -- The tools we use at LISA for running Pylearn2 jobs on HPC clusters.
+* :ref:`large_data` -- A guide on how to deal with large datasets.
 * :ref:`vision` -- Some more detailed elaboration of some points of the Pylearn2 vision.
 
 
@@ -209,6 +210,7 @@ Developer
    internal/metadocumentation
    internal/data_specs
    overview
+   large_data
    tutorial/index
    tutorial/with_jobman
    vision
