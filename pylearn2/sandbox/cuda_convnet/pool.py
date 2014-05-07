@@ -60,7 +60,7 @@ class MaxPool(GpuOp):
         Setting this parameter smaller than sizeX produces overlapping
         pools. Setting it equal to sizeX gives the usual, non-overlapping
         pools. Values greater than sizeX are not allowed.
-    start : int
+    start : int, optional
         Tells the net where in the input image to start the pooling
         (in x,y coordinates). In principle, you can start anywhere you
         want. Setting this to a positive number will cause the net to
@@ -68,7 +68,7 @@ class MaxPool(GpuOp):
         Setting this to a negative number will cause it to include
         pixels that don't exist (which is fine). start=0 is the usual
         setting.
-    outputs : int
+    outputs : int, optional
         Allows you to control how many output values in the x
         (equivalently, y) dimension this operation will produce. This
         parameter is analogous to the start parameter, in that it
@@ -358,7 +358,7 @@ class MaxPoolRop(GpuOp):
         Setting this parameter smaller than sizeX produces overlapping
         pools. Setting it equal to sizeX gives the usual, non-overlapping
         pools. Values greater than sizeX are not allowed.
-    start : int
+    start : int, optional
         Tells the net where in the input image to start the pooling
         (in x,y coordinates). In principle, you can start anywhere you
         want. Setting this to a positive number will cause the net to
@@ -366,7 +366,7 @@ class MaxPoolRop(GpuOp):
         Setting this to a negative number will cause it to include
         pixels that don't exist (which is fine). start=0 is the usual
         setting.
-    outputs : int
+    outputs : int, optional
         Allows you to control how many output values in the x
         (equivalently, y) dimension this operation will produce. This
         parameter is analogous to the start parameter, in that it

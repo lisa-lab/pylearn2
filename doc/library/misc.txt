@@ -7,7 +7,7 @@ Miscellaneous
 
 Base
 ====
-.. automodule:: pylearn2.base
+.. automodule:: pylearn2.blocks
     :members:
 
 RBM tools

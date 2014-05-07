@@ -74,14 +74,14 @@ class StochasticMaxPool(GpuOp):
         this parameter smaller than sizeX produces overlapping pools. Setting
         it equal to sizeX gives the usual, non-overlapping pools. Values
         greater than sizeX are not allowed.
-    start : int
+    start : int, optional
         tells the net where in the input image to start the pooling (in x,y
         coordinates). In principle, you can start anywhere you want. Setting
         this to a positive number will cause the net to discard some pixels at
         the top and at the left of the image. Setting this to a negative number
         will cause it to include pixels that don't exist (which is fine).
         start=0 is the usual setting.
-    outputs : int
+    outputs : int, optional
         allows you to control how many output values in the x (equivalently, y)
         dimension this operation will produce. This parameter is analogous to
         the start parameter, in that it allows you to discard some portion of
@@ -89,6 +89,7 @@ class StochasticMaxPool(GpuOp):
         image uncovered. Setting it to zero instructs the net to produce as
         many outputs as is necessary to ensure that the whole image is covered.
         default 0
+    seed : WRITEME
     """
 
     def __init__(self, ds, stride, start=0, outputs=0, seed = 1234):
@@ -361,14 +362,14 @@ class WeightedMaxPool(GpuOp):
         this parameter smaller than sizeX produces overlapping pools. Setting
         it equal to sizeX gives the usual, non-overlapping pools. Values
         greater than sizeX are not allowed.
-    start : int
+    start : int, optional
         tells the net where in the input image to start the pooling (in x,y
         coordinates). In principle, you can start anywhere you want. Setting
         this to a positive number will cause the net to discard some pixels at
         the top and at the left of the image. Setting this to a negative number
         will cause it to include pixels that don't exist (which is fine).
         start=0 is the usual setting.
-    outputs : int
+    outputs : int, optional
         allows you to control how many output values in the x (equivalently, y)
         dimension this operation will produce. This parameter is analogous to
         the start parameter, in that it allows you to discard some portion of
