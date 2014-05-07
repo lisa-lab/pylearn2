@@ -373,7 +373,9 @@ class MLP(Layer):
         input space is specified by nvis.
     nvis : int, optional
         Number of "visible units" (input units). Equivalent to specifying
-        `input_space=VectorSpace(dim=nvis)`.
+        `input_space=VectorSpace(dim=nvis)`. Note that certain methods require
+        a different type of input space (e.g. a Conv2Dspace in the case of
+        convnets). Use the input_space parameter in such cases.
     seed : WRITEME
     kwargs : dict
         Passed on to the superclass
