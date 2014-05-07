@@ -2,6 +2,9 @@
 Sandbox multilayer perceptron layers for natural language processing (NLP)
 """
 import theano.tensor as T
+from theano import config
+
+from pylearn2.models import mlp
 from pylearn2.models.mlp import Layer
 from pylearn2.space import IndexSpace
 from pylearn2.space import VectorSpace
@@ -9,6 +12,32 @@ from pylearn2.utils import sharedX
 from pylearn2.utils import wraps
 from pylearn2.sandbox.nlp.linear.matrixmul import MatrixMul
 from theano.compat.python2x import OrderedDict
+
+
+class Softmax(mlp.Softmax):
+    """
+    An extension of the MLP's softmax layer which monitors
+    the perplexity
+    """
+    @wraps(Layer.get_monitoring_channels_from_state)
+    def get_monitoring_channels_from_state(self, state, target=None):
+
+        mx = state.max(axis=1)
+
+        rval = OrderedDict([('mean_max_class', mx.mean()),
+                            ('max_max_class', mx.max()),
+                            ('min_max_class', mx.min())])
+
+        if target is not None:
+            y_hat = T.argmax(state, axis=1)
+            y = T.argmax(target, axis=1)
+            misclass = T.neq(y, y_hat).mean()
+            misclass = T.cast(misclass, config.floatX)
+            rval['misclass'] = misclass
+            rval['nll'] = self.cost(Y_hat=state, Y=target)
+            rval['ppl'] = 2 ** (rval['nll'] / T.log(2))
+
+        return rval
 
 
 class ProjectionLayer(Layer):

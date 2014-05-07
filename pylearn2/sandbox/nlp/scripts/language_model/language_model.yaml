@@ -6,7 +6,7 @@
 !obj:pylearn2.train.Train {
     dataset: &train !obj:pylearn2.sandbox.nlp.datasets.penntree.PennTreebank {
         which_set: 'train',
-        ngram_size: &ngram_size 7
+        context_len: &context_len 6
     },
     model: !obj:pylearn2.models.mlp.MLP {
         layers: [
@@ -18,7 +18,7 @@
                 layer_name: 'tanh',
                 dim: 256,
                 irange: 0.01
-            }, !obj:pylearn2.models.mlp.Softmax {
+            }, !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
                 n_classes: 10000,
                 layer_name: 'softmax',
                 irange: 0.01
@@ -35,7 +35,7 @@
         monitoring_dataset: {
             'valid' : !obj:pylearn2.sandbox.nlp.datasets.penntree.PennTreebank {
                 which_set: 'valid',
-                ngram_size: *ngram_size
+                context_len: *context_len
             }
         },
         termination_criterion: !obj:pylearn2.termination_criteria.MonitorBased {

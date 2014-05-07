@@ -8,8 +8,10 @@ __authors__ = "Bart van Merrienboer"
 __copyright__ = "Copyright 2010-2014, Universite de Montreal"
 __license__ = "3-clause BSD"
 
-import numpy
+import warnings
+
 from numpy.lib.stride_tricks import as_strided
+
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.utils import serial
 from pylearn2.utils.iteration import resolve_iterator_class
@@ -19,21 +21,22 @@ class PennTreebank(DenseDesignMatrix):
     """
     Loads the Penn Treebank corpus.
     """
-    def __init__(self, which_set, ngram_size, shuffle=True):
+    def __init__(self, which_set, context_len, shuffle=True):
         """
         Parameters
         ----------
         which_set : {'train', 'valid', 'test'}
             Choose the set to use
-        ngram_size : int
-            The size of the n-grams
+        context_len : int
+            The size of the context i.e. the number of words used
+            to predict the subsequent word.
         shuffle : bool
             Whether to shuffle the samples or go through the dataset
             linearly
         """
-        path = "${PYLEARN2_DATA_PATH}/PennTreebankCorpus/"
-        path = serial.preprocess(path)
-        npz_data = numpy.load(path + 'penntree_char_and_word.npz')
+        path = ("${PYLEARN2_DATA_PATH}/PennTreebankCorpus/" +
+                "penntree_char_and_word.npz")
+        npz_data = serial.load(path)
         if which_set == 'train':
             self._raw_data = npz_data['train_words']
         elif which_set == 'valid':
@@ -46,8 +49,8 @@ class PennTreebank(DenseDesignMatrix):
         del npz_data  # Free up some memory?
 
         self._data = as_strided(self._raw_data,
-                                shape=(len(self._raw_data) - ngram_size + 1,
-                                       ngram_size),
+                                shape=(len(self._raw_data) - context_len,
+                                       context_len + 1),
                                 strides=(self._raw_data.itemsize,
                                          self._raw_data.itemsize))
 
@@ -58,5 +61,9 @@ class PennTreebank(DenseDesignMatrix):
         )
 
         if shuffle:
-            self._iter_subset_class = \
-                resolve_iterator_class('shuffled_sequential')
+            warnings.warn("Note that the PennTreebank samples are only "
+                          "shuffled when the iterator method is used to "
+                          "retrieve them.")
+            self._iter_subset_class = resolve_iterator_class(
+                'shuffled_sequential'
+            )
