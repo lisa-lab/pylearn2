@@ -137,7 +137,7 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
                     y[j] = tmp
 
             super(MNIST, self).__init__(topo_view=dimshuffle(topo_view), y=y,
-                                        axes=axes, max_labels=max_labels)
+                                        axes=axes, y_labels=max_labels)
 
             assert not N.any(N.isnan(self.X))
 
