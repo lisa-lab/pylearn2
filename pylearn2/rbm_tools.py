@@ -191,11 +191,11 @@ def rbm_ais(rbm_params, n_runs, visbias_a=None, data=None,
 def rbm_z_ratio(rbmA_params, rbmB_params, n_runs, v0=None,
                 betas=None, key_betas=None, rng=None, seed=23098):
     """
-    Computes the AIS log-weights :math:`log\:w^i`, such that
+    Computes the AIS log-weights :math:`log\:w^{(i)}`, such that
 
     .. math::
         \\log Z_b = \\log Z_a + \\log \\frac{1}{M} \\sum_{i=1}^M
-        \\exp(log_{ais} w^i)
+        \\exp(log_{ais} w^{(i)})
 
     Parameters
     ----------
@@ -364,18 +364,18 @@ class AIS(object):
     The notation used here is slightly different than in Salakhutdinov & Murray
     2008. We write the AIS weights as follows (note that the denominator is
     always of the form :math:`p_i(x_i)` to indicate that
-    :math:`x_i \sim p_i`.)
+    :math:`x_i \sim p_i`). The free energy is denoted by :math:`\mathcal{F}`.
 
     .. math::
-        w^i = p_1(v_0)*p_2(v_1)*...*p_k(v_{k-1}) /
-              [p_0(v_0)*p_1(v_1)*...*p_{k-1}(v_{k-1})]
+        w^{(i)} = p_1(v_0)*p_2(v_1)*...*p_k(v_{k-1}) /
+                 [p_0(v_0)*p_1(v_1)*...*p_{k-1}(v_{k-1})]
 
         = p_1(v_0)/p_0(v_0) * p_2(v_1)/p_1(v_1) * ...
           * p_k(v_{k-1})/p_{k-1}(v_{k-1})
 
-        log\:w^i = fe_0(v_0) - fe_1(v_0) +
-                  fe_1(v_1) - fe_2(v_1) + ... +
-                  fe_{k-1}(v_{k-1}) - fe_{k}(v_{k-1})
+        log\:w^{(i)} = \mathcal{F}_0(v_0) - \mathcal{F}_1(v_0) +
+                       \mathcal{F}_1(v_1) - \mathcal{F}_2(v_1) + ... +
+                       \mathcal{F}_{k-1}(v_{k-1}) - \mathcal{F}_{k}(v_{k-1})
 
     Parameters
     ----------
@@ -459,7 +459,7 @@ class AIS(object):
 
         .. math::
 
-            log\:w^i += fe_{k-1}(v_{k-1}) - fe_{k}(v_{k-1})
+            log\:w^{(i)} += \mathcal{F}_{k-1}(v_{k-1}) - \mathcal{F}_{k}(v_{k-1})
 
         recursively for all temperatures.
 

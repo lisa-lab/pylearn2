@@ -5,8 +5,8 @@ Miscellaneous
 .. contents::
    :depth: 3
 
-Base
-====
+Blocks
+======
 .. automodule:: pylearn2.blocks
     :members:
 
