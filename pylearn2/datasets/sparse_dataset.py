@@ -96,6 +96,10 @@ class SparseDataset(Dataset):
         """Method inherited from Dataset"""
         raise NotImplementedError('Not implemented for sparse dataset')
 
+    @functools.wraps(Dataset.get_num_examples)
+    def get_num_examples(self):
+        return self.X.shape[0]
+
     @wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, targets=None, rng=None, data_specs=None,
