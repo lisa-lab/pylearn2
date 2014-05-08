@@ -23,7 +23,7 @@ import numpy as np
 import warnings
 
 from pylearn2.space import CompositeSpace
-from pylearn2.utils import safe_zip, safe_izip, wraps
+from pylearn2.utils import safe_izip, wraps
 from pylearn2.utils.data_specs import is_flat_specs
 from pylearn2.utils.rng import make_np_rng
 
@@ -773,7 +773,7 @@ class FiniteDatasetIterator(object):
             assert len(convert) == len(source)
             self._convert = convert
 
-        for i, (so, sp) in enumerate(safe_zip(source, sub_spaces)):
+        for i, (so, sp) in enumerate(safe_izip(source, sub_spaces)):
             idx = dataset_source.index(so)
             dspace = dataset_sub_spaces[idx]
 
@@ -837,8 +837,8 @@ class FiniteDatasetIterator(object):
     def _next(self, next_index):
         return tuple(
             fn(batch) if fn else batch for batch, fn in
-            safe_zip(self._dataset.get(self._source, next_index),
-                     self._convert)
+            safe_izip(self._dataset.get(self._source, next_index),
+                      self._convert)
         )
 
     def _fallback_next(self, next_index):
