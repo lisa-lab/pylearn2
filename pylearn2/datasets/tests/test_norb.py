@@ -22,7 +22,9 @@ class TestNORB(unittest.TestCase):
                                   one_hot=1)
 
     def test_get_topological_view(self):
-        norb = SmallNORB('train')
+        #This is just to lower the memory usage. Otherwise, the
+        #buildbot use close to 10G of ram.
+        norb = SmallNORB('train', stop=1000)
 
         # Get a topological view as a single "(b, s, 0 1, c)" tensor.
         topo_tensor = norb.get_topological_view(single_tensor=True)
