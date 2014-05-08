@@ -164,3 +164,13 @@ class Dataset(object):
         image columns.  The last index is over separate channels.
         """
         raise NotImplementedError()
+
+    def get_num_examples(self):
+        """
+        Returns the number of examples in the dataset
+
+        Notes
+        -----
+        Infinite datasets have float('inf') examples.
+        """
+        raise NotImplementedError()
