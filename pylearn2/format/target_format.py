@@ -15,18 +15,21 @@ class OneHotFormatter(object):
     ----------
     max_labels : int
         The number of possible classes/labels. This means that all labels
-        should be < max_labels. Example: For MNIST there are 10 numbers and
-        hence max_labels = 10.
+        should be < max_labels. Example: For MNIST there are 10 numbers
+        and hence max_labels = 10.
     dtype : dtype, optional
         The desired dtype for the converted one-hot vectors. Defaults to
         `config.floatX` if not given.
     """
     def __init__(self, max_labels, dtype=None):
+        """
+        Initializes the formatter given the number of max labels.
+        """
         try:
             np.empty(max_labels)
         except (ValueError, TypeError):
             raise ValueError("%s got bad max_labels argument '%s'" %
-                            (self.__class__.__name__, str(max_labels)))
+                             (self.__class__.__name__, str(max_labels)))
         self._max_labels = max_labels
         if dtype is None:
             self._dtype = config.floatX
@@ -70,46 +73,47 @@ class OneHotFormatter(object):
 
         Returns
         -------
-        one_hot : a NumPy array (can be 1D-3D depending on settings) where
-            normally the first axis are the different batch items,
+        one_hot : a NumPy array (can be 1D-3D depending on settings)
+            where normally the first axis are the different batch items,
             the second axis the labels, the third axis the one_hot
             vectors. Can be dense or sparse.
         """
         if mode not in ('concatenate', 'stack', 'merge'):
             raise ValueError("%s got bad mode argument '%s'" %
-                            (self.__class__.__name__, str(self._max_labels)))
+                             (self.__class__.__name__, str(self._max_labels)))
         elif mode == 'stack' and sparse:
             raise ValueError("Sparse matrices need to be 2D, hence they"
                              "cannot be stacked")
+        if targets.ndim > 2:
+            raise ValueError("Targets needs to be 1D or 2D, but received %d "
+                             "dimensions" % targets.ndim)
         if 'int' not in str(targets.dtype):
             raise TypeError("need an integer array for targets")
-        targets = np.atleast_2d(targets)
         if sparse:
             if mode == 'concatenate':
                 one_hot = scipy.sparse.csr_matrix(
                     (np.ones(targets.size, dtype=self._dtype),
-                    (targets.flatten() + np.arange(targets.size) * self._max_labels)
-                    % (self._max_labels * targets.shape[1]),
-                    np.arange(targets.shape[0] + 1) * targets.shape[1]),
+                     (targets.flatten() + np.arange(targets.size)
+                      * self._max_labels)
+                     % (self._max_labels * targets.shape[1]),
+                     np.arange(targets.shape[0] + 1) * targets.shape[1]),
                     (targets.shape[0], self._max_labels * targets.shape[1])
                 )
             elif mode == 'merge':
                 one_hot = scipy.sparse.csr_matrix(
                     (np.ones(targets.size), targets.flatten(),
-                    np.arange(targets.shape[0] + 1) * targets.shape[1]),
+                     np.arange(targets.shape[0] + 1) * targets.shape[1]),
                     (targets.shape[0], self._max_labels)
                 )
         else:
-            one_hot = np.zeros((targets.shape[0], targets.shape[1],
-                                self._max_labels), dtype=self._dtype)
-            one_hot[np.reshape(xrange(targets.shape[0]), (targets.shape[0], 1)),
-                    xrange(targets.shape[1]), targets] = 1
+            one_hot = np.zeros(targets.shape + (self._max_labels,),
+                               dtype=self._dtype)
+            shape = (np.prod(one_hot.shape[:-1]), one_hot.shape[-1])
+            one_hot.reshape(shape)[np.arange(shape[0]), targets.flatten()] = 1
             if mode == 'concatenate':
-                one_hot = one_hot.reshape((targets.shape[0],
-                                           self._max_labels * targets.shape[1]))
+                one_hot = one_hot.reshape(shape)
             elif mode == 'merge':
-                one_hot = np.minimum(one_hot.sum(axis=1), 1)
-            one_hot = one_hot.squeeze()
+                one_hot = np.minimum(one_hot.sum(axis=one_hot.ndim - 2), 1)
         return one_hot
 
     def theano_expr(self, targets, mode='stack', sparse=False):
@@ -146,12 +150,12 @@ class OneHotFormatter(object):
         Returns
         -------
         one_hot : TensorVariable, 1, 2 or 3-dimensional, sparse or dense
-            A symbolic tensor representing a one-hot encoding of the \
+            A symbolic tensor representing a one-hot encoding of the
             supplied labels.
         """
         if mode not in ('concatenate', 'stack', 'merge'):
             raise ValueError("%s got bad mode argument '%s'" %
-                            (self.__class__.__name__, str(self._max_labels)))
+                             (self.__class__.__name__, str(self._max_labels)))
         elif mode == 'stack' and sparse:
             raise ValueError("Sparse matrices need to be 2D, hence they"
                              "cannot be stacked")
@@ -186,10 +190,11 @@ class OneHotFormatter(object):
                 one_hot = tensor.zeros((targets.shape[0] * targets.shape[1],
                                         self._max_labels))
                 one_hot = tensor.set_subtensor(
-                        one_hot[tensor.arange(targets.size),
-                                targets.flatten()], 1)
-                one_hot = one_hot.reshape((targets.shape[0],
-                                           targets.shape[1] * self._max_labels))
+                    one_hot[tensor.arange(targets.size),
+                            targets.flatten()], 1)
+                one_hot = one_hot.reshape(
+                    (targets.shape[0], targets.shape[1] * self._max_labels)
+                )
             elif mode == 'merge':
                 one_hot = tensor.zeros((targets.shape[0], self._max_labels))
                 one_hot = tensor.set_subtensor(
@@ -259,7 +264,7 @@ def convert_to_one_hot(integer_vector, dtype=None, max_labels=None,
         dtype = config.floatX
     if isinstance(integer_vector, list):
         integer_vector = np.array(integer_vector)
-    assert min(integer_vector) >= 0
+    assert np.min(integer_vector) >= 0
     assert integer_vector.ndim <= 2
     if max_labels is None:
         max_labels = max(integer_vector) + 1
