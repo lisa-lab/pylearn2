@@ -411,13 +411,13 @@ class DenseDesignMatrix(Dataset):
         # Make sure all requested sources are provided by the dataset
         self._validate_source(source)
         rval = []
-        source = self.data_specs[1]
+        dataset_source = self.data_specs[1]
         if type(source) not in (list, tuple):
             source = (source,)
         for so in source:
             # TODO: handle fancy-index copies by allocating a buffer and
             # using numpy.take()
-            rval.append(self.data[source.index(so)][indexes])
+            rval.append(self.data[dataset_source.index(so)][indexes])
         return tuple(rval)
 
     def use_design_loc(self, path):
