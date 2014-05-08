@@ -172,11 +172,6 @@ class DenseDesignMatrix(Dataset):
         self.X_labels = X_labels
         self.y_labels = y_labels
 
-        if self.y is None:
-            self.data = [self.X]
-        else:
-            self.data = [self.X, self.y]
-
         if max_labels is not None:
             warnings.warn("The max_labels argument to DenseDesignMatrix is "
                           "deprecated. Use the y_labels argument instead. The "
@@ -247,6 +242,11 @@ class DenseDesignMatrix(Dataset):
                 source = (X_source, y_source)
             self.data_specs = (space, source)
             self.X_space = X_space
+
+        if self.y is None:
+            self.data = [self.X]
+        else:
+            self.data = [self.X, self.y]
 
         self.compress = False
         self.design_loc = None
