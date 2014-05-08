@@ -21,7 +21,9 @@ __email__ = "mkg alum mit edu (@..)"
 import logging
 import os, gzip, bz2, warnings
 import numpy, theano
+
 from pylearn2.datasets import dense_design_matrix
+from pylearn2.datasets.cache import datasetCache
 from pylearn2.space import VectorSpace, Conv2DSpace, CompositeSpace
 
 
@@ -296,8 +298,10 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                                           subtensor)
 
             return result
+        fname = getPath(which_set)
+        fname = datasetCache.cache_file(fname)
+        file_handle = open(fname)
 
-        file_handle = open(getPath(which_set))
         return parseNORBFile(file_handle)
 
     def get_topological_view(self, mat=None, single_tensor=True):

@@ -9,6 +9,8 @@ import os
 
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.datasets import retina
+from pylearn2.datasets.cache import datasetCache
+
 
 class NORBSmall(dense_design_matrix.DenseDesignMatrix):
     """
@@ -39,7 +41,9 @@ class NORBSmall(dense_design_matrix.DenseDesignMatrix):
         else:
             base += '5x01235x9x18x6x2x96x96-testing'
 
-        fp = open(base + '-%s.npy' % desc, 'r')
+        fname = base + '-%s.npy' % desc
+        fname = datasetCache.cache_file(fname)
+        fp = open(fname, 'r')
         data = numpy.load(fp)
         fp.close()
 
@@ -98,7 +102,9 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         else:
             base += '5x01235x9x18x6x2x96x96-testing-dat'
 
-        data = numpy.load(base + '.npy', 'r')
+        fname = base + '.npy'
+        fname = datasetCache.cache_file(fname)
+        data = numpy.load(fname, 'r')
         return data
 
     def __init__(self, which_set, center=False, scale = False,
