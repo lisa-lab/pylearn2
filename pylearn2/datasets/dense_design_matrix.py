@@ -243,11 +243,6 @@ class DenseDesignMatrix(Dataset):
             self.data_specs = (space, source)
             self.X_space = X_space
 
-        if self.y is None:
-            self.data = [self.X]
-        else:
-            self.data = [self.X, self.y]
-
         self.compress = False
         self.design_loc = None
         self.rng = make_np_rng(rng, which_method="random_integers")
@@ -373,55 +368,6 @@ class DenseDesignMatrix(Dataset):
             return self.X
         else:
             return (self.X, self.y)
-
-    def _validate_source(self, source):
-        """
-        Verify that all sources in the source tuple are provided by the
-        dataset. Raise an error if some requested source is not available.
-
-        Parameters
-        ----------
-        source : `tuple` of `str`
-            Requested sources
-        """
-        dataset_source = self.data_specs[1]
-        if type(dataset_source) not in (list, tuple):
-            dataset_source = (dataset_source,)
-
-        for s in source:
-            try:
-                dataset_source.index(s)
-            except ValueError:
-                raise ValueError("the requested source named '" + s + "' " +
-                                 "is not provided by the dataset")
-
-    def get(self, source, indexes):
-        """
-        Returns the requested example(s) for the requested source(s).
-
-        Parameters
-        ----------
-        source : list of str
-            Requested sources
-        indexes : list or slice
-            Requested indexes
-
-        Returns
-        -------
-        rval : tuple
-            Batches of requested examples for each requested source
-        """
-        # Make sure all requested sources are provided by the dataset
-        self._validate_source(source)
-        rval = []
-        dataset_source = self.data_specs[1]
-        if type(source) not in (list, tuple):
-            source = (source,)
-        for so in source:
-            # TODO: handle fancy-index copies by allocating a buffer and
-            # using numpy.take()
-            rval.append(self.data[dataset_source.index(so)][indexes])
-        return tuple(rval)
 
     def use_design_loc(self, path):
         """
