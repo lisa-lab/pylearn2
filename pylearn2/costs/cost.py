@@ -1,8 +1,8 @@
 """
-Classes representing loss functions.
+Classes representing cost functions.
 
-Currently, these are primarily used to specify the objective function for the
-SGD and BGD training algorithms.
+Currently, these are primarily used to specify the objective function for
+the SGD and BGD training algorithms.
 """
 
 import functools
@@ -21,52 +21,28 @@ from pylearn2.utils.data_specs import DataSpecsMapping
 
 logger = logging.getLogger(__name__)
 
-
-class DefaultDataSpecsMixin(object):
-    """
-    .. todo::
-
-        WRITEME
-    """
-
-    def get_data_specs(self, model):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        if self.supervised:
-            space = CompositeSpace([model.get_input_space(),
-                                    model.get_output_space()])
-            sources = (model.get_input_source(), model.get_target_source())
-            return (space, sources)
-        else:
-            return (model.get_input_space(), model.get_input_source())
-
-
-class NullDataSpecsMixin(object):
-    """
-    .. todo::
-
-        WRITEME
-    """
-
-    def get_data_specs(self, model):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        return (NullSpace(), '')
-
-
 class Cost(object):
-
     """
-    Represents a cost that can be called either as a supervised cost or an
-    unsupervised cost.
+    Represents an objective function to be minimized by some
+    `TrainingAlgorithm`.
+
+    Notes
+    -----
+    While functions may be represented just as theano graphs,
+    this class allows us to add extra functionality. The
+    `get_gradients` methods allows us to use a method other
+    than `theano.tensor.grad` to compute the gradient of the
+    cost function. This enables using approximate gradients
+    of cost functions that are not differentiable or whose
+    true gradient is computationally intractable. Additionally,
+    the get_monitoring_channels method allows monitoring of
+    quantities that are useful when training with a given
+    objective function (such as termination criteria that are
+    usually used with the function).
     """
 
+    # TODO: remove this when it is no longer necessary, it should be
+    # mostly phased out due to the new data_specs interface.
     # If True, the data argument to expr and get_gradients must be a
     # (X, Y) pair, and Y cannot be None.
     supervised = False
@@ -212,14 +188,8 @@ class Cost(object):
 
     def get_data_specs(self, model):
         """
-        .. todo ::
-
-            WRITEME
-
-        .. todo ::
-
-            figure out return format for sure. PL seems to have documented
-            this method incorrectly.
+        Returns a specification of the Space the data should lie in and
+        its source (what part of the dataset it should come from).
 
         Parameters
         ----------
@@ -234,10 +204,23 @@ class Cost(object):
             CompositeSpace) describing how to format the data.
             The second element of the tuple describes the source of the
             data. It probably should be a string or nested tuple of strings.
+
+        See Also
+        --------
+        Rather than implementing this method yourself, you probably want
+        to just inherit from `DefaultDataSpecsMixin` or
+        `NullDataSpecsMixin`.
+
+        Notes
+        -----
+        .. todo
+
+            figure out return format for sure. PL seems to have documented
+            this method incorrectly.
+
         """
         raise NotImplementedError(str(type(self)) + " does not implement " +
                                   "get_data_specs.")
-
 
 class SumOfCosts(Cost):
     """
@@ -290,7 +273,7 @@ class SumOfCosts(Cost):
         model : pylearn2.models.model.Model
             the model for which we want to calculate the sum of costs
         data : flat tuple of tensor_like variables.
-            data has to follow the format defined by self.get_data_specs(), \
+            data has to follow the format defined by self.get_data_specs(),
             but this format will always be a flat tuple.
         """
         self.get_data_specs(model)[0].validate(data)
@@ -313,15 +296,15 @@ class SumOfCosts(Cost):
 
     def get_composite_data_specs(self, model):
         """
-        .. todo::
-
-            WRITEME
-
         Build and return a composite data_specs of all costs.
 
         The returned space is a CompositeSpace, where the components are
         the spaces of each of self.costs, in the same order. The returned
         source is a tuple of the corresponding sources.
+
+        Parameters
+        ----------
+        model : pylearn2.models.Model
         """
         spaces = []
         sources = []
@@ -337,10 +320,6 @@ class SumOfCosts(Cost):
 
     def get_composite_specs_and_mapping(self, model):
         """
-        .. todo::
-
-            WRITEME
-
         Build the composite data_specs and a mapping to flatten it, return both
 
         Build the composite data_specs described in `get_composite_specs`, and
@@ -349,6 +328,12 @@ class SumOfCosts(Cost):
         to request data, and nesting this data back to the composite
         data_specs, so it can be dispatched among the different sub-costs.
 
+        Parameters
+        ----------
+        model : pylearn2.models.Model
+
+        Notes
+        -----
         This is a helper function used by `get_data_specs` and `get_gradients`,
         and possibly other methods.
         """
@@ -358,12 +343,15 @@ class SumOfCosts(Cost):
 
     def get_data_specs(self, model):
         """
-        .. todo::
-
-            WRITEME
-
         Get a flat data_specs containing all information for all sub-costs.
 
+        Parameters
+        ----------
+        model : pylearn2.models.Model
+            TODO WRITEME
+
+        Notes
+        -----
         This data_specs should be non-redundant. It is built by flattening
         the composite data_specs returned by `get_composite_specs`.
 
@@ -483,6 +471,51 @@ you may as well just change the learning rate.""")
 
     return SumOfCosts([[scaling, cost]])
 
+class NullDataSpecsMixin(object):
+    """
+    Use multiple inheritance with both Cost and this object in order to
+    obtain a data specification corresponding to not using data at all.
+    """
+
+    def get_data_specs(self, model):
+        """
+        Provides an implementation of `Cost.expr`.
+
+        Returns data specifications corresponding to not using any
+        data at all.
+
+        Parameters
+        ----------
+        model : pylearn2.models.Model
+        """
+        return (NullSpace(), '')
+
+class DefaultDataSpecsMixin(object):
+    """
+    Use multiple inheritance with both Cost and this object in order to
+    obtain the default data specification.
+    """
+
+    def get_data_specs(self, model):
+        """
+        Provides a default data specification.
+
+        The cost requests input features from the model's input space and
+        input source. `self` must contain a bool field called `supervised`.
+        If this field is True, the cost requests targets as well.
+
+        Parameters
+        ----------
+        model : pylearn2.models.Model
+            TODO WRITEME
+        """
+        if self.supervised:
+            space = CompositeSpace([model.get_input_space(),
+                                    model.get_output_space()])
+            sources = (model.get_input_source(), model.get_target_source())
+            return (space, sources)
+        else:
+            return (model.get_input_space(), model.get_input_source())
 
 class LpPenalty(NullDataSpecsMixin, Cost):
     """
@@ -509,13 +542,16 @@ class LpPenalty(NullDataSpecsMixin, Cost):
 
     def expr(self, model, data, **kwargs):
         """
-        .. todo::
-
-            WRITEME
-
         Return the L-p penalty term. The optional parameters are never used;
         they're only there to provide an interface that's consistent with
         the Cost superclass.
+
+        Parameters
+        ----------
+        model : a pylearn2 Model instance
+        data : a batch in cost.get_data_specs() form
+        kwargs : dict
+            Optional extra arguments. Not used by the base class.
         """
         # This Cost does not depend on any data, and get_data_specs does not
         # ask for any data, so we should not be provided with some.
@@ -542,6 +578,11 @@ class CrossEntropy(DefaultDataSpecsMixin, Cost):
     def expr(self, model, data, ** kwargs):
         """
         DEPRECATED
+
+        Parameters
+        ----------
+        model : DEPRECATED
+        data : DEPRECATED
         """
         self.get_data_specs(model)[0].validate(data)
 
@@ -583,9 +624,15 @@ class MethodCost(Cost):
 
     def expr(self, model, data, *args, **kwargs):
         """
-        See Cost.expr for parameter specifications.
-
         Patches calls through to a user-specified method of the model
+
+        Parameters
+        ----------
+        model : pylearn2.models.model.Model
+            the model for which we want to calculate the sum of costs
+        data : flat tuple of tensor_like variables.
+            data has to follow the format defined by self.get_data_specs(),
+            but this format will always be a flat tuple.
         """
         self.get_data_specs(model)[0].validate(data)
         fn = getattr(model, self.method)
@@ -612,7 +659,10 @@ def _no_op(data):
     """
 
 class FixedVarDescrDataSpecsError(TypeError):
-    pass
+    """
+    An error raised when code attempts to use the unused
+    data_specs field of FixedVarDescr
+    """
 
 class FixedVarDescr(object):
     """

@@ -726,7 +726,6 @@ whitelist_docstrings.extend([
     'optimization/test_linesearch.py',
     'optimization/test_minres.py',
     'optimization/test_linear_cg.py',
-    'costs/cost.py',
     'scripts/dbm/show_samples.py',
     'scripts/dbm/show_reconstructions.py',
     'scripts/dbm/top_filters.py',

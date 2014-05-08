@@ -65,10 +65,6 @@ class DummyCost(DefaultDataSpecsMixin, Cost):
     """
     A dummy cost used for testing.
 
-    Parameters
-    ----------
-    No parameters is required for this class.
-
     Notes
     -----
     Important properties:
