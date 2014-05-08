@@ -15,18 +15,18 @@ test_yaml = """
         !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix
         {
             rng: !obj:numpy.random.RandomState { seed: 1 },
-            num_examples: 1000,
-            dim: 15,
+            num_examples: 10,
+            dim: 5,
             num_classes: 2,
     },
     model: !obj:pylearn2.models.autoencoder.Autoencoder {
-        nvis: 15,
-        nhid: 30,
+        nvis: 5,
+        nhid: 10,
         act_enc: sigmoid,
         act_dec: linear,
     },
     algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
-        batch_size: 100,
+        batch_size: 5,
         line_search_mode: exhaustive,
         conjugate: 1,
         cost: !obj:pylearn2.costs.cost.SumOfCosts {
