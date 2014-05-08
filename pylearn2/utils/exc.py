@@ -1,6 +1,8 @@
 """Exceptions used by basic support utilities."""
 __author__ = "Ian Goodfellow"
 
+from pylearn2.utils.common_strings import environment_variable_essay
+
 
 class EnvironmentVariableError(Exception):
     """
