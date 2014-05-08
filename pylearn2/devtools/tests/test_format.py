@@ -669,7 +669,6 @@ whitelist_docstrings = [
     'devtools/__init__.py',
     'devtools/record.py',
     'devtools/list_files.py',
-    'train_extensions/__init__.py',
     'train_extensions/best_params.py',
     'corruption.py',
     'datasets/tests/test_tl_challenge.py',

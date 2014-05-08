@@ -8,6 +8,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
+import functools
 import logging
 import numpy as np
 
@@ -32,18 +33,15 @@ class TrainExtension(object):
 
         Parameters
         ----------
-        model : object
-            The model object being trained (implementing some subset of the \
-            `pylearn2.models` interface).
+        model : pylearn2.models.Model
+            The model object being trained.
 
-        dataset : object
-            The dataset object being trained (implementing the \
-            `pylearn2.datasets` interface).
+        dataset : pylearn2.datasets.Dataset
+            The dataset object used for training.
 
-        algorithm : object
-            The object representing the training algorithm being \
-            used to train the model (and thus implementing the \
-            `pylearn2.training_algorithms` interface).
+        algorithm : pylearn2.training_algorithms.TrainingAlgorithm
+            The object representing the training algorithm being
+            used to train the model.
         """
 
     def on_monitor(self, model, dataset, algorithm):
@@ -53,18 +51,15 @@ class TrainExtension(object):
 
         Parameters
         ----------
-        model : object
-            The model object being trained (implementing some \
-            subset of the `pylearn2.models` interface).
+        model : pylearn2.models.Model
+            The model object being trained
 
-        dataset : object
-            The dataset object being trained (implementing the \
-            `pylearn2.datasets` interface).
+        dataset : pylearn2.datasets.Dataset
+            The dataset object being trained.
 
-        algorithm : object
-            The object representing the training algorithm being \
-            used to train the model (and thus implementing the \
-            `pylearn2.training_algorithms` interface).
+        algorithm : pylearn2.training_algorithms.TrainingAlgorithm
+            The object representing the training algorithm being
+            used to train the model.
         """
 
     def setup(self, model, dataset, algorithm):
@@ -74,18 +69,15 @@ class TrainExtension(object):
 
         Parameters
         ----------
-        model : object
-            The model object being trained (implementing some \
-            subset of the `pylearn2.models` interface).
+        model : pylearn2.models.Model
+            The model object being trained.
 
-        dataset : object
-            The dataset object being trained (implementing the \
-            `pylearn2.datasets` interface).
+        dataset : pylearn2.datasets.Dataset
+            The dataset object being trained.
 
-        algorithm : object
-            The object representing the training algorithm being \
-            used to train the model (and thus implementing the \
-            `pylearn2.training_algorithms` interface).
+        algorithm : pylearn2.training_algorithms.TrainingAlgorithm
+            The object representing the training algorithm being
+            used to train the model.
         """
 
 class SharedSetter(TrainExtension):
@@ -117,12 +109,9 @@ class SharedSetter(TrainExtension):
             assert var.name is not None
             self._epoch_to_updates[epoch].append((var,val))
 
+    @functools.wraps(TrainExtension.on_monitor)
     def on_monitor(self, model, dataset, algorithm):
-        """
-        .. todo::
-
-            WRITEME
-        """
+        # TODO: write more specific docstring
         if self._count == 0:
             monitor = model.monitor
             # TODO: make Monitor support input-less channels so this hack
@@ -161,12 +150,9 @@ class ChannelSmoother(TrainExtension):
         self.__dict__.update(locals())
         del self.self
 
+    @functools.wraps(TrainExtension.setup)
     def setup(self, model, dataset, algorithm):
-        """
-        .. todo::
-
-            WRITEME
-        """
+        # TODO: more specific docstring
         monitor = model.monitor
         channels = monitor.channels
         channel_to_smooth = channels[self.channel_to_smooth]
@@ -181,12 +167,9 @@ class ChannelSmoother(TrainExtension):
         self.in_ch = channel_to_smooth
         self.out_ch = channels[self.channel_to_publish]
 
+    @functools.wraps(TrainExtension.on_monitor)
     def on_monitor(self, model, dataset, algorithm):
-        """
-        .. todo::
-
-            WRITEME
-        """
+        # TODO: write more specific docstring
         val_record = self.in_ch.val_record
 
         start = max(0, len(val_record) - self.k + 1)
