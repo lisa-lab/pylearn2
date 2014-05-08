@@ -1,7 +1,5 @@
 """
-.. todo::
-
-    WRITEME
+Common DBM Layer classes
 """
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
@@ -9,10 +7,11 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
+import functools
 import logging
+import numpy as np
 import time
 import warnings
-import numpy as np
 
 from theano import tensor as T, function, config
 import theano
@@ -780,12 +779,8 @@ class BinaryVectorMaxPool(HiddenLayer):
                 raise ValueError("Expected mask with shape "+str(expected_shape)+" but got "+str(self.mask_weights.shape))
             self.mask = sharedX(self.mask_weights)
 
-    def censor_updates(self, updates):
-        """
-        .. todo::
-
-            WRITEME
-        """
+    @functools.wraps(Model._modify_updates)
+    def _modify_updates(self, updates):
 
         # Patch old pickle files
         if not hasattr(self, 'mask_weights'):
@@ -1474,12 +1469,8 @@ class Softmax(HiddenLayer):
             b = self.b.get_value()
             self.offset = sharedX(np.exp(b) / np.exp(b).sum())
 
-    def censor_updates(self, updates):
-        """
-        .. todo::
-
-            WRITEME
-        """
+    @functools.wraps(Model._modify_updates)
+    def _modify_updates(self, updates):
 
         if not hasattr(self, 'max_col_norm'):
             self.max_col_norm = None
@@ -2106,15 +2097,10 @@ class GaussianVisLayer(VisibleLayer):
 
         return rval
 
-    def censor_updates(self, updates):
-        """
-        .. todo::
-
-            WRITEME
-        """
+    @functools.wraps(Model._modify_updates)
+    def _modify_updates(self, updates):
         if self.beta in updates:
             updated_beta = updates[self.beta]
-            # updated_beta = Print('updating beta',attrs=['min', 'max'])(updated_beta)
             updates[self.beta] = T.clip(updated_beta,
                     self.min_beta,1e6)
 

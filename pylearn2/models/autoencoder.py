@@ -50,7 +50,7 @@ class Autoencoder(Block, Model):
         functions in `theano.tensor.nnet` and `theano.tensor`. Use `None`
         for linear units.
     tied_weights : bool, optional
-        If `False` (default), a separate set of weights will be allocated 
+        If `False` (default), a separate set of weights will be allocated
         (and learned) for the encoder and the decoder function. If
         `True`, the decoder weight matrix will be constrained to be equal
         to the transpose of the encoder weight matrix.
@@ -706,14 +706,14 @@ class DeepComposedAutoencoder(Autoencoder):
         return reduce(operator.add,
                       [ae.get_params() for ae in self.autoencoders])
 
-    def censor_updates(self, updates):
+    def _modify_updates(self, updates):
         """
         .. todo::
 
             WRITEME
         """
         for autoencoder in self.autoencoders:
-            autoencoder.censor_updates(updates)
+            autoencoder.modify_updates(updates)
 
 
 def build_stacked_ae(nvis, nhids, act_enc, act_dec,

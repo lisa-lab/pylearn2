@@ -1,7 +1,5 @@
 """
-.. todo::
-
-    WRITEME
+The main DBM class
 """
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
@@ -9,11 +7,14 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
+import functools
 import logging
-import warnings
 import numpy as np
-from theano import tensor as T, config
+import warnings
+
 from theano.compat import OrderedDict
+from theano import tensor as T, config
+
 from pylearn2.models import Model
 from pylearn2.models.dbm import flatten
 from pylearn2.models.dbm.inference_procedure import WeightDoubling
@@ -109,13 +110,15 @@ class DBM(Model):
 
         terms = []
 
-        terms.append(self.visible_layer.expected_energy_term(state = V, average=False))
+        terms.append(self.visible_layer.expected_energy_term(state=V,
+                     average=False))
 
-        assert len(self.hidden_layers) > 0 # this could be relaxed, but current code assumes it
+        # This condition could be relaxed, but current code assumes it
+        assert len(self.hidden_layers) > 0
 
         terms.append(self.hidden_layers[0].expected_energy_term(
-            state_below = self.visible_layer.upward_state(V),
-            state = hidden[0], average_below=False, average=False))
+            state_below=self.visible_layer.upward_state(V),
+            state=hidden[0], average_below=False, average=False))
 
         for i in xrange(1, len(self.hidden_layers)):
             layer = self.hidden_layers[i]
@@ -123,8 +126,8 @@ class DBM(Model):
             layer_below = self.hidden_layers[i-1]
             samples_below = layer_below.upward_state(samples_below)
             samples = hidden[i]
-            terms.append(layer.expected_energy_term(state_below=samples_below, state=samples,
-                average_below=False, average=False))
+            terms.append(layer.expected_energy_term(state_below=samples_below,
+                         state=samples, average_below=False, average=False))
 
         assert len(terms) > 0
 
@@ -173,13 +176,15 @@ class DBM(Model):
 
         terms = []
 
-        terms.append(self.visible_layer.expected_energy_term(state = V, average=False))
+        terms.append(self.visible_layer.expected_energy_term(state=V,
+                     average=False))
 
-        assert len(self.hidden_layers) > 0 # this could be relaxed, but current code assumes it
+        # This condition could be relaxed, but current code assumes it
+        assert len(self.hidden_layers) > 0
 
         terms.append(self.hidden_layers[0].expected_energy_term(
-            state_below=self.visible_layer.upward_state(V), average_below=False,
-            state=mf_hidden[0], average=True))
+            state_below=self.visible_layer.upward_state(V),
+            average_below=False, state=mf_hidden[0], average=True))
 
         for i in xrange(1, len(self.hidden_layers)):
             layer = self.hidden_layers[i]
@@ -187,8 +192,8 @@ class DBM(Model):
             mf_below = mf_hidden[i-1]
             mf_below = layer_below.upward_state(mf_below)
             mf = mf_hidden[i]
-            terms.append(layer.expected_energy_term(state_below=mf_below, state=mf,
-                average_below=True, average=True))
+            terms.append(layer.expected_energy_term(state_below=mf_below,
+                         state=mf, average_below=True, average=True))
 
         assert len(terms) > 0
 
@@ -247,8 +252,9 @@ class DBM(Model):
         hidden_layers = self.hidden_layers
 
         self.hidden_layers[0].set_input_space(visible_layer.space)
-        for i in xrange(1,len(hidden_layers)):
-            hidden_layers[i].set_input_space(hidden_layers[i-1].get_output_space())
+        for i in xrange(1, len(hidden_layers)):
+            hidden_layers[i].set_input_space(
+                hidden_layers[i-1].get_output_space())
 
         for layer in self.get_all_layers():
             layer.finalize_initialization()
@@ -302,7 +308,9 @@ class DBM(Model):
         for layer in self.hidden_layers:
             for param in layer.get_params():
                 if param.name is None:
-                    raise ValueError("All of your parameters should have names, but one of "+layer.layer_name+"'s doesn't")
+                    raise ValueError("All of your parameters should have "
+                                     "names, but one of " + layer.layer_name +
+                                     "'s doesn't")
             layer_params = layer.get_params()
             assert not isinstance(layer_params, set)
             for param in layer_params:
@@ -335,15 +343,11 @@ class DBM(Model):
             self.setup_inference_procedure()
         self.inference_procedure.set_batch_size(batch_size)
 
-    def censor_updates(self, updates):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        self.visible_layer.censor_updates(updates)
+    @functools.wraps(Model._modify_updates)
+    def _modify_updates(self, updates):
+        self.visible_layer.modify_updates(updates)
         for layer in self.hidden_layers:
-            layer.censor_updates(updates)
+            layer.modify_updates(updates)
 
     def get_input_space(self):
         """
@@ -363,7 +367,7 @@ class DBM(Model):
 
         params = self.get_params()
 
-        for layer in self.hidden_layers + [ self.visible_layer ]:
+        for layer in self.hidden_layers + [self.visible_layer]:
             contrib = layer.get_lr_scalers()
 
             # No two layers can contend to scale a parameter
@@ -411,7 +415,7 @@ class DBM(Model):
     def make_layer_to_state(self, num_examples, rng=None):
         """
         Makes and returns a dictionary mapping layers to states.
-        
+
         By states, we mean here a real assignment, not a mean field
         state. For example, for a layer containing binary random
         variables, the state will be a shared variable containing
@@ -446,8 +450,9 @@ class DBM(Model):
                 val = state.get_value()
                 m = val.shape[0]
                 if m != num_examples:
-                    raise ValueError(layer.layer_name+" gave state with "+str(m)+ \
-                            " examples in some component. We requested "+str(num_examples))
+                    raise ValueError(layer.layer_name + " gave state with " +
+                                     str(m) + " examples in some component."
+                                     "We requested " + str(num_examples))
 
         for layer, state in zipped:
             recurse_check(layer, state)
@@ -485,7 +490,8 @@ class DBM(Model):
 
         assert rng is not None
 
-        states = [layer.make_symbolic_state(num_examples, rng) for layer in layers]
+        states = [layer.make_symbolic_state(num_examples, rng)
+                  for layer in layers]
 
         zipped = safe_zip(layers, states)
 
@@ -598,22 +604,22 @@ class DBM(Model):
         space, source = self.get_monitoring_data_specs()
         space.validate(data)
         X = data
-        history = self.mf(X, return_history = True)
+        history = self.mf(X, return_history=True)
         q = history[-1]
 
         rval = OrderedDict()
 
         ch = self.visible_layer.get_monitoring_channels()
         for key in ch:
-            rval['vis_'+key] = ch[key]
+            rval['vis_' + key] = ch[key]
 
         for state, layer in safe_zip(q, self.hidden_layers):
             ch = layer.get_monitoring_channels()
             for key in ch:
-                rval[layer.layer_name+'_'+key] = ch[key]
+                rval[layer.layer_name + '_' + key] = ch[key]
             ch = layer.get_monitoring_channels_from_state(state)
             for key in ch:
-                rval['mf_'+layer.layer_name+'_'+key]  = ch[key]
+                rval['mf_' + layer.layer_name + '_' + key] = ch[key]
 
         if len(history) > 1:
             prev_q = history[-2]
@@ -635,13 +641,15 @@ class DBM(Model):
             rval['max_var_param_diff'] = mx
 
             for layer, new, old in safe_zip(self.hidden_layers,
-                q, prev_q):
+                                            q, prev_q):
                 sum_diff = 0.
                 for sub_new, sub_old in safe_zip(flatten(new), flatten(old)):
                     sum_diff += abs(sub_new - sub_old).sum()
-                denom = self.batch_size * layer.get_total_state_space().get_total_dimension()
+                denom = self.batch_size * \
+                    layer.get_total_state_space().get_total_dimension()
                 denom = np.cast[config.floatX](denom)
-                rval['mean_'+layer.layer_name+'_var_param_diff'] = sum_diff / denom
+                rval['mean_'+layer.layer_name+'_var_param_diff'] = \
+                    sum_diff / denom
 
         return rval
 
@@ -674,9 +682,9 @@ class DBM(Model):
         downward_state = self.hidden_layers[0].downward_state(H)
 
         recons = self.visible_layer.inpaint_update(
-                layer_above = self.hidden_layers[0],
-                state_above = downward_state,
-                drop_mask = None, V = None)
+            layer_above=self.hidden_layers[0],
+            state_above=downward_state,
+            drop_mask=None, V=None)
 
         return recons
 
@@ -685,6 +693,6 @@ class DBM(Model):
         .. todo::
 
             WRITEME
-		"""
+        """
         self.setup_inference_procedure()
         return self.inference_procedure.do_inpainting(*args, **kwargs)

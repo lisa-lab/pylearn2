@@ -57,6 +57,7 @@ class GSNCost(Cost):
         'anti_supervised' is attempting to predict the input layer given
         the label layer.
     """
+
     def __init__(self, costs, walkback=0, mode="joint"):
         super(GSNCost, self).__init__()
         self.walkback = walkback

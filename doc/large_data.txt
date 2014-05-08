@@ -1,0 +1,43 @@
+.. _large_data:
+
+=======================================
+Working with large datasets in Pylearn2
+=======================================
+
+By default Pylearn2 loads all the dataset to the main memory (not GPU). This could be problematic for large datasets. There exists multiple Python/Numpy solutions for dealing with large data:
+
+* `Numpy.memmap <http://docs.scipy.org/doc/numpy/reference/generated/numpy.memmap.html>`_
+* `Pytables <http://www.pytables.org/moin/PyTables>`_
+* `h5py <http://www.h5py.org/>`_
+
+Pylearn2 currently only supports Pytables and h5py. (memmap support has been introduced in the latest version of Theano. But it has not been tested with Pylearn2 yet.)
+
+PyTables
+========
+
+:py:class:`pylearn2.datasets.dense_design_matrix.DenseDesignMatrixPyTables` is designed to mimic the behaviour of DenseDesignMatrix but underneath it stores the data in PyTables hdf5 file format.
+:py:class:`pylearn2.datasets.svhn.SVHN` is a good example of how to make a DenseDesignMatrixPyTables object and store your data in it.
+
+h5py
+====
+
+If you have your data already saved in hdf5 format, you can use :py:class:`pylearn2.datasets.hdf5.HDF5Dataset` class to access your data in Pylearn2.
+For an example of how to save data in hdf5 format and load it with HDF5Dataset, take a look at :py:class:`pylearn2.datasets.tests.test_hdf5.TestHDF5Dataset`.
+
+PyTables VS h5py
+================
+
+Each library has its own comparison:
+
+* `PyTables FAQ <http://www.pytables.org/moin/FAQ#HowdoesPyTablescomparewiththeh5pyproject.3F>`_
+* `h5py FAQ <http://docs.h5py.org/en/latest/faq.html#what-s-the-difference-between-h5py-and-pytables>`_
+
+One advantage of h5py over PyTables is that, one can use hdf5 files made with other libraries. Whereas PyTables hdf5 files
+are not standard. But PyTables claims to be more fast and supports compression.
+
+
+Known issues
+============
+* Both hdf5 based solutions are know to crash when the data is accessed in a random order. To avoid this issue, we suggest to use one of the 'sequential' or 'batchwise_shuffled_sequential' iterator schemes.
+* Writing large amount of data to hdf5 at once is been know to result in crash. So it's advised to use mini-batches to write the data to files. Some of the prepossessing functions has mini-batch options, but not all of them.
+* Users should be careful that any change to data, will result to change to data on disk.

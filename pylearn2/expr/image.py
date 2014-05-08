@@ -16,14 +16,20 @@ def color_to_gray(color):
     W_G = 0.587
     W_B = 0.114
 
-    Source: http://en.wikipedia.org/wiki/YUV#Conversion_to.2Ffrom_RGB
+    Parameters
+    ----------
+    color : numpy or theano 4-tensor
+        The channel index must be last
 
-    Arguments:
-        color: a 4-tensor with the channel index last
-               may be either a numpy or a theano tensor
-    Returns:
-        a tensor of the same number of dimensions, but with the final
-        dimension changed to 1.
+    Returns
+    -------
+    tensor
+        Has the same number of dimensions, but with the final dimension
+        changed to 1.
+
+    References
+    ----------
+    http://en.wikipedia.org/wiki/YUV#Conversion_to.2Ffrom_RGB
     """
 
     W_R = 0.299

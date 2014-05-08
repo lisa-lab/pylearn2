@@ -66,6 +66,10 @@ def run_pyflakes(no_warnings = False):
 
 def _filter(output, no_warnings):
     """
+    .. todo::
+
+        WRITEME
+
     Parameters
     ----------
     output : str
@@ -75,7 +79,7 @@ def _filter(output, no_warnings):
 
     Returns
     -------
-    rval: None or str
+    rval : None or str
         `output` with blank lines and optionally lines corresponding to
         warnings removed, or, if all lines are removed, returns None.
         A return value of None indicates that the file is validly formatted.

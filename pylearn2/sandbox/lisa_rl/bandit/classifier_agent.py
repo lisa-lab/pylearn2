@@ -119,7 +119,7 @@ class ClassifierAgent(Agent):
         updates.update(self.learning_rule.get_updates(
                 self.learning_rate, grads, lr_scalers))
 
-        self.mlp.censor_updates(updates)
+        self.mlp.modify_updates(updates)
 
         learn_func = function([contexts, actions, rewards], updates=updates)
 

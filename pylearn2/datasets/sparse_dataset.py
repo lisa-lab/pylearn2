@@ -1,3 +1,10 @@
+"""
+.. todo::
+
+    WRITEME
+"""
+import functools
+
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.utils import wraps
 import logging
@@ -38,6 +45,7 @@ class SparseDataset(Dataset):
         indicates whether the input matrix is zipped or not.
         defaults to True.
     """
+
     def __init__(self, load_path=None,
                  from_scipy_sparse_dataset=None, zipped_npy=True):
 
@@ -69,22 +77,23 @@ class SparseDataset(Dataset):
         self.data_specs = (space, source)
 
     def get_design_matrix(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.X
 
     @wraps(Dataset.get_batch_design)
     def get_batch_design(self, batch_size, include_labels=False):
-        """
-        method inherited from Dataset
-        """
+        """Method inherited from Dataset"""
         self.iterator(mode='shuffled_sequential',
                       batch_size=batch_size, num_batches=None, topo=None)
         return self.next()
 
-    @wraps(Dataset.get_batch_design)
+    @wraps(Dataset.get_batch_topo)
     def get_batch_topo(self, batch_size):
-        """
-        method inherited from Dataset
-        """
+        """Method inherited from Dataset"""
         raise NotImplementedError('Not implemented for sparse dataset')
 
     @wraps(Dataset.iterator)
@@ -152,9 +161,19 @@ class SparseDataset(Dataset):
                                      convert=convert)
 
     def __iter__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self
 
     def next(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         indx = self.subset_iterator.next()
         try:
             mini_batch = self.X[indx]

@@ -18,6 +18,7 @@ class EnergyFunction(object):
 
         WRITEME
     """
+
     def __init__(self):
         pass
 

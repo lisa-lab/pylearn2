@@ -36,6 +36,7 @@ class LinearTransform(object):
         Return a batch of filters, formatted topologically.
         This only really makes sense if you are working with a topological space,
         such as for a convolution operator.
+
         If your transformation is defined on a VectorSpace then some other class
         like a ViewConverter will need to transform your vector into a topological
         space; you are not responsible for doing so here.
@@ -47,5 +48,10 @@ class LinearTransform(object):
         """
         Some transformers such as Conv2D have a fixed batch size.
         Use this method to change the batch size.
+
+        Parameters
+        ----------
+        batch_size : int
+            The size of the batch
         """
         pass
