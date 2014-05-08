@@ -24,6 +24,9 @@ class MatrixMul(matrixmul.MatrixMul):
             A vector of labels (or a matrix where each row is a sample in
             a batch) which will be projected
         """
+
+        assert x.dtype in ['int32', 'int64']
+
         if x.ndim == 2:
             shape = (x.shape[0], x.shape[1] * self._W.shape[1])
             return self._W[x.flatten()].reshape(shape)
