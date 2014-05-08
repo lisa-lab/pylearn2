@@ -10,7 +10,9 @@ import os
 import numpy as np
 
 from pylearn2.utils.string_utils import preprocess
-from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix, DefaultViewConverter
+from pylearn2.datasets.cache import datasetCache
+from pylearn2.datasets.dense_design_matrix import (
+    DenseDesignMatrix, DefaultViewConverter)
 
 
 class ICML07DataSet(DenseDesignMatrix):
@@ -29,8 +31,12 @@ class ICML07DataSet(DenseDesignMatrix):
         # Load data from .npy file
         npy_filename_root = os.path.join(preprocess('${PYLEARN2_DATA_PATH}'), 'icml07data', 'npy', npy_filename)
 
-        data_x = np.load(npy_filename_root+'_inputs.npy', mmap_mode='r')
-        data_y = np.load(npy_filename_root+'_labels.npy', mmap_mode='r')
+        x_file = npy_filename_root + '_inputs.npy'
+        y_file = npy_filename_root + '_labels.npy'
+        x_file = datasetCache.cache_file(x_file)
+        y_file = datasetCache.cache_file(y_file)
+        data_x = np.load(x_file, mmap_mode='r')
+        data_y = np.load(y_file, mmap_mode='r')
 
         # some sanity checkes
         assert np.isfinite(data_x).all()
