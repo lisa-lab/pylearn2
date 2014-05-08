@@ -33,9 +33,10 @@ class NORBSmall(dense_design_matrix.DenseDesignMatrix):
 
             WRITEME
         """
-        assert desc in ['dat','cat','info']
+        assert desc in ['dat', 'cat', 'info']
 
-        base = '%s/norb_small/original_npy/smallnorb-' % os.getenv('PYLEARN2_DATA_PATH')
+        base = '%s/norb_small/original_npy/smallnorb-'
+        base = base % os.getenv('PYLEARN2_DATA_PATH')
         if which_set == 'train':
             base += '5x46789x9x18x6x2x96x96-training'
         else:
@@ -49,8 +50,8 @@ class NORBSmall(dense_design_matrix.DenseDesignMatrix):
 
         return data
 
-    def __init__(self, which_set, center=False, multi_target = False):
-        assert which_set in ['train','test']
+    def __init__(self, which_set, center=False, multi_target=False):
+        assert which_set in ['train', 'test']
 
         X = NORBSmall.load(which_set, 'dat')
 
@@ -62,14 +63,15 @@ class NORBSmall(dense_design_matrix.DenseDesignMatrix):
         y = NORBSmall.load(which_set, 'cat')
         if multi_target:
             y_extra = NORBSmall.load(which_set, 'info')
-            y = numpy.hstack((y[:,numpy.newaxis],y_extra))
+            y = numpy.hstack((y[:, numpy.newaxis], y_extra))
 
         if center:
             X -= 127.5
 
-        view_converter = dense_design_matrix.DefaultViewConverter((96,96,2))
+        view_converter = dense_design_matrix.DefaultViewConverter((96, 96, 2))
 
-        super(NORBSmall,self).__init__(X = X, y = y, view_converter = view_converter)
+        super(NORBSmall, self).__init__(X=X, y=y,
+                                        view_converter=view_converter)
 
 
 class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
@@ -96,7 +98,8 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
     @classmethod
     def load(cls, which_set):
 
-        base = '%s/norb_small/foveated/smallnorb-' % os.getenv('PYLEARN2_DATA_PATH')
+        base = '%s/norb_small/foveated/smallnorb-'
+        base = base % os.getenv('PYLEARN2_DATA_PATH')
         if which_set == 'train':
             base += '5x46789x9x18x6x2x96x96-training-dat'
         else:
@@ -107,13 +110,13 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         data = numpy.load(fname, 'r')
         return data
 
-    def __init__(self, which_set, center=False, scale = False,
-            start = None, stop = None, one_hot = False, restrict_instances=None,
-            preprocessor=None):
+    def __init__(self, which_set, center=False, scale=False,
+                 start=None, stop=None, one_hot=False, restrict_instances=None,
+                 preprocessor=None):
 
         self.args = locals()
 
-        if which_set not in ['train','test']:
+        if which_set not in ['train', 'test']:
             raise ValueError("Unrecognized which_set value: " + which_set)
 
         X = FoveatedNORB.load(which_set)
@@ -129,8 +132,6 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         assert instance.max() <= 9
         self.instance = instance
 
-
-
         if center:
             X -= 127.5
             if scale:
@@ -139,10 +140,12 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
             if scale:
                 X /= 255.
 
-        view_converter = retina.RetinaCodingViewConverter((96,96,2), (8,4,2,2))
+        view_converter = retina.RetinaCodingViewConverter((96, 96, 2),
+                                                          (8, 4, 2, 2))
 
-        super(FoveatedNORB, self).__init__(X=X, y=y, view_converter=view_converter,
-                preprocessor=preprocessor)
+        super(FoveatedNORB, self).__init__(X=X, y=y,
+                                           view_converter=view_converter,
+                                           preprocessor=preprocessor)
 
         if one_hot:
             self.convert_to_one_hot()
@@ -151,7 +154,6 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
             assert start is None
             assert stop is None
             self.restrict_instances(restrict_instances)
-
 
         self.restrict(start, stop)
 
@@ -163,10 +165,11 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
 
             WRITEME
         """
-        test_args = {'which_set' : 'test'}
+        test_args = {'which_set': 'test'}
 
         for key in self.args:
-            if key in ['which_set', 'restrict_instances', 'self', 'start', 'stop']:
+            if key in ['which_set', 'restrict_instances',
+                       'self', 'start', 'stop']:
                 continue
             test_args[key] = self.args[key]
 
@@ -181,7 +184,7 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         mask = reduce(np.maximum, [self.instance == ins for ins in instances])
         mask = mask.astype('bool')
         self.instance = self.instance[mask]
-        self.X = self.X[mask,:]
+        self.X = self.X[mask, :]
         if self.y.ndim == 2:
             self.y = self.y[mask, :]
         else:
