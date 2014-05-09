@@ -29,7 +29,7 @@ from pylearn2.utils import sharedX
 logger = logging.getLogger(__name__)
 
 
-class BatchGradientDescent:
+class BatchGradientDescent(object):
     """
     A class for minimizing a function via the method of steepest descent.
 

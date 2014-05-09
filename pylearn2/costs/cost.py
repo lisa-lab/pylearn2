@@ -473,8 +473,11 @@ you may as well just change the learning rate.""")
 
 class NullDataSpecsMixin(object):
     """
-    Use multiple inheritance with both Cost and this object in order to
+    Use multiple inheritance with both this object and Cost in order to
     obtain a data specification corresponding to not using data at all.
+
+    Due to method resolution order, you want Cost to appear after
+    NullDataSpecsMixin in the superclass list.
     """
 
     def get_data_specs(self, model):
@@ -492,8 +495,11 @@ class NullDataSpecsMixin(object):
 
 class DefaultDataSpecsMixin(object):
     """
-    Use multiple inheritance with both Cost and this object in order to
+    Use multiple inheritance with both this object and Cost in order to
     obtain the default data specification.
+
+    Due to method resolution order, you want Cost to appear after
+    DefaultDataSpecsMixin in the superclass list.
     """
 
     def get_data_specs(self, model):
