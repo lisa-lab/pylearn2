@@ -7,6 +7,7 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
 from itertools import izip as izip_no_length_check
+import numpy as np
 import warnings
 
 from theano.compat.python2x import OrderedDict
@@ -15,6 +16,7 @@ from theano import tensor as T
 from pylearn2.model_extensions.model_extension import ModelExtension
 from pylearn2.space import NullSpace
 from pylearn2.utils import function
+from pylearn2.utils import safe_zip
 from pylearn2.utils.track_version import MetaLibVersion
 
 
@@ -517,6 +519,42 @@ class Model(object):
         """
         for param, value in zip(self.get_params(), values):
             param.set_value(value, borrow=borrow)
+
+    def get_param_vector(self):
+        """
+        Returns all parameters flattened into a single vector.
+
+        Returns
+        -------
+        params : ndarray
+            1-D array of all parameter values.
+        """
+
+        values = self.get_param_values()
+        values = [value.reshape(value.size) for value in values]
+        return np.concatenate(values, axis=0)
+
+    def set_param_vector(self, vector):
+        """
+        Sets all parameters from a single flat vector. Format is consistent
+        with `get_param_vector`.
+
+        Parameters
+        ----------
+        vector : ndarray
+            1-D array of all parameter values.
+        """
+
+        params = self.get_params()
+        cur_values = self.get_param_values()
+
+        pos = 0
+        for param, value in safe_zip(params, cur_values):
+            size = value.size
+            new_value = vector[pos:pos+size]
+            param.set_value(new_value.reshape(*value.shape))
+            pos += size
+        assert pos == vector.size
 
     def redo_theano(self):
         """

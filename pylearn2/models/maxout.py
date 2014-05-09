@@ -149,6 +149,8 @@ class Maxout(Layer):
                  mask_weights=None,
                  min_zero=False):
 
+        super(Maxout, self).__init__()
+
         detector_layer_dim = num_units * num_pieces
         pool_size = num_pieces
 
