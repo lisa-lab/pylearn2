@@ -149,19 +149,19 @@ test_yaml_layer0 = """
             !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix
             {
                 rng: !obj:numpy.random.RandomState { seed: 1 },
-                num_examples: 1000,
-                dim: 64,
+                num_examples: 100,
+                dim: 10,
                 num_classes: 2,
             },
     },
     model: !obj:pylearn2.models.autoencoder.Autoencoder {
-        nvis: 64,
-        nhid: 32,
+        nvis: 10,
+        nhid: 8,
         act_enc: 'sigmoid',
         act_dec: 'linear'
     },
     algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
-        batch_size: 100,
+        batch_size: 50,
         line_search_mode: 'exhaustive',
         conjugate: 1,
         termination_criterion:
@@ -185,21 +185,21 @@ test_yaml_layer1 = """
             !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix
                 {
                     rng: !obj:numpy.random.RandomState { seed: 1 },
-                    num_examples: 1000,
-                    dim: 64,
+                    num_examples: 100,
+                    dim: 10,
                     num_classes: 2,
                 },
         },
         transformers: !pkl: %(layer0_filename)s,
     },
     model: !obj:pylearn2.models.autoencoder.Autoencoder {
-        nvis: 32,
-        nhid: 16,
+        nvis: 8,
+        nhid: 6,
         act_enc: 'sigmoid',
         act_dec: 'linear'
     },
     algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
-        batch_size: 100,
+        batch_size: 50,
         line_search_mode: 'exhaustive',
         conjugate: 1,
         termination_criterion:
@@ -223,8 +223,8 @@ test_yaml_layer2 = """
             !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix
             {
                 rng: !obj:numpy.random.RandomState { seed: 1 },
-                num_examples: 1000,
-                dim: 64,
+                num_examples: 100,
+                dim: 10,
                 num_classes: 2,
             },
         },
@@ -236,13 +236,13 @@ test_yaml_layer2 = """
         },
     },
     model: !obj:pylearn2.models.autoencoder.Autoencoder {
-        nvis: 16,
-        nhid: 8,
+        nvis: 6,
+        nhid: 4,
         act_enc: 'sigmoid',
         act_dec: 'linear'
     },
     algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
-        batch_size: 100,
+        batch_size: 50,
         line_search_mode: 'exhaustive',
         conjugate: 1,
         termination_criterion:
@@ -264,13 +264,13 @@ test_yaml_layer3 = """
       &train !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix
       {
             rng: !obj:numpy.random.RandomState { seed: 1 },
-            num_examples: 1000,
-            dim: 64,
+            num_examples: 100,
+            dim: 10,
             num_classes: 2,
       },
     },
     model: !obj:pylearn2.models.mlp.MLP {
-        nvis: 64,
+        nvis: 10,
         layers: [
             !obj:pylearn2.cross_validation.mlp.PretrainedLayerCV {
                 layer_name: 'h0',
@@ -292,7 +292,7 @@ test_yaml_layer3 = """
         ],
     },
     algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
-        batch_size: 100,
+        batch_size: 50,
         line_search_mode: 'exhaustive',
         conjugate: 1,
         termination_criterion:
@@ -311,19 +311,19 @@ test_yaml_dataset_iterator = """
             !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix
             {
                 rng: !obj:numpy.random.RandomState { seed: 1 },
-                num_examples: 1000,
-                dim: 64,
+                num_examples: 100,
+                dim: 10,
                 num_classes: 2,
             },
     },
     model: !obj:pylearn2.models.autoencoder.Autoencoder {
-        nvis: 64,
-        nhid: 32,
+        nvis: 10,
+        nhid: 8,
         act_enc: 'sigmoid',
         act_dec: 'linear'
     },
     algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
-        batch_size: 100,
+        batch_size: 50,
         line_search_mode: 'exhaustive',
         conjugate: 1,
         termination_criterion:
@@ -344,20 +344,20 @@ test_yaml_which_set = """
             !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix
             {
                 rng: !obj:numpy.random.RandomState { seed: 1 },
-                num_examples: 1000,
-                dim: 64,
+                num_examples: 100,
+                dim: 10,
                 num_classes: 2,
             },
         which_set: %(which_set)s,
     },
     model: !obj:pylearn2.models.autoencoder.Autoencoder {
-        nvis: 64,
-        nhid: 32,
+        nvis: 10,
+        nhid: 8,
         act_enc: 'sigmoid',
         act_dec: 'linear'
     },
     algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
-        batch_size: 100,
+        batch_size: 50,
         line_search_mode: 'exhaustive',
         conjugate: 1,
         termination_criterion:
@@ -378,19 +378,19 @@ test_yaml_no_targets = """
             !obj:pylearn2.testing.datasets.random_dense_design_matrix
             {
                 rng: !obj:numpy.random.RandomState { seed: 1 },
-                num_examples: 1000,
-                dim: 64,
+                num_examples: 100,
+                dim: 10,
                 num_classes: 0,
             },
     },
     model: !obj:pylearn2.models.autoencoder.Autoencoder {
-        nvis: 64,
-        nhid: 32,
+        nvis: 10,
+        nhid: 8,
         act_enc: 'sigmoid',
         act_dec: 'linear'
     },
     algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
-        batch_size: 100,
+        batch_size: 50,
         line_search_mode: 'exhaustive',
         conjugate: 1,
         termination_criterion:
@@ -411,21 +411,21 @@ test_yaml_preprocessing = """
             !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix
             {
                 rng: !obj:numpy.random.RandomState { seed: 1 },
-                num_examples: 1000,
-                dim: 64,
+                num_examples: 100,
+                dim: 10,
                 num_classes: 2,
             },
         preprocessor: !obj:pylearn2.datasets.preprocessing.Standardize {},
         fit_preprocessor: 1,
     },
     model: !obj:pylearn2.models.autoencoder.Autoencoder {
-        nvis: 64,
-        nhid: 32,
+        nvis: 10,
+        nhid: 8,
         act_enc: 'sigmoid',
         act_dec: 'linear'
     },
     algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
-        batch_size: 100,
+        batch_size: 50,
         line_search_mode: 'exhaustive',
         conjugate: 1,
         termination_criterion:
