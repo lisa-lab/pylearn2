@@ -90,16 +90,27 @@ def test_which_set():
     skip_if_no_sklearn()
 
     # one label
+    # must be 'train' or Train object won't have any data to train on
     this_yaml = test_yaml_which_set % {'which_set': 'train'}
     trainer = yaml_parse.load(this_yaml)
     trainer.main_loop()
+
+    # one label, not 'train'
+    # this tests any internal stuff in the dataset iterator that might
+    # require training data, such as preprocessing
+    try:
+        this_yaml = test_yaml_which_set % {'which_set': 'test'}
+        trainer = yaml_parse.load(this_yaml)
+        trainer.main_loop()
+    except KeyError:
+        pass
 
     # multiple labels
     this_yaml = test_yaml_which_set % {'which_set': ['train', 'test']}
     trainer = yaml_parse.load(this_yaml)
     trainer.main_loop()
 
-    # improper label (iterator only returns 'train' and 'test' subsets)
+    # improper label (this iterator only returns 'train' and 'test' subsets)
     this_yaml = test_yaml_which_set % {'which_set': 'valid'}
     try:
         trainer = yaml_parse.load(this_yaml)
@@ -121,6 +132,13 @@ def test_no_targets():
     """Test cross-validation without targets."""
     skip_if_no_sklearn()
     trainer = yaml_parse.load(test_yaml_no_targets)
+    trainer.main_loop()
+
+
+def test_preprocessing():
+    """Test cross-validation with preprocessing."""
+    skip_if_no_sklearn()
+    trainer = yaml_parse.load(test_yaml_preprocessing)
     trainer.main_loop()
 
 test_yaml_layer0 = """
@@ -364,6 +382,41 @@ test_yaml_no_targets = """
                 dim: 64,
                 num_classes: 0,
             },
+    },
+    model: !obj:pylearn2.models.autoencoder.Autoencoder {
+        nvis: 64,
+        nhid: 32,
+        act_enc: 'sigmoid',
+        act_dec: 'linear'
+    },
+    algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
+        batch_size: 100,
+        line_search_mode: 'exhaustive',
+        conjugate: 1,
+        termination_criterion:
+            !obj:pylearn2.termination_criteria.EpochCounter {
+                    max_epochs: 1,
+        },
+        cost: !obj:pylearn2.costs.autoencoder.MeanSquaredReconstructionError {
+        },
+    },
+}
+"""
+
+test_yaml_preprocessing = """
+!obj:pylearn2.cross_validation.TrainCV {
+    dataset_iterator:
+        !obj:pylearn2.cross_validation.dataset_iterators.DatasetKFold {
+        dataset:
+            !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix
+            {
+                rng: !obj:numpy.random.RandomState { seed: 1 },
+                num_examples: 1000,
+                dim: 64,
+                num_classes: 2,
+            },
+        preprocessor: !obj:pylearn2.datasets.preprocessing.Standardize {},
+        fit_preprocessor: 1,
     },
     model: !obj:pylearn2.models.autoencoder.Autoencoder {
         nvis: 64,
