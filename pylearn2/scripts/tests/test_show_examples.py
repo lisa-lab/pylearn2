@@ -17,4 +17,4 @@ def test_show_examples():
         which_set: 'train'
 }
 """)
-    show_examples('temp.yaml', 28, 28)
+    show_examples('temp.yaml', 28, 28, out='garbage.png')
