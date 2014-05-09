@@ -139,10 +139,10 @@ class StratifiedDatasetCV(DatasetCV):
     Parameters
     ----------
     dataset : object
-        Full dataset for use in cross validation.
+        Dataset to use in cross validation.
     subset_iterator : iterable
-        Iterable that returns (train, test) or (train, valid, test) indices
-        or masks for partitioning the dataset during cross-validation.
+        Iterable that returns train/test or train/valid/test splits for
+        partitioning the dataset during cross-validation.
     preprocessor : Preprocessor or None
         Preprocessor to apply to child datasets.
     fit_preprocessor : bool
@@ -189,8 +189,8 @@ class TransformerDatasetCV(object):
     Parameters
     ----------
     dataset_iterator : DatasetCV
-        Cross-validation iterator providing (test, train) or (test, valid,
-        train) indices for partitioning the dataset.
+        Cross-validation dataset iterator providing train/test or
+        train/valid/test datasets.
     transformers : Model or iterable
         Transformer model(s) to use for transforming datasets.
     """
@@ -338,7 +338,7 @@ class StratifiedDatasetShuffleSplit(StratifiedDatasetCV):
 
 class DatasetValidationKFold(DatasetCV):
     """
-    K-fold cross-validation with train, valid, test subsets.
+    K-fold cross-validation with train/valid/test subsets.
 
     Parameters
     ----------
@@ -365,7 +365,7 @@ class DatasetValidationKFold(DatasetCV):
 
 class StratifiedDatasetValidationKFold(StratifiedDatasetCV):
     """
-    Stratified K-fold cross-validation with train, valid, test subsets.
+    Stratified K-fold cross-validation with train/valid/test subsets.
 
     Parameters
     ----------
@@ -388,7 +388,7 @@ class StratifiedDatasetValidationKFold(StratifiedDatasetCV):
 
 class DatasetValidationShuffleSplit(DatasetCV):
     """
-    Shuffle-split cross-validation with train, valid, test subsets.
+    Shuffle-split cross-validation with train/valid/test subsets.
 
     Parameters
     ----------
@@ -433,7 +433,8 @@ class DatasetValidationShuffleSplit(DatasetCV):
 
 class StratifiedDatasetValidationShuffleSplit(StratifiedDatasetCV):
     """
-    Stratified shuffle-split cross-validation with train, valid, test subsets.
+    Stratified shuffle-split cross-validation with train/valid/test
+    subsets.
 
     Parameters
     ----------
