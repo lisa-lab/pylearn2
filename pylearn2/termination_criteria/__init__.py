@@ -3,7 +3,7 @@ Termination criteria used to determine when to stop running a training
 algorithm.
 
 The training algorithm typically calls the termination criterion's
-continue_learning function and will stop if it returns False
+continue_learning method and will stop if it returns False
 (although training algorithms can also decide on their own to terminate).
 """
 __authors__ = "Ian Goodfellow"
@@ -52,8 +52,8 @@ class TerminationCriterion(object):
 
 class MonitorBased(TerminationCriterion):
     """
-    A termination criterion that tracks the best (i.e. lowest) value achieved
-    so far by the specified channel.
+    A termination criterion that tracks the best value achieved
+    so far by the specified channel of the model's monitor.
 
     The training algorithm always has N epochs to achieve a certain
     amount of (proportional) improvement over the current best value.
@@ -82,7 +82,7 @@ class MonitorBased(TerminationCriterion):
 
     def continue_learning(self, model):
         """
-        Should return false if the model has just run for
+        Returns False when the model has just run for
         N (or more) epochs without sufficient improvement.
 
         Parameters
