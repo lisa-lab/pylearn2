@@ -41,6 +41,42 @@ def test_stratified_dataset_shuffle_split():
     trainer.main_loop()
 
 
+def test_dataset_validation_k_fold():
+    """Test DatasetValidKFold."""
+    skip_if_no_sklearn()
+    mapping = {'dataset_iterator': 'DatasetValidationKFold'}
+    test_yaml = test_yaml_dataset_iterator % mapping
+    trainer = yaml_parse.load(test_yaml)
+    trainer.main_loop()
+
+
+def test_stratified_dataset_validation_k_fold():
+    """Test StratifiedDatasetValidKFold."""
+    skip_if_no_sklearn()
+    mapping = {'dataset_iterator': 'StratifiedDatasetValidationKFold'}
+    test_yaml = test_yaml_dataset_iterator % mapping
+    trainer = yaml_parse.load(test_yaml)
+    trainer.main_loop()
+
+
+def test_dataset_validation_shuffle_split():
+    """Test DatasetValidShuffleSplit."""
+    skip_if_no_sklearn()
+    mapping = {'dataset_iterator': 'DatasetValidationShuffleSplit'}
+    test_yaml = test_yaml_dataset_iterator % mapping
+    trainer = yaml_parse.load(test_yaml)
+    trainer.main_loop()
+
+
+def test_stratified_dataset_validation_shuffle_split():
+    """Test StratifiedDatasetValidShuffleSplit."""
+    skip_if_no_sklearn()
+    mapping = {'dataset_iterator': 'StratifiedDatasetValidationShuffleSplit'}
+    test_yaml = test_yaml_dataset_iterator % mapping
+    trainer = yaml_parse.load(test_yaml)
+    trainer.main_loop()
+
+
 def test_which_set():
     """Test which_set selector."""
     skip_if_no_sklearn()
