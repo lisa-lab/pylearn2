@@ -38,16 +38,18 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     """
     def __init__(self, which_set, center = False, rescale = False, gcn = None,
             one_hot = False, start = None, stop = None, axes=('b', 0, 1, 'c'),
-            toronto_prepro = False, preprocessor = None, preprocessors=[]):
+            toronto_prepro = False, preprocessor = None):
         # note: there is no such thing as the cifar10 validation set;
         # pylearn1 defined one but really it should be user-configurable
         # (as it is here)
 
+        self.which_set = which_set
         self.center = center
         self.rescale = rescale
         self.toronto_prepro = toronto_prepro
         self.gcn = gcn
-        self.preprocessors = preprocessors
+        self.preprocessors = []
+        self.preprocessors_on_test = []
 
         self.validate_options()
 
@@ -117,16 +119,18 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
         super(CIFAR10, self).__init__(X=X, y=y, view_converter=view_converter)
 
-        for preproc in self.preprocessors:
-            class_name = preproc.__class__.__name__
-            can_fit = class_name == TorontoPreprocessor.__name__
-            if can_fit:
-                if which_set == 'train':
-                    preproc.apply(self, can_fit=can_fit)
-                    continue
-                else:
-                    preproc.apply(CIFAR10(which_set='train'), can_fit=can_fit)
-            preproc.apply(self)
+        if self.preprocessors:
+            pipeline = Pipeline(self.preprocessors)
+            pipeline.apply(self, True)
+
+        # For some preprocessors that have to be applied on a test set,
+        # we have to compute first the stats (e.g. mean) on a train set and use
+        # these stats when applying the preprocessors on the test set.
+        # TorontoPreprocessor is one of these preprocessors.
+        if self.preprocessors_on_test:
+            pipeline = Pipeline(self.preprocessors_on_test)
+            pipeline.apply(CIFAR10(which_set='train'), True)
+            pipeline.apply(self, False)
 
         if start is not None:
             # This needs to come after the prepro so that it doesn't change the pixel
@@ -255,65 +259,39 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
     def validate_options(self):
         """
-        Performs the following validations on the constructor's arguments:
-            1) check that `preprocessors` does not have any duplicated
-               preprocessors. If there is duplication, a warning is issued.
-            2) if an option (center, rescale, gcn or toronto_prepro) was
-               specified, then the corresponding preprocessor from the
-               Preprocessor class is instantiated and added to `preprocessors`
+        Performs the following validation on the constructor's arguments:
+            if an option (center, rescale, gcn or toronto_prepro) was
+            specified, then the corresponding preprocessor from the
+            Preprocessor class is instantiated and added to `preprocessors`
         """
-
-        ### Check that the list of preprocessors `processors` does not have
-        ### duplicated preprocessors
-        self.set_preproc = set()
-        for preproc in self.preprocessors:
-            class_name = preproc.__class__.__name__
-            if class_name in self.set_preproc:
-                warnings.warn("The preprocessor %s is found more than once in the "
-                "list of preprocessors."%class_name)
-            else:
-                self.set_preproc.add(class_name)
-
         ### Check that any of the options are specified. Issue a warning
         ### and instantiate the corresponding preprocessor if that's the case
         if self.center:
-            warnings.warn("The option center is deprecated. The Center "
-                        "preprocessor should be used instead.")
-            if CenterPreprocessor.__name__ in self.set_preproc:
-                warnings.warn("The option center was specified but the list "
-                            "preprocessors already contains CenterPreprocessor.")
-            else:
-                self.preprocessors.append(CenterPreprocessor())
+            warnings.warn("The option center will be deprecated on or after "
+                          "2014-11-10. The Center preprocessor should be used instead.")
+            self.preprocessors.append(CenterPreprocessor())
 
         if self.rescale:
-            warnings.warn("The option rescale is deprecated. The Rescale "
-                        "preprocessor should be used instead.")
-            if RescalePreprocessor.__name__ in self.set_preproc:
-                warnings.warn("The option rescale was specified but the list "
-                            "preprocessors already contains RescalePreprocessor.")
-            else:
-                self.preprocessors.append(RescalePreprocessor())
+            warnings.warn("The option rescale will be deprecated on or after "
+                          "2014-11-10. The Rescale preprocessor should be used instead.")
+            self.preprocessors.append(RescalePreprocessor())
 
         if self.gcn:
-            warnings.warn("The option gcn is deprecated. The "
-                        "GlobalContrastNormalization preprocessor should be "
-                        "used instead.")
-            if GlobalContrastNormalization.__name__ in self.set_preproc:
-                warnings.warn("The option gcn was specified but the list "
-                            "preprocessors already contains "
-                            "GlobalContrastNormalization.")
-            else:
-                self.preprocessors.append(GlobalContrastNormalization(scale=float(self.gcn)))
+            warnings.warn("The option gcn will be deprecated on or after "
+                          "2014-11-10. The GlobalContrastNormalization preprocessor "
+                          "should be used instead.")
+            self.preprocessors.append(GlobalContrastNormalization(scale=float(self.gcn)))
 
         if self.toronto_prepro:
-            warnings.warn("The option toronto_preproc is deprecated. The "
-                        "TorontoPreprocessor preprocessor should be used "
-                        "instead.")
+            warnings.warn("The option toronto_preproc will be deprecated on "
+                          "or after 2014-11-10. The TorontoPreprocessor "
+                          "preprocessor should be used instead.")
             assert not self.center
             assert not self.gcn
-            if TorontoPreprocessor.__name__ in self.set_preproc:
-                warnings.warn("The option toronto_prepro was specified but the "
-                            "list preprocessors already contains a "
-                            "TorontoPreprocessor.")
-            else:
+            # If we have to apply the TorontoPreprocessor on a test set,
+            # we must first compute the mean on the train set and use this
+            # mean when applying the preprocessor on the test set.
+            if self.which_set == 'train':
                 self.preprocessors.append(TorontoPreprocessor())
+            else:
+                self.preprocessors_on_test.append(TorontoPreprocessor())
