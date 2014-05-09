@@ -1,3 +1,16 @@
+"""
+This script verifies that the new preprocessors used in CIFAR10 which are
+TorontoPreprocessor, CenterPreprocessor, and RescalePreprocessor are
+working as intended on a dummy dataset. These new preprocessors are
+defined in preprocessing.py
+
+First, these new preprocessors are applied on a dummy dataset and then
+the same kind of preprocessors are applied on the same dataset but this
+time using the old way of doing the computation.
+
+At the end, we verify that the two preprocessed matrices are equal.
+"""
+
 import numpy as np
 from pylearn2.utils import as_floatX
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
@@ -10,7 +23,7 @@ num_examples = 5
 num_features = 10
 
 
-### Apply new preprocessors
+# Apply new preprocessors
 rng = np.random.RandomState([1, 2, 3])
 X = as_floatX(rng.randn(num_examples, num_features))
 dataset = DenseDesignMatrix(X=X)
@@ -28,8 +41,8 @@ pipeline.apply(dataset, True)
 A = dataset.X
 
 
-### Apply the same kind of preprocessors but using the old way, i.e.
-### not using preprocessors defined in preprocessing
+# Apply the same kind of preprocessors but using the old way, i.e.
+# not using preprocessors defined in preprocessing
 rng = np.random.RandomState([1, 2, 3])
 B = as_floatX(rng.randn(num_examples, num_features))
 
