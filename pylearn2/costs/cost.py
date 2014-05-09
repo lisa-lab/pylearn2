@@ -207,9 +207,9 @@ class Cost(object):
 
         See Also
         --------
-        Rather than implementing this method yourself, you probably want
-        to just inherit from `DefaultDataSpecsMixin` or
-        `NullDataSpecsMixin`.
+        For many common cases, rather than implementing this method
+        yourself, you probably want
+        to just inherit from `DefaultDataSpecsMixin` or NullDataSpecsMixin.
 
         Notes
         -----
