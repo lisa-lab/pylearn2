@@ -30,6 +30,11 @@ class DatasetCV(object):
     subset_iterator : iterable
         Iterable that returns (train, test) or (train, valid, test) indices
         or masks for partitioning the dataset during cross-validation.
+    preprocessor : Preprocessor or None
+        Preprocessor to apply to child datasets.
+    fit_preprocessor : bool
+        Whether preprocessor can fit parameters when applied to training
+        data.
     which_set : str, list or None
         If None, return all subset datasets. If one or more of 'train',
         'valid', or 'test', return only the dataset(s) corresponding to the
@@ -43,14 +48,16 @@ class DatasetCV(object):
         returns a list of datasets matching the subset order given by
         subset_iterator.
     """
-    def __init__(self, dataset, subset_iterator, which_set=None,
-                 return_dict=True):
+    def __init__(self, dataset, subset_iterator, preprocessor=None,
+                 fit_preprocessor=False, which_set=None, return_dict=True):
         self.dataset = dataset
         self.subset_iterator = list(subset_iterator)  # allow generator reuse
         dataset_iterator = dataset.iterator(mode='sequential', num_batches=1,
                                             data_specs=dataset.data_specs,
                                             return_tuple=True)
         self._data = dataset_iterator.next()
+        self.preprocessor = preprocessor
+        self.fit_preprocessor = fit_preprocessor
         self.which_set = which_set
         if which_set is not None:
             which_set = np.atleast_1d(which_set)
@@ -81,21 +88,39 @@ class DatasetCV(object):
                 else:
                     X, = subset_data
                     y = None
-                label = labels[i]
-                if self.which_set is None or label in self.which_set:
-                    data_subsets[labels[i]] = (X, y)
-            if not len(data_subsets):
-                raise ValueError("No matching dataset(s) for " +
-                                 "{}".format(self.which_set))
+                data_subsets[labels[i]] = (X, y)
             yield data_subsets
 
     def __iter__(self):
-        """Create a DenseDesignMatrix for each dataset subset."""
+        """
+        Create a DenseDesignMatrix for each dataset subset and apply any
+        preprocessing to the child datasets.
+        """
         for data_subsets in self.get_data_subsets():
             datasets = {}
             for label, data in data_subsets.items():
                 X, y = data
                 datasets[label] = DenseDesignMatrix(X=X, y=y)
+
+            # preprocessing
+            if self.preprocessor is not None:
+                self.preprocessor.apply(datasets['train'],
+                                        can_fit=self.fit_preprocessor)
+                for label, dataset in datasets.items():
+                    if label == 'train':
+                        continue
+                    self.preprocessor.apply(dataset, can_fit=False)
+
+            # which_set
+            if self.which_set is not None:
+                for label, dataset in datasets.items():
+                    if label not in self.which_set:
+                        del datasets[label]
+                        del data_subsets[label]
+                if not len(datasets):
+                    raise ValueError("No matching dataset(s) for " +
+                                     "{}".format(self.which_set))
+
             if not self.return_dict:
                 # data_subsets is an OrderedDict to maintain label order
                 datasets = list(datasets[label]
@@ -118,6 +143,11 @@ class StratifiedDatasetCV(DatasetCV):
     subset_iterator : iterable
         Iterable that returns (train, test) or (train, valid, test) indices
         or masks for partitioning the dataset during cross-validation.
+    preprocessor : Preprocessor or None
+        Preprocessor to apply to child datasets.
+    fit_preprocessor : bool
+        Whether preprocessor can fit parameters when applied to training
+        data.
     which_set : str, list or None
         If None, return all subset datasets. If one or more of 'train',
         'valid', or 'test', return only the dataset(s) corresponding to the
@@ -158,7 +188,7 @@ class TransformerDatasetCV(object):
 
     Parameters
     ----------
-    dataset_iterator : iterable
+    dataset_iterator : DatasetCV
         Cross-validation iterator providing (test, train) or (test, valid,
         train) indices for partitioning the dataset.
     transformers : Model or iterable
@@ -196,10 +226,6 @@ class DatasetKFold(DatasetCV):
     ----------
     dataset : object
         Dataset to use for cross-validation.
-    which_set : str, list or None
-        If None, return all subset datasets. If one or more of 'train',
-        'valid', or 'test', return only the dataset(s) corresponding to the
-        given subset(s).
     n_folds : int
         Number of cross-validation folds.
     indices : bool
@@ -209,12 +235,14 @@ class DatasetKFold(DatasetCV):
         Whether to shuffle the dataset before partitioning.
     random_state : int or RandomState
         Random number generator used for shuffling.
+    kwargs : dict
+        Keyword arguments for DatasetCV.
     """
-    def __init__(self, dataset, which_set=None, n_folds=3, indices=True,
-                 shuffle=False, random_state=None):
+    def __init__(self, dataset, n_folds=3, indices=True, shuffle=False,
+                 random_state=None, **kwargs):
         n = dataset.X.shape[0]
         cv = KFold(n, n_folds, indices, shuffle, random_state)
-        super(DatasetKFold, self).__init__(dataset, cv, which_set)
+        super(DatasetKFold, self).__init__(dataset, cv, **kwargs)
 
 
 class StratifiedDatasetKFold(StratifiedDatasetCV):
@@ -225,20 +253,18 @@ class StratifiedDatasetKFold(StratifiedDatasetCV):
     ----------
     dataset : object
         Dataset to use for cross-validation.
-    which_set : str, list or None
-        If None, return all subset datasets. If one or more of 'train',
-        'valid', or 'test', return only the dataset(s) corresponding to the
-        given subset(s).
     n_folds : int
         Number of cross-validation folds.
     indices : bool
         Whether to return indices for dataset slicing. If false, returns
         a boolean mask.
+    kwargs : dict
+        Keyword arguments for DatasetCV.
     """
-    def __init__(self, dataset, which_set=None, n_folds=3, indices=True):
+    def __init__(self, dataset, n_folds=3, indices=True, **kwargs):
         y = self.get_y(dataset)
         cv = StratifiedKFold(y, n_folds, indices)
-        super(StratifiedDatasetKFold, self).__init__(dataset, cv, which_set)
+        super(StratifiedDatasetKFold, self).__init__(dataset, cv, **kwargs)
 
 
 class DatasetShuffleSplit(DatasetCV):
@@ -249,10 +275,6 @@ class DatasetShuffleSplit(DatasetCV):
     ----------
     dataset : object
         Dataset to use for cross-validation.
-    which_set : str, list or None
-        If None, return all subset datasets. If one or more of 'train',
-        'valid', or 'test', return only the dataset(s) corresponding to the
-        given subset(s).
     n_iter : int
         Number of shuffle-split iterations.
     test_size : float, int, or None
@@ -268,13 +290,15 @@ class DatasetShuffleSplit(DatasetCV):
         a boolean mask.
     random_state : int or RandomState
         Random number generator used for shuffling.
+    kwargs : dict
+        Keyword arguments for DatasetCV.
     """
-    def __init__(self, dataset, which_set=None, n_iter=10, test_size=0.1,
-                 train_size=None, indices=True, random_state=None):
+    def __init__(self, dataset, n_iter=10, test_size=0.1, train_size=None,
+                 indices=True, random_state=None, **kwargs):
         n = dataset.X.shape[0]
         cv = ShuffleSplit(n, n_iter, test_size, train_size, indices,
                           random_state)
-        super(DatasetShuffleSplit, self).__init__(dataset, cv, which_set)
+        super(DatasetShuffleSplit, self).__init__(dataset, cv, **kwargs)
 
 
 class StratifiedDatasetShuffleSplit(StratifiedDatasetCV):
@@ -285,10 +309,6 @@ class StratifiedDatasetShuffleSplit(StratifiedDatasetCV):
     ----------
     dataset : object
         Dataset to use for cross-validation.
-    which_set : str, list or None
-        If None, return all subset datasets. If one or more of 'train',
-        'valid', or 'test', return only the dataset(s) corresponding to the
-        given subset(s).
     n_iter : int
         Number of shuffle-split iterations.
     test_size : float, int, or None
@@ -304,153 +324,13 @@ class StratifiedDatasetShuffleSplit(StratifiedDatasetCV):
         a boolean mask.
     random_state : int or RandomState
         Random number generator used for shuffling.
+    kwargs : dict
+        Keyword arguments for DatasetCV.
     """
-    def __init__(self, dataset, which_set=None, n_iter=10, test_size=0.1,
-                 train_size=None, indices=True, random_state=None):
+    def __init__(self, dataset, n_iter=10, test_size=0.1, train_size=None,
+                 indices=True, random_state=None, **kwargs):
         y = self.get_y(dataset)
         cv = StratifiedShuffleSplit(y, n_iter, test_size, train_size, indices,
                                     random_state)
         super(StratifiedDatasetShuffleSplit, self).__init__(dataset, cv,
-                                                            which_set)
-
-
-class DatasetValidationKFold(DatasetCV):
-    """
-    K-fold cross-validation with train, valid, test subsets.
-
-    Parameters
-    ----------
-    dataset : object
-        Dataset to use for cross-validation.
-    n_folds : int
-        Number of cross-validation folds. Must be at least 3.
-    indices : bool
-        Return train/valid/test split as arrays of indices instead of
-        boolean masks.
-    shuffle : bool
-        Whether to shuffle the data before splitting.
-    random_state : int, RandomState, or None
-        Pseudorandom number seed or generator to use for shuffling.
-    kwargs : dict
-        Keyword arguments for DatasetCV.
-    """
-    def __init__(self, dataset, n_folds=3, indices=True, shuffle=False,
-                 random_state=None, **kwargs):
-        n = dataset.X.shape[0]
-        cv = ValidationKFold(n, n_folds, indices, shuffle, random_state)
-        super(DatasetValidationKFold, self).__init__(dataset, cv, **kwargs)
-
-
-class StratifiedDatasetValidationKFold(StratifiedDatasetCV):
-    """
-    Stratified K-fold cross-validation with train, valid, test subsets.
-
-    Parameters
-    ----------
-    dataset : object
-        Dataset to use for cross-validation.
-    n_folds : int
-        Number of cross-validation folds. Must be at least 3.
-    indices : bool
-        Return train/valid/test split as arrays of indices instead of
-        boolean masks.
-    kwargs : dict
-        Keyword arguments for DatasetCV.
-    """
-    def __init__(self, dataset, n_folds=3, indices=True, **kwargs):
-        y = self.get_y(dataset)
-        cv = StratifiedValidationKFold(y, n_folds, indices)
-        super(StratifiedDatasetValidationKFold, self).__init__(dataset, cv,
-                                                               **kwargs)
-
-
-class DatasetValidationShuffleSplit(DatasetCV):
-    """
-    Shuffle-split cross-validation with train, valid, test subsets.
-
-    Parameters
-    ----------
-    dataset : object
-        Dataset to use for cross-validation.
-    n_iter : int
-        Number of shuffle/split iterations.
-    test_size : float, int, or None
-        If float, should be between 0.0 and 1.0 and represent the
-        proportion of the entire dataset to include in the validation
-        split. If int, represents the absolute number of validation
-        samples. If None, the value is automatically set to the complement
-        of train_size + valid_size.
-    valid_size : float, int, or None
-        If float, should be between 0.0 and 1.0 and represent the
-        proportion of the entire dataset to include in the validation
-        split. If int, represents the absolute number of validation
-        samples. If None, the value is automatically set to match
-        test_size.
-    train_size : float, int, or None
-        If float, should be between 0.0 and 1.0 and represent the
-        proportion of the entire dataset to include in the validation
-        split. If int, represents the absolute number of validation
-        samples. If None, the value is automatically set to the complement
-        of valid_size + test_size.
-    indices : bool
-        Return train/valid/test split as arrays of indices instead of
-        boolean masks.
-    random_state : int, RandomState, or None
-        Pseudorandom number seed or generator to use for shuffling.
-    kwargs : dict
-        Keyword arguments for DatasetCV.
-    """
-    def __init__(self, dataset, n_iter=10, test_size=0.1, valid_size=None,
-                 train_size=None, indices=True, random_state=None, **kwargs):
-        n = dataset.X.shape[0]
-        cv = ValidationShuffleSplit(n, n_iter, test_size, valid_size,
-                                    train_size, indices, random_state)
-        super(DatasetValidationShuffleSplit, self).__init__(dataset, cv,
                                                             **kwargs)
-
-
-class StratifiedDatasetValidationShuffleSplit(StratifiedDatasetCV):
-    """
-    Stratified shuffle-split cross-validation with train, valid, test subsets.
-
-    Parameters
-    ----------
-    dataset : object
-        Dataset to use for cross-validation.
-    n_iter : int
-        Number of shuffle/split iterations.
-    test_size : float, int, or None
-        If float, should be between 0.0 and 1.0 and represent the
-        proportion of the entire dataset to include in the validation
-        split. If int, represents the absolute number of validation
-        samples. If None, the value is automatically set to the complement
-        of train_size + valid_size.
-    valid_size : float, int, or None
-        If float, should be between 0.0 and 1.0 and represent the
-        proportion of the entire dataset to include in the validation
-        split. If int, represents the absolute number of validation
-        samples. If None, the value is automatically set to match
-        test_size.
-    train_size : float, int, or None
-        If float, should be between 0.0 and 1.0 and represent the
-        proportion of the entire dataset to include in the validation
-        split. If int, represents the absolute number of validation
-        samples. If None, the value is automatically set to the complement
-        of valid_size + test_size.
-    indices : bool
-        Return train/valid/test split as arrays of indices instead of
-        boolean masks.
-    random_state : int, RandomState, or None
-        Pseudorandom number seed or generator to use for shuffling.
-    kwargs : dict
-        Keyword arguments for DatasetCV.
-    """
-    def __init__(self, dataset, n_iter=10, test_size=0.1, valid_size=None,
-                 train_size=None, indices=True, random_state=None, **kwargs):
-        y = self.get_y(dataset)
-        cv = StratifiedValidationShuffleSplit(y, n_iter, test_size, valid_size,
-                                              train_size, indices,
-                                              random_state)
-        super(StratifiedDatasetValidationShuffleSplit, self).__init__(dataset,
-                                                                      cv,
-                                                                      **kwargs)

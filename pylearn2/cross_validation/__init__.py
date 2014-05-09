@@ -59,9 +59,16 @@ class TrainCV(object):
                         this_model.layers[i] = layer.select_fold(k)
 
             # construct an isolated Train object
-            trainer = Train(datasets['train'], this_model, algorithm,
-                            this_save_path, this_save_freq, extensions,
-                            allow_overwrite)
+            try:
+                assert isinstance(datasets, dict)
+                trainer = Train(datasets['train'], this_model, algorithm,
+                                this_save_path, this_save_freq, extensions,
+                                allow_overwrite)
+            except AssertionError:
+                raise AssertionError("Dataset iterator must be a dict with " +
+                                     "dataset names (e.g. 'train') as keys.")
+            except KeyError:
+                raise KeyError("Dataset iterator must yield training data.")
 
             # no shared references between trainers are allowed
             trainer = deepcopy(trainer)
