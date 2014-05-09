@@ -16,7 +16,7 @@ from pylearn2.gui import patch_viewer
 from pylearn2.config import yaml_parse
 
 
-def main(path, rows, cols, rescale, out):
+def show_examples(path, rows, cols, rescale='global', out=None):
     """
     .. todo::
 
@@ -25,7 +25,7 @@ def main(path, rows, cols, rescale, out):
     Parameters
     ----------
     path : string
-        The pickle file to show examples of
+        The pickle or YAML file to show examples of
     rows : int
         WRITEME
     cols : int
@@ -138,4 +138,4 @@ if __name__ == "__main__":
     parser.add_argument("path")
 
     args = parser.parse_args()
-    main(args.path, args.rows, args.cols, args.rescale, args.out)
+    show_examples(args.path, args.rows, args.cols, args.rescale, args.out)
