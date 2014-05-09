@@ -1,4 +1,6 @@
 """Code for reformatting supervised learning targets."""
+from operator import mul
+
 import numpy as np
 import scipy
 import scipy.sparse
@@ -111,6 +113,8 @@ class OneHotFormatter(object):
             shape = (np.prod(one_hot.shape[:-1]), one_hot.shape[-1])
             one_hot.reshape(shape)[np.arange(shape[0]), targets.flatten()] = 1
             if mode == 'concatenate':
+                shape = one_hot.shape[-3:-2] + (reduce(mul,
+                                                       one_hot.shape[-2:], 1),)
                 one_hot = one_hot.reshape(shape)
             elif mode == 'merge':
                 one_hot = np.minimum(one_hot.sum(axis=one_hot.ndim - 2), 1)
