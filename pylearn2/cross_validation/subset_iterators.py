@@ -156,7 +156,8 @@ class ValidationShuffleSplit(ShuffleSplit):
                                                      random_state)
         if valid_size is None:
             valid_size = self.n_test
-        # correct proportion
+
+        # correct proportion to correspond to a subset of the training set
         if valid_size < 1.0:
             valid_size /= 1.0 - np.true_divide(self.n_test, self.n)
         self.valid_size = valid_size
@@ -219,7 +220,8 @@ class StratifiedValidationShuffleSplit(StratifiedShuffleSplit):
                                                                random_state)
         if valid_size is None:
             valid_size = self.n_test
-        # correct proportion
+
+        # correct proportion to correspond to a subset of the training set
         if valid_size < 1.0:
             valid_size /= 1.0 - np.true_divide(self.n_test, self.n)
         self.valid_size = valid_size
