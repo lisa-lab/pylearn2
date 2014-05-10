@@ -13,6 +13,7 @@ try:
                                           StratifiedShuffleSplit)
 except ImportError:
     warnings.warn("Could not import from sklearn.")
+    KFold = StratifiedKFold = ShuffleSplit = StratifiedShuffleSplit = object
 
 
 def get_validation_set(train, train_cv, indices):
