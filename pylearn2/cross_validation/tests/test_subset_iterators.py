@@ -4,14 +4,12 @@ Test subset iterators.
 import numpy as np
 
 from pylearn2.testing.skip import skip_if_no_sklearn
-from pylearn2.cross_validation.subset_iterators import (
-    ValidationKFold, StratifiedValidationKFold, ValidationShuffleSplit,
-    StratifiedValidationShuffleSplit)
 
 
 def test_validation_k_fold():
     """Test ValidationKFold."""
     skip_if_no_sklearn()
+    from pylearn2.cross_validation.subset_iterators import ValidationKFold
     n = 30
 
     # test with indices
@@ -35,6 +33,8 @@ def test_validation_k_fold():
 def test_stratified_validation_k_fold():
     """Test StratifiedValidationKFold."""
     skip_if_no_sklearn()
+    from pylearn2.cross_validation.subset_iterators import (
+        StratifiedValidationKFold)
     n = 30
     y = np.concatenate((np.zeros(n / 2, dtype=int), np.ones(n / 2, dtype=int)))
 
@@ -63,6 +63,8 @@ def test_stratified_validation_k_fold():
 def test_validation_shuffle_split():
     """Test ValidationShuffleSplit."""
     skip_if_no_sklearn()
+    from pylearn2.cross_validation.subset_iterators import (
+        ValidationShuffleSplit)
     n = 30
 
     # test with indices
@@ -86,6 +88,8 @@ def test_validation_shuffle_split():
 def test_stratified_validation_shuffle_split():
     """Test StratifiedValidationShuffleSplit."""
     skip_if_no_sklearn()
+    from pylearn2.cross_validation.subset_iterators import (
+        StratifiedValidationShuffleSplit)
     n = 60
     y = np.concatenate((np.zeros(n / 2, dtype=int), np.ones(n / 2, dtype=int)))
 
