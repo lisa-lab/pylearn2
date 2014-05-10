@@ -111,6 +111,24 @@ class Train(object):
         else:
             return False
 
+
+    def setup(self):
+        """
+        Sets up the main loop. This is also called at the start of the
+        main loop, so you need only call it if you're using a driver
+        script that replaces the main loop with something else.
+        """
+        self.model.monitor = Monitor.get_monitor(self.model)
+        self.model.monitor.time_budget_exceeded = False
+        if self.algorithm is not None:
+            self.algorithm.setup(model=self.model, dataset=self.dataset)
+        self.setup_extensions()
+
+        # Model.censor_updates is used by the training algorithm to
+        # enforce constraints after each step of learning. Here we
+        # make sure the constraints are enforced from the start.
+        self.model.enforce_constraints()
+
     def main_loop(self, time_budget=None):
         """
         Repeatedly runs an epoch of the training algorithm, runs any
@@ -123,14 +141,8 @@ class Train(object):
             training. Default is `None`, no time limit.
         """
         t0 = datetime.now()
+        self.setup()
         if self.algorithm is None:
-            self.model.monitor = Monitor.get_monitor(self.model)
-            self.model.monitor.time_budget_exceeded = False
-            self.setup_extensions()
-            # Model.censor_updates is used by the training algorithm to
-            # enforce constraints after each step of learning. Here we
-            # make sure the constraints are enforced from the start.
-            self.model.enforce_constraints()
             self.run_callbacks_and_monitoring()
             while True:
                 if self.exceeded_time_budget(t0, time_budget):
@@ -152,12 +164,6 @@ class Train(object):
                 if not continue_learning:
                     break
         else:
-            self.algorithm.setup(model=self.model, dataset=self.dataset)
-            self.setup_extensions()
-            # Model.censor_updates is used by the training algorithm to
-            # enforce constraints after each step of learning. Here we
-            # make sure the constraints are enforced from the start.
-            self.model.enforce_constraints()
             if not hasattr(self.model, 'monitor'):
                 # TODO: is this really necessary? I just put this error here
                 # to prevent an AttributeError later, but I think we could
