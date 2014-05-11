@@ -51,8 +51,9 @@ class TrainCV(object):
 
             # setup pretrained layers
             this_model = deepcopy(model)
-            if hasattr(model, 'layers') and any(
-                    [isinstance(l, PretrainedLayerCV) for l in model.layers]):
+            if hasattr(this_model, 'layers') and any(
+                    [isinstance(l, PretrainedLayerCV)
+                     for l in this_model.layers]):
                 for i, layer in enumerate(this_model.layers):
                     if isinstance(layer, PretrainedLayerCV):
                         this_model.layers[i] = layer.select_fold(k)
