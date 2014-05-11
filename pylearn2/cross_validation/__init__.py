@@ -50,29 +50,33 @@ class TrainCV(object):
                 this_save_freq = 0
 
             # setup pretrained layers
-            this_model = model
+            this_model = deepcopy(model)
             if hasattr(model, 'layers') and any(
                     [isinstance(l, PretrainedLayerCV) for l in model.layers]):
-                this_model = deepcopy(model)
                 for i, layer in enumerate(this_model.layers):
                     if isinstance(layer, PretrainedLayerCV):
                         this_model.layers[i] = layer.select_fold(k)
 
+            # setup monitoring datasets
+            this_algorithm = deepcopy(algorithm)
+            this_algorithm._set_monitoring_dataset(datasets)
+
+            # extensions
+            this_extensions = deepcopy(extensions)
+
             # construct an isolated Train object
+            # no shared references between trainers are allowed
+            # (hence all the deepcopy operations)
             try:
                 assert isinstance(datasets, dict)
-                trainer = Train(datasets['train'], this_model, algorithm,
-                                this_save_path, this_save_freq, extensions,
-                                allow_overwrite)
+                trainer = Train(datasets['train'], this_model, this_algorithm,
+                                this_save_path, this_save_freq,
+                                this_extensions, allow_overwrite)
             except AssertionError:
                 raise AssertionError("Dataset iterator must be a dict with " +
                                      "dataset names (e.g. 'train') as keys.")
             except KeyError:
                 raise KeyError("Dataset iterator must yield training data.")
-
-            # no shared references between trainers are allowed
-            trainer = deepcopy(trainer)
-            trainer.algorithm._set_monitoring_dataset(datasets)
             trainers.append(trainer)
         self.trainers = trainers
         self.save_path = save_path
