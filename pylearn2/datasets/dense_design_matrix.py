@@ -1194,7 +1194,8 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
                                             data_x=X,
                                             start=start)
 
-    def init_hdf5(self, path, shapes):
+    @staticmethod
+    def init_hdf5(path, shapes, filters=None):
         """
         Initializes the hdf5 file into which the data will be stored. This must
         be called before calling fill_hdf5.
@@ -1210,14 +1211,16 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         x_shape, y_shape = shapes
         # make pytables
         ensure_tables()
+        if filters is None:
+            filters = tables.Filters(complib='blosc', complevel=5)
         h5file = tables.openFile(path, mode="w", title="SVHN Dataset")
         gcolumns = h5file.createGroup(h5file.root, "Data", "Data")
         atom = (tables.Float32Atom() if config.floatX == 'float32'
                 else tables.Float64Atom())
         h5file.createCArray(gcolumns, 'X', atom=atom, shape=x_shape,
-                            title="Data values", filters=self.filters)
+                            title="Data values", filters=filters)
         h5file.createCArray(gcolumns, 'y', atom=atom, shape=y_shape,
-                            title="Data targets", filters=self.filters)
+                            title="Data targets", filters=filters)
         return h5file, gcolumns
 
     @staticmethod
