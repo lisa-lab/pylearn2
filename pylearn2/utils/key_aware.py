@@ -1,5 +1,6 @@
 """A key-aware analog to defaultdict."""
 
+
 class KeyAwareDefaultDict(dict):
     """
     Like a standard library defaultdict, but pass the key

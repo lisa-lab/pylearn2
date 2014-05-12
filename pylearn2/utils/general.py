@@ -4,6 +4,7 @@
     WRITEME
 """
 
+
 def is_iterable(obj):
     """
     Robustly test whether an object is iterable.
