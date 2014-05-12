@@ -21,7 +21,9 @@ __email__ = "mkg alum mit edu (@..)"
 import logging
 import os, gzip, bz2, warnings
 import numpy, theano
+
 from pylearn2.datasets import dense_design_matrix
+from pylearn2.datasets.cache import datasetCache
 from pylearn2.space import VectorSpace, Conv2DSpace, CompositeSpace
 
 
@@ -52,14 +54,13 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
     ----------
     which_set: str
         Must be 'train' or 'test'.
-    multi_target: bool
+    multi_target: bool, optional
         If False, each label is an integer labeling the image catergory. If
         True, each label is a vector: [category, instance, lighting, elevation,
         azimuth]. All labels are given as integers. Use the categories,
         elevation_degrees, and azimuth_degrees arrays to map from these
         integers to actual values.
     """
-
 
     # Actual image shape may change, e.g. after being preprocessed by
     # datasets.preprocessing.Downsample
@@ -122,12 +123,16 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
     # shifted the pixel values from [0:255] by subtracting 127.5. Seems like a
     # form of preprocessing, which might be better implemented separately using
     # the Preprocess class.
-    def __init__(self, which_set, multi_target=False):
+    def __init__(self, which_set, multi_target=False, stop=None):
         assert which_set in ['train', 'test']
 
         self.which_set = which_set
 
-        X = SmallNORB.load(which_set, 'dat')
+        subtensor = None
+        if stop:
+            subtensor = slice(0, stop)
+
+        X = SmallNORB.load(which_set, 'dat', subtensor=subtensor)
 
         # Casts to the GPU-supported float type, using theano._asarray(), a
         # safer alternative to numpy.asarray().
@@ -140,7 +145,7 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
         X = X.reshape(-1, 2*numpy.prod(self.original_image_shape))
 
         # This is uint8
-        y = SmallNORB.load(which_set, 'cat')
+        y = SmallNORB.load(which_set, 'cat', subtensor=subtensor)
         if multi_target:
             y_extra = SmallNORB.load(which_set, 'info')
             y = numpy.hstack((y[:, numpy.newaxis], y_extra))
@@ -158,10 +163,8 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                                         view_converter=view_converter)
 
     @classmethod
-    def load(cls, which_set, filetype):
-        """
-        Reads and returns a single file as a numpy array.
-        """
+    def load(cls, which_set, filetype, subtensor):
+        """Reads and returns a single file as a numpy array."""
 
         assert which_set in ['train', 'test']
         assert filetype in ['dat', 'cat', 'info']
@@ -182,6 +185,10 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
         def parseNORBFile(file_handle, subtensor=None, debug=False):
             """
             Load all or part of file 'file_handle' into a numpy ndarray
+
+            .. todo::
+
+                WRITEME properly
 
             :param file_handle: file from which to read file can be opended
               with open(), gzip.open() and bz2.BZ2File()
@@ -209,6 +216,10 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
             def readHeader(file_handle, debug=False, from_gzip=None):
                 """
+                .. todo::
+
+                    WRITEME properly
+
                 :param file_handle: an open file handle.
                 :type file_handle: a file or gzip.GzipFile object
 
@@ -283,6 +294,7 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                     bytes_per_row = numpy.prod(shape[1:]) * elem_size
                     file_handle.seek(beginning+subtensor.start * bytes_per_row)
                 shape[0] = min(shape[0], subtensor.stop) - subtensor.start
+                num_elems = numpy.prod(shape)
                 result = numpy.fromfile(file_handle,
                                         dtype=elem_type,
                                         count=num_elems).reshape(shape)
@@ -291,11 +303,18 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                                           subtensor)
 
             return result
+        fname = getPath(which_set)
+        fname = datasetCache.cache_file(fname)
+        file_handle = open(fname)
 
-        file_handle = open(getPath(which_set))
-        return parseNORBFile(file_handle)
+        return parseNORBFile(file_handle, subtensor)
 
     def get_topological_view(self, mat=None, single_tensor=True):
+        """
+        .. todo::
+
+            WRITEME
+        """
         result = super(SmallNORB, self).get_topological_view(mat)
 
         if single_tensor:
@@ -386,6 +405,11 @@ class StereoViewConverter(object):
         self.storage_space = VectorSpace(dim=numpy.prod(shape))
 
     def get_formatted_batch(self, batch, space):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.storage_space.np_format_as(batch, space)
 
     def design_mat_to_topo_view(self, design_mat):
@@ -408,12 +432,27 @@ class StereoViewConverter(object):
         return self.topo_space.np_format_as(topo_batch, self.storage_space)
 
     def view_shape(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.shape
 
     def weights_view_shape(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.view_shape()
 
     def set_axes(self, axes):
+        """
+        .. todo::
+
+            WRITEME
+        """
         axes = tuple(axes)
 
         if len(axes) != 5:

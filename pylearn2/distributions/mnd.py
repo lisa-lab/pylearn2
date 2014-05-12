@@ -115,6 +115,7 @@ class AdditiveDiagonalMND:
     init_beta : WRITEME
     nvis : WRITEME
     """
+
     def __init__(self, init_beta, nvis):
         self.__dict__.update(locals())
         del self.self
@@ -130,8 +131,12 @@ class AdditiveDiagonalMND:
 
             WRITEME properly
 
-        X: a theano variable containing a design matrix
-        of observations of the random vector to condition on."""
+        Parameters
+        ----------
+        X : WRITEME
+            A theano variable containing a design matrix of 
+            observations of the random vector to condition on.
+        """
         Z = self.s_rng.normal(size=X.shape,
                               avg=X, std=1./T.sqrt(self.beta), dtype=config.floatX)
         return Z

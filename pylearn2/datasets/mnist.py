@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -37,13 +42,13 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
     fit_preprocessor : WRITEME
     fit_test_preprocessor : WRITEME
     """
+
     def __init__(self, which_set, center=False, shuffle=False,
                  one_hot=None, binarize=False, start=None,
                  stop=None, axes=['b', 0, 1, 'c'],
                  preprocessor=None,
                  fit_preprocessor=False,
                  fit_test_preprocessor=False):
-
         self.args = locals()
 
         if which_set not in ['train', 'test']:
@@ -60,6 +65,11 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
                 '". Valid values are ["train","test"].')
 
         def dimshuffle(b01c):
+            """
+            .. todo::
+
+                WRITEME
+            """
             default = ('b', 0, 1, 'c')
             return b01c.transpose(*[default.index(axis) for axis in axes])
 
@@ -127,7 +137,7 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
                     y[j] = tmp
 
             super(MNIST, self).__init__(topo_view=dimshuffle(topo_view), y=y,
-                                        axes=axes, max_labels=max_labels)
+                                        axes=axes, y_labels=max_labels)
 
             assert not N.any(N.isnan(self.X))
 
@@ -161,12 +171,27 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             preprocessor.apply(self, fit_preprocessor)
 
     def adjust_for_viewer(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return N.clip(X * 2. - 1., -1., 1.)
 
     def adjust_to_be_viewed_with(self, X, other, per_example=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.adjust_for_viewer(X)
 
     def get_test_set(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         args = {}
         args.update(self.args)
         del args['self']
@@ -190,6 +215,7 @@ class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
     center : WRITEME
     one_hot : WRITEME
     """
+
     def __init__(self, which_set, center=False, one_hot=False):
         path = "${PYLEARN2_DATA_PATH}/mnist/mnist_rotation_back_image/" \
             + which_set

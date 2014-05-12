@@ -1,0 +1,70 @@
+# This script use same hyperparameters as mnist_valid, but train on the
+# whole dataset. Termination criterion is choosed so that runs as many epochs
+# that mnist_valid reach its lowest validation error.
+# And results in 1.05% test error.
+
+!obj:pylearn2.train.Train {
+    dataset: &train !obj:pylearn2.datasets.mnist.MNIST {
+        which_set: "train",
+        shuffle: 0,
+    },
+    model: !obj:pylearn2.models.mlp.MLP {
+        batch_size : 100,
+        nvis: 784,
+        layers: [
+            !obj:pylearn2.models.mlp.RectifiedLinear {
+                max_col_norm: 4.378017,
+                dim: 898,
+                irange: 0.00891030471479,
+                layer_name: 'h0',
+                init_bias: 0.000000
+            },
+            !obj:pylearn2.models.mlp.RectifiedLinear {
+                max_col_norm: 2.970242,
+                dim: 1532,
+                irange: 0.0575059125935,
+                layer_name: 'h1',
+                init_bias: 0.000000
+            },
+            !obj:pylearn2.models.mlp.Softmax {
+                max_col_norm: 4.626974,
+                sparse_init: 0,
+                layer_name: 'y',
+                n_classes: 10
+            }
+        ]
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        monitoring_dataset : {
+            test: !obj:pylearn2.datasets.mnist.MNIST {
+                which_set: "test",
+                shuffle: 0,
+            },
+        },
+        learning_rate: 0.097259,
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: 0.5
+        },
+        cost: !obj:pylearn2.costs.mlp.dropout.Dropout {
+             input_include_probs: { 'h0' : .8 },
+             input_scales: { 'h0' : 1.25 }
+        },
+        termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
+            max_epochs: 440
+        }
+    },
+    extensions: [
+        !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
+            start: 1,
+            saturate: 698,
+            final_momentum: 0.699217
+        },
+        !obj:pylearn2.training_algorithms.sgd.LinearDecayOverEpoch {
+            start: 1,
+            saturate: 560,
+            decay_factor: 0.022292
+        }
+    ],
+    save_path: "${PYLEARN2_TRAIN_FILE_FULL_STEM}.pkl",
+    save_freq : 1
+}

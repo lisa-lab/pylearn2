@@ -874,6 +874,15 @@ class IndexSpace(SimplyTypedSpace):
     def get_total_dimension(self):
         return self.dim
 
+    @functools.wraps(Space.get_origin)
+    def get_origin(self):
+        return np.zeros((1, self.dim,))
+
+    @functools.wraps(Space.get_origin_batch)
+    def get_origin_batch(self, batch_size, dtype=None):
+        dtype = self._clean_dtype_arg(dtype)
+        return np.zeros((batch_size, self.dim), dtype=dtype)
+
     @functools.wraps(Space._check_sizes)
     def _check_sizes(self, space):
         if isinstance(space, VectorSpace):
@@ -927,6 +936,15 @@ class IndexSpace(SimplyTypedSpace):
             rval = tensor.lrow(name=name)
         else:
             rval = tensor.lmatrix(name=name)
+
+        if theano.config.compute_test_value != 'off':
+            if batch_size == 1:
+                n = 1
+            else:
+                # TODO: try to extract constant scalar value from batch_size
+                n = 4
+            rval.tag.test_value = self.get_origin_batch(batch_size=n,
+                                                        dtype=dtype)
         return rval
 
     @functools.wraps(Space._batch_size_impl)

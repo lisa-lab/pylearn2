@@ -13,6 +13,7 @@ from pylearn2.utils import safe_izip
 class Default(DefaultDataSpecsMixin, Cost):
     """
     The default Cost to use with an MLP.
+
     It simply calls the MLP's cost_from_X method.
     """
 

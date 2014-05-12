@@ -1,4 +1,4 @@
-#The dataset for the NIPS 2011 Transfer Learning Challenge
+"""The dataset for the NIPS 2011 Transfer Learning Challenge"""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -16,15 +16,14 @@ class TL_Challenge(dense_design_matrix.DenseDesignMatrix):
 
        WRITEME
 
-
     Parameters
     ----------
     which_set : WRITEME
     center : WRITEME
     custom_path : WRITEME
     """
-    def __init__(self, which_set, center=False, custom_path=None):
 
+    def __init__(self, which_set, center=False, custom_path=None):
         assert which_set in ['train', 'test', 'unlabeled', 'custom']
 
         path = "${PYLEARN2_DATA_PATH}/TLChallenge"

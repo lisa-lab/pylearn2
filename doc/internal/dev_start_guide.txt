@@ -40,7 +40,7 @@ style, but as we modify the code, we update it accordingly.
 Documentation
 -------------
 
-See the documentation guidline :ref:`here <metadocumentation>`.
+See the documentation guideline :ref:`here <metadocumentation>`.
 
 
 Mailing list
