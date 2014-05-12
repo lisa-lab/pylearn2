@@ -1,6 +1,6 @@
 """
-TrainExtension subclass for calculating ROC AUC values as monitor
-channels.
+TrainExtension subclass for calculating ROC AUC scores on monitoring
+dataset(s), reported via monitor channels.
 """
 import numpy as np
 import warnings
@@ -17,9 +17,16 @@ from pylearn2.train_extensions import TrainExtension
 
 
 class RocAucScoreOp(gof.Op):
-    """Theano Op wrapping sklearn.metrics.roc_auc_score."""
+    """
+    Theano Op wrapping sklearn.metrics.roc_auc_score.
+
+    Parameters
+    ----------
+    use_c_code : WRITEME
+    """
     def make_node(self, y_true, y_score):
-        """Calculate ROC AUC score.
+        """
+        Calculate ROC AUC score.
 
         Parameters
         ----------
@@ -34,7 +41,8 @@ class RocAucScoreOp(gof.Op):
         return gof.Apply(self, [y_true, y_score], output)
 
     def perform(self, node, inputs, output_storage):
-        """Calculate ROC AUC score.
+        """
+        Calculate ROC AUC score.
 
         Parameters
         ----------
@@ -54,7 +62,8 @@ class RocAucScoreOp(gof.Op):
 
 
 def roc_auc_score(y_true, y_score):
-    """Calculate ROC AUC score.
+    """
+    Calculate ROC AUC score.
 
     Parameters
     ----------
@@ -67,10 +76,9 @@ def roc_auc_score(y_true, y_score):
 
 
 class RocAucChannel(TrainExtension):
-    """Adds a ROC AUC channel to the monitor for each monitoring dataset.
+    """
+    Adds a ROC AUC channel to the monitor for each monitoring dataset.
 
-    Notes
-    -----
     This monitor will return nan unless both classes are represented in
     y_true. For this reason, it is recommended to set monitoring_batches
     to 1, especially when using unbalanced datasets.
