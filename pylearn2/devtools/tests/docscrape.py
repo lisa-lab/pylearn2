@@ -701,6 +701,13 @@ def handle_module(val, name):
 
 def handle_method(method, method_name, class_name):
     method_errors = []
+
+    # Skip out-of-library inherited methods
+    module = inspect.getmodule(method)
+    if module is not None:
+        if not module.__name__.startswith('pylearn2'):
+            return method_errors
+
     docstring = inspect.getdoc(method)
     if docstring is None:
         method_errors.append((class_name, method_name,
