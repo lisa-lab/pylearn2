@@ -140,10 +140,10 @@ def show(image):
 
 
     try:
-        f = NamedTemporaryFile(mode='r', suffix='.png', delete=False)
+        f = NamedTemporaryFile(mode='w', suffix='.png', delete=False)
     except TypeError:
         # before python2.7, we can't use the delete argument
-        f = NamedTemporaryFile(mode='r', suffix='.png')
+        f = NamedTemporaryFile(mode='w', suffix='.png')
         """
         TODO: prior to python 2.7, NamedTemporaryFile has no delete = False
         argument unfortunately, that means f.close() deletes the file.  we then
