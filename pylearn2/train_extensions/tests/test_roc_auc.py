@@ -17,17 +17,17 @@ test_yaml = """
       &train !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix
       {
           rng: !obj:numpy.random.RandomState {},
-          num_examples: 1000,
-          dim: 15,
+          num_examples: 10,
+          dim: 10,
           num_classes: 2,
       },
     model: !obj:pylearn2.models.mlp.MLP {
-        nvis: 15,
+        nvis: 10,
         layers: [
             !obj:pylearn2.models.mlp.Sigmoid {
                 layer_name: 'h0',
-                dim: 15,
-                sparse_init: 15,
+                dim: 10,
+                irange: 0.05,
             },
             !obj:pylearn2.models.mlp.Softmax {
                 layer_name: 'y',
