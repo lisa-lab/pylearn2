@@ -104,10 +104,9 @@ def show_negative_chains(model_path):
     m = vis_chains.shape[0]
     grid_shape = get_grid_shape(m)
 
-    pv = create_patch_viewer(grid_shape, vis_chains, m)
-
-    pv.show()
+    return create_patch_viewer(grid_shape, vis_chains, m)
 
 if __name__ == '__main__':
     ignore, model_path = sys.argv
-    show_negative_chains(model_path)
+    pv = show_negative_chains(model_path)
+    pv.show()
