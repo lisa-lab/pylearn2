@@ -22,7 +22,7 @@ except ImportError:
     Image = None
 
 from pylearn2.utils import string_utils as string
-from tempfile import NamedTemporaryFile
+from tempfile import mkstemp
 from multiprocessing import Process
 
 import subprocess
@@ -138,26 +138,9 @@ def show(image):
                             str(image.shape) + " and dtype " +
                             str(image.dtype))
 
+    fd, name = mkstemp(suffix='.png')
+    os.close(fd)
 
-    try:
-        f = NamedTemporaryFile(mode='w', suffix='.png', delete=False)
-    except TypeError:
-        # before python2.7, we can't use the delete argument
-        f = NamedTemporaryFile(mode='w', suffix='.png')
-        """
-        TODO: prior to python 2.7, NamedTemporaryFile has no delete = False
-        argument unfortunately, that means f.close() deletes the file.  we then
-        save an image to the file in the next line, so there's a race condition
-        where for an instant we  don't actually have the file on the filesystem
-        reserving the name, and then write to that name anyway
-
-        TODO: see if this can be remedied with lower level calls (mkstemp)
-        """
-        warnings.warn('filesystem race condition')
-
-    name = f.name
-    f.flush()
-    f.close()
     image.save(name)
     viewer_command = string.preprocess('${PYLEARN2_VIEWER_COMMAND}')
     if os.name == 'nt':
