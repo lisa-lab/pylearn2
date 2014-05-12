@@ -24,7 +24,8 @@ def test_show_negative_chains():
 !obj:pylearn2.datasets.binarizer.Binarizer {
     raw: &raw_train !obj:pylearn2.datasets.mnist.MNIST {
         which_set: "train",
-        start: 0
+        start: 0,
+        stop: 300
     }
 }
 """
