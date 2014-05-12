@@ -94,7 +94,7 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             label_path = datasetCache.cache_file(label_path)
 
             topo_view = read_mnist_images(im_path, dtype='float32')
-            y = read_mnist_labels(label_path)
+            y = np.atleast_2d(read_mnist_labels(label_path)).T
 
             if binarize:
                 topo_view = (topo_view > 0.5).astype('float32')
