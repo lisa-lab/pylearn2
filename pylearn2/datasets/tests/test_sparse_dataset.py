@@ -4,7 +4,6 @@ Unit tests for ../sparse_dataset.py
 
 import numpy as np
 from pylearn2.datasets.sparse_dataset import SparseDataset
-from pylearn2.training_algorithms.default import DefaultTrainingAlgorithm
 from pylearn2.train import Train
 from pylearn2.models.model import Model
 from pylearn2.space import VectorSpace
@@ -66,10 +65,6 @@ class DummyCost(DefaultDataSpecsMixin, Cost):
     """
     A dummy cost used for testing.
 
-    Parameters
-    ----------
-    No parameters is required for this class.
-
     Notes
     -----
     Important properties:
@@ -78,43 +73,25 @@ class DummyCost(DefaultDataSpecsMixin, Cost):
     difference between the data and the models'
     output using that data.
     """
+
     @wraps(Cost.expr)
     def expr(self, model, data):
         """
-        returns as cost the mean squared
+        Returns as cost the mean squared
         difference between the data and the models'
         output using that data.
+        TODO: make this a real docstring instead of
+        a comment appearing after the misuse of wraps
         """
         space, sources = self.get_data_specs(model)
         space.validate(data)
         X = data
         return T.square(model(X) - X).mean()
 
-    @wraps(DefaultDataSpecsMixin.get_data_specs)
-    def get_data_specs(self, model):
-        """
-        Returns the tuple of (space, source) of the model.
-
-        Parameters
-        ----------
-        model : Model
-            The model to train with this cost
-
-        Returns
-        -------
-        data_specs : tuple
-            The tuple should be of length two.
-            The first element of the tuple should be a Space (possibly a
-            CompositeSpace) describing how to format the data.
-            The second element of the tuple describes the source of the
-            data. It probably should be a string or nested tuple of strings.
-        """
-        return super(DummyCost, self).get_data_specs(model)
-
 
 def test_iterator():
     """
-    tests wether SparseDataset can be loaded and
+    Tests whether SparseDataset can be loaded and
     initializes iterator
     """
 

@@ -23,6 +23,7 @@ class CrossChannelNormalizationBC01(object):
     beta : WRITEME
     n : WRITEME
     """
+
     def __init__(self, alpha = 1e-4, k=2, beta=0.75, n=5):
         self.__dict__.update(locals())
         del self.self
@@ -61,7 +62,7 @@ class CrossChannelNormalization(object):
     Alex Krizhevsky, Ilya Sutskever, and Geoffrey E. Hinton
     NIPS 2012
 
-    section 3.3, Local Response Normalization
+    Section 3.3, Local Response Normalization
 
     .. todo::
 

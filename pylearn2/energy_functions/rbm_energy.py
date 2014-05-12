@@ -18,6 +18,7 @@ class RBM_EnergyFunction(EnergyFunction):
 
         WRITEME
     """
+
     def __init__(self):
         pass
 
@@ -27,6 +28,7 @@ class GRBM_EnergyFunction(RBM_EnergyFunction):
 
         WRITEME
     """
+
     def supports_vector_sigma(self):
         """
         .. todo::

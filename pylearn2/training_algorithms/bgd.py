@@ -209,7 +209,7 @@ class BGD(TrainingAlgorithm):
                             gradients = grads,
                             gradient_updates = grad_updates,
                             params = params,
-                            param_constrainers = [ model.censor_updates ],
+                            param_constrainers = [ model.modify_updates ],
                             lr_scalers = model.get_lr_scalers(),
                             inputs = theano_args,
                             verbose = self.verbose_optimization,

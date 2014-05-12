@@ -17,12 +17,15 @@ gauranteed by default copy.
 
 """
 
-import os
-import time
 import atexit
 import logging
-from pylearn2.utils import string_utils
+import os
+import stat
+import time
+
 import theano.gof.compilelock as compilelock
+
+from pylearn2.utils import string_utils
 
 
 log = logging.getLogger(__name__)
@@ -48,6 +51,9 @@ class LocalDatasetCache:
             self.dataset_remote_dir = ""
             self.dataset_local_dir = ""
 
+        if self.dataset_remote_dir == "" or self.dataset_local_dir == "":
+            log.debug("Local dataset cache is deactivated")
+
     def cache_file(self, filename):
         """
         Caches a file locally if possible. If caching was succesfull, or if
@@ -72,8 +78,6 @@ class LocalDatasetCache:
         # Check if a local directory for data has been defined. Otherwise,
         # do not locally copy the data
         if self.dataset_local_dir == "":
-            log.warning("Local cache deactivated : file %s not cached" %
-                        remote_name)
             return filename
 
         # Make sure the file to cache exists and really is a file
@@ -122,8 +126,8 @@ class LocalDatasetCache:
                      (remote_name, local_name))
 
         else:
-            log.info("File %s has previously been locally cached to %s" %
-                     (remote_name, local_name))
+            log.debug("File %s has previously been locally cached to %s" %
+                      (remote_name, local_name))
 
         # Obtain a readlock on the downloaded file before releasing the
         # writelock. This is to prevent having a moment where there is no
@@ -154,6 +158,37 @@ class LocalDatasetCache:
 
         command = 'cp ' + remote_fname + ' ' + local_fname
         os.system(command)
+        # Copy the original group id and file permission
+        st = os.stat(remote_fname)
+        os.chmod(local_fname, st.st_mode)
+        # If the user have read access to the data, but not a member
+        # of the group, he can't set the group. So we must catch the
+        # exception. But we still want to do this, for directory where
+        # only member of the group can read that data.
+        try:
+            os.chown(local_fname, -1, st.st_gid)
+        except OSError:
+            pass
+
+        # Need to give group write permission to the folders
+        # For the locking mechanism
+        # Try to set the original group as above
+        dirs = os.path.dirname(local_fname).replace(self.dataset_local_dir, '')
+        sep = dirs.split(os.path.sep)
+        if sep[0] == "":
+            sep = sep[1:]
+        for i in range(len(sep)):
+            orig_p = os.path.join(self.dataset_remote_dir, *sep[:i + 1])
+            new_p = os.path.join(self.dataset_local_dir, *sep[:i + 1])
+            orig_st = os.stat(orig_p)
+            new_st = os.stat(new_p)
+            if not new_st.st_mode & stat.S_IWGRP:
+                os.chmod(new_p, new_st.st_mode | stat.S_IWGRP)
+            if orig_st.st_gid != new_st.st_gid:
+                try:
+                    os.chown(new_p, -1, orig_st.st_gid)
+                except OSError:
+                    pass
 
     def disk_usage(self, path):
         """

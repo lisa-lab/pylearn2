@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import os
 import gc
 import warnings
@@ -29,6 +34,7 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
     start : WRITEME
     stop : WRITEME
     axes : WRITEME
+    preprocessor : WRITEME
     """
 
     mapper = {'train': 0, 'test': 1, 'extra': 2, 'train_all': 3,
@@ -104,13 +110,22 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
 
     def get_test_set(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return SVHN(which_set = 'test', path = self.path,
                     center = self.center, scale = self.scale,
                     start = self.start, stop = self.stop,
                     axes = self.axes, preprocessor = self.preprocessor)
 
     def make_data(self, which_set, path, shuffle = True):
+        """
+        .. todo::
 
+            WRITEME
+        """
         sizes = {'train': 73257, 'test': 26032, 'extra': 531131,
                 'train_all': 604388, 'valid': 6000, 'splitted_train' : 598388}
         image_size = 32 * 32 * 3
@@ -146,11 +161,16 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
         def split_train_valid(path, num_valid_train = 400,
                                     num_valid_extra = 200):
-            """ Extract number of class balanced samples from train and extra
+            """
+            Extract number of class balanced samples from train and extra
             sets for validation, and regard the remaining as new train set.
 
-            num_valid_train: Number of samples per class from train
-            num_valid_extra: Number of samples per class from extra
+            Parameters
+            ----------
+            num_valid_train : int, optional
+                Number of samples per class from train
+            num_valid_extra : int, optional
+                Number of samples per class from extra
             """
 
             # load difficult train
@@ -311,13 +331,22 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
         gc.collect()
 
     def get_test_set(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return SVHN_On_Memory(which_set = 'test', path = self.path,
                     center = self.center, scale = self.scale,
                     start = self.start, stop = self.stop,
                     axes = self.axes, preprocessor = self.preprocessor)
 
     def make_data(self, which_set, path, shuffle = True):
+        """
+        .. todo::
 
+            WRITEME
+        """
         sizes = {'train': 73257, 'test': 26032, 'extra': 531131,
                 'train_all': 604388, 'valid': 6000, 'splitted_train' : 598388}
         image_size = 32 * 32 * 3
@@ -352,11 +381,16 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
 
         def split_train_valid(path, num_valid_train = 400,
                                     num_valid_extra = 200):
-            """ Extract number of class balanced samples from train and extra
+            """
+            Extract number of class balanced samples from train and extra
             sets for validation, and regard the remaining as new train set.
 
-            num_valid_train: Number of samples per class from train
-            num_valid_extra: Number of samples per class from extra
+            Parameters
+            ----------
+            num_valid_train : int, optional
+                Number of samples per class from train
+            num_valid_extra : int, optional
+                Number of samples per class from extra
             """
 
             # load difficult train

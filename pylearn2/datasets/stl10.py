@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -36,8 +41,13 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
     center : WRITEME
     example_range : WRITEME
     """
-    def __init__(self, which_set, center = False, example_range = None):
 
+    def __init__(self, which_set, center = False, example_range = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if which_set == 'train':
             train = load('${PYLEARN2_DATA_PATH}/stl10/stl10_matlab/train.mat')
 
@@ -129,10 +139,7 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
 
 
 def restrict(dataset, fold):
-    """
-    Restricts the dataset to use the specified fold.
-    """
-
+    """Restricts the dataset to use the specified fold."""
     fold_indices = dataset.fold_indices
     assert fold_indices.shape == (10, 1000)
 

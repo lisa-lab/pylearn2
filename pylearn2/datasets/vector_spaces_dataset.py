@@ -23,10 +23,7 @@ from pylearn2.utils.data_specs import is_flat_specs
 from pylearn2.utils.rng import make_np_rng
 
 def ensure_tables():
-    """
-    Makes sure tables module has been imported
-    """
-
+    """Makes sure tables module has been imported"""
     global tables
     if tables is None:
         import tables
@@ -41,7 +38,7 @@ class VectorSpacesDataset(Dataset):
 
     Parameters
     ----------
-    data: ndarray, or tuple of ndarrays, containing the data.
+    data : ndarray, or tuple of ndarrays, containing the data.
         It is formatted as specified in `data_specs`. For instance, if
         `data_specs` is (VectorSpace(nfeat), 'features'), then `data` has to be
         a 2-d ndarray, of shape (nb examples, nfeat), that defines an unlabeled
@@ -50,10 +47,11 @@ class VectorSpacesDataset(Dataset):
         (X, y) pair, with X being an ndarray containing images stored in the
         topological view specified by the `Conv2DSpace`, and y being a 2-D
         ndarray of width 1, containing the labels or targets for each example.
-    data_specs: A (space, source) pair, where space is an instance of
-        `Space` (possibly a `CompositeSpace`), and `source` is a string (or
-        tuple of strings, if `space` is a `CompositeSpace`), defining the format
-        and labels associated to `data`.
+    data_specs : (space, source) pair
+        space is an instance of `Space` (possibly a `CompositeSpace`), 
+        and `source` is a string (or tuple of strings, if `space` is a 
+        `CompositeSpace`), defining the format and labels associated 
+        to `data`.
     rng : object, optional
         A random number generator used for picking random indices into the
         design matrix when choosing minibatches.
@@ -113,9 +111,19 @@ class VectorSpacesDataset(Dataset):
                 data_specs=data_specs)
 
     def get_data(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.data
 
     def set_data(self, data, data_specs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # data is organized as data_specs
         # keep self.data_specs, and convert data
         data_specs[0].validate(data)
@@ -123,13 +131,28 @@ class VectorSpacesDataset(Dataset):
         raise NotImplementedError()
 
     def get_source(self, name):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError()
 
     @property
     def num_examples(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.data_specs[0].get_batch_size(self.data)
 
     def get_batch(self, batch_size, data_specs=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError()
         """
         try:

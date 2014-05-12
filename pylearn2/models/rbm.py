@@ -5,7 +5,6 @@ strategies.
 # Standard library imports
 from itertools import izip
 import logging
-import sys
 
 # Third-party imports
 import numpy
@@ -937,7 +936,7 @@ class GaussianBinaryRBM(RBM):
                     bias_hid=self.bias_hid
                 )
 
-    def censor_updates(self, updates):
+    def _modify_updates(self, updates):
         """
         .. todo::
 

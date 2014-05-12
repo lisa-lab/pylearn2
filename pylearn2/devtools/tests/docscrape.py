@@ -468,6 +468,23 @@ class NumpyFunctionDocString(NumpyDocString):
         return errors
 
 class NumpyClassDocString(NumpyDocString):
+    def __init__(self, docstring, class_name, class_object):
+        super(NumpyClassDocString, self).__init__(docstring)
+        self.class_name = class_name
+        methods = dict((name, func) for name, func
+                       in inspect.getmembers(class_object))
+
+        self.has_parameters = False
+        if '__init__' in methods:
+            # verify if __init__ is a Python function. If it isn't
+            # (e.g. the function is implemented in C), getargspec will fail
+            if not inspect.ismethod(methods['__init__']):
+                return
+            args, varargs, keywords, defaults = inspect.getargspec(
+                methods['__init__'])
+            if (args and args != ['self']) or varargs or keywords or defaults:
+                self.has_parameters = True
+
     def _parse(self):
         self._parsed_data = {
             'Signature': '',
@@ -503,6 +520,9 @@ class NumpyClassDocString(NumpyDocString):
 
     def get_errors(self):
         errors = NumpyDocString.get_errors(self)
+        if not self['Parameters'] and self.has_parameters:
+            errors.append("%s class has no Parameters section"
+                          % self.class_name)
         return errors
 
 class NumpyModuleDocString(NumpyDocString):
@@ -681,6 +701,13 @@ def handle_module(val, name):
 
 def handle_method(method, method_name, class_name):
     method_errors = []
+
+    # Skip out-of-library inherited methods
+    module = inspect.getmodule(method)
+    if module is not None:
+        if not module.__name__.startswith('pylearn2'):
+            return method_errors
+
     docstring = inspect.getdoc(method)
     if docstring is None:
         method_errors.append((class_name, method_name,
@@ -702,7 +729,7 @@ def handle_class(val, class_name):
     else:
         cls_errors = [
             (e,) for e in
-            NumpyClassDocString(docstring, class_name).get_errors()
+            NumpyClassDocString(docstring, class_name, val).get_errors()
         ]
         # Get public methods and parse their docstrings
         methods = dict(((name, func) for name, func in inspect.getmembers(val)
@@ -757,14 +784,9 @@ def docstring_errors(filename, global_dict=None):
             if (inspect.isfunction(val) or inspect.isclass(val)) and\
                     (inspect.getmodule(val) is None
                      or module_name == '__builtin__'):
-                # Functions
-                if type(val) == types.FunctionType:
+                if inspect.isfunction(val):
                     all_errors.extend(handle_function(val, key))
-                # New-style classes
-                elif type(val) == types.TypeType:
-                    all_errors.extend(handle_class(val, key))
-                # Old-style classes
-                elif type(val) == types.ClassType:
+                elif inspect.isclass(val):
                     all_errors.extend(handle_class(val, key))
         elif key == '__doc__':
             all_errors.extend(handle_module(val, key))

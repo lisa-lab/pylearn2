@@ -15,8 +15,10 @@ def test_one_hot_formatter_simple():
             assert one_hot_labels[case, label] == 1
     rng = numpy.random.RandomState(0)
     for seed, dtype in enumerate(all_types):
-        yield (check_one_hot_formatter, seed, rng.random_integers(1, 30), dtype,
-               rng.random_integers(1, 100))
+        yield (check_one_hot_formatter, seed, rng.random_integers(1, 30),
+               dtype, rng.random_integers(1, 100))
+    fmt = OneHotFormatter(max_labels=10)
+    assert fmt.format(numpy.zeros((1, 1), dtype='uint8')).shape == (1, 1, 10)
 
 
 def test_one_hot_formatter_symbolic():

@@ -17,6 +17,7 @@ class DummyModel(Model):
     _params = []
 
     def  __init__(self, num_features):
+        super(DummyModel, self).__init__()
         self.input_space = VectorSpace(num_features)
 
 class DummyAlgorithm(TrainingAlgorithm):
