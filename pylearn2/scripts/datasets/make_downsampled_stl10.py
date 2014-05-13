@@ -1,13 +1,14 @@
 """
-Makes a version of the STL-10 dataset that has been downsampled by a factor of
-3 along both axes.
+Makes a version of the STL-10 dataset that has been downsampled
+by a factor of 3 along both axes.
 
 This is to mimic the first step of preprocessing used in
 'An Analysis of Single-Layer Networks in Unsupervised Feature Learning'
 by Adam Coates, Honglak Lee, and Andrew Y. Ng
 
-This script also translates the data to lie in [-127.5, 127.5] instead of
-[0,255]. This makes it play nicer with some of pylearn's visualization tools.
+This script also translates the data to lie in [-127.5, 127.5]
+instead of [0,255].
+This makes it play nicer with some of pylearn's visualization tools.
 """
 
 from pylearn2.datasets.stl10 import STL10
@@ -18,6 +19,14 @@ import numpy as np
 
 
 def create_output_dir(data_dir):
+    """
+    Preparation of the directory.
+
+    Parameters
+    ----------
+    data_dir: str
+        Path of the stl10 directory.
+    """
     downsampled_dir = data_dir + '/stl10_32x32'
     serial.mkdir(downsampled_dir)
     README = open(downsampled_dir + '/README', 'w')
@@ -41,6 +50,18 @@ def create_output_dir(data_dir):
 
 
 def save_dataset(downsampled_dir, dataset, name):
+    """
+    Save the newly created dataset to the given directory.
+
+    Parameters
+    ----------
+    downsampled_dir: str
+        Path of the directory where to save the dataset.
+    dataset: pylearn2.datasets.Dataset
+        The dataset to save.
+    name: str
+        Name of the file to save.
+    """
     dataset.enable_compression()
     dataset.use_design_loc(downsampled_dir + '/' + name + '.npy')
     serial.save(downsampled_dir + '/' + name + '.pkl', dataset)

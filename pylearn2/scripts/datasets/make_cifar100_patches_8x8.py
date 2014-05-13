@@ -3,8 +3,8 @@ This script makes a dataset of two million approximately whitened patches,
 extracted at random uniformly from the CIFAR-100 train dataset.
 
 This script is intended to reproduce the preprocessing used by
-Adam Coates et. al. in their work from the first half of 2011 on the CIFAR-10
-and STL-10 datasets.
+Adam Coates et. al. in their work from the first half of 2011
+on the CIFAR-10 and STL-10 datasets.
 """
 
 from pylearn2.utils import serial
@@ -14,6 +14,14 @@ from pylearn2.utils import string_utils
 
 
 def create_output_dir(data_dir):
+    """
+    Preparation of the directory.
+
+    Parameters
+    ----------
+    data_dir: str
+        Path of the cifar100 directory.
+    """
     patch_dir = data_dir + '/cifar100/cifar100_patches_8x8'
     serial.mkdir(patch_dir)
     README = open(patch_dir + '/README', 'w')
@@ -46,6 +54,18 @@ def create_output_dir(data_dir):
 
 
 def save_dataset(patch_dir, dataset, name):
+    """
+    Save the newly created dataset to the given directory.
+
+    Parameters
+    ----------
+    patch_dir: str
+        Path of the directory where to save the dataset.
+    dataset: pylearn2.datasets.Dataset
+        The dataset to save.
+    name: str
+        Name of the file to save.
+    """
     dataset.use_design_loc(patch_dir + '/' + name + '.npy')
     serial.save(patch_dir + '/' + name + '.pkl', dataset)
 

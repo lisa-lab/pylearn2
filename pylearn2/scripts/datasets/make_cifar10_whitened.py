@@ -1,6 +1,6 @@
 """
-This script makes a dataset of 32x32 approximately whitened CIFAR-10 images.
-
+This script makes a dataset of 32x32 approximately
+whitened CIFAR-10 images.
 """
 
 from pylearn2.utils import serial
@@ -11,6 +11,14 @@ from pylearn2.datasets.cifar10 import CIFAR10
 
 
 def create_output_dir(data_dir):
+    """
+    Preparation of the directory.
+
+    Parameters
+    ----------
+    data_dir: str
+        Path of the cifar10 directory.
+    """
     output_dir = data_dir + '/pylearn2_whitened'
     serial.mkdir(output_dir)
     README = open(output_dir + '/README', 'w')
@@ -42,6 +50,18 @@ def create_output_dir(data_dir):
 
 
 def save_dataset(output_dir, dataset, name):
+    """
+    Save the newly created dataset to the given directory.
+
+    Parameters
+    ----------
+    output_dir: str
+        Path of the directory where to save the dataset.
+    dataset: pylearn2.datasets.Dataset
+        The dataset to save.
+    name: str
+        Name of the file to save.
+    """
     dataset.use_design_loc(output_dir + '/' + name + '.npy')
     serial.save(output_dir + '/' + name + '.pkl', dataset)
 

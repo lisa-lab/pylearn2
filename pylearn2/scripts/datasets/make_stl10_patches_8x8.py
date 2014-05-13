@@ -17,6 +17,14 @@ import numpy as np
 
 
 def create_output_dir(data_dir):
+    """
+    Preparation of the directory.
+
+    Parameters
+    ----------
+    data_dir: str
+        Path of the stl10 directory.
+    """
     patch_dir = data_dir + '/stl10_patches_8x8'
     serial.mkdir(patch_dir)
     README = open(patch_dir + '/README', 'w')
@@ -50,6 +58,18 @@ def create_output_dir(data_dir):
 
 
 def save_dataset(patch_dir, dataset, name):
+    """
+    Save the newly created dataset to the given directory.
+
+    Parameters
+    ----------
+    patch_dir: str
+        Path of the directory where to save the dataset.
+    dataset: pylearn2.datasets.Dataset
+        The dataset to save.
+    name: str
+        Name of the file to save.
+    """
     dataset.use_design_loc(patch_dir + '/' + name + '.npy')
     serial.save(patch_dir + '/' + name + '.pkl', dataset)
 

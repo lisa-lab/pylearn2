@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+"""
+This script is a small program to display elements of the Norb dataset.
+"""
+
 import argparse
 import pickle
 import sys
@@ -19,9 +23,9 @@ class SmallNorbBrowser(object):
     Parameters
     ----------
     labels: Numpy array
-            Labels for the specified dataset.
+        Labels for the specified dataset.
     which_set: String
-               Dataset to browse (train or test).
+        Dataset to browse (train or test).
     """
     def __init__(self, labels, which_set):
         self.figure = None
@@ -52,6 +56,9 @@ class SmallNorbBrowser(object):
             self.label_to_index[tuple(label)] = i
 
     def remap_instances(self):
+        """
+        Remapping of instances for programming conveniences.
+        """
         if self.which_set == 'train':
             self.new_to_old_instance = [4, 6, 7, 8, 9]
         elif self.which_set == 'test':
@@ -73,7 +80,14 @@ class SmallNorbBrowser(object):
         self.labels[azimuth_slice] = self.labels[azimuth_slice] / 2
 
     def get_new_azimuth_degrees(self, scalar_label):
-        """Change azimuth by 20 degrees"""
+        """
+        Change azimuth by 20 degrees.
+
+        Parameters
+        ----------
+        scalar_label: int
+            The azimuth of the object displayed.
+        """
         return 20 * scalar_label
 
     def redraw(self, redraw_text, redraw_images):

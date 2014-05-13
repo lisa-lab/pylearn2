@@ -13,6 +13,14 @@ import numpy as np
 
 
 def create_output_dir(data_dir):
+    """
+    Preparation of the directory.
+
+    Parameters
+    ----------
+    data_dir: str
+        Path of the stl10 directory.
+    """
     output_dir = data_dir + '/stl10_32x32_whitened'
     serial.mkdir(output_dir)
     README = open(output_dir + '/README', 'w')
@@ -46,6 +54,18 @@ def create_output_dir(data_dir):
 
 
 def save_dataset(output_dir, dataset, name):
+    """
+    Save the newly created dataset to the given directory.
+
+    Parameters
+    ----------
+    output_dir: str
+        Path of the directory where to save the dataset.
+    dataset: pylearn2.datasets.Dataset
+        The dataset to save.
+    name: str
+        Name of the file to save.
+    """
     dataset.use_design_loc(output_dir + '/' + name + '.npy')
     serial.save(output_dir + '/' + name + '.pkl', dataset)
 
