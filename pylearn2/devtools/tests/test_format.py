@@ -309,8 +309,6 @@ whitelist_pep8 = [
     "scripts/papers/jia_huang_wkshp_11/npy2mat.py",
     "scripts/datasets/step_through_small_norb.py",
     "scripts/datasets/step_through_norb_foveated.py",
-    "scripts/datasets/make_downsampled_stl10.py",
-    "scripts/datasets/browse_small_norb.py",
     "scripts/datasets/make_mnistplus.py",
     "scripts/mlp/predict_csv.py",
     "scripts/find_gpu_fields.py",
@@ -618,7 +616,6 @@ whitelist_docstrings = [
     'scripts/gpu_pkl_to_cpu_pkl.py',
     'scripts/datasets/step_through_small_norb.py',
     'scripts/datasets/download_mnist.py',
-    'scripts/datasets/browse_small_norb.py',
     'scripts/datasets/make_mnistplus.py',
     'scripts/__init__.py',
     'scripts/gsn_example.py',
@@ -680,14 +677,7 @@ whitelist_docstrings.extend([
     'energy_functions/tests/test_rbm_energy.py',
     'scripts/icml_2013_wrepl/multimodal/make_wordlist.py',
     'scripts/make_weights_image.py', 'costs/ebm_estimation.py',
-    'classifier.py', 'scripts/lcc_tangents/make_dataset.py',
-    'scripts/datasets/make_cifar10_whitened.py',
-    'scripts/datasets/make_cifar100_patches.py',
-    'scripts/datasets/make_cifar10_gcn_whitened.py',
-    'scripts/datasets/make_stl10_patches_8x8.py',
-    'scripts/datasets/make_cifar100_gcn_whitened.py',
-    'scripts/datasets/make_stl10_whitened.py',
-    'scripts/datasets/make_stl10_patches.py'])
+    'classifier.py', 'scripts/lcc_tangents/make_dataset.py'])
 
 # add files which fail to run to whitelist_docstrings
 whitelist_docstrings.extend([
@@ -732,9 +722,6 @@ whitelist_docstrings.extend([
     'scripts/papers/jia_huang_wkshp_11/evaluate.py',
     'scripts/papers/jia_huang_wkshp_11/npy2mat.py',
     'scripts/papers/jia_huang_wkshp_11/assemble.py',
-    'scripts/datasets/make_cifar100_patches_8x8.py',
-    'scripts/datasets/make_downsampled_stl10.py',
-    'scripts/datasets/make_cifar100_whitened.py',
     'scripts/tutorials/deep_trainer/test_deep_trainer.py',
     'scripts/icml_2013_wrepl/black_box/learn_zca.py',
     'train_extensions/tests/test_window_flip.py',
