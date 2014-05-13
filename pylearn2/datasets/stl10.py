@@ -7,7 +7,6 @@ __email__ = "goodfeli@iro"
 import numpy as np
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
-from pylearn2.utils.string_utils import preprocess
 
 
 class STL10(dense_design_matrix.DenseDesignMatrix):
