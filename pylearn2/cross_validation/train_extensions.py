@@ -68,7 +68,6 @@ class MonitorBasedSaveBestCV(TrainCVExtension):
         """
         for trainer in trainers:
             extension = MonitorBasedStoreBest(self.channel_name,
-                                              self.save_path,
                                               self.higher_is_better)
             trainer.extensions.append(extension)
 
@@ -111,9 +110,8 @@ class MonitorBasedStoreBest(TrainExtension):
     higher_is_better : bool
         Whether a higher channel value indicates a better model.
     """
-    def __init__(self, channel_name, save_path, higher_is_better=False):
+    def __init__(self, channel_name, higher_is_better=False):
         self.channel_name = channel_name
-        self.save_path = save_path
         self.higher_is_better = higher_is_better
         self.best_cost = np.inf
         self.best_model = None
