@@ -14,10 +14,10 @@ Then shows how the DBM reconstructs it if you run mean field
 to estimate the hidden units, then do one mean field downward
 pass from hidden_layers[0] to the visible layer.
 """
-from pylearn2.utils import serial
 import sys
 from pylearn2.config import yaml_parse
 from pylearn2.gui.patch_viewer import PatchViewer
+from pylearn2.utils import serial
 from theano.compat.six.moves import input, xrange
 from theano import function
 
