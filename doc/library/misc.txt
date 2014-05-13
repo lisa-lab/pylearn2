@@ -5,9 +5,9 @@ Miscellaneous
 .. contents::
    :depth: 3
 
-Base
-====
-.. automodule:: pylearn2.base
+Blocks
+======
+.. automodule:: pylearn2.blocks
     :members:
 
 RBM tools

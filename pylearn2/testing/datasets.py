@@ -23,11 +23,13 @@ class ArangeDataset(DenseDesignMatrix):
         X[:,0] = np.arange(num_examples)
         super(ArangeDataset, self).__init__(X)
 
-
 def random_dense_design_matrix(rng, num_examples, dim, num_classes):
     X = rng.randn(num_examples, dim)
 
-    Y = rng.randint(0, num_classes, (num_examples,1))
+    if num_classes:
+        Y = rng.randint(0, num_classes, (num_examples,1))
+    else:
+        Y = None
 
     return DenseDesignMatrix(X=X, y=Y)
 

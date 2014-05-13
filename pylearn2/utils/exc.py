@@ -1,7 +1,5 @@
+"""Exceptions used by basic support utilities."""
 __author__ = "Ian Goodfellow"
-"""
-Exceptions used by basic support utilities.
-"""
 
 class EnvironmentVariableError(Exception):
     """

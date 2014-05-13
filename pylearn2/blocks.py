@@ -57,9 +57,8 @@ class Block(object):
 
         Parameters
         ----------
-        .. todo::
-
-            WRITEME
+        name : string, optional
+            name of the function
         """
         inputs = tensor.matrix()
         if self.cpu_only:
@@ -121,9 +120,10 @@ class StackedBlocks(Block):
     Parameters
     ----------
     layers : list of Blocks
-        The layers to be stacked, ordered from bottom (input) to top \
+        The layers to be stacked, ordered from bottom (input) to top
         (output)
     """
+
     def __init__(self, layers):
         super(StackedBlocks, self).__init__()
 
@@ -154,16 +154,17 @@ class StackedBlocks(Block):
         Parameters
         ----------
         inputs : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the input \
-            minibatch(es) to be encoded. Assumed to be 2-tensors, with the \
-            first dimension indexing training examples and the second \
-            indexing data dimensions.
+            Theano symbolic (or list thereof) representing the input
+            minibatch(es) to be encoded. Assumed to be 2-tensors, with
+            the first dimension indexing training examples and the
+            second indexing data dimensions.
 
         Returns
         -------
         reconstructed : tensor_like or list of tensor_like
-            A list of theano symbolic (or list thereof), each containing \
-            the representation at one level. The first element is the input.
+            A list of theano symbolic (or list thereof), each
+            containing the representation at one level.
+            The first element is the input.
         """
         # Build the hidden representation at each layer
         repr = [inputs]
@@ -180,19 +181,17 @@ class StackedBlocks(Block):
 
         Parameters
         ----------
-        name : string
+        name : string, optional
             name of the function
-        repr_index : int
-            Index of the hidden representation to return. \
+        repr_index : int, optional
+            Index of the hidden representation to return.
             0 means the input, -1 the last output.
-        sparse_input : bool
+        sparse_input : bool, optional
             WRITEME
 
         Returns
         -------
-        .. todo::
-
-            WRITEME
+        WRITEME
         """
 
         if sparse_input:
@@ -211,20 +210,18 @@ class StackedBlocks(Block):
 
         Parameters
         ----------
-        name : string
+        name : string, optional
             name of the function
-        start_index : int
-            Index of the hidden representation to start the concatenation. \
+        start_index : int, optional
+            Index of the hidden representation to start the concatenation.
             0 means the input, -1 the last output.
-        end_index : int
-            Index of the hidden representation from which to stop \
+        end_index : int, optional
+            Index of the hidden representation from which to stop
             the concatenation. We must have start_index < end_index.
 
         Returns
         -------
-        .. todo::
-
-            WRITEME
+        WRITEME
         """
         inputs = tensor.matrix()
         return theano.function([inputs],
@@ -237,9 +234,7 @@ class StackedBlocks(Block):
 
         Parameters
         ----------
-        .. todo::
-
-            WRITEME
+        layer : WRITEME
         """
         self._layers.append(layer)
         self._params.update(layer._params)

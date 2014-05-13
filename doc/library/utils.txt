@@ -102,13 +102,15 @@ Python26
 .. automodule:: pylearn2.utils.python26
     :members:
 
+RNG
+===
+.. automodule:: pylearn2.utils.rng
+    :members:
+
 Serial
 ======
 .. automodule:: pylearn2.utils.serial
     :members:
-
-Setup
-=====
 
 Shell
 =====
@@ -133,6 +135,11 @@ Theano Graph
 Timing
 ======
 .. automodule:: pylearn2.utils.timing
+    :members:
+
+Track Version
+=============
+.. automodule:: pylearn2.utils.track_version
     :members:
 
 UTLC

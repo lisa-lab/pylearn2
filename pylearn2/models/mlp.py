@@ -406,8 +406,10 @@ class MLP(Layer):
         requires a hard-coded batch size.
     nvis : int, optional
         Number of "visible units" (input units). Equivalent to specifying
-        `input_space=VectorSpace(dim=nvis)`. Should be None if the MLP is
-        part of another MLP.
+        `input_space=VectorSpace(dim=nvis)`. Note that certain methods require
+        a different type of input space (e.g. a Conv2Dspace in the case of
+        convnets). Use the input_space parameter in such cases. Should be 
+        None if the MLP is part of another MLP.
     input_space : Space object, optional
         A Space specifying the kind of input the MLP accepts. If None,
         input space is specified by nvis. Should be None if the MLP is
@@ -1107,9 +1109,10 @@ class MLP(Layer):
                                              [s == 1 for s in batch.shape]))
             mask = rebroadcast(mask)
         if mask_value == 0:
-            return state * mask * scale
+            rval = state * mask * scale
         else:
-            return T.switch(mask, state * scale, mask_value)
+            rval = T.switch(mask, state * scale, mask_value)
+        return T.cast(rval, state.dtype)
 
     @wraps(Layer.cost)
     def cost(self, Y, Y_hat):

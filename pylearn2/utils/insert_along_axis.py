@@ -18,15 +18,15 @@ from theano.gradient import grad_not_implemented
 
 def index_along_axis(index, ndim, axis):
     """
-    Create a slice tuple for indexing into a NumPy array along a (single) given
-    axis.
+    Create a slice tuple for indexing into a NumPy array along a
+    (single) given axis.
 
     Parameters
     ----------
     index : array_like or slice
         The value you wish to index with along `axis`.
     ndim : int
-        The number of dimensions in the array into which you are indexing \
+        The number of dimensions in the array into which you are indexing
         (i.e. the value returned in the `.ndim` attribute).
     axis : int
         The axis along which you wish to index.
@@ -34,8 +34,8 @@ def index_along_axis(index, ndim, axis):
     Returns
     -------
     indices : tuple
-        A slice tuple that can be used to index an array, selecting all \
-        elements along every axis except `axis`, for which `index` is used \
+        A slice tuple that can be used to index an array, selecting all
+        elements along every axis except `axis`, for which `index` is used
         instead.
 
     Examples
@@ -75,6 +75,7 @@ class InsertAlongAxis(theano.Op):
     axis : WRITEME
     fill : WRITEME
     """
+
     def __init__(self, ndim, axis, fill=0):
         assert axis < ndim, "axis >= ndim not allowed (doesn't make sense)"
         self.ndim = ndim

@@ -73,7 +73,7 @@ class SampledMeanBinaryCrossEntropy(DefaultDataSpecsMixin, Cost):
     .. todo::
 
         WRITEME properly
-    
+
     CE cost that goes with sparse autoencoder with L1 regularization on activations
 
     For theory:
@@ -200,3 +200,37 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
 #
 #    def get_data_specs(self, model):
 #        return (model.get_input_space(), model.get_input_source())
+
+
+class SparseActivation(DefaultDataSpecsMixin, Cost):
+    """
+    Autoencoder sparse activation cost.
+    
+    Regularize on KL divergence from desired average activation of each
+    hidden unit as described in Andrew Ng's CS294A Lecture Notes. See
+    http://www.stanford.edu/class/cs294a/sparseAutoencoder_2011new.pdf.
+
+    Parameters
+    ----------
+    coeff : float
+        Coefficient for this regularization term in the objective
+        function.
+    p : float
+        Desired average activation of each hidden unit.
+    """
+    def __init__(self, coeff, p):
+        self.coeff = coeff
+        self.p = p
+
+    def expr(self, model, data, **kwargs):
+        """
+        Calculate regularization penalty.
+        """
+        X = data
+        p = self.p
+        p_hat = tensor.abs_(model.encode(X)).mean(axis=0)
+        kl = p * tensor.log(p / p_hat) + (1 - p) * \
+            tensor.log((1 - p) / (1 - p_hat))
+        penalty = self.coeff * kl.sum()
+        penalty.name = 'sparse_activation_penalty'
+        return penalty

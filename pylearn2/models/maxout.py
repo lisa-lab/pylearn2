@@ -149,6 +149,8 @@ class Maxout(Layer):
                  mask_weights=None,
                  min_zero=False):
 
+        super(Maxout, self).__init__()
+
         detector_layer_dim = num_units * num_pieces
         pool_size = num_pieces
 
@@ -708,6 +710,7 @@ class MaxoutConvC01B(Layer):
                  output_normalization=None,
                  kernel_stride=(1, 1)):
         check_cuda(str(type(self)))
+        super(MaxoutConvC01B, self).__init__()
 
         detector_channels = num_channels * num_pieces
 
