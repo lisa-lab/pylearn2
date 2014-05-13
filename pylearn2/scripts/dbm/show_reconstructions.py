@@ -146,7 +146,7 @@ def load_model(model_path, m):
     return model
 
 
-def load_dataset(dataset_yml):
+def load_dataset(dataset_yml, use_test_set):
     """
     Load the dataset used by the model.
 
@@ -155,17 +155,14 @@ def load_dataset(dataset_yml):
     dataset_yml: str
         Yaml description of the dataset.
     """
-    dataset_yaml_src = model.dataset_yaml_src
 
     print('Loading data...')
-    dataset = yaml_parse.load(dataset_yaml_src)
+    dataset = yaml_parse.load(dataset_yml)
 
-    x = input('use test set? (y/n) ')
-
-    if x == 'y':
+    if use_test_set == 'y':
         dataset = dataset.get_test_set()
     else:
-        assert x == 'n'
+        assert use_test_set == 'n'
 
     return dataset
 
@@ -176,7 +173,9 @@ if __name__ == '__main__':
     _, model_path = sys.argv
 
     model = load_model(model_path, m)
-    dataset = load_dataset(model.dataset_yaml_src)
+
+    x = raw_input('use test set? (y/n) ')
+    dataset = load_dataset(model.dataset_yaml_src, x)
 
     recons_viewer = ReconsViewer(model, dataset, rows, cols)
 
