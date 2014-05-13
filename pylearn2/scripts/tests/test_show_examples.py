@@ -9,7 +9,7 @@ from pylearn2.scripts.show_examples import show_examples
 
 def test_show_examples():
     """
-    Create a pickled model and show the weights
+    Create a YAML file of the MNIST dataset and show examples
     """
     skip_if_no_matplotlib()
     skip_if_no_data()
@@ -19,5 +19,5 @@ def test_show_examples():
         which_set: 'train'
 }
 """)
-    os.remove('temp.yaml')
     show_examples('temp.yaml', 28, 28, out='garbage.png')
+    os.remove('temp.yaml')
