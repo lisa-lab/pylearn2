@@ -2,6 +2,7 @@
 Tests for the show_weights.py script
 """
 import cPickle
+import os
 
 from pylearn2.testing.skip import skip_if_no_matplotlib
 from pylearn2.models.mlp import MLP, Linear
@@ -24,3 +25,5 @@ def test_show_weights():
         cPickle.dump(model, f, protocol=cPickle.HIGHEST_PROTOCOL)
     show_weights('model.pkl', rescale='individual',
                  border=True, out='garbage.png')
+    os.remove('model.pkl')
+    os.remove('garbage.png')

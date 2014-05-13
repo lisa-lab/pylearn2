@@ -2,6 +2,7 @@
 A unit test for the summarize_model.py script
 """
 import cPickle
+import os
 
 from pylearn2.testing.skip import skip_if_no_matplotlib
 from pylearn2.models.mlp import MLP, Linear
@@ -18,3 +19,4 @@ def test_summarize_model():
         cPickle.dump(MLP(layers=[Linear(dim=5, layer_name='h0', irange=0.1)],
                          nvis=10), f, protocol=cPickle.HIGHEST_PROTOCOL)
     summarize('model.pkl')
+    os.remove('model.pkl')

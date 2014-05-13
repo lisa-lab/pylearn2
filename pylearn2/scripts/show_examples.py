@@ -127,8 +127,8 @@ def show_examples(path, rows, cols, rescale='global', out=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--rows', default=20, type='int')
-    parser.add_argument('--cols', default=20, type='int')
+    parser.add_argument('--rows', default=20, type=int)
+    parser.add_argument('--cols', default=20, type=int)
     parser.add_argument('--rescale', default='global',
                         choices=['none', 'global', 'individual'],
                         help="how to rescale the patches for display")

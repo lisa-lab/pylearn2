@@ -1,6 +1,8 @@
 """
 Tests for the show_examples.py script
 """
+import os
+
 from pylearn2.testing.skip import skip_if_no_matplotlib, skip_if_no_data
 from pylearn2.scripts.show_examples import show_examples
 
@@ -17,4 +19,5 @@ def test_show_examples():
         which_set: 'train'
 }
 """)
+    os.remove('temp.yaml')
     show_examples('temp.yaml', 28, 28, out='garbage.png')
