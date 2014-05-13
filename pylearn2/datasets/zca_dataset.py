@@ -70,6 +70,7 @@ class ZCA_Dataset(DenseDesignMatrix):
         self.view_converter = preprocessed_dataset.view_converter
 
         self.y = preprocessed_dataset.y
+        self.y_labels = preprocessed_dataset.y_labels
         if convert_to_one_hot:
             if not (self.y.min() == 0):
                 raise AssertionError("Expected y.min == 0 but y.min == %g" %
