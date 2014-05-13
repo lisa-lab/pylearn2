@@ -890,9 +890,10 @@ class MLP(Layer):
                                              [s == 1 for s in batch.shape]))
             mask = rebroadcast(mask)
         if mask_value == 0:
-            return state * mask * scale
+            rval = state * mask * scale
         else:
-            return T.switch(mask, state * scale, mask_value)
+            rval = T.switch(mask, state * scale, mask_value)
+        return T.cast(rval, state.dtype)
 
     @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
