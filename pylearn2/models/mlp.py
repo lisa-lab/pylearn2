@@ -32,6 +32,7 @@ from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
 from pylearn2.space import VectorSpace
 from pylearn2.utils import function
+from pylearn2.utils import is_iterable
 from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_union
 from pylearn2.utils import safe_zip
@@ -4312,13 +4313,6 @@ class CompositeLayer(Layer):
         it will be given to all components.
     """
     def __init__(self, layer_name, layers, inputs_to_layers=None):
-        """"
-        Initializes the layer by checking the validity of the inputs to
-        layers mapping, calling the parent constructor and setting some
-        attributes
-        """
-        for layer in layers:
-            assert isinstance(layer, Layer)
         self.num_layers = len(layers)
         if inputs_to_layers is not None:
             if not isinstance(inputs_to_layers, dict):
@@ -4329,7 +4323,7 @@ class CompositeLayer(Layer):
                 assert isinstance(key, int)
                 assert key >= 0
                 value = inputs_to_layers[key]
-                assert isinstance(value, list)
+                assert is_iterable(value)
                 assert all([isinstance(elem, int) for elem in value])
                 # Check 'not value' to support case of empty list
                 assert not value or min(value) >= 0
