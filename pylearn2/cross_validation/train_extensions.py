@@ -3,6 +3,7 @@ Cross-validation training extensions.
 """
 from copy import deepcopy
 import numpy as np
+import os
 
 from pylearn2.train import SerializationGuard
 from pylearn2.train_extensions import TrainExtension
@@ -50,12 +51,14 @@ class MonitorBasedSaveBestCV(TrainCVExtension):
     higher_is_better : bool
         Whether a higher channel value indicates a better model.
     """
-    def __init__(self, channel_name, save_path, higher_is_better=False):
+    def __init__(self, channel_name, save_path, higher_is_better=False,
+                 save_folds=False):
         self.channel_name = channel_name
         self.save_path = save_path
         self.higher_is_better = higher_is_better
         self.best_cost = np.inf
         self.best_model = None
+        self.save_folds = save_folds
 
     def setup(self, trainers):
         """
@@ -66,8 +69,13 @@ class MonitorBasedSaveBestCV(TrainCVExtension):
         trainers : list
             List of Train objects belonging to the parent TrainCV object.
         """
-        for trainer in trainers:
-            extension = MonitorBasedStoreBest(self.channel_name,
+        for k, trainer in enumerate(trainers):
+            if self.save_folds:
+                path, ext = os.path.splitext(self.save_path)
+                save_path = path + '-{}'.format(k) + ext
+            else:
+                save_path = None
+            extension = MonitorBasedStoreBest(self.channel_name, save_path,
                                               self.higher_is_better)
             trainer.extensions.append(extension)
 
@@ -110,8 +118,9 @@ class MonitorBasedStoreBest(TrainExtension):
     higher_is_better : bool
         Whether a higher channel value indicates a better model.
     """
-    def __init__(self, channel_name, higher_is_better=False):
+    def __init__(self, channel_name, save_path=None, higher_is_better=False):
         self.channel_name = channel_name
+        self.save_path = save_path
         self.higher_is_better = higher_is_better
         self.best_cost = np.inf
         self.best_model = None
@@ -142,3 +151,8 @@ class MonitorBasedStoreBest(TrainExtension):
         if new_cost < self.best_cost:
             self.best_cost = new_cost
             self.best_model = deepcopy(model)
+
+            if self.save_path is not None:
+                dataset._serialization_guard = SerializationGuard()
+                serial.save(self.save_path, model, on_overwrite='backup')
+                dataset._serialization_guard = None
