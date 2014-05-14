@@ -628,6 +628,7 @@ whitelist_docstrings = [
     'scripts/tutorials/dbm_demo/train_dbm.py',
     'scripts/tutorials/dbm_demo/__init__.py',
     'scripts/tutorials/tests/test_dbm.py',
+    'scripts/tutorials/tests/test_mlp_nested.py',
     'scripts/tutorials/multilayer_perceptron/tests/test_mlp.py',
     'scripts/tutorials/convolutional_network/tests/test_convnet.py',
     'scripts/tutorials/softmax_regression/tests/test_softmaxreg.py',

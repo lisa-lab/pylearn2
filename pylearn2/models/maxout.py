@@ -406,6 +406,11 @@ class Maxout(Layer):
 
     @functools.wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
+        warnings.warn("Layer.get_monitoring_channels is " +
+                      "deprecated. Use get_layer_monitoring_channels " +
+                      "instead. Layer.get_monitoring_channels " +
+                      "will be removed on or after september 24th 2014",
+                      stacklevel=2)
 
         W, = self.transformer.get_params()
 
@@ -430,6 +435,11 @@ class Maxout(Layer):
 
     @functools.wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state):
+        warnings.warn("Layer.get_monitoring_channels_from_state is " +
+                      "deprecated. Use get_layer_monitoring_channels " +
+                      "instead. Layer.get_monitoring_channels_from_state " +
+                      "will be removed on or after september 24th 2014",
+                      stacklevel=2)
 
         P = state
 
@@ -466,6 +476,71 @@ class Maxout(Layer):
                              ('mean_x.mean_u', v_mean.mean()),
                              ('mean_x.min_u', v_mean.min())]:
                 rval[prefix+key] = val
+
+        return rval
+
+    @functools.wraps(Layer.get_layer_monitoring_channels)
+    def get_layer_monitoring_channels(self, state_below=None,
+                                      state=None, targets=None):
+
+        W, = self.transformer.get_params()
+
+        assert W.ndim == 2
+
+        sq_W = T.sqr(W)
+
+        row_norms = T.sqrt(sq_W.sum(axis=1))
+        col_norms = T.sqrt(sq_W.sum(axis=0))
+
+        row_norms_min = row_norms.min()
+        row_norms_min.__doc__ = ("The smallest norm of any row of the "
+                                 "weight matrix W. This is a measure of the "
+                                 "least influence any visible unit has.")
+
+        rval = OrderedDict([('row_norms_min',  row_norms_min),
+                            ('row_norms_mean', row_norms.mean()),
+                            ('row_norms_max',  row_norms.max()),
+                            ('col_norms_min',  col_norms.min()),
+                            ('col_norms_mean', col_norms.mean()),
+                            ('col_norms_max',  col_norms.max()), ])
+
+        if (state is not None) or (state_below is not None):
+            if state is None:
+                state = self.fprop(state_below)
+
+            P = state
+            if self.pool_size == 1:
+                vars_and_prefixes = [(P, '')]
+            else:
+                vars_and_prefixes = [(P, 'p_')]
+
+            for var, prefix in vars_and_prefixes:
+                v_max = var.max(axis=0)
+                v_min = var.min(axis=0)
+                v_mean = var.mean(axis=0)
+                v_range = v_max - v_min
+
+                # max_x.mean_u is "the mean over *u*nits of the max over
+                # e*x*amples" The x and u are included in the name because
+                # otherwise its hard to remember which axis is which when
+                # reading the monitor I use inner.outer
+                # rather than outer_of_inner or
+                # something like that because I want mean_x.* to appear next to
+                # each other in the alphabetical list, as these are commonly
+                # plotted together
+                for key, val in [('max_x.max_u', v_max.max()),
+                                 ('max_x.mean_u', v_max.mean()),
+                                 ('max_x.min_u', v_max.min()),
+                                 ('min_x.max_u', v_min.max()),
+                                 ('min_x.mean_u', v_min.mean()),
+                                 ('min_x.min_u', v_min.min()),
+                                 ('range_x.max_u', v_range.max()),
+                                 ('range_x.mean_u', v_range.mean()),
+                                 ('range_x.min_u', v_range.min()),
+                                 ('mean_x.max_u', v_mean.max()),
+                                 ('mean_x.mean_u', v_mean.mean()),
+                                 ('mean_x.min_u', v_mean.min())]:
+                    rval[prefix+key] = val
 
         return rval
 
