@@ -50,6 +50,8 @@ class MonitorBasedSaveBestCV(TrainCVExtension):
         Output filename.
     higher_is_better : bool
         Whether a higher channel value indicates a better model.
+    save_folds : bool
+        Whether to write individual files for each cross-validation fold.
     """
     def __init__(self, channel_name, save_path, higher_is_better=False,
                  save_folds=False):
@@ -107,7 +109,8 @@ class MonitorBasedSaveBestCV(TrainCVExtension):
 class MonitorBasedStoreBest(TrainExtension):
     """
     Save best model for each cross-validation fold. Based on
-    train_extensions.best_params.MonitorBasedSaveBest.
+    train_extensions.best_params.MonitorBasedSaveBest. This extension saves
+    the best model in memory and optionally writes it to a given save_path.
 
     Parameters
     ----------
