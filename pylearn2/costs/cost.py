@@ -606,6 +606,46 @@ class MethodCost(Cost):
             return fn
 
 
+class GradientClippingCost(Cost):
+    """
+    A cost that adds gradient clipping, so the norm of the gradient
+    is not allowed to exceed max_grad_norm, and if it does, the gradient is
+    scaled down in magnitude to have norm equal to max_grad_norm.
+
+    Parameters
+    ----------
+    """
+
+    def __init__(raw, max_grad_norm, p=2):
+        """
+        Parameters
+        ----------
+        raw : Cost
+            GradientClippingCost will implement this cost, but the gradients
+            will be clipped.
+        max_grad_norm : float
+            The maximum allowable gradient norm.  Larger gradientswill be
+            scaled down to this magnitude.
+        p : int > 0
+            Which Lp norm to use.  Default to L2.
+        """
+        self.raw = raw
+        self.max_grad_norm = max_grad_norm
+        self.p = p
+        # NTS: think I need to use super __init__ here to get methods....
+        self.supervised = self.raw.supervised
+
+    @functools.wraps(Cost.get_gradients)
+    def get_gradients(self, model, data, ** kwargs):
+        gradients, updates = self.raw.get_gradients(model, data, ** kwargs)
+        for param in gradients:
+            grad = gradients[param]
+            n = grad.norm(self.p)
+            ind = n > self.max_grad_norm
+            gradients[param] = grad*((1-ind) + ind*n/self.max_grad_norm)
+        return gradients, updates
+
+
 def _no_op(data):
     """
     An on_load_batch callback that does nothing.
