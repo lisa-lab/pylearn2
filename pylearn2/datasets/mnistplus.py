@@ -40,7 +40,6 @@ class MNISTPlus(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, label_type=None,
                  azimuth=False, rotation=False, texture=False,
                  center = False, contrast_normalize=False, seed=132987):
-        
         assert which_set in ['train','valid','test']
         assert label_type in [None,'label','azimuth','rotation','texture_id']
 
