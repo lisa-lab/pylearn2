@@ -133,9 +133,8 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
 
             WRITEME
         """
-        # if the scale is set based on the data, display X oring the scale
-        # determined
-        # by orig
+        # if the scale is set based on the data, display X in the scale
+        # determined by orig.
         # assumes no preprocessing. need to make preprocessors mark the new
         # ranges
         rval = X.copy()
@@ -175,7 +174,6 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
             WRITEME
         """
         return CIFAR100(which_set='test', center=self.center,
-                rescale=self.rescale,
                 gcn=self.gcn,
                 one_hot=self.one_hot, toronto_prepro=self.toronto_prepro,
                 axes=self.axes)

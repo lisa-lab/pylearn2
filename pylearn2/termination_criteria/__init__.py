@@ -99,8 +99,8 @@ class MonitorBased(TerminationCriterion):
 
         # The countdown decreases every time the termination criterion is
         # called unless the channel value is lower than the best value times
-        # the prop_decrease factor, in which case the countdown is reset to N
-        # and the best value is updated
+        # one minus the prop_decrease factor, in which case the countdown
+        # is reset to N and the best value is updated.
         if v[- 1] < (1. - self.prop_decrease) * self.best_value:
             self.countdown = self.N
         else:
