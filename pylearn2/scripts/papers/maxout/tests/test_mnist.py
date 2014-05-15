@@ -20,4 +20,5 @@ def test_mnist():
     train.dataset = DenseDesignMatrix(X=random_X, y=random_y, y_labels=10)
     train.algorithm.termination_criterion = EpochCounter(max_epochs=1)
     train.algorithm._set_monitoring_dataset(train.dataset)
+    train.extensions.pop(0)
     train.main_loop()
