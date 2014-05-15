@@ -32,6 +32,8 @@ from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
 from pylearn2.space import VectorSpace
 from pylearn2.utils import function
+from pylearn2.utils import is_iterable
+from pylearn2.utils import py_float_types
 from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_union
 from pylearn2.utils import safe_zip
@@ -4292,57 +4294,213 @@ class PretrainedLayer(Layer):
 
 class CompositeLayer(Layer):
     """
-    A Layer that runs several simpler layers in parallel.
+    A Layer that runs several layers in parallel. Its default behavior
+    is to pass the layer's input to each of the components.
+    Alternatively, it can take a CompositeSpace as an input and a mapping
+    from inputs to layers i.e. providing each component layer with a
+    subset of the inputs.
 
     Parameters
     ----------
     layer_name : str
-        Name for the layer
-    layers : list or tuple
-        Layers to be run in parallel.
-    """
+        The name of this layer
+    layers : tuple or list
+        The component layers to run in parallel.
+    inputs_to_components : dict mapping int to list of ints, optional
+        Can only be used if the input space is a CompositeSpace.
+        If inputs_to_components[i] contains j, it means input i will
+        be given as input to component j. Note that if multiple inputs are
+        passed on to e.g. an inner CompositeLayer, the same order will
+        be maintained. If the list is empty, the input will be discarded.
+        If an input does not appear in the dictionary, it will be given to
+        all components.
 
-    def __init__(self, layer_name, layers):
+    Examples
+    --------
+    >>> composite_layer = CompositeLayer(
+    ...     layer_name='composite_layer',
+    ...     layers=[Tanh(7, 'h0', 0.1), Sigmoid(5, 'h1', 0.1)],
+    ...     inputs_to_components={
+    ...         0: [1],
+    ...         1: [0]
+    ...     })
+
+    This CompositeLayer has a CompositeSpace with 2 subspaces as its
+    input space. The first input is given to the Sigmoid layer, the second
+    input is given to the Tanh layer.
+
+    >>> wrapper_layer = CompositeLayer(
+    ...     layer_name='wrapper_layer',
+    ...     layers=[Linear(9, 'h2', 0.1),
+    ...             composite_layer,
+    ...             Tanh(7, 'h3', 0.1)],
+    ...     inputs_to_components={
+    ...         0: [0],
+    ...         2: []
+    ...     })
+
+    This CompositeLayer takes 3 inputs. The first one is given to the
+    inner CompositeLayer. The second input is passed on to each component
+    layer i.e. to the Tanh, Linear as well as CompositeLayer. The third
+    input is discarded. Note that the inner CompositeLayer wil receive
+    the inputs with the same ordering i.e. [0, 1], and never [1, 0].
+    """
+    def __init__(self, layer_name, layers, inputs_to_layers=None):
+        self.num_layers = len(layers)
+        if inputs_to_layers is not None:
+            if not isinstance(inputs_to_layers, dict):
+                raise TypeError("CompositeLayer expected inputs_to_layers to "
+                                "be dict, got " + str(type(inputs_to_layers)))
+            self.inputs_to_layers = OrderedDict()
+            for key in sorted(inputs_to_layers):
+                assert isinstance(key, py_integer_types)
+                assert 0 <= key < self.num_layers
+                value = inputs_to_layers[key]
+                assert is_iterable(value)
+                assert all(isinstance(v, py_integer_types) for v in value)
+                # Check 'not value' to support case of empty list
+                assert not value or all(0 <= v < self.num_layers
+                                        for v in value)
+                self.inputs_to_layers[key] = sorted(value)
         super(CompositeLayer, self).__init__()
         self.__dict__.update(locals())
         del self.self
 
+    @property
+    def routing_needed(self):
+        return self.inputs_to_layers is not None
+
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
+        if not isinstance(space, CompositeSpace):
+            if self.inputs_to_layers is not None:
+                raise ValueError("CompositeLayer received an inputs_to_layers "
+                                 "mapping, but does not have a CompositeSpace "
+                                 "as its input space, so there is nothing to "
+                                 "map. Received " + str(space) + " as input "
+                                 "space.")
+        elif self.routing_needed:
+            if not max(self.inputs_to_layers) < len(space.components):
+                raise ValueError("The inputs_to_layers mapping of "
+                                 "CompositeSpace contains they key " +
+                                 str(max(self.inputs_to_layers)) + " "
+                                 "(0-based) but the input space only "
+                                 "contains " + str(self.num_layers) + " "
+                                 "layers.")
+            # Invert the dictionary
+            self.layers_to_inputs = OrderedDict()
+            for i in xrange(self.num_layers):
+                inputs = []
+                for j in xrange(len(space.components)):
+                    if j in self.inputs_to_layers:
+                        if i in self.inputs_to_layers[j]:
+                            inputs.append(j)
+                    else:
+                        inputs.append(j)
+                self.layers_to_inputs[i] = inputs
+        for i, layer in enumerate(self.layers):
+            if self.routing_needed and i in self.layers_to_inputs:
+                cur_space = space.restrict(self.layers_to_inputs[i])
+            else:
+                cur_space = space
+            layer.set_input_space(cur_space)
 
         self.input_space = space
-
-        for layer in self.layers:
-            layer.set_input_space(space)
-
         self.output_space = CompositeSpace(tuple(layer.get_output_space()
                                                  for layer in self.layers))
 
     @wraps(Layer.get_params)
     def get_params(self):
-
         rval = []
-
         for layer in self.layers:
             rval = safe_union(layer.get_params(), rval)
-
         return rval
 
     @wraps(Layer.fprop)
     def fprop(self, state_below):
+        rvals = []
+        for i, layer in enumerate(self.layers):
+            if self.routing_needed and i in self.layers_to_inputs:
+                cur_state_below = [state_below[j]
+                                   for j in self.layers_to_inputs[i]]
+                # This is to mimic the behavior of CompositeSpace's restrict
+                # method, which only returns a CompositeSpace when the number
+                # of components is greater than 1
+                if len(cur_state_below) == 1:
+                    cur_state_below, = cur_state_below
+            else:
+                cur_state_below = state_below
+            rvals.append(layer.fprop(cur_state_below))
+        return tuple(rvals)
 
-        return tuple(layer.fprop(state_below) for layer in self.layers)
+    def _weight_decay_aggregate(self, method_name, coeff):
+        if isinstance(coeff, py_float_types):
+            return T.sum([getattr(layer, method_name)(coeff)
+                          for layer in self.layers])
+        elif is_iterable(coeff):
+            assert all(layer_coeff >= 0 for layer_coeff in coeff)
+            return T.sum([getattr(layer, method_name)(layer_coeff) for
+                          layer, layer_coeff in safe_zip(self.layers, coeff)
+                          if layer_coeff > 0])
+        else:
+            raise TypeError("CompositeLayer's " + method_name + " received "
+                            "coefficients of type " + str(type(coeff)) + " "
+                            "but must be provided with a float or list/tuple")
+
+    def get_weight_decay(self, coeff):
+        """
+        Provides an expression for a squared L2 penalty on the weights,
+        which is the weighted sum of the squared L2 penalties of the layer
+        components.
+
+        Parameters
+        ----------
+        coeff : float or tuple/list
+            The coefficient on the squared L2 weight decay penalty for
+            this layer. If a single value is provided, this coefficient is
+            used for each component layer. If a list of tuple of
+            coefficients is given they are passed on to the component
+            layers in the given order.
+
+        Returns
+        -------
+        weight_decay : theano.gof.Variable
+            An expression for the squared L2 weight decay penalty term for
+            this layer.
+        """
+        return self._weight_decay_gather('get_weight_decay', coeff)
+
+    def get_l1_weight_decay(self, coeff):
+        """
+        Provides an expression for a squared L1 penalty on the weights,
+        which is the weighted sum of the squared L1 penalties of the layer
+        components.
+
+        Parameters
+        ----------
+        coeff : float or tuple/list
+            The coefficient on the L1 weight decay penalty for this layer.
+            If a single value is provided, this coefficient is used for
+            each component layer. If a list of tuple of coefficients is
+            given they are passed on to the component layers in the
+            given order.
+
+        Returns
+        -------
+        weight_decay : theano.gof.Variable
+            An expression for the L1 weight decay penalty term for this
+            layer.
+        """
+        return self._weight_decay_gather('get_l1_weight_decay', coeff)
 
     @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
-
         return sum(layer.cost(Y_elem, Y_hat_elem)
                    for layer, Y_elem, Y_hat_elem in
                    safe_zip(self.layers, Y, Y_hat))
 
     @wraps(Layer.set_mlp)
     def set_mlp(self, mlp):
-
         super(CompositeLayer, self).set_mlp(mlp)
         for layer in self.layers:
             layer.set_mlp(mlp)
