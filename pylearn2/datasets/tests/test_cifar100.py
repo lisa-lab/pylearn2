@@ -12,6 +12,8 @@ class TestCIFAR100(unittest.TestCase):
 
     Parameters
     ----------
+    none
+
     """
     def setUp(self):
         """
