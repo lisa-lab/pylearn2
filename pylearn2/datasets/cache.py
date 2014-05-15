@@ -121,9 +121,9 @@ class LocalDatasetCache:
             log.info("File %s has been locally cached to %s" %
                      (remote_name, local_name))
         elif os.path.getmtime(remote_name) > os.path.getmtime(local_name):
-            log.warning("File %s not cached: The remote file (modified "
-                        "%s) is newer than the locally cached file %s "
-                        "(modified %s)"
+            log.warning("File %s in cache will not be used: The remote file "
+                        "(modified %s) is newer than the locally cached file "
+                        "%s (modified %s)."
                         % (remote_name,
                            time.strftime(
                                '%Y-%m-%d %H:%M:%S',
