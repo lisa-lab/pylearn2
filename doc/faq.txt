@@ -4,7 +4,13 @@
 F.A.Q.
 ======
 
-We are so thrilled that number of Pylearn2 users are growing each day. With growth there is a heavier traffic in mailing list. Pylearn2 and its mailing-list is mainly maintained by graduate students at LISA lab. Each one of us has their own research projects and hopefully some life outside the lab. Our resources are limited and we prefer those limited resources being invested on real bugs and relevant questions. Also please notice that replying to the mailing-list is out of courtesy of the pylearn2 developers. Please read below FAQ section before posting a question to the mailing-list.
+We are so thrilled that number of Pylearn2 users are growing each day. With growth there is 
+a heavier traffic in mailing list. Pylearn2 and its mailing-list is mainly maintained by 
+graduate students at LISA lab. Each one of us has their own research projects and hopefully 
+some life outside the lab. Our resources are limited and we prefer those limited resources 
+being invested on real bugs and relevant questions. Also please notice that replying to 
+the mailing-list is out of courtesy of the pylearn2 developers. Please read below FAQ 
+section before posting a question to the mailing-list.
 
 
 F.A.Q.
