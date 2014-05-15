@@ -6,6 +6,12 @@ Several of the subset iterators in this module return train/valid/test
 splits by starting with a train/test split and further dividing the train
 subset into a train/valid split.
 """
+
+__author__ = "Steven Kearnes"
+__copyright__ = "Copyright 2014, Stanford University"
+__license__ = "3-clause BSD"
+__maintainer__ = "Steven Kearnes"
+
 import numpy as np
 import warnings
 try:

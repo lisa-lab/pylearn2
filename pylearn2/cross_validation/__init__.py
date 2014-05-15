@@ -7,6 +7,12 @@ separate Train object for each model and save all of the models together.
 pylearn2/scripts/print_monitor_average.py can be used to analyze average
 monitor channel values for the collection of saved models.
 """
+
+__author__ = "Steven Kearnes"
+__copyright__ = "Copyright 2014, Stanford University"
+__license__ = "3-clause BSD"
+__maintainer__ = "Steven Kearnes"
+
 from copy import deepcopy
 import os
 
