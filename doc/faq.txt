@@ -4,53 +4,85 @@
 F.A.Q.
 ======
 
-We are so thrilled that number of Pylearn2 users are growing each day. With growth there is a heavier traffic in mailing-list. Pylearn2 and its mailing-list is mainly maintained by graduate student at LISA lab. Each one of us has their own research projects and hopefully some life outside the lab. Our resources are limited and we prefer those limited resources being invested on real bugs and relevant questions. Also please notice that replying to the mailing-list is out of courtesy of the pylearn2 developers. Please read below FAQ section before posting a question to the mailing-list.
+We are so thrilled that number of Pylearn2 users are growing each day. With growth there is a heavier traffic in mailing list. Pylearn2 and its mailing-list is mainly maintained by graduate students at LISA lab. Each one of us has their own research projects and hopefully some life outside the lab. Our resources are limited and we prefer those limited resources being invested on real bugs and relevant questions. Also please notice that replying to the mailing-list is out of courtesy of the pylearn2 developers. Please read below FAQ section before posting a question to the mailing-list.
 
 
 F.A.Q.
-=====
+======
 
-| **Q-** *How do I set PYTHONPATH, I'm Python newbie, etc?*
-| **A-** If you do not have much experience with python, Theano, Linux shell, setting environmental variables and other basics, please spend some time learning them. A simple goolge search usually will answer your question and places like stackoverflow are an excellent resources for these sort of questions.
+#. *How do I set PYTHONPATH, I'm Python newbie, etc?*
+    If you do not have much experience with python, Theano, Linux shell, 
+    setting environmental variables and other basics, please spend some time 
+    learning them. A simple google search usually will answer your question 
+    and places like stackoverflow are an excellent resources for these sort of questions.
 
-| **Q-** *I'm getting errors like: Unrecognized environment variable PYLEARN2...*
-| **A-** Take a look at here :ref:`here <data_path>`. for list of pylearn2 environmental variables.
+#. *I'm getting errors like: Unrecognized environment variable PYLEARN2...*
+    Take a look at here :ref:`here <data_path>`. for list of pylearn2 environmental variables.
 
-| **Q-** *How do you solve my X machine learning problem?*
-| **A-** As stated here :ref:`here <welcome_vision>`., the library is mainly intended for ML researchers, nonetheless we are happy that the user scope is larger now. But if you have machine learning problem or a research question, places like metaoptimze, Google Plus Machine learning and Deep Learning groups would be the appropriate places to ask. And if you can't find your answers there, perhaps you need to hire a ML consultant.
+#. *How do you solve my X machine learning problem?*
+    As stated here :ref:`here <welcome_vision>`., the library is mainly 
+    intended for ML researchers, nonetheless we are happy that the user scope is 
+    larger now. But if you have machine learning problem or a research question, 
+    places like metaoptimze, Google Plus Machine learning and Deep Learning groups 
+    would be the appropriate places to ask. And if you can't find your answers there, 
+    perhaps you need to hire a ML consultant.
 
-| **Q-** *My model doesn't work, doesn't seems to be learning, etc.*
-| **A-** Most of the models in ML have a set of hyper-parameters that needs to be tuned. The expertise of how tune those comes from better understanding of the theory and experience. There are some research in this area, search for hyper-parameter optimization in literature. Using the right model for the right data, proper data pre-processing are other factors that should be paid attention to. 
+#. *My model doesn't work, doesn't seems to be learning, etc.*
+    Most of the models in ML have a set of hyper-parameters that need to be tuned. 
+    The expertise of how to tune those comes from better understanding of the theory and experience. 
+    There is some research in this area, search for hyper-parameter optimization in literature. 
+    Using the right model for the right data, proper data pre-processing are other factors that should be paid attention to. 
 
-| **Q-** *Is model X implemented? Is feature Y supported?*
-| **A-** Search through the documentation pages and source codes. grep and find are your saviors. If nothing comes up, probably it is not developed yet. We will receive your pull request with open arms if you implement what you were looking for.
+#. *Is model X implemented? Is feature Y supported?*
+    Search through the documentation pages and source codes. grep and find are your saviors. 
+    If nothing comes up, probably it is not developed yet. We will receive your pull request 
+    with open arms if you implement what you were looking for.
 
-| **Q-** *Method X has no documentation?*
-| **A-** Pylearn2 is under rapid development to fit the needs of LISA members' research. Sometimes we've have shipped a feature fast without documentation  But now there is unit-tests at work that will prevent any new PR without documentation to be merged. Hopefully soon the whole library will be well documented.
+#. *Method X has no documentation?*
+    Pylearn2 is under rapid development to fit the needs of LISA members' research. 
+    Sometimes we have shipped a feature fast without documentation. 
+    But now there are unit-tests at work that will prevent any new PR without 
+    documentation to be merged. Hopefully soon the whole library will be well documented. 
+    We always welcome pull requests adding documentation and tutorials and are more 
+    likely to answer questions about how to use undocumented methods if you're asking 
+    because you're working on a documentation pull request
 
-| **Q-** *I went through all question here, and still can't find my answer?*
-| **A-** Before posting your question, search the mailing-list archive, someone might have answered your question already there.
+#. *I went through all questions here, and still can't find my answer?*
+    Before posting your question, search the mailing-list archive, 
+    someone might have answered your question already there.
 
-| **Q-** *pylearn2-devlist or users?*
-| **A-** If you have found a bug or want to develop a new feature pyelarn2-dev list would be the right list. All other questions should go to pylearn2-users.
+#. *Should I write to pylearn-dev or pylearn-users?*
+    If you have found a bug or want to develop a new feature pyelarn2-dev 
+    list would be the right list. All other questions should go to pylearn-users.
 
-| **Q-** *I found a bug, how do I report it?*
-| **A-** We can't read your mind yet, nor we have access to NSA data. So please follow these instructions before reporting a bug so that we can understand it better and reproduce the error.
-#. Are you using the latest version of Pylearn2 and Theano? By latest version we mean, the latest development version from git repo. Both Pylearn2 and Theano are under active development, please take a moment to update them and see if the error still exist. :ref:`here <install>`.
-#. Have you tried to figure out what's the source of the error? Pylearn2 is not a end-user customer product, it's an open source library, try to digg into soure code and find the cause of the error
-#. If you followed steps 1 and 2 and found a areal bug, please write down a detailed procedure for reproducing the error. The code, the command to execute it and the whole error stack trace.
-#. Please only use plain-text in the email and avoid using formatting or attaching screenshots.
+#. *I found a bug, how do I report it?*
+    We can't read your mind yet, nor do we have access to NSA data. 
+    So please follow these instructions before reporting a bug so that we can understand 
+    it better and reproduce the error.
 
-| **Q-** *I have new feature to add, I have fixed a bug, how do I send a pull request?*
-| **A-** Look at :ref:`here <dev_start_guide>`.
+    #. Are you using the latest version of Pylearn2 and Theano? By latest version we mean, 
+        the latest development version from the git repo. Both Pylearn2 and Theano are under 
+        active development, please take a moment to update them and see if the error 
+        still exists. :ref:`here <install>`.
+    #. Have you tried to figure out what's the source of the error? 
+        Pylearn2 is not a end-user customer product, it's an open source library, 
+        try to dig into soure code and find the cause of the error
+    #. If you followed steps 1 and 2 and found a real bug, please write down a 
+        detailed procedure for reproducing the error. The code, the command to execute it and the whole error stack trace.
+    #. Please only use plain-text in the email and avoid using formatting or attaching screenshots.
 
-| **Q-** *I posted a question and haven't heard back for so long!*
-| **A-**
-#. Are you sure your question were not covered here?
-#. Is it near ICML, NIPS or ICLR deadline, or is it summer? LISA members will be very busy during conference deadlines, and many students takes summer internships. So unfortunately during those times it might take longer to answer your questions.
+#. *I have new feature to add, I have fixed a bug, how do I send a pull request?*
+    Look at :ref:`here <dev_start_guide>`.
 
-| **Q-** *I have this problem in Windows.*
-| **A-** None of us work in windows or even have accesss to it. But feel free to post your question, maybe some of other users might be able to help you.
+#. *I posted a question and haven't heard back for so long!*
+    #. Are you sure your question was not covered here?
+    #. Is it near ICML, NIPS or ICLR deadline, or is it summer? LISA members 
+        will be very busy during conference the deadlines, and many students do summer internships. 
+        So unfortunately during those times it might take longer to answer your questions.
 
-| **Q-** *My prof has given us this assignment, could you help me PLEASE, PLEASE, PLEASE ^_^*
-| **A-** You would be flagged as moderated.
+#. *I have this problem in Windows.*
+    None of us work in Windows or even have access to it. But feel free to 
+    post your question, maybe some of the other users might be able to help you.
+
+#. *My prof has given us this assignment, could you help me PLEASE, PLEASE, PLEASE ^_^*
+    You would be flagged as moderated.

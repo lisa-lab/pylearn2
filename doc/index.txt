@@ -158,7 +158,7 @@ Roughly in order of what you'll want to check out:
 * :ref:`cluster` -- The tools we use at LISA for running Pylearn2 jobs on HPC clusters.
 * :ref:`large_data` -- A guide on how to deal with large datasets.
 * :ref:`vision` -- Some more detailed elaboration of some points of the Pylearn2 vision.
-* :ref:`faq` -- Please read the FAQ section before posing to maling-lists.
+* :ref:`faq` -- Please read the FAQ section before posting to mailing-lists.
 
 
 Community
