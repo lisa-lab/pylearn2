@@ -57,14 +57,6 @@ class TestCIFAR100(unittest.TestCase):
         assert c01b_X.shape == b01c_X.shape
         assert np.all(c01b_X == b01c_X)
         b01c_direct = self.test_set.get_topological_view(b01c_X)
-        c01b_X = c01b_test.X[0:batch_size,:]
-        c01b = c01b_test.get_topological_view(c01b_X)
-        assert c01b.shape == (3, 32, 32, batch_size)
-        b01c = c01b.transpose(3, 1, 2, 0)
-        b01c_X = self.test_set.X[0:batch_size, :]
-        assert c01b_X.shape == b01c_X.shape
-        assert np.all(c01b_X == b01c_X)
-        b01c_direct = self.test_set.get_topological_view(b01c_X)
         assert b01c_direct.shape == b01c.shape
         assert np.all(b01c_direct == b01c)
 
