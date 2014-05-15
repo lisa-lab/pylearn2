@@ -8,6 +8,7 @@ import numpy as np
 import pylearn2
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.termination_criteria import EpochCounter
+from pylearn2.testing.skip import skip_if_no_gpu
 from pylearn2.utils.serial import load_train_file
 
 
@@ -16,6 +17,7 @@ def test_mnist():
     Test the mnist.yaml file from the dropout
     paper on random input
     """
+    skip_if_no_gpu()
     train = load_train_file(os.path.join(pylearn2.__path__[0],
                                          "scripts/papers/maxout/mnist.yaml"))
     random_X = np.random.rand(10, 784)
