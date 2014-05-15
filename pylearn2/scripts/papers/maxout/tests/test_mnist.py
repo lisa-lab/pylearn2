@@ -1,3 +1,6 @@
+"""
+This file tests some of the YAML files in the maxout paper
+"""
 import os
 
 import numpy as np
