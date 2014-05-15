@@ -191,7 +191,8 @@ def test_composite_layer():
 
     # With routing
     for inputs_to_layers in [{0: [1], 1: [2], 2: [0]},
-                             {0: [1], 1: [0, 2], 2: []}]:
+                             {0: [1], 1: [0, 2], 2: []},
+                             {0: [], 1: []}]:
         composite_layer = CompositeLayer('composite_layer',
                                          [Linear(2, 'h0', irange=0),
                                           Linear(2, 'h1', irange=0),
