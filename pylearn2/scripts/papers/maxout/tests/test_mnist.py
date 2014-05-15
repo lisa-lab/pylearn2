@@ -57,4 +57,3 @@ def test_mnist_pi():
     train.extensions.pop(0)
     train.save_freq = 0
     train.main_loop()
-    assert False
