@@ -6,6 +6,13 @@ from pylearn2.testing.skip import skip_if_no_data
 
 
 class TestCIFAR100(unittest.TestCase):
+    """
+
+    Parameters
+    ----------
+    none
+    """
+
     def setUp(self):
         skip_if_no_data()
         self.train_set = CIFAR100(which_set='train')
@@ -14,10 +21,6 @@ class TestCIFAR100(unittest.TestCase):
         assert not np.any(np.isinf(self.train_set.X))
         assert not np.any(np.isnan(self.test_set.X))
         assert not np.any(np.isinf(self.test_set.X))
-        assert not np.any(np.isnan(self.train_set))
-        assert not np.any(np.isinf(self.train_set))
-        assert not np.any(np.isnan(self.test_set))
-        assert not np.any(np.isinf(self.test_set))
 
     def test_adjust_for_viewer(self):
         self.train_set.adjust_for_viewer(self.train_set.X)
