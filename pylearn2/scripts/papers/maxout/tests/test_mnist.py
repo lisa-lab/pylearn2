@@ -7,6 +7,7 @@ from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.termination_criteria import EpochCounter
 from pylearn2.utils.serial import load_train_file
 
+
 def test_mnist():
     """
     Test the mnist.yaml file from the dropout
@@ -17,6 +18,6 @@ def test_mnist():
     random_X = np.random.rand(10, 784)
     random_y = np.random.randint(0, 10, (10, 1))
     train.dataset = DenseDesignMatrix(X=random_X, y=random_y, y_labels=10)
-
     train.algorithm.termination_criterion = EpochCounter(max_epochs=1)
+    train.algorithm._set_monitoring_dataset(train.dataset)
     train.main_loop()
