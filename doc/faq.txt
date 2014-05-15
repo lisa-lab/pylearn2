@@ -83,7 +83,7 @@ F.A.Q.
 #. *I posted a question and haven't heard back for so long!*
     #. Are you sure your question was not covered here?
     #. Is it near ICML, NIPS or ICLR deadline, or is it summer? LISA members 
-        will be very busy during conference the deadlines, and many students do summer internships. 
+        will be very busy during conference deadlines, and many students do summer internships. 
         So unfortunately during those times it might take longer to answer your questions.
 
 #. *I have this problem in Windows.*
