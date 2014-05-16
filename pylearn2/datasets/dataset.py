@@ -151,6 +151,7 @@ class Dataset(object):
             Either numpy value of the features, or a (features, targets) tuple
             of numpy values, depending on the value of `include_labels`.
         """
+        # now I add a really way too much long line that exceeds 79 caracters and format test should fail
         raise NotImplementedError(str(type(self))+" does not implement "
                 "get_batch_design.")
 
@@ -161,6 +162,6 @@ class Dataset(object):
         The first index is over different examples, and has length
         batch_size. The next indices are the topologically significant
         dimensions of the data, i.e. for images, image rows followed by
-        image columns.  The last index is over separate channels.
-        """
-        raise NotImplementedError()
+        image columns.	The last index is over separate channels.
+	"""
+	raise NotImplementedError()
