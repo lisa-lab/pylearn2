@@ -4,13 +4,13 @@
 F.A.Q.
 ======
 
-We are so thrilled that number of Pylearn2 users are growing each day. With growth there is 
-a heavier traffic in mailing list. Pylearn2 and its mailing-list is mainly maintained by 
+We are so thrilled that number of Pylearn2 users is growing each day. With growth there is 
+a heavier traffic on the mailing list. Pylearn2 and its mailing list are mainly maintained by 
 graduate students at LISA lab. Each one of us has their own research projects and hopefully 
-some life outside the lab. Our resources are limited and we prefer those limited resources 
-being invested on real bugs and relevant questions. Also please notice that replying to 
-the mailing-list is out of courtesy of the pylearn2 developers. Please read below FAQ 
-section before posting a question to the mailing-list.
+some life outside the lab. Our resources are limited and we prefer these limited resources 
+to be invested in fixing real bugs and answering relevant questions. Also please notice that replying to 
+the mailing list is out of courtesy of the pylearn2 developers. Please read below FAQ 
+section before posting a question to the mailing list.
 
 
 F.A.Q.
@@ -54,7 +54,7 @@ F.A.Q.
     because you're working on a documentation pull request
 
 #. *I went through all questions here, and still can't find my answer?*
-    Before posting your question, search the mailing-list archive, 
+    Before posting your question, search the mailing list archive, 
     someone might have answered your question already there.
 
 #. *Should I write to pylearn-dev or pylearn-users?*
