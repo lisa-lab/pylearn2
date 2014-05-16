@@ -13,6 +13,7 @@ __email__ = "pylearn-dev@googlegroups"
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.space import CompositeSpace
 from pylearn2.utils.data_specs import is_flat_specs
+from pylearn2.utils import wraps
 
 
 class TransformerDataset(Dataset):
@@ -178,6 +179,10 @@ class TransformerDataset(Dataset):
             WRITEME
         """
         return self.raw.adjust_to_be_viewed_with(*args, **kwargs)
+
+    @wraps(Dataset.get_num_examples)
+    def get_num_examples(self):
+        return self.raw.get_num_examples()
 
 
 class TransformerIterator(object):
