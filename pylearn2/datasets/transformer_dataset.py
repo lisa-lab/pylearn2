@@ -10,6 +10,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
+import functools
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.space import CompositeSpace
 from pylearn2.utils.data_specs import is_flat_specs
@@ -178,6 +179,10 @@ class TransformerDataset(Dataset):
             WRITEME
         """
         return self.raw.adjust_to_be_viewed_with(*args, **kwargs)
+
+    @functools.wraps(Dataset.get_num_examples)
+    def get_num_examples(self):
+        return self.raw.get_num_examples()
 
 
 class TransformerIterator(object):
