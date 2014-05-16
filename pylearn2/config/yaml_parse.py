@@ -84,7 +84,7 @@ def load_path(path, overrides=None, environ=None, **kwargs):
     Returns
     -------
     graph : dict or object
-        The dictionary or object (if the top-level element specified an \
+        The dictionary or object (if the top-level element specified a \
         Python object to instantiate).
 
     Notes
@@ -319,14 +319,7 @@ def initialize():
     yaml.add_multi_constructor('!import:', multi_constructor_import)
 
     yaml.add_constructor('!import', constructor_import)
-    yaml.add_implicit_resolver(
-        '!import', re.compile(r'(?:[a-zA-Z_][\w_]+\.)+[a-zA-Z_][\w_]+')
-    )
-
     yaml.add_constructor("!float", constructor_float)
-    yaml.add_implicit_resolver(
-        '!float', re.compile(r' [-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?')
-    )
 
     is_initialized = True
 

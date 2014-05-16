@@ -28,15 +28,15 @@ def get_weights_report(model_path=None,
     model_path : str
         Filepath of the model to make the report on.
     rescale : str
-        A string specifying how to rescale the filter images: \
-            'individual' (default): scale each filter so that it \
-                uses as much as possible of the dynamic range \
-                of the display under the constraint that 0 \
-                is gray and no value gets clipped \
-            'global' : scale the whole ensemble of weights \
-            'none' :   don't rescale
-    dataset: pylearn2.datasets.dataset.Dataset
-        Dataset object to do view conversion for displaying the weights. If \
+        A string specifying how to rescale the filter images:
+            - 'individual' (default) : scale each filter so that it
+                  uses as much as possible of the dynamic range
+                  of the display under the constraint that 0
+                  is gray and no value gets clipped
+            - 'global' : scale the whole ensemble of weights
+            - 'none' :   don't rescale
+    dataset : pylearn2.datasets.dataset.Dataset
+        Dataset object to do view conversion for displaying the weights. If
         not provided one will be loaded from the model's dataset_yaml_src.
 
     Returns
@@ -201,14 +201,15 @@ def get_binocular_greyscale_weights_report(model_path=None,
     model_path : str
         Filepath of the model to make the report on.
     rescale : str
-        A string specifying how to rescale the filter images: \
-            'individual' (default): scale each filter so that it \
-                uses as much as possible of the dynamic range \
-                of the display under the constraint that 0 \
-                is gray and no value gets clipped \
-            'global' : scale the whole ensemble of weights \
-            'none' :   don't rescale
-    dataset: pylearn2.datasets.dataset.Dataset
+        A string specifying how to rescale the filter images:
+
+          - 'individual' (default) : scale each filter so that it
+            uses as much as possible of the dynamic range
+            of the display under the constraint that 0
+            is gray and no value gets clipped
+          - 'global' : scale the whole ensemble of weights
+          - 'none' : don't rescale
+    dataset : pylearn2.datasets.dataset.Dataset
         Dataset object to do view conversion for displaying the weights. If \
         not provided one will be loaded from the model's dataset_yaml_src.
 

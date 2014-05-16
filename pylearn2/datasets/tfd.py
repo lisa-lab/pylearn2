@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import numpy as np
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
@@ -10,18 +15,18 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
 
     Parameters
     ----------
-    which_set : srt
+    which_set : str
         Dataset to load. One of ['train','valid','test','unlabeled'].
     fold : int in {0,1,2,3,4}
         TFD contains 5 official folds for train, valid and test.
     image_size : int in [48,96]
         Load smaller or larger dataset variant.
-    example_range : array_like.
+    example_range : array_like or None, optional
         Load only examples in range [example_range[0]:example_range[1]].
-    center : bool
+    center : bool, optional
         Move data from range [0., 255.] to [-127.5, 127.5]
         False by default.
-    scale : bool
+    scale : bool, optional
         Move data from range [0., 255.] to [0., 1.], or
         from range [-127.5, 127.5] to [-1., 1.] if center is True
         False by default.
@@ -40,7 +45,6 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
                  example_range = None, center = False, scale = False,
                  shuffle=False, one_hot = False, rng=None, seed=132987,
                  preprocessor = None, axes = ('b', 0, 1, 'c')):
-
         if which_set not in self.mapper.keys():
             raise ValueError("Unrecognized which_set value: %s. Valid values are %s." % (str(which_set), str(self.mapper.keys())))
         assert (fold >=0) and (fold <5)

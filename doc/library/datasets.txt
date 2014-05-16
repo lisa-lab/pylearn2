@@ -128,6 +128,11 @@ Sparse dataset
 .. automodule:: pylearn2.datasets.sparse_dataset
     :members:
 
+h5py dataset
+============
+.. automodule:: pylearn2.datasets.hdf5
+    :members:
+
 Toronto Face Dataset
 ====================
 .. automodule:: pylearn2.datasets.tfd

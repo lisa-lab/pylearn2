@@ -1,5 +1,9 @@
-"""Different type of random seed generator, created to prevent redundancy
-across the code, Reference: https://github.com/lisa-lab/pylearn2/issues/165 """
+"""
+Different type of random seed generator, created to prevent redundancy
+across the code.
+
+Reference: https://github.com/lisa-lab/pylearn2/issues/165
+"""
 
 __author__ = "Abhishek Aggarwal, Xavier Bouthillier"
 __copyright__ = "Copyright 2012, Universite de Montreal"

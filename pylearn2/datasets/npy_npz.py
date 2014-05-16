@@ -24,6 +24,11 @@ class NpyDataset(DenseDesignMatrix):
         self._loaded = False
 
     def _deferred_load(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self._loaded = True
         loaded = numpy.load(self._path)
         assert isinstance(loaded, numpy.ndarray), (

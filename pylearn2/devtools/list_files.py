@@ -1,6 +1,4 @@
-"""
-Code for listing files that belong to the library.
-"""
+"""Code for listing files that belong to the library."""
 import logging
 import pylearn2
 import os
@@ -16,9 +14,14 @@ logger = logging.getLogger(__name__)
 
 def list_files(suffix=""):
     """
+    .. todo::
+
+        WRITEME
+
     Parameters
     ----------
     suffix : str
+
     Returns
     -------
 
@@ -35,6 +38,10 @@ def list_files(suffix=""):
 
 def _list_files(path, suffix=""):
     """
+    .. todo::
+
+        WRITEME
+
     Parameters
     ----------
     path : str
@@ -45,8 +52,8 @@ def _list_files(path, suffix=""):
     -------
     l : list
         A list of all files ending in `suffix` contained within `path`.
-        (If `path` is a file rather than a directory, it is considered to
-        "contain" itself)
+        (If `path` is a file rather than a directory, it is considered
+        to "contain" itself)
     """
     if os.path.isdir(path):
         incomplete = os.listdir(path)

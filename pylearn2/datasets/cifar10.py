@@ -20,10 +20,13 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
     Parameters
     ----------
-    which_set : WRITEME
+    which_set : str
+        One of 'train', 'test'
     center : WRITEME
     rescale : WRITEME
-    gcn : WRITEME
+    gcn : float, optional
+        Multiplicative constant to use for global contrast normalization.
+        No global contrast normalization is applied, if None
     one_hot : WRITEME
     start : WRITEME
     stop : WRITEME
@@ -31,6 +34,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     toronto_prepro : WRITEME
     preprocessor : WRITEME
     """
+
     def __init__(self, which_set, center = False, rescale = False, gcn = None,
             one_hot = False, start = None, stop = None, axes=('b', 0, 1, 'c'),
             toronto_prepro = False, preprocessor = None):

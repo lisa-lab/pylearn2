@@ -101,7 +101,7 @@ class DiagonalMND(Model):
         self.register_names_to_del( [name for name in final_names if name not in init_names])
 
 
-    def censor_updates(self, updates):
+    def _modify_updates(self, updates):
         """
         .. todo::
 

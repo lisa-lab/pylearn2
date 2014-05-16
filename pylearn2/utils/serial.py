@@ -59,17 +59,25 @@ def raise_cannot_open(path):
     # end for
     assert False
 
-def load(filepath, recurse_depth=0, retry = True):
+def load(filepath, recurse_depth=0, retry=True):
     """
+    .. todo::
+
+        WRITEME
+
+    .. todo::
+
+        Refactor to hide recurse_depth from end users
+
     Parameters
     ----------
     filepath : str
         A path to a file to load. Should be a pickle, Matlab, or NumPy
         file; or a .txt or .amat file that numpy.loadtxt can load.
-    recurse_depth : int
+    recurse_depth : int, optional
         End users should not use this argument. It is used by the function
         itself to implement the `retry` option recursively.
-    retry : bool
+    retry : bool, optional
         If True, will make a handful of attempts to load the file before
         giving up. This can be useful if you are for example calling
         show_weights.py on a file that is actively being written to by a
@@ -82,10 +90,6 @@ def load(filepath, recurse_depth=0, retry = True):
     -------
     loaded_object : object
         The object that was stored in the file.
-
-    ..todo
-
-        Refactor to hide recurse_depth from end users
     """
     try:
         import joblib
@@ -229,24 +233,25 @@ def save(filepath, obj, on_overwrite = 'ignore'):
     Parameters
     ----------
     filepath : str
-        A filename. If the suffix is `.joblib` and joblib can be \
-        imported, `joblib.dump` is used in place of the regular \
-        pickling mechanisms; this results in much faster saves by \
-        saving arrays as separate .npy files on disk. If the file \
-        suffix is `.npy` than `numpy.save` is attempted on `obj`. \
+        A filename. If the suffix is `.joblib` and joblib can be
+        imported, `joblib.dump` is used in place of the regular
+        pickling mechanisms; this results in much faster saves by
+        saving arrays as separate .npy files on disk. If the file
+        suffix is `.npy` than `numpy.save` is attempted on `obj`.
         Otherwise, (c)pickle is used.
 
     obj : object
         A Python object to be serialized.
 
-    on_overwrite: str
+    on_overwrite : str, optional
         A string specifying what to do if the file already exists.
         Possible values include:
 
         - "ignore" : Just overwrite the existing file.
-        - "backup" : Make a backup copy of the file (<filepath>.bak). Save the
-            new copy. Then delete the backup copy. This allows recovery of the
-            old version of the file if saving the new one fails.
+        - "backup" : Make a backup copy of the file (<filepath>.bak).
+          Save the new copy. Then delete the backup copy. This allows
+          recovery of the old version of the file if saving the new one
+          fails.
     """
     filepath = preprocess(filepath)
 
@@ -294,6 +299,7 @@ def save(filepath, obj, on_overwrite = 'ignore'):
 def get_pickle_protocol():
     """
     Allow configuration of the pickle protocol on a per-machine basis.
+
     This way, if you use multiple platforms with different versions of
     pickle, you can configure each of them to use the highest protocol
     supported by all of the machines that you want to be able to
@@ -415,7 +421,9 @@ def from_string(s):
 
 def mkdir(filepath):
     """
-    Make a directory. Should succeed even if it needs to make more than one
+    Make a directory.
+
+    Should succeed even if it needs to make more than one
     directory and nest subdirectories to do so. Raises an error if the
     directory can't be made. Does not raise an error if the directory
     already exists.
@@ -504,8 +512,9 @@ def load_train_file(config_file_path, environ=None):
 
     Parameters
     ----------
-    config_file_path : Path to a config file containing a YAML string
-    describing a pylearn2.train.Train object
+    config_file_path : str
+        Path to a config file containing a YAML string describing a
+        pylearn2.train.Train object
     environ : dict, optional
         A dictionary used for ${FOO} substitutions in addition to
         environment variables when parsing the YAML file. If a key appears

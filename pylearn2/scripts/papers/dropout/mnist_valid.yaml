@@ -1,0 +1,88 @@
+# These hyperparameters, identified by David Warde-Farley via random search,
+# obtain 1.08% on MNIST, nearly matching the 1.05% in Nitish Srivastava's
+# Master's thesis.
+#
+# An important difference is that this uses only the first 50,000 examples
+# and does early stopping on a validation set of the last 10,000 training
+# points, whereas Nitish Srivastava's results trained on the entire training
+# set for a given number of epochs. It is quite possible that re-training
+# with these hyperparameters on the entire 60,000 using some alternate stopping
+# criterion (matching the best training set likelihood of this job, for instance,
+# or stopping after the same number of epochs) would yield better than 1.05%
+# performance.
+
+!obj:pylearn2.train.Train {
+    dataset: &train !obj:pylearn2.datasets.mnist.MNIST {
+        which_set: "train",
+        shuffle: 0,
+        start: 0,
+        stop: 50000
+    },
+    model: !obj:pylearn2.models.mlp.MLP {
+        batch_size : 100,
+        nvis: 784,
+        layers: [
+            !obj:pylearn2.models.mlp.RectifiedLinear {
+                max_col_norm: 4.378017,
+                dim: 898,
+                irange: 0.00891030471479,
+                layer_name: 'h0',
+                init_bias: 0.000000
+            },
+            !obj:pylearn2.models.mlp.RectifiedLinear {
+                max_col_norm: 2.970242,
+                dim: 1532,
+                irange: 0.0575059125935,
+                layer_name: 'h1',
+                init_bias: 0.000000
+            },
+            !obj:pylearn2.models.mlp.Softmax {
+                max_col_norm: 4.626974,
+                sparse_init: 0,
+                layer_name: 'y',
+                n_classes: 10
+            }
+        ]
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        monitoring_dataset : {
+            valid: !obj:pylearn2.datasets.mnist.MNIST {
+                which_set: "train",
+                shuffle: 0,
+                start: 50000,
+                stop: 60000
+            },
+        },
+        learning_rate: 0.097259,
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: 0.5
+        },
+        cost: !obj:pylearn2.costs.mlp.dropout.Dropout {
+             input_include_probs: { 'h0' : .8 },
+             input_scales: { 'h0' : 1.25 }
+        },
+        termination_criterion: !obj:pylearn2.termination_criteria.MonitorBased {
+            channel_name: "valid_y_misclass",
+            N: 100,
+            prop_decrease: 0.
+        }
+    },
+    extensions: [
+        !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
+            channel_name: "valid_y_misclass",
+            save_path: "${PYLEARN2_TRAIN_FILE_FULL_STEM}_best.pkl"
+        },
+        !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
+            start: 1,
+            saturate: 698,
+            final_momentum: 0.699217
+        },
+        !obj:pylearn2.training_algorithms.sgd.LinearDecayOverEpoch {
+            start: 1,
+            saturate: 560,
+            decay_factor: 0.022292
+        }
+    ],
+    save_path: "${PYLEARN2_TRAIN_FILE_FULL_STEM}.pkl",
+    save_freq : 1
+}

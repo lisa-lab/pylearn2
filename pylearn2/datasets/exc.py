@@ -18,6 +18,11 @@ class NoDataPathError(EnvironmentVariableError):
     defined.
     """
     def __init__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         super(NoDataPathError, self).__init__(data_path_essay +
                                               environment_variable_essay)
 

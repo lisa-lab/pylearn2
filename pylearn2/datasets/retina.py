@@ -9,8 +9,11 @@ from pylearn2.space import Conv2DSpace
 
 
 def foveate_channel(img, rings, output, start_idx):
-    """
-    For a given channel (image), perform pooling on peripheral vision.
+    """For a given channel (image), perform pooling on peripheral vision.
+
+    .. todo::
+
+        Write parameter list
     """
     ring_w = numpy.sum(rings)
 
@@ -35,13 +38,23 @@ def foveate_channel(img, rings, output, start_idx):
 
 def downsample_ring(img, coord, width, output, start_idx):
     """
-     Parameters
+    .. todo::
+
+        WRITEME
+
+    Parameters
     ----------
-    img : numpy matrix in topological order (batch size, rows, cols, channels)
-    coord : perform average pooling starting at coordinate (coord,coord)
-    width : width of "square ring" to average pool
-    output : dense design matrix, of shape (batch size, rows*cols*channels)
-    start_idx : column index where to start writing the output
+    img : WRITEME
+        numpy matrix in topological order
+        (batch size, rows, cols, channels)
+    coord : WRITEME
+        perform average pooling starting at coordinate (coord,coord)
+    width : WRITEME
+        width of "square ring" to average pool
+    output : WRITEME
+        dense design matrix, of shape (batch size, rows*cols*channels)
+    start_idx : WRITEME
+        column index where to start writing the output
     """
     (img_h,img_w) = img.shape[1:3]
 
@@ -59,16 +72,29 @@ def downsample_ring(img, coord, width, output, start_idx):
 
 def downsample_rect(img, start_row, start_col, end_row, end_col, width, output, start_idx):
     """
-     Parameters
+    .. todo::
+
+        WRITEME
+
+    Parameters
     ----------
-    img : numpy matrix in topological order (batch size, rows, cols, channels)
-    start_row : row index of top-left corner of rectangle to average pool
-    start_col : col index of top-left corner of rectangle to average pool
-    end_row : row index of bottom-right corner of rectangle to average pool
-    end_col : col index of bottom-right corner of rectangle to average pool
-    width : take the mean over rectangular block of this width
-    output : dense design matrix, of shape (batch size, rows*cols*channels)
-    start_idx : column index where to start writing the output
+    img : WRITEME
+        numpy matrix in topological order
+        (batch size, rows, cols, channels)
+    start_row : WRITEME
+        row index of top-left corner of rectangle to average pool
+    start_col : WRITEME
+        col index of top-left corner of rectangle to average pool
+    end_row : WRITEME
+        row index of bottom-right corner of rectangle to average pool
+    end_col : WRITEME
+        col index of bottom-right corner of rectangle to average pool
+    width : WRITEME
+        take the mean over rectangular block of this width
+    output : WRITEME
+        dense design matrix, of shape (batch size, rows*cols*channels)
+    start_idx : WRITEME
+        column index where to start writing the output
     """
     idx = start_idx
 
@@ -88,10 +114,15 @@ def defoveate_channel(img, rings, dense_input, start_idx):
 
     Parameters
     ----------
-    img : channel for defoveated image of shape (batch, img_h, img_w)
-    rings : list of ring_sizes which were used to generate dense_input
-    dense_input : DenseDesignMatrix containing foveated dataset, of shape (batch, dims)
-    start_idx : channel pointed to by img starts at dense_input[start_idx]
+    img : WRITEME
+        channel for defoveated image of shape (batch, img_h, img_w)
+    rings : WRITEME
+        list of ring_sizes which were used to generate dense_input
+    dense_input : WRITEME
+        DenseDesignMatrix containing foveated dataset, of shape 
+        (batch, dims)
+    start_idx : WRITEME
+        channel pointed to by img starts at dense_input[start_idx]
     """
     ring_w = numpy.sum(rings)
 
@@ -118,13 +149,23 @@ def defoveate_channel(img, rings, dense_input, start_idx):
 
 def restore_ring(output, coord, width, dense_input, start_idx):
     """
+    .. todo::
+
+        WRITEME
+
     Parameters
     ----------
-    output : output matrix in topological order (batch, height, width, channels)
-    coord : perform average pooling starting at coordinate (coord,coord)
-    width : width of "square ring" to average pool
-    dense_input : dense design matrix to convert (batchsize, dims)
-    start_idx : column index where to start writing the output
+    output : WRITEME
+        output matrix in topological order
+        (batch, height, width, channels)
+    coord : WRITEME
+        perform average pooling starting at coordinate (coord,coord)
+    width : WRITEME
+        width of "square ring" to average pool
+    dense_input : WRITEME
+        dense design matrix to convert (batchsize, dims)
+    start_idx : WRITEME
+        column index where to start writing the output
     """
     (img_h, img_w) = output.shape[1:3]
 
@@ -142,16 +183,29 @@ def restore_ring(output, coord, width, dense_input, start_idx):
 
 def restore_rect(output, start_row, start_col, stop_row, stop_col, width, dense_input, start_idx):
     """
+    .. todo::
+
+        WRITEME
+
     Parameters
     ----------
-    output : output matrix in topological order (batch, height, width, channels)
-    start_row : row index of top-left corner of rectangle to average pool
-    start_col : col index of top-left corner of rectangle to average pool
-    end_row : row index of bottom-right corner of rectangle to average pool
-    end_col : col index of bottom-right corner of rectangle to average pool
-    width : take the mean over rectangular block of this width
-    dense_input : dense design matrix to convert (batchsize, dims)
-    start_idx : column index where to start writing the output
+    output : WRITEME
+        output matrix in topological order
+        (batch, height, width, channels)
+    start_row : WRITEME
+        row index of top-left corner of rectangle to average pool
+    start_col : WRITEME
+        col index of top-left corner of rectangle to average pool
+    end_row : WRITEME
+        row index of bottom-right corner of rectangle to average pool
+    end_col : WRITEME
+        col index of bottom-right corner of rectangle to average pool
+    width : WRITEME
+        take the mean over rectangular block of this width
+    dense_input : WRITEME
+        dense design matrix to convert (batchsize, dims)
+    start_idx : WRITEME
+        column index where to start writing the output
     """
     idx = start_idx
 
@@ -165,7 +219,11 @@ def restore_rect(output, start_row, start_col, stop_row, stop_col, width, dense_
 
 
 def get_encoded_size(img_h, img_w, rings):
+    """
+    .. todo::
 
+        WRITEME
+    """
     pool_len = 0
 
     # count number of pixels after compression
@@ -182,10 +240,16 @@ def get_encoded_size(img_h, img_w, rings):
 
 def encode(topo_X, rings):
     """
-     Parameters
+    .. todo::
+
+        WRITEME
+
+    Parameters
     ----------
-    topo_X : dataset matrix in topological format (batch, rows, cols, chans)
-    rings : list of ring_sizes which were used to generate dense_input
+    topo_X : WRITEME
+        dataset matrix in topological format (batch, rows, cols, chans)
+    rings : WRITEME
+        list of ring_sizes which were used to generate dense_input
     """
     (batch_size, img_h, img_w, chans) = topo_X.shape
 
@@ -203,11 +267,18 @@ def encode(topo_X, rings):
 
 def decode(dense_X, img_shp, rings):
     """
-    Parameters
+    .. todo::
+
+        WRITEME
+
+	Parameters
     ----------
-    dense_X : matrix in DenseDesignMatrix format (batch, dim)
-    img_shp : tuple of image dimensions (rows, cols, chans)
-    rings : list of ring_sizes which were used to generate dense_input
+    dense_X : WRITEME
+        matrix in DenseDesignMatrix format (batch, dim)
+    img_shp : WRITEME
+        tuple of image dimensions (rows, cols, chans)
+    rings : WRITEME
+        list of ring_sizes which were used to generate dense_input
     """
     out_shp = [len(dense_X)] + list(img_shp)
     output = numpy.zeros(out_shp)
@@ -231,6 +302,7 @@ class RetinaEncodingBlock(object):
     ----------
     rings : WRITEME
     """
+
     def __init__(self, rings):
         self.rings = rings
 
@@ -256,15 +328,30 @@ class RetinaDecodingBlock(object):
     rings : WRITEME
     """
     def __init__(self, img_shp, rings):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.img_shp = img_shp
         self.rings = rings
 
     def apply(self, dataset, can_fit=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         X = dataset.get_design_matrix()
         topo_X = self.perform(X)
         dataset.set_topological_view(topo_X)
 
     def perform(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return decode(X, self.img_shp, self.rings)
 
 
@@ -280,6 +367,7 @@ class RetinaCodingViewConverter(DefaultViewConverter):
         List or tuple of three ints: rows, cols, channels
     rings : WRITEME
     """
+
     def __init__(self, shape, rings):
         self.shape = shape
         self.rings = rings
@@ -292,10 +380,25 @@ class RetinaCodingViewConverter(DefaultViewConverter):
         self.encoder = RetinaEncodingBlock(rings)
 
     def design_mat_to_topo_view(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.decoder.perform(X)
 
     def design_mat_to_weights_view(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.design_mat_to_topo_view(X)
 
     def topo_view_to_design_mat(self, V):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.encoder.perform(V)

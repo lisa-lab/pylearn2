@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -16,7 +21,6 @@ class Wiskott(dense_design_matrix.DenseDesignMatrix):
         WRITEME
     """
     def __init__(self):
-
         path = "${PYLEARN2_DATA_PATH}/wiskott/wiskott"\
              + "_fish_layer0_15_standard_64x64_shuffled.npy"
 

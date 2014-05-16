@@ -1,0 +1,7 @@
+The two yaml files in this folder are to reproduce MNIST results of the original dropout paper http://arxiv.org/abs/1207.0580.
+
+mnist_valid.yaml: use some portion of data for validation and reaches 1.08% error rate.
+mnist.yaml uses same hyperparameters as above but uses the whole training set. It will stop at the same epoch that mnist_valid.yaml reaches its best validation error. And results in 1.05% test error.
+
+1.10% is the error reported in original dropout paper.
+1.05% is the error reported in  Nitish Srivastava's master thesis.
