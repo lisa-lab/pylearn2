@@ -30,6 +30,11 @@ from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
 from pylearn2.sandbox.cuda_convnet.pool import MaxPoolGrad
 
 def stochastic_max_pool_c01b(c01b, pool_shape, pool_stride, start=0, seed = 1234):
+    """
+    .. todo::
+
+        WRITEME
+    """
     assert pool_shape[0] == pool_shape[1]
     assert pool_stride[0] == pool_stride[1]
     op = StochasticMaxPool(pool_shape[0], pool_stride[0], start, seed)
@@ -37,6 +42,11 @@ def stochastic_max_pool_c01b(c01b, pool_shape, pool_stride, start=0, seed = 1234
     return op(c01b)
 
 def weighted_max_pool_c01b(c01b, pool_shape, pool_stride, start=0):
+    """
+    .. todo::
+
+        WRITEME
+    """
     assert pool_shape[0] == pool_shape[1]
     assert pool_stride[0] == pool_stride[1]
     op = WeightedMaxPool(pool_shape[0], pool_stride[0], start)
@@ -48,42 +58,41 @@ class StochasticMaxPool(GpuOp):
     Stochastic MaxPool op code on the GPU.
     The input are in the order (channel, image rows, image cols, batch)
 
-    Work only on square images and the grad work only when channel % 16 == 0.
+    Works only on square images and the grad works only when
+    channel % 16 == 0.
+
+    Parameters
+    ----------
+    ds : int
+        defines the size of the pooling region in the x (equivalently, y)
+        dimension. Squares of size (ds)2 get reduced to one value by this
+        layer.  There are no restrictions on the value of this parameter. It's
+        fine for a pooling square to fall off the boundary of the image. Named
+        SizeX in Alex's code.
+    stride : int
+        defines the stride size between successive pooling squares. Setting
+        this parameter smaller than sizeX produces overlapping pools. Setting
+        it equal to sizeX gives the usual, non-overlapping pools. Values
+        greater than sizeX are not allowed.
+    start : int, optional
+        tells the net where in the input image to start the pooling (in x,y
+        coordinates). In principle, you can start anywhere you want. Setting
+        this to a positive number will cause the net to discard some pixels at
+        the top and at the left of the image. Setting this to a negative number
+        will cause it to include pixels that don't exist (which is fine).
+        start=0 is the usual setting.
+    outputs : int, optional
+        allows you to control how many output values in the x (equivalently, y)
+        dimension this operation will produce. This parameter is analogous to
+        the start parameter, in that it allows you to discard some portion of
+        the image by setting it to a value small enough to leave part of the
+        image uncovered. Setting it to zero instructs the net to produce as
+        many outputs as is necessary to ensure that the whole image is covered.
+        default 0
+    seed : WRITEME
     """
+
     def __init__(self, ds, stride, start=0, outputs=0, seed = 1234):
-        """
-        :param ds: defines the size of the pooling region in the x
-            (equivalently, y) dimension. Squares of size (ds)2 get reduced
-            to one value by this layer. There are no restrictions on the
-            value of this parameter. It's fine for a pooling square to
-            fall off the boundary of the image. Named SizeX in Alex's
-            code.
-
-        :param stride: defines the stride size between successive
-            pooling squares. Setting this parameter smaller than sizeX
-            produces overlapping pools. Setting it equal to sizeX
-            gives the usual, non-overlapping pools. Values greater
-            than sizeX are not allowed.
-
-        :param start: tells the net where in the input image to start
-            the pooling (in x,y coordinates). In principle, you can
-            start anywhere you want. Setting this to a positive number
-            will cause the net to discard some pixels at the top and
-            at the left of the image. Setting this to a negative
-            number will cause it to include pixels that don't exist
-            (which is fine). start=0 is the usual setting.
-
-        :param outputs: allows you to control how many output values
-            in the x (equivalently, y) dimension this operation will
-            produce. This parameter is analogous to the start
-            parameter, in that it allows you to discard some portion
-            of the image by setting it to a value small enough to
-            leave part of the image uncovered. Setting it to zero
-            instructs the net to produce as many outputs as is
-            necessary to ensure that the whole image is
-            covered. default 0
-
-        """
         self.ds = ds
         self.stride = stride
         self.start = start
@@ -94,33 +103,73 @@ class StochasticMaxPool(GpuOp):
         assert ds > 0, ds  # We check in the code if ds <= imgSizeX
 
     def __eq__(self, other):
-        #Dont put copy_non_contigous as this don't change the output
+        """
+        .. todo::
+
+            WRITEME
+        """
+        #Dont put copy_non_contigous as this doesn't change the output
         return (type(self) == type(other) and
                 self.ds == other.ds and
                 self.stride == other.stride and
                 self.start == other.start)
 
     def __hash__(self):
-        #Dont put copy_non_contigous as this don't change the output
+        """
+        .. todo::
+
+            WRITEME
+        """
+        #Dont put copy_non_contigous as this doesn't change the output
         return (hash(type(self)) ^ hash(self.ds) ^
                 hash(self.stride) ^ hash(self.start))
 
     def c_header_dirs(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return [this_dir]
 
     def c_headers(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ['nvmatrix.cuh', 'conv_util.cuh']
 
     def c_lib_dirs(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return [cuda_convnet_loc]
 
     def c_libraries(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ['cuda_convnet']
 
     def c_code_cache_version(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return (1,)
 
     def _argument_contiguity_check(self, arg_name):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return """
         if (!CudaNdarray_is_c_contiguous(%%(%(arg_name)s)s))
         {
@@ -137,6 +186,11 @@ class StochasticMaxPool(GpuOp):
         }
 
     def make_node(self, images):
+        """
+        .. todo::
+
+            WRITEME
+        """
         images = as_cuda_ndarray_variable(images)
 
         assert images.ndim == 4
@@ -156,6 +210,11 @@ class StochasticMaxPool(GpuOp):
         return Apply(self, [images, seed], [targets])
 
     def c_code(self, node, name, inputs, outputs, sub):
+        """
+        .. todo::
+
+            WRITEME
+        """
         images, seed = inputs
         targets, = outputs
         fail = sub['fail']
@@ -258,6 +317,11 @@ class StochasticMaxPool(GpuOp):
         return rval
 
     def grad(self, inp, grads):
+        """
+        .. todo::
+
+            WRITEME
+        """
         x, seed = inp
         gz, = grads
         gz = gpu_contiguous(gz)
@@ -266,6 +330,11 @@ class StochasticMaxPool(GpuOp):
 
     # Make sure the cuda_convnet library is compiled and up-to-date
     def make_thunk(self, node, storage_map, compute_map, no_recycling):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if not convnet_available():
             raise RuntimeError('Could not compile cuda_convnet')
 
@@ -277,42 +346,40 @@ class WeightedMaxPool(GpuOp):
     This op wrap Alex's MaxPool code on the GPU.
     The input are in the order (channel, image rows, image cols, batch)
 
-    Work only on square images and the grad work only when channel % 16 == 0.
+    Works only on square images and the grad works only when
+    channel % 16 == 0.
+
+    Parameters
+    ----------
+    ds : int
+        defines the size of the pooling region in the x (equivalently, y)
+        dimension. Squares of size (ds)2 get reduced to one value by this
+        layer.  There are no restrictions on the value of this parameter. It's
+        fine for a pooling square to fall off the boundary of the image. Named
+        SizeX in Alex's code.
+    stride : int
+        defines the stride size between successive pooling squares. Setting
+        this parameter smaller than sizeX produces overlapping pools. Setting
+        it equal to sizeX gives the usual, non-overlapping pools. Values
+        greater than sizeX are not allowed.
+    start : int, optional
+        tells the net where in the input image to start the pooling (in x,y
+        coordinates). In principle, you can start anywhere you want. Setting
+        this to a positive number will cause the net to discard some pixels at
+        the top and at the left of the image. Setting this to a negative number
+        will cause it to include pixels that don't exist (which is fine).
+        start=0 is the usual setting.
+    outputs : int, optional
+        allows you to control how many output values in the x (equivalently, y)
+        dimension this operation will produce. This parameter is analogous to
+        the start parameter, in that it allows you to discard some portion of
+        the image by setting it to a value small enough to leave part of the
+        image uncovered. Setting it to zero instructs the net to produce as
+        many outputs as is necessary to ensure that the whole image is covered.
+        default 0
     """
+
     def __init__(self, ds, stride, start=0, outputs=0):
-        """
-        :param ds: defines the size of the pooling region in the x
-            (equivalently, y) dimension. Squares of size (ds)2 get reduced
-            to one value by this layer. There are no restrictions on the
-            value of this parameter. It's fine for a pooling square to
-            fall off the boundary of the image. Named SizeX in Alex's
-            code.
-
-        :param stride: defines the stride size between successive
-            pooling squares. Setting this parameter smaller than sizeX
-            produces overlapping pools. Setting it equal to sizeX
-            gives the usual, non-overlapping pools. Values greater
-            than sizeX are not allowed.
-
-        :param start: tells the net where in the input image to start
-            the pooling (in x,y coordinates). In principle, you can
-            start anywhere you want. Setting this to a positive number
-            will cause the net to discard some pixels at the top and
-            at the left of the image. Setting this to a negative
-            number will cause it to include pixels that don't exist
-            (which is fine). start=0 is the usual setting.
-
-        :param outputs: allows you to control how many output values
-            in the x (equivalently, y) dimension this operation will
-            produce. This parameter is analogous to the start
-            parameter, in that it allows you to discard some portion
-            of the image by setting it to a value small enough to
-            leave part of the image uncovered. Setting it to zero
-            instructs the net to produce as many outputs as is
-            necessary to ensure that the whole image is
-            covered. default 0
-
-        """
         self.ds = ds
         self.stride = stride
         self.start = start
@@ -321,33 +388,73 @@ class WeightedMaxPool(GpuOp):
         assert ds > 0, ds  # We check in the code if ds <= imgSizeX
 
     def __eq__(self, other):
-        #Dont put copy_non_contigous as this don't change the output
+        """
+        .. todo::
+
+            WRITEME
+        """
+        #Dont put copy_non_contigous as this doesn't change the output
         return (type(self) == type(other) and
                 self.ds == other.ds and
                 self.stride == other.stride and
                 self.start == other.start)
 
     def __hash__(self):
-        #Dont put copy_non_contigous as this don't change the output
+        """
+        .. todo::
+
+            WRITEME
+        """
+        #Dont put copy_non_contigous as this doesn't change the output
         return (hash(type(self)) ^ hash(self.ds) ^
                 hash(self.stride) ^ hash(self.start))
 
     def c_header_dirs(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return [this_dir]
 
     def c_headers(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ['nvmatrix.cuh', 'conv_util.cuh']
 
     def c_lib_dirs(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return [cuda_convnet_loc]
 
     def c_libraries(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ['cuda_convnet']
 
     def c_code_cache_version(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return (1,)
 
     def _argument_contiguity_check(self, arg_name):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return """
         if (!CudaNdarray_is_c_contiguous(%%(%(arg_name)s)s))
         {
@@ -364,6 +471,11 @@ class WeightedMaxPool(GpuOp):
         }
 
     def make_node(self, images):
+        """
+        .. todo::
+
+            WRITEME
+        """
         images = as_cuda_ndarray_variable(images)
 
         assert images.ndim == 4
@@ -382,6 +494,11 @@ class WeightedMaxPool(GpuOp):
         return Apply(self, [images], [targets])
 
     def c_code(self, node, name, inputs, outputs, sub):
+        """
+        .. todo::
+
+            WRITEME
+        """
         images, = inputs
         targets, = outputs
         fail = sub['fail']
@@ -480,10 +597,20 @@ class WeightedMaxPool(GpuOp):
         return rval
 
     def grad(self, inp, grads):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError()
 
     # Make sure the cuda_convnet library is compiled and up-to-date
     def make_thunk(self, node, storage_map, compute_map, no_recycling):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if not convnet_available():
             raise RuntimeError('Could not compile cuda_convnet')
 

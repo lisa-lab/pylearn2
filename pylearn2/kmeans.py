@@ -1,6 +1,4 @@
-"""
-K-means as a postprocessing Block subclass.
-"""
+"""K-means as a postprocessing Block subclass."""
 
 import logging
 import numpy
@@ -24,8 +22,8 @@ logger = logging.getLogger(__name__)
 
 class KMeans(Block, Model):
     """
-    Block that outputs a vector of probabilities that a sample belong to means
-    computed during training.
+    Block that outputs a vector of probabilities that a sample belong
+    to means computed during training.
 
     Parameters
     ----------
@@ -33,11 +31,15 @@ class KMeans(Block, Model):
         Number of clusters
     nvis : int
         Dimension of input
-    convergence_th : float
-        Threshold of distance to clusters under which k-means stops iterating.
-    max_iter : int
+    convergence_th : float, optional
+        Threshold of distance to clusters under which k-means stops
+        iterating.
+    max_iter : int, optional
         Maximum number of iterations. Defaults to infinity.
+    verbose : bool
+        WRITEME
     """
+
     def __init__(self, k, nvis, convergence_th=1e-6, max_iter=None,
                  verbose=False):
         Block.__init__(self)

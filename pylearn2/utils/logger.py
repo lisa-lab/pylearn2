@@ -113,11 +113,11 @@ class CustomStreamHandler(Handler):
     Parameters
     ----------
     stdout : file-like object, optional
-        Stream to which DEBUG and INFO messages should be written. If `None`,
-        `sys.stdout` will be used.
+        Stream to which DEBUG and INFO messages should be written.
+        If `None`, `sys.stdout` will be used.
     stderr : file-like object, optional
-        Stream to which WARNING, ERROR, CRITICAL messages will be written. If
-        `None`, `sys.stderr` will be used.
+        Stream to which WARNING, ERROR, CRITICAL messages will be
+        written. If `None`, `sys.stderr` will be used.
     formatter : `logging.Formatter` object, optional
         Assigned to `self.formatter`, used to format outgoing log messages.
 
@@ -152,9 +152,7 @@ class CustomStreamHandler(Handler):
         return sys.stderr if self._stderr is None else self._stderr
 
     def flush(self):
-        """
-        Flushes the stream.
-        """
+        """Flushes the stream."""
         for stream in (self.stdout, self.stderr):
             stream.flush()
 
@@ -219,14 +217,14 @@ def configure_custom(debug=False, stdout=None, stderr=None):
 
     Parameters
     ----------
-    debug : boolean
-        If `True`, display DEBUG messages on `stdout` along with \
+    debug : bool
+        If `True`, display DEBUG messages on `stdout` along with
         INFO-level messages.
     stdout : file-like object, optional
-        Stream to which DEBUG and INFO messages should be written. \
+        Stream to which DEBUG and INFO messages should be written.
         If `None`, `sys.stdout` will be used.
     stderr : file-like object, optional
-        Stream to which WARNING, ERROR, CRITICAL messages will be \
+        Stream to which WARNING, ERROR, CRITICAL messages will be
         written. If `None`, `sys.stderr` will be used.
 
     Notes
@@ -296,9 +294,9 @@ def newline(logger, nb_blank_lines=1):
     Parameters
     ----------
     logger : Logger object
-             The logger where the blank line will be added.
-    nb_blank_lines : int
-                     Number of blank lines in a row.
+        The logger where the blank line will be added.
+    nb_blank_lines : int, optional
+        Number of blank lines in a row.
     """
     formatter = logging.Formatter(fmt='')
     handler = CustomStreamHandler(formatter=formatter)

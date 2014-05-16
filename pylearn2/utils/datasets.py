@@ -116,11 +116,11 @@ def nonzero_features(data, combine=None):
     Parameters
     ----------
     data : list of matrices
-        List of data matrices, either in sparse format or not. They must have \
-        the same number of features (column number).
-    combine : function
-        A function to combine elementwise which features to keep. Default \
-        keeps the intersection of each non-zero columns
+        List of data matrices, either in sparse format or not.
+        They must have the same number of features (column number).
+    combine : function, optional
+        A function to combine elementwise which features to keep.
+        Default keeps the intersection of each non-zero columns.
 
     Returns
     -------
@@ -151,11 +151,11 @@ def filter_nonzero(data, combine=None):
     Parameters
     ----------
     data : list of matrices
-        List of data matrices, either in sparse format or not. They must have \
-        the same number of features (column number).
+        List of data matrices, either in sparse format or not.
+        They must have the same number of features (column number).
     combine : function
-        A function to combine elementwise which features to keep. Default \
-        keeps the intersection of each non-zero columns
+        A function to combine elementwise which features to keep.
+        Default keeps the intersection of each non-zero columns.
 
     Returns
     -------
@@ -183,6 +183,7 @@ class BatchIterator(object):
     batch_size : WRITEME
     seed : WRITEME
     """
+
     def __init__(self, dataset, set_proba, batch_size, seed=300):
         # Local shortcuts for array operations
         flo = numpy.floor
@@ -228,9 +229,7 @@ class BatchIterator(object):
         self.permut = rng.permutation(index_tab)
 
     def __iter__(self):
-        """
-        Generator function to iterate through all minibatches
-        """
+        """Generator function to iterate through all minibatches"""
         counter = [0, 0, 0]
         for chosen in self.permut:
             # Retrieve minibatch from chosen set
@@ -244,15 +243,11 @@ class BatchIterator(object):
             yield minibatch
 
     def __len__(self):
-        """
-        Return length of the weighted union
-        """
+        """Return length of the weighted union"""
         return self.length
 
     def by_index(self):
-        """
-        Same generator as __iter__, but yield only the chosen indexes
-        """
+        """Same generator as __iter__, but yield only the chosen indexes"""
         counter = [0, 0, 0]
         for chosen in self.permut:
             index = counter[chosen]
@@ -268,9 +263,13 @@ def blend(dataset, set_proba, **kwargs):
     """
     Randomized blending of datasets in data according to parameters in conf
 
+    .. note:: pylearn2.utils.datasets.blend is deprecated and will be
+              removed on or after 13 August 2014.
+
     Parameters
     ----------
-    set_probe : WRITEME
+    set_proba : WRITEME
+    kwargs : WRITEME
 
     Returns
     -------
@@ -305,8 +304,8 @@ def minibatch_map(fn, batch_size, input_data, output_data=None,
     """
     Apply a function on input_data, one minibatch at a time.
 
-    Storage for the output can be provided. If it is the case, it should have
-    appropriate size.
+    Storage for the output can be provided. If it is the case,
+    it should have appropriate size.
 
     If output_data is not provided, then output_width should be specified.
 

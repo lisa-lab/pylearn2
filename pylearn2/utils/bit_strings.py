@@ -24,7 +24,7 @@ def all_bit_strings(bits, dtype='uint8'):
     Returns
     -------
     bit_strings : ndarray, shape (2 ** bits, bits)
-        The numbers from 0 to 2 ** bits - 1 as binary numbers, most \
+        The numbers from 0 to 2 ** bits - 1 as binary numbers, most
         significant bit first.
 
     Notes

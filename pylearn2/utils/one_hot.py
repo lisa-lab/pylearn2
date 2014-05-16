@@ -97,22 +97,28 @@ def one_hot(labels, max_label=None, dtype=None, out=None):
     Construct a one-hot matrix from a vector of integer labels.
     Each row will have a single 1 with all other elements 0.
 
+    .. note::
+        `pylearn2.utils.one_hot is deprecated`. Use
+        `pylearn2.format.target_format.OneHotFormatter`
+        instead. `pylearn2.utils.one_hot` will be removed
+        on or after 13 August 2014".
+
     Parameters
     ----------
     labels : array_like, 1-dimensional (or 2-dimensional (nlabels, 1))
         The integer labels to use to construct the one hot matrix.
 
     max_label : int, optional
-        The maximum valid label. Must be greater than or equal to \
+        The maximum valid label. Must be greater than or equal to
         `numpy.amax(labels)`.
 
     dtype : str or dtype object, optional
-        The dtype you wish the returned array to have. Defaults \
+        The dtype you wish the returned array to have. Defaults
         to `labels.dtype` if not provided.
 
     out : ndarray, optional
-        An array to use in lieu of allocating one. Must be the \
-        right shape, i.e. same first dimension as `labels` and \
+        An array to use in lieu of allocating one. Must be the
+        right shape, i.e. same first dimension as `labels` and
         second dimension greater than or equal to `labels.max() + 1`.
 
     Returns
@@ -121,7 +127,7 @@ def one_hot(labels, max_label=None, dtype=None, out=None):
         The resulting one-hot matrix.
     """
     warnings.warn("pylearn2.utils.one_hot is deprecated. Use "
-                  "pylearn2.format.target_format.OneHotFomatter "
+                  "pylearn2.format.target_format.OneHotFormatter "
                   "instead. pylearn2.utils.one_hot will be removed "
                   "on or after 13 August 2014", stacklevel=2)
     labels = _validate_labels(labels, 1)
@@ -138,33 +144,39 @@ def k_hot(labels, max_label=None, dtype=None, out=None):
     Create a matrix of k-hot rows, where k (or less) elements
     are 1 and the rest are 0.
 
+    .. note::
+        `pylearn2.utils.one_hot is deprecated`. Use
+        `pylearn2.format.target_format.OneHotFormatter`
+        instead. `pylearn2.utils.one_hot` will be removed
+        on or after 13 August 2014".
+
     Parameters
     ----------
     labels : array_like, 2-dimensional (nlabels, k)
         The integer labels to use to construct the k-hot matrix.
 
     max_label : int, optional
-        The maximum valid label. Must be greater than or equal to \
+        The maximum valid label. Must be greater than or equal to
         `numpy.amax(labels)`.
 
     dtype : str or dtype object, optional
-        The dtype you wish the returned array to have. Defaults \
+        The dtype you wish the returned array to have. Defaults
         to `labels.dtype` if not provided.
 
     out : ndarray, optional
-        An array to use in lieu of allocating one. Must be the \
-        right shape, i.e. same first dimension as `labels` and \
+        An array to use in lieu of allocating one. Must be the
+        right shape, i.e. same first dimension as `labels` and
         second dimension greater than or equal to `labels.max() + 1`.
 
     Returns
     -------
     out : ndarray, (nlabels, max_label + 1)
-        The resulting k-hot matrix. If a given integer appeared \
-        in the same row more than once then there may be less \
+        The resulting k-hot matrix. If a given integer appeared
+        in the same row more than once then there may be less
         than k elements active in the corresponding row of `out`.
     """
     warnings.warn("pylearn2.utils.one_hot is deprecated. Use "
-                  "pylearn2.format.target_format.OneHotFomatter "
+                  "pylearn2.format.target_format.OneHotFormatter "
                   "instead. pylearn2.utils.one_hot will be removed "
                   "on or after 13 August 2014", stacklevel=2)
     labels = _validate_labels(labels, 2)
@@ -185,25 +197,31 @@ def compressed_one_hot(labels, dtype=None, out=None, simplify_binary=True):
     only including columns corresponding to integer labels that
     actually appear.
 
+    .. note::
+        `pylearn2.utils.one_hot is deprecated`. Use
+        `pylearn2.format.target_format.OneHotFormatter`
+        instead. `pylearn2.utils.one_hot` will be removed
+        on or after 13 August 2014".
+
     Parameters
     ----------
     labels : array_like, 1-dimensional (or 2-dimensional (nlabels, 1))
         The integer labels to use to construct the one hot matrix.
 
     dtype : str or dtype object, optional
-        The dtype you wish the returned array to have. Defaults \
+        The dtype you wish the returned array to have. Defaults
         to `labels.dtype` if not provided.
 
     out : ndarray, optional
-        An array to use in lieu of allocating one. Must be the \
-        right shape, i.e. same first dimension as `labels` and \
-        second dimension greater than or equal to the number of \
+        An array to use in lieu of allocating one. Must be the
+        right shape, i.e. same first dimension as `labels` and
+        second dimension greater than or equal to the number of
         unique values in `labels`.
 
     simplify_binary : bool, optional
-        If `True`, if there are only two distinct labels, return \
-        an `(nlabels, 1)` matrix with 0 lesser the lesser integer \
-        label and 1 denoting the greater, instead of a redundant \
+        If `True`, if there are only two distinct labels, return
+        an `(nlabels, 1)` matrix with 0 lesser the lesser integer
+        label and 1 denoting the greater, instead of a redundant
         `(nlabels, 2)` matrix.
 
     Returns
@@ -212,11 +230,11 @@ def compressed_one_hot(labels, dtype=None, out=None, simplify_binary=True):
         The resulting one-hot matrix.
 
     uniq : ndarray, 1-dimensional
-        The array of unique values in `labels` in the order \
+        The array of unique values in `labels` in the order
         in which the corresponding columns appear in `out`.
     """
     warnings.warn("pylearn2.utils.one_hot is deprecated. Use "
-                  "pylearn2.format.target_format.OneHotFomatter "
+                  "pylearn2.format.target_format.OneHotFormatter "
                   "instead. pylearn2.utils.one_hot will be removed "
                   "on or after 13 August 2014", stacklevel=2)
     labels = _validate_labels(labels, ndim=1)

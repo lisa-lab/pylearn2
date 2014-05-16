@@ -27,6 +27,7 @@ class KeepBestParams(TrainExtension):
     batch_size : int
         size of the batches used to compute the cost
     """
+
     def __init__(self, model, cost, monitoring_dataset, batch_size):
         self.model = model
         self.cost = cost
@@ -80,9 +81,7 @@ class KeepBestParams(TrainExtension):
             self.best_params = self.model.get_param_values()
 
     def get_best_params(self):
-        """
-        Returns the best parameters up to now for the model.
-        """
+        """Returns the best parameters up to now for the model."""
         return self.best_params
 
 
@@ -97,7 +96,10 @@ class MonitorBasedSaveBest(TrainExtension):
         The name of the channel we want to minimize
     save_path : str
         Path to save the best model to
+    higher_is_better : bool, optional
+        WRITEME
     """
+
     def __init__(self, channel_name, save_path,higher_is_better=False):
         self.__dict__.update(locals())
         del self.self
@@ -116,7 +118,7 @@ class MonitorBasedSaveBest(TrainExtension):
         Parameters
         ----------
         model : pylearn2.models.model.Model
-            model.monitor must contain a channel with name given by \
+            model.monitor must contain a channel with name given by
             self.channel_name
         dataset : pylearn2.datasets.dataset.Dataset
             Not used
