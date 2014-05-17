@@ -135,8 +135,8 @@ class GridSearch(object):
 
     def save(self):
         """
-        Serialize grid points and trained models in (parameters, model)
-        tuples, possibly only saving a subset of the best scoring models.
+        Serialize trained models, possibly only saving a subset of the
+        best-scoring models.
         """
         try:
             for trainer in self.trainers:
