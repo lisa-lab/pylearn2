@@ -222,28 +222,49 @@ class GridSearch(object):
         for trainer in self.trainers:
             trainer.main_loop(time_budget)
         self.get_best_models()
-        if self.save_path is not None:
-            self.save()
+        self.save()
 
-    def save(self):
-        """Serialize best-scoring models."""
-        if self.best_models is not None:
-            models = self.best_models
+    def save(self, trainers=None):
+        """
+        Serialize best-scoring models.
+
+        Parameters
+        ----------
+        trainers : list or None
+            Parent trainer(s) of the model(s) to save. If None, defaults to
+            self.trainers.
+        """
+        if trainers is None:
+            trainers = self.trainers
+            if self.best_models is not None:
+                models = self.best_models
+            else:
+                models = self.models
         else:
-            models = self.models
+            models = [trainer.model for trainer in trainers]
         try:
-            for trainer in self.trainers:
-                for extension in trainer.extensions:
-                    extension.on_save(trainer.model, trainer.dataset,
-                                      trainer.algorithm)
-                trainer.dataset._serialization_guard = SerializationGuard()
+            for trainer in trainers:
+                if isinstance(trainer, TrainCV):
+                    for t in trainer.trainers:
+                        for extension in t.extensions:
+                            extension.on_save(t.model, t.dataset, t.algorithm)
+                        t.dataset._serialization_guard = SerializationGuard()
+                else:
+                    for extension in trainer.extensions:
+                        extension.on_save(trainer.model, trainer.dataset,
+                                          trainer.algorithm)
+                    trainer.dataset._serialization_guard = SerializationGuard()
             if self.save_path is not None:
                 if not self.allow_overwrite and os.path.exists(self.save_path):
                     raise IOError("Trying to overwrite file when not allowed.")
                 serial.save(self.save_path, models, on_overwrite='backup')
         finally:
-            for trainer in self.trainers:
-                trainer.dataset._serialization_guard = None
+            for trainer in trainers:
+                if isinstance(trainer, TrainCV):
+                    for t in trainer.trainers:
+                        t.dataset._serialization_guard = None
+                else:
+                    trainer.dataset._serialization_guard = None
 
 
 class GridSearchCV(GridSearch):
@@ -302,8 +323,7 @@ class GridSearchCV(GridSearch):
         best_models = self.models[0][sort][:self.n_best]
         best_params = self.params[0][sort][:self.n_best]
         best_scores = mean_scores[sort][:self.n_best]
-        best_trainers = [trainer.trainers[0]
-                         for trainer in self.trainers[sort][self.n_best]]
+        best_trainers = [t for t in self.trainers[sort][:self.n_best]]
         if len(best_models) == 1:
             best_models, = best_models
             best_params, = best_params
@@ -327,14 +347,22 @@ class GridSearchCV(GridSearch):
             trainer.main_loop(time_budget)
         self.get_best_cv_models()
         if self.retrain:
-            self.retrain()
+            self.retrain_best_models()
         if self.save_path is not None:
             self.save()
 
-    def retrain(self):
+    def retrain_best_models(self):
         """
         Train best models on full dataset.
         """
-        dataset = self.trainers[0].dataset_iterator.dataset
-        for trainer in self.best_trainers:
-            trainer
+        models = []
+        for parent in self.best_trainers:
+            dataset = parent.dataset_iterator.dataset
+            trainer = parent.trainers[0]
+            trainer.dataset = dataset
+            trainer.algorithm._set_monitoring_dataset({'train': dataset})
+            trainer.main_loop()
+            models.append(trainer.model)
+        if len(models) == 1:
+            models, = models
+        self.best_models = models
