@@ -62,7 +62,6 @@ class GridSearch(object):
         for key, value in param_grid.items():
             param_grid[key] = np.atleast_1d(value)  # must be iterable
         param_grid = ParameterGrid(param_grid)
-        self.param_grid = param_grid
         self.save_path = save_path
         self.allow_overwrite = allow_overwrite
         self.monitor_channel = monitor_channel
@@ -72,19 +71,27 @@ class GridSearch(object):
         # construct a trainer for each grid point
         self.trainers = None
         self.params = None
-        self.scores = None
-        self.get_trainers()
+        self.get_trainers(param_grid)
 
-        # other placeholders
+        # placeholders
+        self.models = None
+        self.scores = None
         self.best_models = None
         self.best_params = None
         self.best_scores = None
 
-    def get_trainers(self):
-        """Construct a trainer for each grid point."""
+    def get_trainers(self, param_grid):
+        """
+        Construct a trainer for each grid point.
+
+        Parameters
+        ----------
+        param_grid : dict
+            Parameter grid.
+        """
         trainers = []
         parameters = []
-        for grid_point in self.param_grid:
+        for grid_point in param_grid:
 
             # build output filename
             if self.save_path is not None:
@@ -140,26 +147,26 @@ class GridSearch(object):
         models = np.asarray([trainer.model for trainer in trainers])
         params = np.asarray(self.params)
         scores = self.score(models)
-        best_models = models
-        best_params = params
-        best_scores = scores
-        if scores is not None:
+        best_models = None
+        best_params = None
+        best_scores = None
+        if scores is not None and self.n_best is not None:
             sort = np.argsort(scores)
             if self.higher_is_better:
                 sort = sort[::-1]
-            if self.n_best is not None:
-                best_models = models[sort][:self.n_best]
-                best_params = params[sort][:self.n_best]
-                best_scores = scores[sort][:self.n_best]
-                if len(best_models) == 1:
-                    best_models, = best_models
-                    best_params, = best_params
-                    best_scores, = best_scores
+            best_models = models[sort][:self.n_best]
+            best_params = params[sort][:self.n_best]
+            best_scores = scores[sort][:self.n_best]
+            if len(best_models) == 1:
+                best_models, = best_models
+                best_params, = best_params
+                best_scores, = best_scores
+        self.models = models
         self.scores = scores
         self.best_models = best_models
         self.best_params = best_params
         self.best_scores = best_scores
-        return scores, best_models, best_params, best_scores
+        return models, scores, best_models, best_params, best_scores
 
     def get_best_cv_models(self):
         """
@@ -168,23 +175,35 @@ class GridSearch(object):
 
         The first dimension of self.best_models is the fold index.
         """
+        models = []
         params = []
         scores = []
         best_models = []
         best_params = []
         best_scores = []
         for k in xrange(len(self.trainers[0].trainers)):
-            params.append(self.params)
             trainers = [trainer.trainers[k] for trainer in self.trainers]
-            (this_scores,
+            (this_models,
+             this_scores,
              this_best_models,
              this_best_params,
              this_best_scores) = self.get_best_models(trainers)
-            scores.append(this_scores)
-            best_models.append(this_best_models)
-            best_params.append(this_best_params)
-            best_scores.append(this_best_scores)
+            models.append(this_models)
+            params.append(self.params)
+            if this_scores is not None:
+                scores.append(this_scores)
+            if this_best_scores is not None:
+                best_models.append(this_best_models)
+                best_params.append(this_best_params)
+                best_scores.append(this_best_scores)
+        self.models = models
         self.params = params
+        if not len(scores):
+            scores = None
+        if not len(best_scores):
+            best_models = None
+            best_params = None
+            best_scores = None
         self.scores = scores
         self.best_models = best_models
         self.best_params = best_params
@@ -208,6 +227,10 @@ class GridSearch(object):
 
     def save(self):
         """Serialize best-scoring models."""
+        if self.best_models is not None:
+            models = self.best_models
+        else:
+            models = self.models
         try:
             for trainer in self.trainers:
                 for extension in trainer.extensions:
@@ -217,8 +240,7 @@ class GridSearch(object):
             if self.save_path is not None:
                 if not self.allow_overwrite and os.path.exists(self.save_path):
                     raise IOError("Trying to overwrite file when not allowed.")
-                serial.save(self.save_path, self.best_models,
-                            on_overwrite='backup')
+                serial.save(self.save_path, models, on_overwrite='backup')
         finally:
             for trainer in self.trainers:
                 trainer.dataset._serialization_guard = None
@@ -262,14 +284,57 @@ class GridSearchCV(GridSearch):
                                            higher_is_better, n_best)
         self.retrain = retrain
 
+        # placeholders
+        self.best_trainers = None
+
     def get_best_cv_models(self):
         """
         Get best models by averaging scores over all cross-validation
         folds.
         """
-        scores = []
-        for trainer in self.trainers:
-            models = [t.model for t in trainer.trainers]
-            this_scores = self.score(models)
-        scores = np.asarray(scores)
+        super(GridSearchCV, self).get_best_cv_models()
+        if self.scores is None or self.n_best is None:
+            return
+        mean_scores = np.mean(self.scores, axis=0)
+        sort = np.argsort(mean_scores)
+        if self.higher_is_better:
+            sort = sort[::-1]
+        best_models = self.models[0][sort][:self.n_best]
+        best_params = self.params[0][sort][:self.n_best]
+        best_scores = mean_scores[sort][:self.n_best]
+        best_trainers = [trainer.trainers[0]
+                         for trainer in self.trainers[sort][self.n_best]]
+        if len(best_models) == 1:
+            best_models, = best_models
+            best_params, = best_params
+            best_scores, = best_scores
+        self.best_models = best_models
+        self.best_params = best_params
+        self.best_scores = best_scores
+        self.best_trainers = best_trainers
 
+    def main_loop(self, time_budget=None):
+        """
+        Run main_loop of each trainer.
+
+        Parameters
+        ----------
+        time_budget : int, optional
+            The maximum number of seconds before interrupting
+            training. Default is `None`, no time limit.
+        """
+        for trainer in self.trainers:
+            trainer.main_loop(time_budget)
+        self.get_best_cv_models()
+        if self.retrain:
+            self.retrain()
+        if self.save_path is not None:
+            self.save()
+
+    def retrain(self):
+        """
+        Train best models on full dataset.
+        """
+        dataset = self.trainers[0].dataset_iterator.dataset
+        for trainer in self.best_trainers:
+            trainer
