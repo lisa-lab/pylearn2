@@ -81,6 +81,10 @@ class GridSearch(object):
         self.parameters = None
         self.get_trainers()
 
+        # other placeholders
+        self.best_models = None
+        self.best_params = None
+
     def get_trainers(self):
         """Construct a trainer for each grid point."""
         trainers = []
@@ -101,12 +105,13 @@ class GridSearch(object):
         self.trainers = trainers
         self.parameters = parameters
 
-    def get_models(self):
-        """Get models to save, along with grid search parameters."""
+    def get_best_models(self):
+        """Get best models."""
         models = []
-        for params, trainer in safe_zip(self.parameters, self.trainers):
+        params = self.parameters
+        for this_params, trainer in safe_zip(self.parameters, self.trainers):
             model = trainer.model
-            model.grid_search_params = params
+            model.grid_search_params = this_params
             models.append(model)
         if self.monitor_channel is not None:
             scores = []
@@ -118,9 +123,15 @@ class GridSearch(object):
             if self.higher_is_better:
                 sort = sort[::-1]
             models = models[sort]
+            params = self.parameters[sort]
             if self.n_best is not None:
                 models = models[:self.n_best]
-        return models
+                params = params[:self.n_best]
+                if len(models) == 1:
+                    models, = models
+                    params, = params
+        self.best_models = models
+        self.best_params = params
 
     def main_loop(self, time_budget=None):
         """
@@ -134,6 +145,7 @@ class GridSearch(object):
         """
         for trainer in self.trainers:
             trainer.main_loop(time_budget)
+        self.get_best_models()
         if self.save_path is not None:
             self.save()
 
@@ -148,11 +160,10 @@ class GridSearch(object):
                     extension.on_save(trainer.model, trainer.dataset,
                                       trainer.algorithm)
                 trainer.dataset._serialization_guard = SerializationGuard()
-            models = self.get_models()
             if self.save_path is not None:
                 if not self.allow_overwrite and os.path.exists(self.save_path):
                     raise IOError("Trying to overwrite file when not allowed.")
-                serial.save(self.save_path, models, on_overwrite='backup')
+                serial.save(self.save_path, self.best, on_overwrite='backup')
         finally:
             for trainer in self.trainers:
                 trainer.dataset._serialization_guard = None
