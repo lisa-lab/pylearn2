@@ -54,7 +54,7 @@ class TrainCV(object):
                  allow_overwrite=True, save_folds=False, cv_extensions=None):
         trainers = []
         for k, datasets in enumerate(dataset_iterator):
-            if save_folds:
+            if save_folds and save_path is not None:
                 path, ext = os.path.splitext(save_path)
                 this_save_path = path + '-{}'.format(k) + ext
                 this_save_freq = save_freq
