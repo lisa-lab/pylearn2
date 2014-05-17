@@ -52,6 +52,7 @@ class TrainCV(object):
     def __init__(self, dataset_iterator, model, algorithm=None,
                  save_path=None, save_freq=0, extensions=None,
                  allow_overwrite=True, save_folds=False, cv_extensions=None):
+        self.dataset_iterator = dataset_iterator
         trainers = []
         for k, datasets in enumerate(dataset_iterator):
             if save_folds and save_path is not None:
