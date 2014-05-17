@@ -323,7 +323,7 @@ class GridSearchCV(GridSearch):
         best_models = np.atleast_1d(self.models[0])[sort][:self.n_best]
         best_params = np.atleast_1d(self.params[0])[sort][:self.n_best]
         best_scores = mean_scores[sort][:self.n_best]
-        best_trainers = self.trainers[sort][:self.n_best]
+        best_trainers = np.atleast_1d(self.trainers)[sort][:self.n_best]
         if len(best_models) == 1:
             best_models, = best_models
             best_params, = best_params
