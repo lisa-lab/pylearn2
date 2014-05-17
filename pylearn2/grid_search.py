@@ -352,7 +352,7 @@ class GridSearchCV(GridSearch):
         """
         dataset = self.trainers[0].dataset_iterator.dataset
         models = []
-        for params in self.best_params:
+        for params in np.atleast_1d(self.best_params):
             trainer = yaml_parse.load(self.template % params)
             trainer.dataset = dataset
             trainer.algorithm._set_monitoring_dataset({'train': dataset})
