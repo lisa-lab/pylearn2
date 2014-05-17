@@ -25,15 +25,7 @@ except ImportError:
 from pylearn2.config import yaml_parse
 from pylearn2.cross_validation import TrainCV
 from pylearn2.train import SerializationGuard
-from pylearn2.utils import safe_zip, serial
-
-
-def deep_setattr(obj, name, value):
-    children = name.split('.')
-    name = children[-1]
-    for child in children[:-1]:
-        obj = getattr(obj, child)
-    setattr(obj, name, value)
+from pylearn2.utils import serial
 
 
 class GridSearch(object):
@@ -174,6 +166,7 @@ class GridSearch(object):
         Get best models from each cross-validation fold. This is different
         than using cross-validation to select hyperparameters.
         """
+        params = []
         scores = []
         best_models = []
         best_params = []
@@ -183,10 +176,12 @@ class GridSearch(object):
              this_best_models,
              this_best_params,
              this_best_scores) = self.get_best_models(trainer.trainers)
+            params.append(self.params)
             scores.append(this_scores)
             best_models.append(this_best_models)
             best_params.append(this_best_params)
             best_scores.append(this_best_scores)
+        self.params = params
         self.scores = scores
         self.best_models = best_models
         self.best_params = best_params
