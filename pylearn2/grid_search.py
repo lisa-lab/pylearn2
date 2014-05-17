@@ -360,7 +360,7 @@ class GridSearchCV(GridSearch):
             dataset = parent.dataset_iterator.dataset
             trainer = parent.trainers[0]
             trainer.dataset = dataset
-            trainer.algorithm._set_monitoring_dataset({'train': dataset})
+            trainer.algorithm._set_monitoring_dataset({'full': dataset})
             trainer.main_loop()
             models.append(trainer.model)
         if len(models) == 1:
