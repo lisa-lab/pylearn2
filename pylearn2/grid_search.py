@@ -16,7 +16,11 @@ __maintainer__ = "Steven Kearnes"
 
 import numpy as np
 import os
-from sklearn.grid_search import ParameterGrid
+import warnings
+try:
+    from sklearn.grid_search import ParameterGrid
+except ImportError:
+    warnings.warn("Could not import from sklearn.")
 
 from pylearn2.config import yaml_parse
 from pylearn2.train import SerializationGuard
