@@ -13,9 +13,9 @@ def test_grid_search():
 
 test_grid_search_yaml = """
 !obj:pylearn2.grid_search.GridSearch {
-  template: |
+  template: "
     !obj:pylearn2.train.Train {
-      dataset:
+      dataset: &train
       !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix {
           rng: !obj:numpy.random.RandomState { seed: 1 },
           num_examples: 10,
@@ -39,8 +39,15 @@ test_grid_search_yaml = """
       },
       algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
         batch_size: 5,
+        termination_criterion:
+          !obj:pylearn2.termination_criteria.EpochCounter {
+            max_epochs: 1,
+          },
+        monitoring_dataset: {
+          train: *train,
+        },
       },
-    },
+    }",
   param_grid: {
     dim: [2, 4, 8]
   },

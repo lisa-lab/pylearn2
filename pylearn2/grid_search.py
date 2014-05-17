@@ -78,12 +78,14 @@ class GridSearch(object):
 
         # construct a trainer for each grid point
         self.trainers = None
-        self.parameters = None
+        self.params = None
+        self.scores = None
         self.get_trainers()
 
         # other placeholders
         self.best_models = None
         self.best_params = None
+        self.best_scores = None
 
     def get_trainers(self):
         """Construct a trainer for each grid point."""
@@ -92,44 +94,52 @@ class GridSearch(object):
         for grid_point in self.param_grid:
 
             # build output filename
-            save_path, ext = os.path.splitext(self.save_path)
-            for key, value in grid_point.items():
-                save_path += '-{}_{}'.format(key, value)
-            grid_point['save_path'] = save_path + '.' + ext
-            grid_point['best_save_path'] = save_path + '-best.' + ext
+            if self.save_path is not None:
+                save_path, ext = os.path.splitext(self.save_path)
+                for key, value in grid_point.items():
+                    save_path += '-{}_{}'.format(key, value)
+                grid_point['save_path'] = save_path + '.' + ext
+                grid_point['best_save_path'] = save_path + '-best.' + ext
 
             # construct trainer
             trainer = yaml_parse.load(self.template % grid_point)
             trainers.append(trainer)
             parameters.append(grid_point)
         self.trainers = trainers
-        self.parameters = parameters
+        self.params = parameters
 
     def get_best_models(self):
         """Get best models."""
         models = []
-        params = self.parameters
-        for this_params, trainer in safe_zip(self.parameters, self.trainers):
+        params = np.asarray(self.params)
+        for this_params, trainer in safe_zip(self.params, self.trainers):
             model = trainer.model
             model.grid_search_params = this_params
             models.append(model)
+        models = np.asarray(models)
         if self.monitor_channel is not None:
             scores = []
             for model in models:
                 monitor = model.monitor
                 score = monitor.channels[self.monitor_channel].val_record[-1]
                 scores.append(score)
+            scores = np.asarray(scores)
+            self.scores = scores
             sort = np.argsort(scores)
             if self.higher_is_better:
                 sort = sort[::-1]
             models = models[sort]
-            params = self.parameters[sort]
+            params = params[sort]
+            scores = scores[sort]
             if self.n_best is not None:
                 models = models[:self.n_best]
                 params = params[:self.n_best]
+                scores = scores[:self.n_best]
                 if len(models) == 1:
                     models, = models
                     params, = params
+                    scores, = scores
+                self.best_scores = scores
         self.best_models = models
         self.best_params = params
 
@@ -150,10 +160,7 @@ class GridSearch(object):
             self.save()
 
     def save(self):
-        """
-        Serialize trained models, possibly only saving a subset of the
-        best-scoring models.
-        """
+        """Serialize best-scoring models."""
         try:
             for trainer in self.trainers:
                 for extension in trainer.extensions:
@@ -163,7 +170,8 @@ class GridSearch(object):
             if self.save_path is not None:
                 if not self.allow_overwrite and os.path.exists(self.save_path):
                     raise IOError("Trying to overwrite file when not allowed.")
-                serial.save(self.save_path, self.best, on_overwrite='backup')
+                serial.save(self.save_path, self.best_models,
+                            on_overwrite='backup')
         finally:
             for trainer in self.trainers:
                 trainer.dataset._serialization_guard = None
