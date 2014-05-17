@@ -31,9 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 def ensure_Image():
-    """
-    Makes sure Image has been imported from PIL
-    """
+    """Makes sure Image has been imported from PIL"""
     global Image
     if Image is None:
         raise RuntimeError("You are trying to use PIL-dependent functionality"
@@ -48,14 +46,14 @@ def imview(*args, **kwargs):
     Parameters are identical to `matplotlib.pyplot.imshow`
     but this behaves somewhat differently:
 
-      * By default, it creates a new figure (unless a
-        `figure` keyword argument is supplied.
-      * It modifies the axes of that figure to use the
-        full frame, without ticks or tick labels.
-      * It turns on `nearest` interpolation by default
-        (i.e., it does not antialias pixel data). This
-        can be overridden with the `interpolation`
-        argument as in `imshow`.
+    * By default, it creates a new figure (unless a
+      `figure` keyword argument is supplied.
+    * It modifies the axes of that figure to use the
+      full frame, without ticks or tick labels.
+    * It turns on `nearest` interpolation by default
+      (i.e., it does not antialias pixel data). This
+      can be overridden with the `interpolation`
+      argument as in `imshow`.
 
     All other arguments and keyword arguments are passed
     on to `imshow`.`
@@ -104,10 +102,14 @@ def imview_async(*args, **kwargs):
 
 def show(image):
     """
+    .. todo::
+
+        WRITEME
+
     Parameters
     ----------
     image : PIL Image object or ndarray
-        If ndarray, integer formats are assumed to use 0-255 \
+        If ndarray, integer formats are assumed to use 0-255
         and float formats are assumed to use 0-1
     """
     if hasattr(image, '__array__'):
@@ -216,8 +218,8 @@ def ndarray_from_pil(pil, dtype='uint8'):
 
 def rescale(image, shape):
     """
-    Scales image to be no larger than shape. PIL might give you unexpected
-    results beyond that
+    Scales image to be no larger than shape. PIL might give you
+    unexpected results beyond that.
 
     Parameters
     ----------
@@ -434,12 +436,12 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
     Parameters
     ----------
     x : numpy.ndarray
-        2-d ndarray or 4 tuple of 2-d ndarrays or None for channels, in which \
-        every row is a flattened image.
+        2-d ndarray or 4 tuple of 2-d ndarrays or None for channels,
+        in which every row is a flattened image.
 
     shape : 2-tuple of ints
-        The first component is the height of each image, the second component \
-        is the width.
+        The first component is the height of each image,
+        the second component is the width.
 
     tile_shape : 2-tuple of ints
         The number of images to tile in (row, columns) form.
@@ -448,13 +450,13 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
         Whether or not the values need to be before being plotted to [0, 1].
 
     output_pixel_vals : bool
-        Whether or not the output should be pixel values (int8) or floats
+        Whether or not the output should be pixel values (int8) or floats.
 
     Returns
     -------
     y : 2d-ndarray
-        The return value has the same dtype as X, and is suitable for viewing \
-        as an image with PIL.Image.fromarray.
+        The return value has the same dtype as X, and is suitable for
+        viewing as an image with PIL.Image.fromarray.
     """
 
     assert len(img_shape) == 2
