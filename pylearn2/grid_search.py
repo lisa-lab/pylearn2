@@ -14,7 +14,6 @@ __copyright__ = "Copyright 2014, Stanford University"
 __license__ = "3-clause BSD"
 __maintainer__ = "Steven Kearnes"
 
-from copy import deepcopy
 import numpy as np
 import os
 import warnings
@@ -26,7 +25,7 @@ except ImportError:
 from pylearn2.config import yaml_parse
 from pylearn2.cross_validation import TrainCV
 from pylearn2.train import SerializationGuard
-from pylearn2.utils import safe_zip, serial
+from pylearn2.utils import serial
 
 
 class GridSearch(object):
@@ -306,9 +305,6 @@ class GridSearchCV(GridSearch):
                                            higher_is_better, n_best)
         self.retrain = retrain
 
-        # placeholders
-        self.best_trainers = None
-
     def get_best_cv_models(self):
         """
         Get best models by averaging scores over all cross-validation
@@ -324,7 +320,6 @@ class GridSearchCV(GridSearch):
         best_models = np.atleast_1d(self.models[0])[sort][:self.n_best]
         best_params = np.atleast_1d(self.params[0])[sort][:self.n_best]
         best_scores = mean_scores[sort][:self.n_best]
-        best_trainers = np.atleast_1d(self.trainers)[sort][:self.n_best]
         if len(best_models) == 1:
             best_models, = best_models
             best_params, = best_params
@@ -332,7 +327,6 @@ class GridSearchCV(GridSearch):
         self.best_models = best_models
         self.best_params = best_params
         self.best_scores = best_scores
-        self.best_trainers = best_trainers
 
     def main_loop(self, time_budget=None):
         """
@@ -356,11 +350,10 @@ class GridSearchCV(GridSearch):
         """
         Train best models on full dataset.
         """
+        dataset = self.trainers[0].dataset_iterator.dataset
         models = []
-        for parent in self.best_trainers:
-            dataset = parent.dataset_iterator.dataset
-            trainer = parent.trainers[0]
-            trainer = deepcopy(trainer)
+        for params in self.best_params:
+            trainer = yaml_parse.load(self.template % params)
             trainer.dataset = dataset
             trainer.algorithm._set_monitoring_dataset({'train': dataset})
             trainer.main_loop()
