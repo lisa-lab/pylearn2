@@ -14,6 +14,7 @@ __copyright__ = "Copyright 2014, Stanford University"
 __license__ = "3-clause BSD"
 __maintainer__ = "Steven Kearnes"
 
+from copy import deepcopy
 import numpy as np
 import os
 import warnings
@@ -359,8 +360,9 @@ class GridSearchCV(GridSearch):
         for parent in self.best_trainers:
             dataset = parent.dataset_iterator.dataset
             trainer = parent.trainers[0]
+            trainer = deepcopy(trainer)
             trainer.dataset = dataset
-            trainer.algorithm._set_monitoring_dataset({'full': dataset})
+            trainer.algorithm._set_monitoring_dataset({'train': dataset})
             trainer.main_loop()
             models.append(trainer.model)
         if len(models) == 1:
