@@ -23,6 +23,7 @@ except ImportError:
     warnings.warn("Could not import from sklearn.")
 
 from pylearn2.config import yaml_parse
+from pylearn2.cross_validation import TrainCV
 from pylearn2.train import SerializationGuard
 from pylearn2.utils import safe_zip, serial
 
@@ -108,15 +109,16 @@ class GridSearch(object):
         self.trainers = trainers
         self.params = parameters
 
-    def get_best_models(self):
-        """Get best models."""
-        models = []
-        params = np.asarray(self.params)
-        for this_params, trainer in safe_zip(self.params, self.trainers):
-            model = trainer.model
-            model.grid_search_params = this_params
-            models.append(model)
-        models = np.asarray(models)
+    def score(self, models):
+        """
+        Score models.
+
+        Parameters
+        ----------
+        models : list
+            Models to score.
+        """
+        scores = None
         if self.monitor_channel is not None:
             scores = []
             for model in models:
@@ -124,24 +126,71 @@ class GridSearch(object):
                 score = monitor.channels[self.monitor_channel].val_record[-1]
                 scores.append(score)
             scores = np.asarray(scores)
-            self.scores = scores
+        return scores
+
+    def get_best_models(self, trainers=None):
+        """
+        Get best models.
+
+        Parameters
+        ----------
+        trainers : list or None
+            Trainers from which to extract models. If None, defaults to
+            self.trainers.
+        """
+        if trainers is None:
+            trainers = self.trainers
+
+        # special handling for TrainCV templates
+        if isinstance(trainers[0], TrainCV):
+            return self.get_best_cv_models()
+
+        models = np.asarray([trainer.model for trainer in trainers])
+        params = np.asarray(self.params)
+        scores = self.score(models)
+        best_models = models
+        best_params = params
+        best_scores = scores
+        if scores is not None:
             sort = np.argsort(scores)
             if self.higher_is_better:
                 sort = sort[::-1]
-            models = models[sort]
-            params = params[sort]
-            scores = scores[sort]
             if self.n_best is not None:
-                models = models[:self.n_best]
-                params = params[:self.n_best]
-                scores = scores[:self.n_best]
-                if len(models) == 1:
-                    models, = models
-                    params, = params
-                    scores, = scores
-                self.best_scores = scores
-        self.best_models = models
-        self.best_params = params
+                best_models = models[sort][:self.n_best]
+                best_params = params[sort][:self.n_best]
+                best_scores = scores[sort][:self.n_best]
+                if len(best_models) == 1:
+                    best_models, = best_models
+                    best_params, = best_params
+                    best_scores, = best_scores
+        self.scores = scores
+        self.best_models = best_models
+        self.best_params = best_params
+        self.best_scores = best_scores
+        return scores, best_models, best_params, best_scores
+
+    def get_best_cv_models(self):
+        """
+        Get best models from each cross-validation fold. This is different
+        than using cross-validation to select hyperparameters.
+        """
+        scores = []
+        best_models = []
+        best_params = []
+        best_scores = []
+        for trainer in self.trainers:
+            (this_scores,
+             this_best_models,
+             this_best_params,
+             this_best_scores) = self.get_best_models(trainer.trainers)
+            scores.append(this_scores)
+            best_models.append(this_best_models)
+            best_params.append(this_best_params)
+            best_scores.append(this_best_scores)
+        self.scores = scores
+        self.best_models = best_models
+        self.best_params = best_params
+        self.best_scores = best_scores
 
     def main_loop(self, time_budget=None):
         """
