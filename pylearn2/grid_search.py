@@ -25,7 +25,7 @@ except ImportError:
 from pylearn2.config import yaml_parse
 from pylearn2.cross_validation import TrainCV
 from pylearn2.train import SerializationGuard
-from pylearn2.utils import serial
+from pylearn2.utils import safe_zip, serial
 
 
 class GridSearch(object):
@@ -165,18 +165,21 @@ class GridSearch(object):
         """
         Get best models from each cross-validation fold. This is different
         than using cross-validation to select hyperparameters.
+
+        The first dimension of self.best_models is the fold index.
         """
         params = []
         scores = []
         best_models = []
         best_params = []
         best_scores = []
-        for trainer in self.trainers:
+        for k in xrange(len(self.trainers[0].trainers)):
+            params.append(self.params)
+            trainers = [trainer.trainers[k] for trainer in self.trainers]
             (this_scores,
              this_best_models,
              this_best_params,
-             this_best_scores) = self.get_best_models(trainer.trainers)
-            params.append(self.params)
+             this_best_scores) = self.get_best_models(trainers)
             scores.append(this_scores)
             best_models.append(this_best_models)
             best_params.append(this_best_params)
@@ -219,3 +222,54 @@ class GridSearch(object):
         finally:
             for trainer in self.trainers:
                 trainer.dataset._serialization_guard = None
+
+
+class GridSearchCV(GridSearch):
+    """
+    Use a TrainCV template to select the best hyperparameters by cross-
+    validation.
+
+    Parameters
+    ----------
+    template : str
+        YAML template, possibly containing % formatting fields.
+    param_grid : dict
+        Parameter grid, with keys matching template fields. Additional
+        keys will also be used to generate additional models. For example,
+        {'n': [1, 2, 3]} (when no %(n)s field exists in the template) will
+        cause each model to be trained three times; useful when working
+        with stochastic models.
+    save_path : str or None
+        Output filename for trained model(s). Also used (with modification)
+        for individual models if template contains %(save_path)s or
+        %(best_save_path)s fields.
+    allow_overwrite : bool
+        Whether to overwrite pre-existing output file matching save_path.
+    monitor_channel : str or None
+        Monitor channel to use to compare models.
+    higher_is_better : bool
+        Whether higher monitor_channel values correspond to better models.
+    n_best : int or None
+        Maximum number of models to save, ranked by monitor_channel value.
+    retrain : bool
+        Whether to train the best model(s) on the full dataset.
+    """
+    def __init__(self, template, param_grid, save_path=None,
+                 allow_overwrite=True, monitor_channel=None,
+                 higher_is_better=False, n_best=None, retrain=True):
+        super(GridSearchCV, self).__init__(template, param_grid, save_path,
+                                           allow_overwrite, monitor_channel,
+                                           higher_is_better, n_best)
+        self.retrain = retrain
+
+    def get_best_cv_models(self):
+        """
+        Get best models by averaging scores over all cross-validation
+        folds.
+        """
+        scores = []
+        for trainer in self.trainers:
+            models = [t.model for t in trainer.trainers]
+            this_scores = self.score(models)
+        scores = np.asarray(scores)
+
