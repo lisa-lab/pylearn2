@@ -320,8 +320,8 @@ class GridSearchCV(GridSearch):
         sort = np.argsort(mean_scores)
         if self.higher_is_better:
             sort = sort[::-1]
-        best_models = self.models[0][sort][:self.n_best]
-        best_params = self.params[0][sort][:self.n_best]
+        best_models = np.atleast_1d(self.models[0])[sort][:self.n_best]
+        best_params = np.atleast_1d(self.params[0])[sort][:self.n_best]
         best_scores = mean_scores[sort][:self.n_best]
         best_trainers = [t for t in self.trainers[sort][:self.n_best]]
         if len(best_models) == 1:
