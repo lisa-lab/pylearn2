@@ -234,9 +234,10 @@ class DatasetKFold(DatasetCV):
         Dataset to use for cross-validation.
     n_folds : int
         Number of cross-validation folds.
-    indices : bool
+    indices : bool or None
         Whether to return indices for dataset slicing. If false, returns
-        a boolean mask.
+        a boolean mask. This argument is deprecated and will be removed in
+        future versions of sklearn.
     shuffle : bool
         Whether to shuffle the dataset before partitioning.
     random_state : int or RandomState
@@ -244,7 +245,7 @@ class DatasetKFold(DatasetCV):
     kwargs : dict
         Keyword arguments for DatasetCV.
     """
-    def __init__(self, dataset, n_folds=3, indices=True, shuffle=False,
+    def __init__(self, dataset, n_folds=3, indices=None, shuffle=False,
                  random_state=None, **kwargs):
         n = dataset.X.shape[0]
         cv = KFold(n, n_folds, indices, shuffle, random_state)
@@ -261,13 +262,14 @@ class StratifiedDatasetKFold(StratifiedDatasetCV):
         Dataset to use for cross-validation.
     n_folds : int
         Number of cross-validation folds.
-    indices : bool
+    indices : bool or None
         Whether to return indices for dataset slicing. If false, returns
-        a boolean mask.
+        a boolean mask. This argument is deprecated and will be removed in
+        future versions of sklearn.
     kwargs : dict
         Keyword arguments for DatasetCV.
     """
-    def __init__(self, dataset, n_folds=3, indices=True, **kwargs):
+    def __init__(self, dataset, n_folds=3, indices=None, **kwargs):
         y = self.get_y(dataset)
         cv = StratifiedKFold(y, n_folds, indices)
         super(StratifiedDatasetKFold, self).__init__(dataset, cv, **kwargs)
@@ -291,16 +293,17 @@ class DatasetShuffleSplit(DatasetCV):
         If float, intepreted as the proportion of examples in the training
         set. If int, interpreted as the absolute number of examples in the
         training set. If None, adjusted to the complement of test_size.
-    indices : bool
+    indices : bool or None
         Whether to return indices for dataset slicing. If false, returns
-        a boolean mask.
+        a boolean mask. This argument is deprecated and will be removed in
+        future versions of sklearn.
     random_state : int or RandomState
         Random number generator used for shuffling.
     kwargs : dict
         Keyword arguments for DatasetCV.
     """
     def __init__(self, dataset, n_iter=10, test_size=0.1, train_size=None,
-                 indices=True, random_state=None, **kwargs):
+                 indices=None, random_state=None, **kwargs):
         n = dataset.X.shape[0]
         cv = ShuffleSplit(n, n_iter, test_size, train_size, indices,
                           random_state)
@@ -325,16 +328,17 @@ class StratifiedDatasetShuffleSplit(StratifiedDatasetCV):
         If float, intepreted as the proportion of examples in the training
         set. If int, interpreted as the absolute number of examples in the
         training set. If None, adjusted to the complement of test_size.
-    indices : bool
+    indices : bool or None
         Whether to return indices for dataset slicing. If false, returns
-        a boolean mask.
+        a boolean mask. This argument is deprecated and will be removed in
+        future versions of sklearn.
     random_state : int or RandomState
         Random number generator used for shuffling.
     kwargs : dict
         Keyword arguments for DatasetCV.
     """
     def __init__(self, dataset, n_iter=10, test_size=0.1, train_size=None,
-                 indices=True, random_state=None, **kwargs):
+                 indices=None, random_state=None, **kwargs):
         y = self.get_y(dataset)
         cv = StratifiedShuffleSplit(y, n_iter, test_size, train_size, indices,
                                     random_state)
@@ -352,9 +356,10 @@ class DatasetValidationKFold(DatasetCV):
         Dataset to use for cross-validation.
     n_folds : int
         Number of cross-validation folds. Must be at least 3.
-    indices : bool
+    indices : bool or None
         Return train/valid/test split as arrays of indices instead of
-        boolean masks.
+        boolean masks. This argument is deprecated and will be removed in
+        future versions of sklearn.
     shuffle : bool
         Whether to shuffle the data before splitting.
     random_state : int, RandomState, or None
@@ -362,7 +367,7 @@ class DatasetValidationKFold(DatasetCV):
     kwargs : dict
         Keyword arguments for DatasetCV.
     """
-    def __init__(self, dataset, n_folds=3, indices=True, shuffle=False,
+    def __init__(self, dataset, n_folds=3, indices=None, shuffle=False,
                  random_state=None, **kwargs):
         n = dataset.X.shape[0]
         cv = ValidationKFold(n, n_folds, indices, shuffle, random_state)
@@ -379,13 +384,14 @@ class StratifiedDatasetValidationKFold(StratifiedDatasetCV):
         Dataset to use for cross-validation.
     n_folds : int
         Number of cross-validation folds. Must be at least 3.
-    indices : bool
+    indices : bool or None
         Return train/valid/test split as arrays of indices instead of
-        boolean masks.
+        boolean masks. This argument is deprecated and will be removed in
+        future versions of sklearn.
     kwargs : dict
         Keyword arguments for DatasetCV.
     """
-    def __init__(self, dataset, n_folds=3, indices=True, **kwargs):
+    def __init__(self, dataset, n_folds=3, indices=None, **kwargs):
         y = self.get_y(dataset)
         cv = StratifiedValidationKFold(y, n_folds, indices)
         super(StratifiedDatasetValidationKFold, self).__init__(dataset, cv,
@@ -420,16 +426,17 @@ class DatasetValidationShuffleSplit(DatasetCV):
         split. If int, represents the absolute number of validation
         samples. If None, the value is automatically set to the complement
         of valid_size + test_size.
-    indices : bool
+    indices : bool or None
         Return train/valid/test split as arrays of indices instead of
-        boolean masks.
+        boolean masks. This argument is deprecated and will be removed in
+        future versions of sklearn.
     random_state : int, RandomState, or None
         Pseudorandom number seed or generator to use for shuffling.
     kwargs : dict
         Keyword arguments for DatasetCV.
     """
     def __init__(self, dataset, n_iter=10, test_size=0.1, valid_size=None,
-                 train_size=None, indices=True, random_state=None, **kwargs):
+                 train_size=None, indices=None, random_state=None, **kwargs):
         n = dataset.X.shape[0]
         cv = ValidationShuffleSplit(n, n_iter, test_size, valid_size,
                                     train_size, indices, random_state)
@@ -466,16 +473,17 @@ class StratifiedDatasetValidationShuffleSplit(StratifiedDatasetCV):
         split. If int, represents the absolute number of validation
         samples. If None, the value is automatically set to the complement
         of valid_size + test_size.
-    indices : bool
+    indices : bool or None
         Return train/valid/test split as arrays of indices instead of
-        boolean masks.
+        boolean masks. This argument is deprecated and will be removed in
+        future versions of sklearn.
     random_state : int, RandomState, or None
         Pseudorandom number seed or generator to use for shuffling.
     kwargs : dict
         Keyword arguments for DatasetCV.
     """
     def __init__(self, dataset, n_iter=10, test_size=0.1, valid_size=None,
-                 train_size=None, indices=True, random_state=None, **kwargs):
+                 train_size=None, indices=None, random_state=None, **kwargs):
         y = self.get_y(dataset)
         cv = StratifiedValidationShuffleSplit(y, n_iter, test_size, valid_size,
                                               train_size, indices,

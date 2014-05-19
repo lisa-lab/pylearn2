@@ -61,15 +61,16 @@ class ValidationKFold(KFold):
         Number of examples.
     n_folds : int
         Number of cross-validation folds. Must be at least 3.
-    indices : bool
+    indices : bool or None
         Return train/valid/test split as arrays of indices instead of
-        boolean masks.
+        boolean masks. This argument is deprecated and will be removed in
+        future versions of sklearn.
     shuffle : bool
         Whether to shuffle the data before splitting.
     random_state : int, RandomState, or None
         Pseudorandom number seed or generator to use for shuffling.
     """
-    def __init__(self, n, n_folds=3, indices=True, shuffle=False,
+    def __init__(self, n, n_folds=3, indices=None, shuffle=False,
                  random_state=None):
         if n_folds <= 2:
             raise ValueError("k-fold cross-validation requires at least one " +
@@ -105,11 +106,12 @@ class StratifiedValidationKFold(StratifiedKFold):
         Labels for examples.
     n_folds : int
         Number of cross-validation folds. Must be at least 3.
-    indices : bool
+    indices : bool or None
         Return train/valid/test split as arrays of indices instead of
-        boolean masks.
+        boolean masks. This argument is deprecated and will be removed in
+        future versions of sklearn.
     """
-    def __init__(self, y, n_folds=3, indices=True):
+    def __init__(self, y, n_folds=3, indices=None):
         if n_folds <= 2:
             raise ValueError("k-fold cross-validation requires at least one " +
                              "train/valid/test split by setting n_folds=3 " +
@@ -161,14 +163,15 @@ class ValidationShuffleSplit(ShuffleSplit):
         split. If int, represents the absolute number of validation
         samples. If None, the value is automatically set to the complement
         of valid_size + test_size.
-    indices : bool
+    indices : bool or None
         Return train/valid/test split as arrays of indices instead of
-        boolean masks.
+        boolean masks. This argument is deprecated and will be removed in
+        future versions of sklearn.
     random_state : int, RandomState, or None
         Pseudorandom number seed or generator to use for shuffling.
     """
     def __init__(self, n, n_iter=10, test_size=0.1, valid_size=None,
-                 train_size=None, indices=True, random_state=None):
+                 train_size=None, indices=None, random_state=None):
         super(ValidationShuffleSplit, self).__init__(n, n_iter, test_size,
                                                      train_size, indices,
                                                      random_state)
@@ -226,14 +229,15 @@ class StratifiedValidationShuffleSplit(StratifiedShuffleSplit):
         split. If int, represents the absolute number of validation
         samples. If None, the value is automatically set to the complement
         of valid_size + test_size.
-    indices : bool
+    indices : bool or None
         Return train/valid/test split as arrays of indices instead of
-        boolean masks.
+        boolean masks. This argument is deprecated and will be removed in
+        future versions of sklearn.
     random_state : int, RandomState, or None
         Pseudorandom number seed or generator to use for shuffling.
     """
     def __init__(self, y, n_iter=10, test_size=0.1, valid_size=None,
-                 train_size=None, indices=True, random_state=None):
+                 train_size=None, indices=None, random_state=None):
         super(StratifiedValidationShuffleSplit, self).__init__(y, n_iter,
                                                                test_size,
                                                                train_size,
