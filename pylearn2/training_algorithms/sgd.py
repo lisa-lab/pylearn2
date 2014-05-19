@@ -227,18 +227,18 @@ class SGD(TrainingAlgorithm):
         # test if force batch size and batch size
         has_force_batch_size = getattr(model, "force_batch_size", False)
         train_dataset_is_uneven = \
-                dataset.get_num_examples() % self.batch_size != 0
+            dataset.get_num_examples() % self.batch_size != 0
 
         has_monitoring_datasets = \
-                self.monitoring_dataset is not None and \
-                    self.monitoring_dataset.values()>0
+            self.monitoring_dataset is not None and \
+            self.monitoring_dataset.values() > 0
 
         if has_monitoring_datasets:
             monitoring_datasets_are_uneven = \
-                    any(d.get_num_examples() % self.batch_size
-                        != 0 for d in self.monitoring_dataset.values())
+                any(d.get_num_examples() % self.batch_size
+                    != 0 for d in self.monitoring_dataset.values())
         else:
-            monitoring_datasets_are_uneven = False # or True it doesn't matter
+            monitoring_datasets_are_uneven = False  # or True it doesn't matter
 
         if has_force_batch_size and train_dataset_is_uneven and \
            not has_uniform_batch_size(self.train_iteration_mode):

@@ -152,7 +152,7 @@ class Dataset(object):
             of numpy values, depending on the value of `include_labels`.
         """
         raise NotImplementedError(str(type(self))+" does not implement "
-                "get_batch_design.")
+                                  "get_batch_design.")
 
     def get_batch_topo(self, batch_size):
         """

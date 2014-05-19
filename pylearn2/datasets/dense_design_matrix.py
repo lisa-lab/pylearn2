@@ -526,15 +526,18 @@ class DenseDesignMatrix(Dataset):
             raise ValueError("Initialize either split ratio and split size to "
                              "non-zero value.")
         if size < self.get_num_examples()-size:
-            dataset_iter = self.iterator(mode=_mode,
-                                         batch_size=(self.get_num_examples() - size))
+            dataset_iter = self.iterator(
+                mode=_mode,
+                batch_size=(self.get_num_examples() - size))
             valid = dataset_iter.next()
-            train = dataset_iter.next()[:self.get_num_examples()-valid.shape[0]]
+            train = dataset_iter.next()[:(self.get_num_examples()
+                                          - valid.shape[0])]
         else:
             dataset_iter = self.iterator(mode=_mode,
                                          batch_size=size)
             train = dataset_iter.next()
-            valid = dataset_iter.next()[:self.get_num_examples()-train.shape[0]]
+            valid = dataset_iter.next()[:(self.get_num_examples()
+                                          - train.shape[0])]
         return (train, valid)
 
     def split_dataset_nfolds(self, nfolds=0):
@@ -646,7 +649,7 @@ class DenseDesignMatrix(Dataset):
 
         if 'default_rng' not in dir(self):
             self.default_rng = make_np_rng(None, [17, 2, 946],
-                    which_method="random_integers")
+                                           which_method="random_integers")
         self.rng = copy.copy(self.default_rng)
 
     def apply_preprocessor(self, preprocessor, can_fit=False):
