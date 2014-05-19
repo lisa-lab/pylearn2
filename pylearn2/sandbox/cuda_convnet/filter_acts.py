@@ -156,10 +156,10 @@ class FilterActs(BaseActs):
         #define scaleOutput 1
         """
 
-        if self.dense_connectivity:
-            basic_setup += """
-            #define numGroups 1
-            """
+        assert self.groups >= 1, "groups must be greater than zero"
+        basic_setup += """
+        #define numGroups %d
+        """ % self.groups
 
         assert isinstance(self.pad, py_integer_types)
         assert self.pad >= 0, "pad must be non-negative"
@@ -179,7 +179,7 @@ class FilterActs(BaseActs):
         # The amount of braces that must be closed at the end
         num_braces = 0
 
-        # Convert images int nv_images, an NVMatrix, for compatibility
+        # Convert images into nv_images, an NVMatrix, for compatibility
         # with the cuda-convnet functions
         setup_nv_images = self._argument_contiguity_check("images") + """
         if (%(images)s->nd != 4)
@@ -290,6 +290,11 @@ class FilterActs(BaseActs):
         """
 
         num_braces += 1
+        
+        if self.pattern is not None:
+            # TODO: obtain int* pointer to pattern array (on host!), then call
+            # convFilterActsSparse instead of convFilterActs
+            raise NotImplementedError("custom connection patterns not supported yet")
 
         # note: imgSizeX is not specified here, it is computed internally
         # (in _filterActsSparse) by the lines:
@@ -328,7 +333,7 @@ class FilterActs(BaseActs):
 
             WRITEME
         """
-        return (10,)
+        return (11,)
 
     def R_op(self, inputs, evals):
         """
@@ -375,8 +380,8 @@ class FilterActs(BaseActs):
 
         ishape = images.shape[1:3]
         fshape = filters.shape[1:3]
-        d_images = ImageActs(self.pad, self.partial_sum, self.stride)(
-            dout, filters, ishape)
-        d_filters = WeightActs(self.pad, self.partial_sum, self.stride)(
-            images, dout, fshape)[0]
+        d_images = ImageActs(self.pad, self.partial_sum, self.stride,
+            self.groups, self.pattern)(dout, filters, ishape)
+        d_filters = WeightActs(self.pad, self.partial_sum, self.stride,
+            self.groups, self.pattern)(images, dout, fshape)[0]
         return d_images, d_filters
