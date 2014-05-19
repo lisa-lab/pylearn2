@@ -6,6 +6,8 @@ import cPickle
 import os
 import pylearn2.scripts.dbm.show_negative_chains as negative_chains
 import pylearn2.scripts.dbm.show_reconstructions as reconstructions
+import pylearn2.scripts.dbm.show_samples as samples
+from pylearn2.config import yaml_parse
 from pylearn2.models.dbm.layer import BinaryVector, BinaryVectorMaxPool
 from pylearn2.datasets.mnist import MNIST
 from pylearn2.models.dbm.dbm import DBM
@@ -62,3 +64,17 @@ def test_show_reconstructions():
 
     recons_viewer = reconstructions.ReconsViewer(model, dataset, rows, cols)
     recons_viewer.update_viewer()
+
+
+@with_setup(setup, teardown)
+def test_show_samples():
+    """Test the samples update_viewer function"""
+    rows = 10
+    cols = 10
+    m = rows * cols
+
+    model = samples.load_model('dbm.pkl', m)
+    dataset = yaml_parse.load(model.dataset_yaml_src)
+
+    samples_viewer = samples.SamplesViewer(model, dataset, rows, cols)
+    samples_viewer.update_viewer()
