@@ -65,6 +65,8 @@ test_grid_search_yaml = """
       },
       algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
         batch_size: 5,
+        line_search_mode: 'exhaustive',
+        conjugate: 1,
         termination_criterion:
           !obj:pylearn2.termination_criteria.EpochCounter {
             max_epochs: 1,
@@ -113,6 +115,8 @@ test_grid_search_train_cv_yaml = """
       },
       algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
         batch_size: 5,
+        line_search_mode: 'exhaustive',
+        conjugate: 1,
         termination_criterion:
           !obj:pylearn2.termination_criteria.EpochCounter {
             max_epochs: 1,
@@ -158,6 +162,8 @@ test_grid_search_cv_yaml = """
       },
       algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
         batch_size: 5,
+        line_search_mode: 'exhaustive',
+        conjugate: 1,
         termination_criterion:
           !obj:pylearn2.termination_criteria.EpochCounter {
             max_epochs: 1,

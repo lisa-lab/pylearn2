@@ -295,15 +295,21 @@ class GridSearchCV(GridSearch):
     n_best : int or None
         Maximum number of models to save, ranked by monitor_channel value.
     retrain : bool
-        Whether to train the best model(s) on the full dataset.
+        Whether to train the best model(s).
+    retrain_dataset : Dataset, dict, or None
+        Dataset or dict of datasets to use for training best model(s). If
+        None, the dataset is extracted from TrainCV.dataset_iterator. If a
+        dict, it must contain a 'train' key.
     """
     def __init__(self, template, param_grid, save_path=None,
                  allow_overwrite=True, monitor_channel=None,
-                 higher_is_better=False, n_best=None, retrain=True):
+                 higher_is_better=False, n_best=None, retrain=True,
+                 retrain_dataset=None):
         super(GridSearchCV, self).__init__(template, param_grid, save_path,
                                            allow_overwrite, monitor_channel,
                                            higher_is_better, n_best)
         self.retrain = retrain
+        self.retrain_dataset = retrain_dataset
 
     def get_best_cv_models(self):
         """
@@ -350,13 +356,20 @@ class GridSearchCV(GridSearch):
         """
         Train best models on full dataset.
         """
-        dataset = self.trainers[0].dataset_iterator.dataset
+        if self.retrain_dataset is not None:
+            dataset = self.retrain_dataset
+        else:
+            dataset = self.trainers[0].dataset_iterator.dataset
         models = []
         for params in np.atleast_1d(self.best_params):
             parent = yaml_parse.load(self.template % params)
             trainer = parent.trainers[0]
-            trainer.dataset = dataset
-            trainer.algorithm._set_monitoring_dataset({'train': dataset})
+            if isinstance(dataset, dict):
+                trainer.dataset = dataset['train']
+                trainer.algorithm._set_monitoring_dataset(dataset)
+            else:
+                trainer.dataset = dataset
+                trainer.algorithm._set_monitoring_dataset({'train': dataset})
             trainer.main_loop()
             models.append(trainer.model)
         if len(models) == 1:
