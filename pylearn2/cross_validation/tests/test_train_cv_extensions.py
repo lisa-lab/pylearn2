@@ -50,7 +50,7 @@ test_yaml_monitor_based_save_best_cv = """
         },
     },
     cv_extensions: [
-      !obj:pylearn2.cross_validation.train_extensions.MonitorBasedSaveBestCV {
+  !obj:pylearn2.cross_validation.train_cv_extensions.MonitorBasedSaveBestCV {
         channel_name: train_objective,
         save_path: %(save_path)s,
       },
