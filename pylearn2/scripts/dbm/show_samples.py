@@ -30,6 +30,8 @@ from theano.compat.six.moves import input, xrange
 
 class SamplesViewer(object):
     """
+    Class to view samples from a model.
+
     Parameters
     ----------
     model: Model
@@ -98,6 +100,7 @@ class SamplesViewer(object):
                                       rescale=False)
 
     def validate_all_samples(self):
+        """Validate samples"""
         # Run some checks on the samples, this should help catch any bugs
         layers = [self.model.visible_layer] + self.model.hidden_layers
 
@@ -142,10 +145,11 @@ class SamplesViewer(object):
         theano_rng = MRG_RandomStreams(2012+9+18)
 
         if x > 0:
-            sampling_updates = self.model.get_sampling_updates(layer_to_state,
-                                                               theano_rng,
-                                                               layer_to_clamp={self.model.visible_layer: True},
-                                                               num_steps=x)
+            sampling_updates = self.model.get_sampling_updates(
+                layer_to_state,
+                theano_rng,
+                layer_to_clamp={self.model.visible_layer: True},
+                num_steps=x)
 
             t1 = time.time()
             sample_func = function([], updates=sampling_updates)
@@ -218,7 +222,8 @@ if __name__ == '__main__':
     sample_func = samples_viewer.get_sample_func(vis_sample)
 
     while True:
-        print('Displaying samples. How many steps to take next? (q to quit, ENTER=1)')
+        print('Displaying samples. '
+              'How many steps to take next? (q to quit, ENTER=1)')
         while True:
             x = input()
             if x == 'q':
