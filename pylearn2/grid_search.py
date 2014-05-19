@@ -348,13 +348,19 @@ class GridSearchCV(GridSearch):
             trainer.main_loop(time_budget)
         self.get_best_cv_models()
         if self.retrain:
-            self.retrain_best_models()
+            self.retrain_best_models(time_budget)
         if self.save_path is not None:
             self.save()
 
-    def retrain_best_models(self):
+    def retrain_best_models(self, time_budget):
         """
         Train best models on full dataset.
+
+        Parameters
+        ----------
+        time_budget : int, optional
+            The maximum number of seconds before interrupting
+            training. Default is `None`, no time limit.
         """
         if self.retrain_dataset is not None:
             dataset = self.retrain_dataset
@@ -370,7 +376,7 @@ class GridSearchCV(GridSearch):
             else:
                 trainer.dataset = dataset
                 trainer.algorithm._set_monitoring_dataset({'train': dataset})
-            trainer.main_loop()
+            trainer.main_loop(time_budget)
             models.append(trainer.model)
         if len(models) == 1:
             models, = models
