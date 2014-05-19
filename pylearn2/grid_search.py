@@ -144,7 +144,7 @@ class GridSearch(object):
             trainers = self.trainers
 
         # special handling for TrainCV templates
-        if self.cv:
+        if isinstance(trainers[0].trainer, TrainCV):
             return self.get_best_cv_models()
 
         models = np.asarray([trainer.model for trainer in trainers])
@@ -248,15 +248,15 @@ class GridSearch(object):
 
         # Train extensions
         # TrainCV calls on_save automatically
-        if not self.cv:
-            for trainer in trainers:
+        for trainer in trainers:
+            if not isinstance(trainer, TrainCV):
                 for extension in trainer.extensions:
                     extension.on_save(trainer.model, trainer.dataset,
                                       trainer.algorithm)
 
         try:
             for trainer in trainers:
-                if self.cv:
+                if isinstance(trainer, TrainCV):
                     for t in trainer.trainers:
                         t.dataset._serialization_guard = SerializationGuard()
                 else:
@@ -267,7 +267,7 @@ class GridSearch(object):
                 serial.save(self.save_path, models, on_overwrite='backup')
         finally:
             for trainer in trainers:
-                if self.cv:
+                if isinstance(trainer, TrainCV):
                     for t in trainer.trainers:
                         t.dataset._serialization_guard = None
                 else:
