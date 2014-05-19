@@ -22,8 +22,8 @@ class TransformerDataset(Dataset):
         as examples are requested.
     """
 
-    def __init__(self, raw, transformer, cpu_only = False,
-            space_preserving=False):
+    def __init__(self, raw, transformer, cpu_only=False,
+                 space_preserving=False):
         """
             .. todo::
 
@@ -62,10 +62,9 @@ class TransformerDataset(Dataset):
             WRITEME
         """
         return TransformerDataset(raw=self.raw.get_test_set(),
-                transformer=self.transformer,
-                cpu_only=self.cpu_only,
-                space_preserving=self.space_preserving)
-
+                                  transformer=self.transformer,
+                                  cpu_only=self.cpu_only,
+                                  space_preserving=self.space_preserving)
 
     def get_batch_topo(self, batch_size):
         """
@@ -77,7 +76,7 @@ class TransformerDataset(Dataset):
         X = self.get_batch_design(batch_size)
         if self.space_preserving:
             return self.raw.get_topological_view(X)
-        return X.reshape(X.shape[0],X.shape[1],1,1)
+        return X.reshape(X.shape[0], X.shape[1], 1, 1)
 
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, targets=None, rng=None, data_specs=None,
@@ -114,10 +113,9 @@ class TransformerDataset(Dataset):
                     # We need to ask the transformer what its input space is
                     feature_input_space = self.transformer.get_input_space()
 
-                raw_space = CompositeSpace(
-                                (feature_input_space,)
-                                + space[:feature_idx]
-                                + space[feature_idx + 1:])
+                raw_space = CompositeSpace((feature_input_space,)
+                                           + space[:feature_idx]
+                                           + space[feature_idx + 1:])
                 raw_source = (('features',)
                               + source[:feature_idx]
                               + source[feature_idx + 1:])
@@ -125,9 +123,10 @@ class TransformerDataset(Dataset):
         else:
             raw_data_specs = None
 
-        raw_iterator = self.raw.iterator(mode=mode, batch_size=batch_size,
-                num_batches=num_batches, topo=topo, targets=targets, rng=rng,
-                data_specs=raw_data_specs, return_tuple=return_tuple)
+        raw_iterator = self.raw.iterator(
+            mode=mode, batch_size=batch_size,
+            num_batches=num_batches, topo=topo, targets=targets, rng=rng,
+            data_specs=raw_data_specs, return_tuple=return_tuple)
 
         final_iterator = TransformerIterator(raw_iterator, self,
                                              data_specs=data_specs)
