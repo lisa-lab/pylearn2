@@ -59,7 +59,7 @@ def sort_layer2(W2):
     return new
 
 
-def show_mat_product(W1, W2, out_prefix):
+def get_mat_product_viewer(W1, W2):
     """
     Show the matrix product of 2 layers.
 
@@ -74,13 +74,11 @@ def show_mat_product(W1, W2, out_prefix):
     """
     prod = np.dot(W1, W2)
     pv = make_viewer(prod.T)
-    if out_prefix is None:
-        pv.show()
-    else:
-        pv.save(out_prefix+"_prod.png")
+
+    return pv
 
 
-def show_connections(imgs, W1, W2, out_prefix):
+def get_connections_viewer(imgs, W1, W2):
     """
     Show connections between 2 hidden layers.
 
@@ -103,10 +101,7 @@ def show_connections(imgs, W1, W2, out_prefix):
 
     pv = create_connect_viewer(N, N1, imgs, count, W2)
 
-    if out_prefix is None:
-        pv.show()
-    else:
-        pv.save(out_prefix+".png")
+    return pv
 
 
 def create_connect_viewer(N, N1, imgs, count, W2):
@@ -226,10 +221,19 @@ if __name__ == '__main__':
     print(W1.shape)
     print(W2.shape)
 
-    show_mat_product(W1, W2, out_prefix)
+    mat_v = get_mat_product_viewer(W1, W2, out_prefix)
+
+    if out_prefix is None:
+        mat_v.show()
+    else:
+        mat_v.save(out_prefix+"_prod.png")
 
     dataset_yaml_src = model.dataset_yaml_src
     dataset = yaml_parse.load(dataset_yaml_src)
     imgs = dataset.get_weights_view(W1.T)
 
-    show_connections(imgs, W1, W2, out_prefix)
+    conn_v = get_connections_viewer(imgs, W1, W2)
+    if out_prefix is None:
+        conn_v.show()
+    else:
+        conn_v.save(out_prefix+".png")
