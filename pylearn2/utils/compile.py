@@ -17,7 +17,7 @@ def compiled_theano_function(fn):
     Parameters
     ----------
     fn : bound method
-        Method that takes exactly one parameter (i.e. `self`). This method \
+        Method that takes exactly one parameter (i.e. `self`). This method
         should return a compiled Theano function when called.
 
     Notes

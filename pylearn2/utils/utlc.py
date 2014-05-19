@@ -1,6 +1,4 @@
-"""
-Several utilities for experimenting upon utlc datasets
-"""
+"""Several utilities for experimenting upon utlc datasets"""
 # Standard library imports
 import logging
 import os
@@ -165,6 +163,7 @@ def create_submission(conf, transform_valid, transform_test=None, features=None)
 
     Parameters
     ----------
+    conf : WRITEME
     transform_valid : WRITEME
     transform_test : WRITEME
     features : WRITEME

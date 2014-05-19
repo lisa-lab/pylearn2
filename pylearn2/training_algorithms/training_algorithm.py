@@ -1,6 +1,4 @@
-"""
-Module defining the interface for training algorithms.
-"""
+"""Module defining the interface for training algorithms."""
 from pylearn2.datasets.dataset import Dataset
 
 class TrainingAlgorithm(object):
@@ -8,6 +6,7 @@ class TrainingAlgorithm(object):
     An abstract superclass that defines the interface of training
     algorithms.
     """
+
     def _register_update_callbacks(self, update_callbacks):
         """
         .. todo::
@@ -31,10 +30,10 @@ class TrainingAlgorithm(object):
         Parameters
         ----------
         model : object
-            Object that implements the Model interface defined in \
+            Object that implements the Model interface defined in
             `pylearn2.models`.
         dataset : object
-            Object that implements the Dataset interface defined in \
+            Object that implements the Dataset interface defined in
             `pylearn2.datasets`.
 
         Notes
@@ -52,7 +51,7 @@ class TrainingAlgorithm(object):
         Parameters
         ----------
         dataset : object
-            Object implementing the dataset interface defined in \
+            Object implementing the dataset interface defined in
             `pylearn2.datasets.dataset.Dataset`.
 
         Returns
@@ -63,12 +62,14 @@ class TrainingAlgorithm(object):
 
     def _set_monitoring_dataset(self, monitoring_dataset):
         """
-        WRITEME
+        .. todo::
+
+            WRITEME
 
         Parameters
         ----------
         monitoring_dataset : None or Dataset or dict
-            None for no monitoring, or Dataset, to monitor on one dataset, \
+            None for no monitoring, or Dataset, to monitor on one dataset,
             or dict mapping string names to Datasets
         """
         if isinstance(monitoring_dataset, Dataset):

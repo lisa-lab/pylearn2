@@ -12,7 +12,8 @@ from pylearn2.utils.common_strings import environment_variable_essay
 def preprocess(string, environ=None):
     """
     Preprocesses a string, by replacing `${VARNAME}` with
-    `os.environ['VARNAME']` and ~ with the path to the user's home directory
+    `os.environ['VARNAME']` and ~ with the path to the user's
+    home directory
 
     Parameters
     ----------
@@ -71,8 +72,9 @@ def preprocess(string, environ=None):
 
 def find_number(s):
     """
-    Returns None if there are no numbers in the string. Otherwise, returns the
-    range of characters occupied by the first number in the string.
+    Returns None if there are no numbers in the string. Otherwise,
+    returns the range of characters occupied by the first number in
+    the string.
 
     Parameters
     ----------
@@ -92,8 +94,8 @@ def find_number(s):
 
 def tokenize_by_number(s):
     """
-    Splits a string into a list of tokens. Each is either a string containing
-    no numbers or a float.
+    Splits a string into a list of tokens. Each is either a string
+    containing no numbers or a float.
 
     Parameters
     ----------
@@ -192,10 +194,10 @@ def match(wrong, candidates):
 
     Notes
     -----
-    This should be used with a small number of candidates and a high potential
-    edit distance (i.e. use it to correct a wrong filename in a directory,
-    wrong class name in a module, etc.) Don't use it to correct small typos of
-    freeform natural language words.
+    This should be used with a small number of candidates and a high
+    potential edit distance (i.e. use it to correct a wrong filename in
+    a directory, wrong class name in a module, etc.) Don't use it to
+    correct small typos of freeform natural language words.
     """
 
     assert len(candidates) > 0

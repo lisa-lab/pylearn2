@@ -809,8 +809,11 @@ class DenseDesignMatrix(Dataset):
                 dim = 1
             else:
                 dim = self.y.shape[-1]
-            if self.y_labels is not None:
+            # This is to support old pickled models
+            if getattr(self, 'y_labels', None) is not None:
                 y_space = IndexSpace(dim=dim, max_labels=self.y_labels)
+            elif getattr(self, 'max_labels', None) is not None:
+                y_space = IndexSpace(dim=dim, max_labels=self.max_labels)
             else:
                 y_space = VectorSpace(dim=dim)
             y_source = 'targets'
