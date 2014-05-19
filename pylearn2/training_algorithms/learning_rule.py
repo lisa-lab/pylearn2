@@ -317,7 +317,7 @@ class RPROP(LearningRule):
                 max_rate
             )
 
-            previous_grad_inc = ifelse(
+            previous_grad_inc = T.switch(
                 T.gt(temp, 0.),
                 T.mean(grad),
                 T.zeros_like(T.mean(grad))
