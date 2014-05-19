@@ -69,6 +69,7 @@ class GridSearch(object):
         self.n_best = n_best
 
         # construct a trainer for each grid point
+        self.cv = False
         self.trainers = None
         self.params = None
         self.get_trainers(param_grid)
@@ -105,6 +106,8 @@ class GridSearch(object):
             trainer = yaml_parse.load(self.template % grid_point)
             trainers.append(trainer)
             parameters.append(grid_point)
+        if isinstance(trainers[0], TrainCV):
+            self.cv = True
         self.trainers = trainers
         self.params = parameters
 
@@ -141,7 +144,7 @@ class GridSearch(object):
             trainers = self.trainers
 
         # special handling for TrainCV templates
-        if isinstance(trainers[0], TrainCV):
+        if self.cv:
             return self.get_best_cv_models()
 
         models = np.asarray([trainer.model for trainer in trainers])
@@ -244,7 +247,7 @@ class GridSearch(object):
             models = [trainer.model for trainer in trainers]
         try:
             for trainer in trainers:
-                if isinstance(trainer, TrainCV):
+                if self.cv:
                     for t in trainer.trainers:
                         for extension in t.extensions:
                             extension.on_save(t.model, t.dataset, t.algorithm)
@@ -260,7 +263,7 @@ class GridSearch(object):
                 serial.save(self.save_path, models, on_overwrite='backup')
         finally:
             for trainer in trainers:
-                if isinstance(trainer, TrainCV):
+                if self.cv:
                     for t in trainer.trainers:
                         t.dataset._serialization_guard = None
                 else:
