@@ -7,7 +7,6 @@ import numpy as np
 from theano import config
 from theano import tensor as T
 from theano import map
-from theano.ifelse import ifelse
 
 from theano.compat.python2x import OrderedDict
 from pylearn2.space import NullSpace
@@ -305,10 +304,10 @@ class RPROP(LearningRule):
             previous_grad = sharedX(0., borrow=True)
             temp = T.mean(grad*previous_grad)
             output = T.clip(
-                ifelse(
+                T.switch(
                     T.eq(temp, 0.),
                     delta,
-                    ifelse(
+                    T.switch(
                         T.lt(temp, 0.),
                         delta*decrease_rate,
                         delta*increase_rate
