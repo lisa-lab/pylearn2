@@ -144,7 +144,7 @@ class GridSearch(object):
             trainers = self.trainers
 
         # special handling for TrainCV templates
-        if isinstance(trainers[0].trainer, TrainCV):
+        if isinstance(trainers[0], TrainCV):
             return self.get_best_cv_models()
 
         models = np.asarray([trainer.model for trainer in trainers])
