@@ -28,13 +28,13 @@ This can be useful when working over ssh.
 
 """
 
-import sys
-from pylearn2.utils import serial
 import numpy as np
+import sys
 from theano.compat.six.moves import xrange
+from pylearn2.config import yaml_parse
 from pylearn2.gui.patch_viewer import PatchViewer
 from pylearn2.gui.patch_viewer import make_viewer
-from pylearn2.config import yaml_parse
+from pylearn2.utils import serial
 
 
 def sort_layer2(W2):
@@ -80,7 +80,7 @@ def show_mat_product(W1, W2, out_prefix):
         pv.save(out_prefix+"_prod.png")
 
 
-def show_connections(imgs, W1, W2):
+def show_connections(imgs, W1, W2, out_prefix):
     """
     Show connections between 2 hidden layers.
 
@@ -232,4 +232,4 @@ if __name__ == '__main__':
     dataset = yaml_parse.load(dataset_yaml_src)
     imgs = dataset.get_weights_view(W1.T)
 
-    show_connections(imgs, W1, W2)
+    show_connections(imgs, W1, W2, out_prefix)
