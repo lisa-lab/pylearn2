@@ -7,31 +7,36 @@ import os
 import pylearn2.scripts.dbm.show_negative_chains as negative_chains
 import pylearn2.scripts.dbm.show_reconstructions as reconstructions
 import pylearn2.scripts.dbm.show_samples as samples
+import pylearn2.scripts.dbm.top_filters as top_filters
 from pylearn2.config import yaml_parse
 from pylearn2.models.dbm.layer import BinaryVector, BinaryVectorMaxPool
 from pylearn2.datasets.mnist import MNIST
 from pylearn2.models.dbm.dbm import DBM
 from nose.tools import with_setup
 from pylearn2.datasets import control
+from pylearn2.utils import serial
 
 
 def setup():
     """Create pickle file with a simple model."""
     control.push_load_data(True)
     with open('dbm.pkl', 'wb') as f:
-        dataset = MNIST(which_set='train', start=0, stop=300)
+        dataset = MNIST(which_set='train', start=0, stop=100)
         vis_layer = BinaryVector(nvis=784, bias_from_marginals=dataset)
-        hid_layer = BinaryVectorMaxPool(layer_name='h', pool_size=1,
-                                        irange=.05, init_bias=-2.,
-                                        detector_layer_dim=200)
+        hid_layer1 = BinaryVectorMaxPool(layer_name='h1', pool_size=1,
+                                         irange=.05, init_bias=-2.,
+                                         detector_layer_dim=50)
+        hid_layer2 = BinaryVectorMaxPool(layer_name='h2', pool_size=1,
+                                         irange=.05, init_bias=-2.,
+                                         detector_layer_dim=10)
         model = DBM(batch_size=20, niter=1, visible_layer=vis_layer,
-                    hidden_layers=[hid_layer])
+                    hidden_layers=[hid_layer1, hid_layer2])
         model.dataset_yaml_src = """
 !obj:pylearn2.datasets.binarizer.Binarizer {
     raw: !obj:pylearn2.datasets.mnist.MNIST {
         which_set: "train",
         start: 0,
-        stop: 300
+        stop: 100
     }
 }
 """
@@ -78,3 +83,21 @@ def test_show_samples():
 
     samples_viewer = samples.SamplesViewer(model, dataset, rows, cols)
     samples_viewer.update_viewer()
+
+
+@with_setup(setup, teardown)
+def test_top_filters():
+    model = serial.load('dbm.pkl')
+
+    layer_1, layer_2 = model.hidden_layers[0:2]
+
+    W1 = layer_1.get_weights()
+    W2 = layer_2.get_weights()
+
+    top_filters.get_mat_product_viewer(W1, W2)
+
+    dataset_yaml_src = model.dataset_yaml_src
+    dataset = yaml_parse.load(dataset_yaml_src)
+    imgs = dataset.get_weights_view(W1.T)
+
+    top_filters.get_connections_viewer(imgs, W1, W2)
