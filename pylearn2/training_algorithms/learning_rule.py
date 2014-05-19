@@ -6,6 +6,8 @@ import numpy as np
 
 from theano import config
 from theano import tensor as T
+from theano import map
+from theano.ifelse import ifelse
 
 from theano.compat.python2x import OrderedDict
 from pylearn2.space import NullSpace
@@ -258,3 +260,108 @@ class AdaDelta(LearningRule):
 
         return updates
 
+
+class RPROP(LearningRule):
+    def __init__(
+        self,
+        decrease_rate=0.5,
+        increase_rate=1.2,
+        min_rate=1e-6,
+        max_rate=50
+    ):
+        self.decrease_rate = sharedX(decrease_rate, 'decrease_rate')
+        self.increase_rate = sharedX(increase_rate, 'increase_rate')
+        self.min_rate = min_rate
+        self.max_rate = max_rate
+
+    def add_channels_to_monitor(self, monitor, monitoring_dataset):
+        monitor.add_channel(
+            'RPROP decrease_rate',
+            ipt=None,
+            val=self.decrease_rate,
+            dataset=monitoring_dataset,
+            data_specs=(NullSpace(), '')
+        )
+        monitor.add_channel(
+            'RPROP increase_rate',
+            ipt=None,
+            val=self.increase_rate,
+            dataset=monitoring_dataset,
+            data_specs=(NullSpace(), '')
+        )
+
+    def get_updates(self, learning_rate, grads, lr_scalers=None):
+        updates = OrderedDict()
+
+        def _scan(
+            param,
+            grad,
+            delta,
+            decrease_rate,
+            increase_rate,
+            min_rate,
+            max_rate
+        ):
+            previous_grad = sharedX(0., borrow=True)
+            temp = T.mean(grad*previous_grad)
+            output = T.clip(
+                ifelse(
+                    T.eq(temp, 0.),
+                    delta,
+                    ifelse(
+                        T.lt(temp, 0.),
+                        delta*decrease_rate,
+                        delta*increase_rate
+                    )
+                ),
+                min_rate,
+                max_rate
+            )
+
+            previous_grad_inc = ifelse(
+                T.gt(temp, 0.),
+                T.mean(grad),
+                T.zeros_like(T.mean(grad))
+            )
+
+            updates = OrderedDict()
+            updates[previous_grad] = previous_grad_inc
+
+            return output, updates
+
+        for param, grad in grads.iteritems():
+            # Created required shared variables
+            lr = lr_scalers.get(param, learning_rate.get_value())
+            delta = sharedX(
+                param.get_value() * 0. + lr,
+                borrow=True
+            )
+
+            # Name variables according to the parameter name
+            if param.name is not None:
+                delta.name = 'delta_'+param.name
+                #previous_grad.name = 'previous_grad_'+param.name
+
+            # Calculate the updates of the deltas
+            delta_inc, delta_updates = map(
+                fn=_scan,
+                sequences=[param, grad, delta],
+                non_sequences=[
+                    self.decrease_rate,
+                    self.increase_rate,
+                    self.min_rate,
+                    self.max_rate
+                ]
+            )
+
+            # Calculate updates of parameters
+            updated_inc = -delta*T.sgn(grad)
+
+            # Compile the updates
+            updates[param] = param + updated_inc
+            updates[delta] = delta_inc
+
+            for previous_grad, previous_grad_inc in delta_updates.iteritems():
+                updates[previous_grad] = previous_grad_inc
+
+        return updates
