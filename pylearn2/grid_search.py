@@ -245,17 +245,21 @@ class GridSearch(object):
                 models = self.models
         else:
             models = [trainer.model for trainer in trainers]
+
+        # Train extensions
+        # TrainCV calls on_save automatically
+        if not self.cv:
+            for trainer in trainers:
+                for extension in trainer.extensions:
+                    extension.on_save(trainer.model, trainer.dataset,
+                                      trainer.algorithm)
+
         try:
             for trainer in trainers:
                 if self.cv:
                     for t in trainer.trainers:
-                        for extension in t.extensions:
-                            extension.on_save(t.model, t.dataset, t.algorithm)
                         t.dataset._serialization_guard = SerializationGuard()
                 else:
-                    for extension in trainer.extensions:
-                        extension.on_save(trainer.model, trainer.dataset,
-                                          trainer.algorithm)
                     trainer.dataset._serialization_guard = SerializationGuard()
             if self.save_path is not None:
                 if not self.allow_overwrite and os.path.exists(self.save_path):
@@ -350,10 +354,10 @@ class GridSearchCV(GridSearch):
         for trainer in self.trainers:
             trainer.main_loop(time_budget)
         self.get_best_cv_models()
+        trainers = None
         if self.retrain:
-            self.retrain_best_models(time_budget)
-        if self.save_path is not None:
-            self.save()
+            trainers = self.retrain_best_models(time_budget)
+        self.save(trainers)
 
     def retrain_best_models(self, time_budget):
         """
@@ -369,7 +373,7 @@ class GridSearchCV(GridSearch):
             dataset = self.retrain_dataset
         else:
             dataset = self.trainers[0].dataset_iterator.dataset
-        models = []
+        trainers = []
         for params in np.atleast_1d(self.best_params):
             parent = yaml_parse.load(self.template % params)
             trainer = parent.trainers[0]
@@ -379,8 +383,6 @@ class GridSearchCV(GridSearch):
             else:
                 trainer.dataset = dataset
                 trainer.algorithm._set_monitoring_dataset({'train': dataset})
+            trainers.append(trainer)
             trainer.main_loop(time_budget)
-            models.append(trainer.model)
-        if len(models) == 1:
-            models, = models
-        self.best_models = models
+        return trainers
