@@ -123,6 +123,7 @@ class Layer(Model):
         assert self.get_mlp() is None
         self.mlp = mlp
 
+    @wraps(Model.get_monitoring_channels)
     def get_monitoring_channels(self, data):
 
         space, source = self.get_monitoring_data_specs()
