@@ -6,10 +6,11 @@ import string
 
 digs = string.digits + string.lowercase
 
+
 def int2base(x, base):
     if x < 0:
         sign = -1
-    elif x==0:
+    elif x == 0:
         return '0'
     else:
         sign = 1
@@ -33,19 +34,20 @@ def test_mnistplus():
     params = []
     for i in range(32):
         d = {}
-        l = list(int(j) for j in list(int2base(i,2)))
-        l = [0,]*(5-len(l)) + l
+        l = list(int(j) for j in list(int2base(i, 2)))
+        l = [0, ] * (5 - len(l)) + l
         d['azimuth'] = l[0]
         d['rotation'] = l[1]
         d['texture'] = l[2]
         d['center'] = l[3]
         d['contrast_normalize'] = l[4]
         params.append(d)
-    for which_set in ['train','test','valid']:
+    for which_set in ['train', 'test', 'valid']:
         for p in params:
-            for label_type in ['label','azimuth','rotation','texture_id']:
+            for label_type in ['label', 'azimuth', 'rotation', 'texture_id']:
                 _label = label_type
-                if _label == 'texture_id': _label = 'texture'
+                if _label == 'texture_id':
+                    _label = 'texture'
                 print which_set, p, label_type
                 if label_type == 'label' or p[_label] == 1:
                     print 'loading...'
