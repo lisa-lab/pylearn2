@@ -4416,12 +4416,12 @@ class CompositeLayer(Layer):
                 value = ch[key]
                 doc = get_monitor_doc(value)
                 if doc is None:
-                    doc = str(type(layer)) + \
-                        ".get_monitoring_channels_from_state did" + \
-                        " not provide any further documentation for" + \
-                        " this channel."
-                doc = 'This channel came from a layer called "' + \
-                        layer.layer_name + '" of a CompositeLayer.\n' + doc
+                    doc = (str(type(layer)) +
+                           ".get_monitoring_channels_from_state did" +
+                           " not provide any further documentation for" +
+                           " this channel.")
+                doc = ('This channel came from a layer called "' +
+                        layer.layer_name + '" of a CompositeLayer.\n' + doc)
                 value.__doc__ = doc
                 rval[layer.layer_name+'_'+key] = value
         return rval
