@@ -138,8 +138,26 @@ def show(image):
                             str(image.shape) + " and dtype " +
                             str(image.dtype))
 
+    # Create a temporary file with the suffix '.png'.
     fd, name = mkstemp(suffix='.png')
     os.close(fd)
+
+    # Note:
+    #   Although we can use tempfile.NamedTemporaryFile() to create
+    #   a temporary file, the function should be used with care.
+    #
+    #   In Python earlier than 2.7, a temporary file created by the
+    #   function will be deleted just after the file is closed.
+    #   We can re-use the name of the temporary file, but there is an
+    #   instant where a file with the name does not exist in the file
+    #   system before we re-use the name. This may cause a race
+    #   condition.
+    #
+    #   In Python 2.7 or later, tempfile.NamedTemporaryFile() has
+    #   the 'delete' argument which can control whether a temporary
+    #   file will be automatically deleted or not. With the argument,
+    #   the above race condition can be avoided.
+    #
 
     image.save(name)
     viewer_command = string.preprocess('${PYLEARN2_VIEWER_COMMAND}')
