@@ -31,8 +31,11 @@ class TrainCV(object):
     dataset_iterator : iterable
         Cross validation iterator providing (test, train) or (test, valid,
         train) datasets.
-    model : Model
+    model : Model or None
         Training model.
+    model_iterator : iterable or None
+        Training model for each fold. For example, models may have been
+        pre-trained on these folds and used for building an ensemble model.
     algorithm : TrainingAlgorithm
         Training algorithm.
     save_path : str or None
@@ -49,10 +52,13 @@ class TrainCV(object):
     cv_extensions : list or None
         TrainCVExtension objects for the parent TrainCV object.
     """
-    def __init__(self, dataset_iterator, model, algorithm=None,
-                 save_path=None, save_freq=0, extensions=None,
+    def __init__(self, dataset_iterator, model=None, model_iterator=None,
+                 algorithm=None, save_path=None, save_freq=0, extensions=None,
                  allow_overwrite=True, save_folds=False, cv_extensions=None):
         self.dataset_iterator = dataset_iterator
+        assert model is not None or model_iterator is not None, (
+            "One of model or model_iterator must be provided.")
+        assert model is None or model_iterator is None
         trainers = []
         for k, datasets in enumerate(dataset_iterator):
             if save_folds and save_path is not None:
@@ -64,7 +70,10 @@ class TrainCV(object):
                 this_save_freq = 0
 
             # setup model, including any pretrained layers
-            this_model = deepcopy(model)
+            if model is not None:
+                this_model = deepcopy(model)
+            else:
+                this_model = deepcopy(model_iterator[k])
             if hasattr(this_model, 'layers') and any(
                     [isinstance(l, PretrainedLayerCV)
                      for l in this_model.layers]):
