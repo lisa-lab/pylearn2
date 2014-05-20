@@ -732,7 +732,7 @@ class MLP(Layer):
 
         rval = [elem for elem in rval if elem not in self.freeze_set]
 
-        assert all([elem.name is not None for elem in rval])
+        assert all(elem.name is not None for elem in rval)
 
         return rval
 
@@ -799,12 +799,12 @@ class MLP(Layer):
 
             assert isinstance(contrib, OrderedDict)
             # No two layers can contend to scale a parameter
-            assert not any([key in rval for key in contrib])
+            assert not any(key in rval for key in contrib)
             # Don't try to scale anything that's not a parameter
-            assert all([key in params for key in contrib])
+            assert all(key in params for key in contrib)
 
             rval.update(contrib)
-        assert all([isinstance(val, float) for val in rval.values()])
+        assert all(isinstance(val, float) for val in rval.values())
 
         return rval
 
@@ -4558,12 +4558,12 @@ class CompositeLayer(Layer):
 
             assert isinstance(contrib, OrderedDict)
             # No two layers can contend to scale a parameter
-            assert not any([key in rval for key in contrib])
+            assert not any(key in rval for key in contrib)
             # Don't try to scale anything that's not a parameter
-            assert all([key in params for key in contrib])
+            assert all(key in params for key in contrib)
 
             rval.update(contrib)
-        assert all([isinstance(val, float) for val in rval.values()])
+        assert all(isinstance(val, float) for val in rval.values())
         return rval
 
     @wraps(Layer.cost)
