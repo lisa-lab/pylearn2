@@ -87,6 +87,7 @@ def test_show_samples():
 
 @with_setup(setup, teardown)
 def test_top_filters():
+    """Test the top_filters viewer functions"""
     model = serial.load('dbm.pkl')
 
     layer_1, layer_2 = model.hidden_layers[0:2]
