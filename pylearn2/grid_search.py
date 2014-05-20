@@ -11,6 +11,7 @@ Some fields are filled in automatically:
 
 __author__ = "Steven Kearnes"
 __copyright__ = "Copyright 2014, Stanford University"
+__credits__ = ["Steven Kearnes", "Bharath Ramsundar"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Steven Kearnes"
 
