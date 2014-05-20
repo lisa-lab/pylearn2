@@ -17,6 +17,7 @@ __maintainer__ = "Steven Kearnes"
 
 import numpy as np
 import os
+import sys
 import warnings
 try:
     from sklearn.grid_search import ParameterGrid
@@ -28,6 +29,12 @@ from pylearn2.cross_validation import TrainCV
 from pylearn2.train import SerializationGuard
 from pylearn2.utils import serial
 
+
+def random_seeds(size, random_state=None):
+    rng = np.random.RandomState(random_state)
+    seeds = rng.randint(0, sys.maxint, size)
+    return seeds
+    
 
 class GridSearch(object):
     """
