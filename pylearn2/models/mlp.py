@@ -123,6 +123,16 @@ class Layer(Model):
         assert self.get_mlp() is None
         self.mlp = mlp
 
+    def get_monitoring_channels(self, data):
+
+        space, source = self.get_monitoring_data_specs()
+        space.validate(data)
+        X, Y = data
+        rval = self.get_layer_monitoring_channels(state_below=X,
+                                                  targets=Y)
+
+        return rval
+
     def get_monitoring_channels_from_state(self, state, target=None):
         """
         Returns monitoring channels based on the values computed by
@@ -559,18 +569,6 @@ class MLP(Layer):
         """
 
         self.freeze_set = self.freeze_set.union(parameter_set)
-
-    @wraps(Layer.get_monitoring_channels)
-    def get_monitoring_channels(self, data):
-        # if the MLP is the outer MLP \
-        # (ie MLP is not contained in another structure)
-
-        X, Y = data
-        state = X
-        rval = self.get_layer_monitoring_channels(state_below=X,
-                                                    targets=Y)
-
-        return rval
 
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
@@ -4409,6 +4407,44 @@ class CompositeLayer(Layer):
         self.output_space = CompositeSpace(tuple(layer.get_output_space()
                                                  for layer in self.layers))
 
+    @wraps(Layer.get_layer_monitoring_channels)
+    def get_layer_monitoring_channels(self, state_below=None,
+                                      state=None, targets=None):
+        if state_below is None or state is not None or targets is not None:
+            raise NotImplementedError()
+
+        rval = OrderedDict()
+
+        for l in range(len(self.layers)):
+            layer = self.layers[l]
+            ch = layer.get_layer_monitoring_channels(
+                           state_below=state_below,
+                           state=None,
+                           targets=None
+                           )
+            if not isinstance(ch, OrderedDict):
+                raise TypeError(str((type(ch), layer.layer_name)))
+            for key in ch:
+                value = ch[key]
+                doc = get_monitor_doc(value)
+                if doc is None:
+                    doc = str(type(layer)) + \
+                        ".get_monitoring_channels_from_state did" + \
+                        " not provide any further documentation for" + \
+                        " this channel."
+                doc = 'This channel came from a layer called "' + \
+                        layer.layer_name + '" of a CompositeLayer.\n' + doc
+                value.__doc__ = doc
+                rval[layer.layer_name+'_'+key] = value
+        return rval
+
+    @wraps(Layer.get_monitoring_data_specs)
+    def get_monitoring_data_specs(self):
+        space = CompositeSpace((self.get_input_space(),
+                                self.get_output_space()))
+        source = (self.get_input_source(), self.get_target_source())
+        return (space, source)
+
     @wraps(Layer.get_params)
     def get_params(self):
         rval = []
@@ -4492,6 +4528,35 @@ class CompositeLayer(Layer):
             layer.
         """
         return self._weight_decay_aggregate('get_l1_weight_decay', coeff)
+
+    @wraps(Model.set_batch_size)
+    def set_batch_size(self, batch_size):
+        for layer in self.layers:
+            layer.set_batch_size(batch_size)
+
+    @wraps(Layer._modify_updates)
+    def _modify_updates(self, updates):
+        for layer in self.layers:
+            layer._modify_updates(updates)
+
+    @wraps(Layer.get_lr_scalers)
+    def get_lr_scalers(self):
+        rval = OrderedDict()
+
+        params = self.get_params()
+
+        for layer in self.layers:
+            contrib = layer.get_lr_scalers()
+
+            assert isinstance(contrib, OrderedDict)
+            # No two layers can contend to scale a parameter
+            assert not any([key in rval for key in contrib])
+            # Don't try to scale anything that's not a parameter
+            assert all([key in params for key in contrib])
+
+            rval.update(contrib)
+        assert all([isinstance(val, float) for val in rval.values()])
+        return rval
 
     @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
