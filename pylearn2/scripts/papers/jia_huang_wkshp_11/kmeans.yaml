@@ -15,7 +15,7 @@
                         # the k-means demo accompanying Adam Coates' AISTATS '11 paper. """
                         num_examples: 400000
                },
-        model   : !obj:pylearn2.kmeans.KMeans {
+        model   : !obj:pylearn2.models.kmeans.KMeans {
                 # This is the number of filters used in the paper 
                 k : 1600,
                 nvis: 108,
