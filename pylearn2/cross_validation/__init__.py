@@ -30,7 +30,7 @@ class TrainCV(object):
     ----------
     dataset_iterator : iterable
         Cross validation iterator providing (test, train) or (test, valid,
-        train) indices for partitioning the dataset.
+        train) datasets.
     model : Model
         Training model.
     algorithm : TrainingAlgorithm
