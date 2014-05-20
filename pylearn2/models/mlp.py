@@ -4387,7 +4387,7 @@ class CompositeLayer(Layer):
 
         rval = OrderedDict()
 
-        for i in range(len(self.layers)):
+        for i in xrange(len(self.layers)):
             layer = self.layers[i]
             if self.routing_needed and i in self.layers_to_inputs:
                 """
