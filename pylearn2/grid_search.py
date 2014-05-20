@@ -69,7 +69,7 @@ class GridSearch(object):
         self.n_best = n_best
 
         # construct a trainer for each grid point
-        self.cv = False
+        self.cv = False  # True if best_models is indexed by cv fold
         self.trainers = None
         self.params = None
         self.get_trainers(param_grid)
@@ -315,6 +315,7 @@ class GridSearchCV(GridSearch):
         super(GridSearchCV, self).__init__(template, param_grid, save_path,
                                            allow_overwrite, monitor_channel,
                                            higher_is_better, n_best)
+        self.cv = False  # True if best_models is indexed by cv fold
         self.retrain = retrain
         self.retrain_dataset = retrain_dataset
 
