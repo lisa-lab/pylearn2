@@ -123,6 +123,17 @@ class Layer(Model):
         assert self.get_mlp() is None
         self.mlp = mlp
 
+    @wraps(Model.get_monitoring_channels)
+    def get_monitoring_channels(self, data):
+
+        space, source = self.get_monitoring_data_specs()
+        space.validate(data)
+        X, Y = data
+        rval = self.get_layer_monitoring_channels(state_below=X,
+                                                  targets=Y)
+
+        return rval
+
     def get_monitoring_channels_from_state(self, state, target=None):
         """
         Returns monitoring channels based on the values computed by
@@ -146,7 +157,7 @@ class Layer(Model):
             A dictionary mapping channel names to monitoring channels of
             interest for this layer.
         """
-        warnings.warn("Layer.get_monitoring_channels is " + \
+        warnings.warn("Layer.get_monitoring_channels_from_state is " + \
                     "deprecated. Use get_layer_monitoring_channels " + \
                     "instead. Layer.get_monitoring_channels " + \
                     "will be removed on or after september 24th 2014",
@@ -560,18 +571,6 @@ class MLP(Layer):
 
         self.freeze_set = self.freeze_set.union(parameter_set)
 
-    @wraps(Layer.get_monitoring_channels)
-    def get_monitoring_channels(self, data):
-        # if the MLP is the outer MLP \
-        # (ie MLP is not contained in another structure)
-
-        X, Y = data
-        state = X
-        rval = self.get_layer_monitoring_channels(state_below=X,
-                                                    targets=Y)
-
-        return rval
-
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
         #
@@ -733,7 +732,7 @@ class MLP(Layer):
 
         rval = [elem for elem in rval if elem not in self.freeze_set]
 
-        assert all([elem.name is not None for elem in rval])
+        assert all(elem.name is not None for elem in rval)
 
         return rval
 
@@ -800,12 +799,12 @@ class MLP(Layer):
 
             assert isinstance(contrib, OrderedDict)
             # No two layers can contend to scale a parameter
-            assert not any([key in rval for key in contrib])
+            assert not any(key in rval for key in contrib)
             # Don't try to scale anything that's not a parameter
-            assert all([key in params for key in contrib])
+            assert all(key in params for key in contrib)
 
             rval.update(contrib)
-        assert all([isinstance(val, float) for val in rval.values()])
+        assert all(isinstance(val, py_float_types) for val in rval.values())
 
         return rval
 
@@ -1233,25 +1232,20 @@ class Softmax(Layer):
         rval = OrderedDict()
 
         if self.W_lr_scale is not None:
-            assert isinstance(self.W_lr_scale, float)
+            assert isinstance(self.W_lr_scale, py_float_types)
             rval[self.W] = self.W_lr_scale
 
         if not hasattr(self, 'b_lr_scale'):
             self.b_lr_scale = None
 
         if self.b_lr_scale is not None:
-            assert isinstance(self.b_lr_scale, float)
+            assert isinstance(self.b_lr_scale, py_float_types)
             rval[self.b] = self.b_lr_scale
 
         return rval
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
-        warnings.warn("Layer.get_monitoring_channels is " + \
-                    "deprecated. Use get_layer_monitoring_channels " + \
-                    "instead. Layer.get_monitoring_channels " + \
-                    "will be removed on or after september 24th 2014",
-                    stacklevel=2)
 
         if self.no_affine:
             return OrderedDict()
@@ -1824,11 +1818,6 @@ class SoftmaxPool(Layer):
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
-        warnings.warn("Layer.get_monitoring_channels is " + \
-                    "deprecated. Use get_layer_monitoring_channels " + \
-                    "instead. Layer.get_monitoring_channels " + \
-                    "will be removed on or after september 24th 2014",
-                    stacklevel=2)
 
         W, = self.transformer.get_params()
 
@@ -2314,11 +2303,6 @@ class Linear(Layer):
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
-        warnings.warn("Layer.get_monitoring_channels is " + \
-                    "deprecated. Use get_layer_monitoring_channels " + \
-                    "instead. Layer.get_monitoring_channels " + \
-                    "will be removed on or after september 24th 2014",
-                    stacklevel=2)
 
         W, = self.transformer.get_params()
 
@@ -3439,10 +3423,6 @@ class ConvElemwise(Layer):
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
-        warnings.warn("Layer.get_monitoring_channels is deprecated. " + \
-                    "Use get_layer_monitoring_channels instead. " + \
-                    "Layer.get_monitoring_channels will be removed " + \
-                    "on or after september 24th 2014", stacklevel=2)
 
         W, = self.transformer.get_params()
 
@@ -4075,11 +4055,6 @@ class LinearGaussian(Linear):
 
     @wraps(Linear.get_monitoring_channels)
     def get_monitoring_channels(self):
-        warnings.warn("Layer.get_monitoring_channels is " + \
-                    "deprecated. Use get_layer_monitoring_channels " + \
-                    "instead. Layer.get_monitoring_channels " + \
-                    "will be removed on or after september 24th 2014",
-                    stacklevel=2)
 
         rval = super(LinearGaussian, self).get_monitoring_channels()
         assert isinstance(rval, OrderedDict)
@@ -4273,11 +4248,6 @@ class PretrainedLayer(Layer):
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
-        warnings.warn("Layer.get_monitoring_channels is " + \
-                    "deprecated. Use get_layer_monitoring_channels " + \
-                    "instead. Layer.get_monitoring_channels " + \
-                    "will be removed on or after september 24th 2014",
-                    stacklevel=2)
 
         return OrderedDict([])
 
@@ -4409,6 +4379,60 @@ class CompositeLayer(Layer):
         self.output_space = CompositeSpace(tuple(layer.get_output_space()
                                                  for layer in self.layers))
 
+    @wraps(Layer.get_layer_monitoring_channels)
+    def get_layer_monitoring_channels(self, state_below=None,
+                                      state=None, targets=None):
+        if state_below is None or state is not None or targets is not None:
+            raise NotImplementedError()
+
+        rval = OrderedDict()
+
+        for i in xrange(len(self.layers)):
+            layer = self.layers[i]
+            if self.routing_needed and i in self.layers_to_inputs:
+                """
+                Only a subset of state_below is an
+                input to the layer. Gives the correct
+                input.
+                """
+                ch = layer.get_layer_monitoring_channels(
+                           state_below=state_below[self.layers_to_inputs[i]],
+                           state=None,
+                           targets=None
+                           )
+            else:
+                """
+                state_below is a correct input
+                for the layer.
+                """
+                ch = layer.get_layer_monitoring_channels(
+                           state_below=state_below,
+                           state=None,
+                           targets=None
+                           )
+            if not isinstance(ch, OrderedDict):
+                raise TypeError(str((type(ch), layer.layer_name)))
+            for key in ch:
+                value = ch[key]
+                doc = get_monitor_doc(value)
+                if doc is None:
+                    doc = (str(type(layer)) +
+                           ".get_monitoring_channels_from_state did" +
+                           " not provide any further documentation for" +
+                           " this channel.")
+                doc = ('This channel came from a layer called "' +
+                        layer.layer_name + '" of a CompositeLayer.\n' + doc)
+                value.__doc__ = doc
+                rval[layer.layer_name+'_'+key] = value
+        return rval
+
+    @wraps(Layer.get_monitoring_data_specs)
+    def get_monitoring_data_specs(self):
+        space = CompositeSpace((self.get_input_space(),
+                                self.get_output_space()))
+        source = (self.get_input_source(), self.get_target_source())
+        return (space, source)
+
     @wraps(Layer.get_params)
     def get_params(self):
         rval = []
@@ -4492,6 +4516,35 @@ class CompositeLayer(Layer):
             layer.
         """
         return self._weight_decay_aggregate('get_l1_weight_decay', coeff)
+
+    @wraps(Model.set_batch_size)
+    def set_batch_size(self, batch_size):
+        for layer in self.layers:
+            layer.set_batch_size(batch_size)
+
+    @wraps(Layer._modify_updates)
+    def _modify_updates(self, updates):
+        for layer in self.layers:
+            layer._modify_updates(updates)
+
+    @wraps(Layer.get_lr_scalers)
+    def get_lr_scalers(self):
+        rval = OrderedDict()
+
+        params = self.get_params()
+
+        for layer in self.layers:
+            contrib = layer.get_lr_scalers()
+
+            assert isinstance(contrib, OrderedDict)
+            # No two layers can contend to scale a parameter
+            assert not any(key in rval for key in contrib)
+            # Don't try to scale anything that's not a parameter
+            assert all(key in params for key in contrib)
+
+            rval.update(contrib)
+        assert all(isinstance(val, py_float_types) for val in rval.values())
+        return rval
 
     @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
