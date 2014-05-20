@@ -31,10 +31,20 @@ from pylearn2.utils import serial
 
 
 def random_seeds(size, random_state=None):
+    """
+    Generate random seeds.
+
+    Parameters
+    ----------
+    size : int
+        Number of seeds to generate.
+    random_state : int, RandomState, or None
+        Random state.
+    """
     rng = np.random.RandomState(random_state)
     seeds = rng.randint(0, sys.maxint, size)
     return seeds
-    
+
 
 class GridSearch(object):
     """
