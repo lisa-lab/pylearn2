@@ -67,6 +67,7 @@ whitelist_pep8 = [
     "sandbox/cuda_convnet/tests/test_img_acts.py",
     "sandbox/cuda_convnet/tests/test_weight_acts.py",
     "sandbox/cuda_convnet/tests/test_stochastic_pool.py",
+    "sandbox/cuda_convnet/tests/test_grouped_conv.py",
     "sandbox/cuda_convnet/specialized_bench.py",
     "sandbox/cuda_convnet/response_norm.py",
     "sandbox/cuda_convnet/__init__.py",
