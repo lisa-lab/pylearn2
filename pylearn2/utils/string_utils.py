@@ -3,8 +3,7 @@
 import os
 import re
 
-from pylearn2.datasets.exc import NoDataPathError
-from pylearn2.utils.exc import EnvironmentVariableError
+from pylearn2.utils.exc import EnvironmentVariableError, NoDataPathError
 from pylearn2.utils.python26 import cmp_to_key
 from pylearn2.utils.common_strings import environment_variable_essay
 

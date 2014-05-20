@@ -59,7 +59,7 @@ class NORBSmall(dense_design_matrix.DenseDesignMatrix):
         X = numpy.cast['float32'](X)
         X = X.reshape(-1, 2*96*96)
 
-        #this is uint8
+        # this is uint8
         y = NORBSmall.load(which_set, 'cat')
         if multi_target:
             y_extra = NORBSmall.load(which_set, 'info')

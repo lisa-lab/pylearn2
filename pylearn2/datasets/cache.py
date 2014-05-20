@@ -91,6 +91,13 @@ class LocalDatasetCache:
                       remote_name)
             return filename
 
+        if not remote_name.startswith(self.dataset_remote_dir):
+            log.warning(
+                "We cache in the local directory only what is"
+                " under $PYLEARN2_DATA_PATH: %s" %
+                remote_name)
+            return filename
+
         # Create the $PYLEARN2_LOCAL_DATA_PATH folder if needed
         self.safe_mkdir(self.dataset_local_dir)
 
