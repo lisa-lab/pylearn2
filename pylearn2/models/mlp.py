@@ -157,7 +157,7 @@ class Layer(Model):
             A dictionary mapping channel names to monitoring channels of
             interest for this layer.
         """
-        warnings.warn("Layer.get_monitoring_channels is " + \
+        warnings.warn("Layer.get_monitoring_channels_from_state is " + \
                     "deprecated. Use get_layer_monitoring_channels " + \
                     "instead. Layer.get_monitoring_channels " + \
                     "will be removed on or after september 24th 2014",
@@ -1246,11 +1246,6 @@ class Softmax(Layer):
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
-        warnings.warn("Layer.get_monitoring_channels is " + \
-                    "deprecated. Use get_layer_monitoring_channels " + \
-                    "instead. Layer.get_monitoring_channels " + \
-                    "will be removed on or after september 24th 2014",
-                    stacklevel=2)
 
         if self.no_affine:
             return OrderedDict()
@@ -1823,11 +1818,6 @@ class SoftmaxPool(Layer):
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
-        warnings.warn("Layer.get_monitoring_channels is " + \
-                    "deprecated. Use get_layer_monitoring_channels " + \
-                    "instead. Layer.get_monitoring_channels " + \
-                    "will be removed on or after september 24th 2014",
-                    stacklevel=2)
 
         W, = self.transformer.get_params()
 
@@ -2313,11 +2303,6 @@ class Linear(Layer):
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
-        warnings.warn("Layer.get_monitoring_channels is " + \
-                    "deprecated. Use get_layer_monitoring_channels " + \
-                    "instead. Layer.get_monitoring_channels " + \
-                    "will be removed on or after september 24th 2014",
-                    stacklevel=2)
 
         W, = self.transformer.get_params()
 
@@ -3438,10 +3423,6 @@ class ConvElemwise(Layer):
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
-        warnings.warn("Layer.get_monitoring_channels is deprecated. " + \
-                    "Use get_layer_monitoring_channels instead. " + \
-                    "Layer.get_monitoring_channels will be removed " + \
-                    "on or after september 24th 2014", stacklevel=2)
 
         W, = self.transformer.get_params()
 
@@ -4074,11 +4055,6 @@ class LinearGaussian(Linear):
 
     @wraps(Linear.get_monitoring_channels)
     def get_monitoring_channels(self):
-        warnings.warn("Layer.get_monitoring_channels is " + \
-                    "deprecated. Use get_layer_monitoring_channels " + \
-                    "instead. Layer.get_monitoring_channels " + \
-                    "will be removed on or after september 24th 2014",
-                    stacklevel=2)
 
         rval = super(LinearGaussian, self).get_monitoring_channels()
         assert isinstance(rval, OrderedDict)
@@ -4272,11 +4248,6 @@ class PretrainedLayer(Layer):
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
-        warnings.warn("Layer.get_monitoring_channels is " + \
-                    "deprecated. Use get_layer_monitoring_channels " + \
-                    "instead. Layer.get_monitoring_channels " + \
-                    "will be removed on or after september 24th 2014",
-                    stacklevel=2)
 
         return OrderedDict([])
 
