@@ -128,7 +128,7 @@ class Layer(Model):
 
         space, source = self.get_monitoring_data_specs()
         space.validate(data)
-        X, Y = data
+        X, Y = data #FIXME: This function assumes one input and one output.
         rval = self.get_layer_monitoring_channels(state_below=X,
                                                   targets=Y)
 
