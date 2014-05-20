@@ -27,7 +27,7 @@ except ImportError:
 from pylearn2.config import yaml_parse
 from pylearn2.cross_validation import TrainCV
 from pylearn2.train import SerializationGuard
-from pylearn2.train_extensions.best_params import MonitorBasedStoreBest
+from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
 from pylearn2.utils import serial
 
 
@@ -180,7 +180,7 @@ class GridSearch(object):
             for extension in trainer.extensions:
                 if found:
                     break
-                if (isinstance(extension, MonitorBasedStoreBest) and
+                if (isinstance(extension, MonitorBasedSaveBest) and
                         extension.channel_name == self.monitor_channel):
                     models.append(extension.best_model)
                     found = True

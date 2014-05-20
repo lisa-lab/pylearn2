@@ -76,7 +76,7 @@ test_grid_search_yaml = """
         },
       },
       extensions: [
-        !obj:pylearn2.train_extensions.best_params.MonitorBasedStoreBest {
+        !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
           channel_name: train_objective,
         },
       ],
