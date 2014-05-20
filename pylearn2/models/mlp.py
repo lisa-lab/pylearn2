@@ -804,7 +804,7 @@ class MLP(Layer):
             assert all(key in params for key in contrib)
 
             rval.update(contrib)
-        assert all(isinstance(val, float) for val in rval.values())
+        assert all(isinstance(val, py_float_types) for val in rval.values())
 
         return rval
 
@@ -1232,14 +1232,14 @@ class Softmax(Layer):
         rval = OrderedDict()
 
         if self.W_lr_scale is not None:
-            assert isinstance(self.W_lr_scale, float)
+            assert isinstance(self.W_lr_scale, py_float_types)
             rval[self.W] = self.W_lr_scale
 
         if not hasattr(self, 'b_lr_scale'):
             self.b_lr_scale = None
 
         if self.b_lr_scale is not None:
-            assert isinstance(self.b_lr_scale, float)
+            assert isinstance(self.b_lr_scale, py_float_types)
             rval[self.b] = self.b_lr_scale
 
         return rval
@@ -4563,7 +4563,7 @@ class CompositeLayer(Layer):
             assert all(key in params for key in contrib)
 
             rval.update(contrib)
-        assert all(isinstance(val, float) for val in rval.values())
+        assert all(isinstance(val, py_float_types) for val in rval.values())
         return rval
 
     @wraps(Layer.cost)
