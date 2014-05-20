@@ -3,6 +3,7 @@
 
     WRITEME
 """
+from copy import deepcopy
 import numpy
 np = numpy
 from pylearn2.train_extensions import TrainExtension
@@ -135,3 +136,50 @@ class MonitorBasedSaveBest(TrainExtension):
         if new_cost < self.best_cost:
             self.best_cost = new_cost
             serial.save(self.save_path, model, on_overwrite = 'backup')
+
+
+class MonitorBasedStoreBest(TrainExtension):
+    """
+    Saves the best model in memory.
+
+    Parameters
+    ----------
+    channel_name : str
+        Channel to monitor.
+    save_path : str
+        Output filename.
+    higher_is_better : bool
+        Whether a higher channel value indicates a better model.
+    """
+    def __init__(self, channel_name, higher_is_better=False):
+        self.channel_name = channel_name
+        self.higher_is_better = higher_is_better
+        self.best_cost = np.inf
+        self.best_model = None
+
+    def on_monitor(self, model, dataset, algorithm):
+        """
+        Check if the model performs better than before. Save best models in
+        memory to avoid race conditions.
+
+        Parameters
+        ----------
+        model : Model
+            Model to monitor.
+        dataset : Dataset
+            Training dataset.
+        algorithm : TrainingAlgorithm
+            Training algorithm.
+        """
+        monitor = model.monitor
+        channels = monitor.channels
+        channel = channels[self.channel_name]
+        val_record = channel.val_record
+        if self.higher_is_better:
+            new_cost = -1 * val_record[-1]
+        else:
+            new_cost = val_record[-1]
+
+        if new_cost < self.best_cost:
+            self.best_cost = new_cost
+            self.best_model = deepcopy(model)

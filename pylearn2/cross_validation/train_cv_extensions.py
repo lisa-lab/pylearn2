@@ -7,12 +7,12 @@ __copyright__ = "Copyright 2014, Stanford University"
 __license__ = "3-clause BSD"
 __maintainer__ = "Steven Kearnes"
 
-from copy import deepcopy
 import numpy as np
 import os
 
 from pylearn2.train import SerializationGuard
-from pylearn2.train_extensions import TrainExtension
+from pylearn2.train_extensions.best_params import (MonitorBasedSaveBest,
+                                                   MonitorBasedStoreBest)
 from pylearn2.utils import serial
 
 
@@ -81,9 +81,10 @@ class MonitorBasedSaveBestCV(TrainCVExtension):
             if self.save_folds:
                 path, ext = os.path.splitext(self.save_path)
                 save_path = path + '-{}'.format(k) + ext
-            else:
-                save_path = None
-            extension = MonitorBasedStoreBest(self.channel_name, save_path,
+                extension = MonitorBasedSaveBest(self.channel_name, save_path,
+                                                 self.higher_is_better)
+                trainer.extensions.append(extension)
+            extension = MonitorBasedStoreBest(self.channel_name,
                                               self.higher_is_better)
             trainer.extensions.append(extension)
 
@@ -110,58 +111,3 @@ class MonitorBasedSaveBestCV(TrainCVExtension):
         finally:
             for trainer in trainers:
                 trainer.dataset._serialization_guard = None
-
-
-class MonitorBasedStoreBest(TrainExtension):
-    """
-    Save best model for each cross-validation fold. Based on
-    train_extensions.best_params.MonitorBasedSaveBest. This extension saves
-    the best model in memory and optionally writes it to a given save_path.
-
-    Parameters
-    ----------
-    channel_name : str
-        Channel to monitor.
-    save_path : str
-        Output filename.
-    higher_is_better : bool
-        Whether a higher channel value indicates a better model.
-    """
-    def __init__(self, channel_name, save_path=None, higher_is_better=False):
-        self.channel_name = channel_name
-        self.save_path = save_path
-        self.higher_is_better = higher_is_better
-        self.best_cost = np.inf
-        self.best_model = None
-
-    def on_monitor(self, model, dataset, algorithm):
-        """
-        Check if the model performs better than before. Save best models in
-        memory to avoid race conditions.
-
-        Parameters
-        ----------
-        model : Model
-            Model to monitor.
-        dataset : Dataset
-            Training dataset.
-        algorithm : TrainingAlgorithm
-            Training algorithm.
-        """
-        monitor = model.monitor
-        channels = monitor.channels
-        channel = channels[self.channel_name]
-        val_record = channel.val_record
-        if self.higher_is_better:
-            new_cost = -1 * val_record[-1]
-        else:
-            new_cost = val_record[-1]
-
-        if new_cost < self.best_cost:
-            self.best_cost = new_cost
-            self.best_model = deepcopy(model)
-
-            if self.save_path is not None:
-                dataset._serialization_guard = SerializationGuard()
-                serial.save(self.save_path, model, on_overwrite='backup')
-                dataset._serialization_guard = None
