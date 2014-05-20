@@ -5,8 +5,8 @@ __authors__ = "David Warde-Farley and Ian Goodfellow"
 __copyright__ = "Copyright 2010-2013, Universite de Montreal"
 __credits__ = ["David Warde-Farley and Ian Goodfellow"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
 
 """
 This module may contain code copied directly or modified from cuda-convnet.
