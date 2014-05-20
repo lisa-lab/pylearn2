@@ -105,10 +105,9 @@ class MonitorBasedSaveBest(TrainExtension):
     def __init__(self, channel_name, save_path=None, higher_is_better=False):
         self.channel_name = channel_name
         self.save_path = save_path
-        if higher_is_better:
-            self.coeff = -1.
-        else:
-            self.coeff = 1.
+        self.higher_is_better = higher_is_better
+
+        # placeholders
         self.best_cost = np.inf
         self.best_model = None
 
@@ -131,7 +130,9 @@ class MonitorBasedSaveBest(TrainExtension):
         channels = monitor.channels
         channel = channels[self.channel_name]
         val_record = channel.val_record
-        new_cost = self.coeff * val_record[-1]
+        new_cost = val_record[-1]
+        if self.higher_is_better:
+            new_cost *= -1.
 
         if new_cost < self.best_cost:
             self.best_cost = new_cost
