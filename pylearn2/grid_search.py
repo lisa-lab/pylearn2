@@ -49,7 +49,12 @@ def random_seeds(size, random_state=None):
 
 class GridSearch(object):
     """
-    Hyperparameter grid search using a YAML template.
+    Hyperparameter grid search using a YAML template. A trainer is
+    constructed for each grid point using the template. If desired, the
+    best models can be chosen by specifying a monitor channel to use for
+    ranking. Additionally, if MonitorBasedStoreBest is used as a training
+    extension in the template, rankings will be determined using the best
+    models extracted from those extensions.
 
     Parameters
     ----------
@@ -115,11 +120,11 @@ class GridSearch(object):
 
             # build output filename
             if self.save_path is not None:
-                save_path, ext = os.path.splitext(self.save_path)
+                prefix, ext = os.path.splitext(self.save_path)
                 for key, value in grid_point.items():
-                    save_path += '-{}_{}'.format(key, value)
-                grid_point['save_path'] = save_path + '.' + ext
-                grid_point['best_save_path'] = save_path + '-best.' + ext
+                    prefix += '-{}_{}'.format(key, value)
+                grid_point['save_path'] = prefix + ext
+                grid_point['best_save_path'] = prefix + '-best' + ext
 
             # construct trainer
             trainer = yaml_parse.load(self.template % grid_point)
@@ -169,8 +174,18 @@ class GridSearch(object):
             return self.get_best_cv_models()
 
         # test for MonitorBasedSaveBest
-        if
-        models = np.asarray([trainer.model for trainer in trainers])
+        models = []
+        for trainer in trainers:
+            found = False
+            for extension in trainer.extensions:
+                if found:
+                    break
+                if (isinstance(extension, MonitorBasedStoreBest) and
+                        extension.channel_name == self.monitor_channel):
+                    models.append(extension.best_model)
+                    found = True
+            if not found:
+                models.append(trainer.model)
         params = np.asarray(self.params)
         scores = self.score(models)
         best_models = None
