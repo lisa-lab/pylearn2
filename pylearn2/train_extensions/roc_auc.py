@@ -88,7 +88,15 @@ class RocAucChannel(TrainExtension):
     This monitor will return nan unless both classes are represented in
     y_true. For this reason, it is recommended to set monitoring_batches
     to 1, especially when using unbalanced datasets.
+
+    Parameters
+    ----------
+    positive_class_index : int (default=1)
+        Index of positive class in predicted values.
     """
+    def __init__(self, positive_class_index=1):
+        self.positive_class_index = positive_class_index
+
     def setup(self, model, dataset, algorithm):
         """
         Add ROC AUC channels for monitoring dataset(s) to model.monitor.
@@ -105,7 +113,7 @@ class RocAucChannel(TrainExtension):
         m_space, m_source = model.get_monitoring_data_specs()
         state, target = m_space.make_theano_batch()
         y = T.argmax(target, axis=1)
-        y_hat = model.fprop(state)[:, 1]
+        y_hat = model.fprop(state)[:, self.positive_class_index]
         roc_auc = roc_auc_score(y, y_hat)
         roc_auc = T.cast(roc_auc, config.floatX)
         for dataset_name, dataset in algorithm.monitoring_dataset.items():
