@@ -10,7 +10,6 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-import os.path
 import numpy as N
 import warnings
 np = N
@@ -21,7 +20,7 @@ from pylearn2.utils import serial
 from pylearn2.utils.mnist_ubyte import read_mnist_images
 from pylearn2.utils.mnist_ubyte import read_mnist_labels
 from pylearn2.utils.rng import make_np_rng
-from pylearn2.utils.string_utils import preprocess
+
 
 class MNIST(dense_design_matrix.DenseDesignMatrix):
     """
@@ -96,74 +95,78 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
 
             topo_view = read_mnist_images(im_path, dtype='float32')
             y = np.atleast_2d(read_mnist_labels(label_path)).T
-
-            if binarize:
-                topo_view = (topo_view > 0.5).astype('float32')
-
-            max_labels = 10
-            if one_hot is not None:
-                warnings.warn("the `one_hot` parameter is deprecated. To get "
-                              "one-hot encoded targets, request that they "
-                              "live in `VectorSpace` through the `data_specs` "
-                              "parameter of MNIST's iterator method. "
-                              "`one_hot` will be removed on or after "
-                              "September 20, 2014.", stacklevel=2)
-
-            m, r, c = topo_view.shape
-            assert r == 28
-            assert c == 28
-            topo_view = topo_view.reshape(m, r, c, 1)
-
-            if which_set == 'train':
-                assert m == 60000
-            elif which_set == 'test':
-                assert m == 10000
-            else:
-                assert False
-
-            if center:
-                topo_view -= topo_view.mean(axis=0)
-
-            if shuffle:
-                self.shuffle_rng = make_np_rng(None, [1, 2, 3],
-                                               which_method="shuffle")
-                for i in xrange(topo_view.shape[0]):
-                    j = self.shuffle_rng.randint(m)
-                    # Copy ensures that memory is not aliased.
-                    tmp = topo_view[i, :, :, :].copy()
-                    topo_view[i, :, :, :] = topo_view[j, :, :, :]
-                    topo_view[j, :, :, :] = tmp
-                    # Note: slicing with i:i+1 works for one_hot=True/False
-                    tmp = y[i:i+1].copy()
-                    y[i] = y[j]
-                    y[j] = tmp
-
-            super(MNIST, self).__init__(topo_view=dimshuffle(topo_view), y=y,
-                                        axes=axes, y_labels=max_labels)
-
-            assert not N.any(N.isnan(self.X))
-
-            if start is not None:
-                assert start >= 0
-                if stop > self.X.shape[0]:
-                    raise ValueError('stop=' + str(stop) + '>' +
-                                     'm=' + str(self.X.shape[0]))
-                assert stop > start
-                self.X = self.X[start:stop, :]
-                if self.X.shape[0] != stop - start:
-                    raise ValueError("X.shape[0]: %d. start: %d stop: %d"
-                                     % (self.X.shape[0], start, stop))
-                if len(self.y.shape) > 1:
-                    self.y = self.y[start:stop, :]
-                else:
-                    self.y = self.y[start:stop]
-                assert self.y.shape[0] == stop - start
         else:
-            # data loading is disabled, just make something that defines the
-            # right topology
-            topo = dimshuffle(np.zeros((1, 28, 28, 1)))
-            super(MNIST, self).__init__(topo_view=topo, axes=axes)
-            self.X = None
+            if which_set == 'train':
+                size = 60000
+            elif which_set == 'test':
+                size = 10000
+            else:
+                raise ValueError(
+                    'Unrecognized which_set value "%s".' % (which_set,) +
+                    '". Valid values are ["train","test"].')
+            topo_view = np.random.rand(size, 28, 28)
+            y = np.random.randint(0, 10, (size, 1))
+
+        if binarize:
+            topo_view = (topo_view > 0.5).astype('float32')
+
+        max_labels = 10
+        if one_hot is not None:
+            warnings.warn("the `one_hot` parameter is deprecated. To get "
+                          "one-hot encoded targets, request that they "
+                          "live in `VectorSpace` through the `data_specs` "
+                          "parameter of MNIST's iterator method. "
+                          "`one_hot` will be removed on or after "
+                          "September 20, 2014.", stacklevel=2)
+
+        m, r, c = topo_view.shape
+        assert r == 28
+        assert c == 28
+        topo_view = topo_view.reshape(m, r, c, 1)
+
+        if which_set == 'train':
+            assert m == 60000
+        elif which_set == 'test':
+            assert m == 10000
+        else:
+            assert False
+
+        if center:
+            topo_view -= topo_view.mean(axis=0)
+
+        if shuffle:
+            self.shuffle_rng = make_np_rng(None, [1, 2, 3], which_method="shuffle")
+            for i in xrange(topo_view.shape[0]):
+                j = self.shuffle_rng.randint(m)
+                # Copy ensures that memory is not aliased.
+                tmp = topo_view[i, :, :, :].copy()
+                topo_view[i, :, :, :] = topo_view[j, :, :, :]
+                topo_view[j, :, :, :] = tmp
+                # Note: slicing with i:i+1 works for one_hot=True/False
+                tmp = y[i:i+1].copy()
+                y[i] = y[j]
+                y[j] = tmp
+
+        super(MNIST, self).__init__(topo_view=dimshuffle(topo_view), y=y,
+                                    axes=axes, y_labels=max_labels)
+
+        assert not N.any(N.isnan(self.X))
+
+        if start is not None:
+            assert start >= 0
+            if stop > self.X.shape[0]:
+                raise ValueError('stop=' + str(stop) + '>' +
+                                 'm=' + str(self.X.shape[0]))
+            assert stop > start
+            self.X = self.X[start:stop, :]
+            if self.X.shape[0] != stop - start:
+                raise ValueError("X.shape[0]: %d. start: %d stop: %d"
+                                 % (self.X.shape[0], start, stop))
+            if len(self.y.shape) > 1:
+                self.y = self.y[start:stop, :]
+            else:
+                self.y = self.y[start:stop]
+            assert self.y.shape[0] == stop - start
 
         if which_set == 'test':
             assert fit_test_preprocessor is None or \
@@ -219,22 +222,13 @@ class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
     """
 
     def __init__(self, which_set, center=False, one_hot=False):
-        if which_set == 'train':
-            set_path = 'mnist_all_background_images_'\
-                       'rotation_normalized_train_valid.amat'
-        elif which_set == 'test':
-            set_path = 'mnist_all_background_images_'\
-                       'rotation_normalized_test.amat'
-        else:
-            raise ValueError("which_set must be one of: 'test', 'train'")
-        pylearn2_data_path = preprocess("${PYLEARN2_DATA_PATH}")
-        path = os.path.join(pylearn2_data_path,
-                            "mnist/mnist_rotation_back_image/",
-                            set_path)
-        obj = N.loadtxt(path)
-        X = obj[:,:-1]
+        path = "${PYLEARN2_DATA_PATH}/mnist/mnist_rotation_back_image/" \
+            + which_set
+
+        obj = serial.load(path)
+        X = obj['data']
         X = N.cast['float32'](X)
-        y = N.cast['int'](obj[:,-1])
+        y = N.asarray(obj['labels'])
 
         self.one_hot = one_hot
         if one_hot:
@@ -248,7 +242,7 @@ class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
 
         view_converter = dense_design_matrix.DefaultViewConverter((28, 28, 1))
 
-        super(MNIST_rotated_background, self).__init__(
-            X=X, y=y, view_converter=view_converter)
+        super(MNIST_rotated_background, self).__init__(X=X, y=y, view_converter=view_converter)
 
         assert not N.any(N.isnan(self.X))
+

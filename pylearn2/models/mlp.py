@@ -4464,7 +4464,7 @@ class CompositeLayer(Layer):
             An expression for the squared L2 weight decay penalty term for
             this layer.
         """
-        return self._weight_decay_gather('get_weight_decay', coeff)
+        return self._weight_decay_aggregate('get_weight_decay', coeff)
 
     def get_l1_weight_decay(self, coeff):
         """
@@ -4487,7 +4487,7 @@ class CompositeLayer(Layer):
             An expression for the L1 weight decay penalty term for this
             layer.
         """
-        return self._weight_decay_gather('get_l1_weight_decay', coeff)
+        return self._weight_decay_aggregate('get_l1_weight_decay', coeff)
 
     @wraps(Layer.cost)
     def cost(self, Y, Y_hat):

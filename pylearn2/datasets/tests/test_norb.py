@@ -37,7 +37,7 @@ class TestNORB(unittest.TestCase):
         topo_tensor = norb.get_topological_view(single_tensor=True)
         shape = (norb.X.shape[0], 2) + SmallNORB.original_image_shape + (1, )
         expected_topo_tensor = norb.X.reshape(shape)
-        #We loop to lower the peak memory usage
+        # We loop to lower the peak memory usage
         for i in range(topo_tensor.shape[0]):
             assert numpy.all(topo_tensor[i] == expected_topo_tensor[i])
 
@@ -46,6 +46,6 @@ class TestNORB(unittest.TestCase):
         expected_topo_tensors = tuple(expected_topo_tensor[:, i, ...]
                                       for i in range(2))
 
-        for topo_tensor, expected_topo_tensor in \
-            safe_zip(topo_tensors, expected_topo_tensors):
+        for topo_tensor, expected_topo_tensor in safe_zip(
+                topo_tensors, expected_topo_tensors):
             assert numpy.all(topo_tensor == expected_topo_tensor)
