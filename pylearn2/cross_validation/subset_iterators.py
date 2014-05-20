@@ -22,7 +22,7 @@ except ImportError:
     KFold = StratifiedKFold = ShuffleSplit = StratifiedShuffleSplit = object
 
 
-def get_validation_set(train, train_cv, indices):
+def get_validation_set(train, train_cv):
     """
     Repartition training set into training and validation sets using the
     given subset iterator. Only the first train/test split of train_cv is
@@ -35,19 +35,9 @@ def get_validation_set(train, train_cv, indices):
     train_cv : subset iterator
         Cross-validation iterator that returns train/test splits of the
         training set.
-    indices : bool
-        Return train/valid split as arrays of indices instead of boolean
-        masks.
     """
     for new_train, new_valid in train_cv:
-        if indices:
-            return train[new_train], train[new_valid]
-        else:
-            valid = np.zeros(train.shape, dtype=bool)
-            sel = np.where(train)[0][new_valid]
-            valid[sel] = True
-            train[sel] = False
-            return train, valid
+        return train[new_train], train[new_valid]
 
 
 class ValidationKFold(KFold):
@@ -61,24 +51,20 @@ class ValidationKFold(KFold):
         Number of examples.
     n_folds : int
         Number of cross-validation folds. Must be at least 3.
-    indices : bool or None
-        Return train/valid/test split as arrays of indices instead of
-        boolean masks. This argument is deprecated and will be removed in
-        future versions of sklearn.
     shuffle : bool
         Whether to shuffle the data before splitting.
     random_state : int, RandomState, or None
         Pseudorandom number seed or generator to use for shuffling.
     """
-    def __init__(self, n, n_folds=3, indices=None, shuffle=False,
-                 random_state=None):
+    def __init__(self, n, n_folds=3, shuffle=False, random_state=None):
         if n_folds <= 2:
             raise ValueError("k-fold cross-validation requires at least one " +
                              "train / valid / test split by setting " +
                              "n_folds=3 or more, got " +
                              "n_folds={}.".format(n_folds))
-        super(ValidationKFold, self).__init__(n, n_folds, indices, shuffle,
-                                              random_state)
+        super(ValidationKFold, self).__init__(n, n_folds=n_folds,
+                                              shuffle=shuffle,
+                                              random_state=random_state)
 
     def __iter__(self):
         """
@@ -90,8 +76,8 @@ class ValidationKFold(KFold):
         """
         for train, test in super(KFold, self).__iter__():
             n = len(self.idxs[train])  # works with indices or masks
-            train_cv = KFold(n, n_folds=self.n_folds-1, indices=self.indices)
-            train, valid = get_validation_set(train, train_cv, self.indices)
+            train_cv = KFold(n, n_folds=self.n_folds-1)
+            train, valid = get_validation_set(train, train_cv)
             yield train, valid, test
 
 
@@ -106,17 +92,18 @@ class StratifiedValidationKFold(StratifiedKFold):
         Labels for examples.
     n_folds : int
         Number of cross-validation folds. Must be at least 3.
-    indices : bool or None
-        Return train/valid/test split as arrays of indices instead of
-        boolean masks. This argument is deprecated and will be removed in
-        future versions of sklearn.
+    shuffle : bool
+        Whether to shuffle the data before splitting.
+    random_state : int, RandomState, or None
+        Pseudorandom number seed or generator to use for shuffling.
     """
-    def __init__(self, y, n_folds=3, indices=None):
+    def __init__(self, y, n_folds=3, shuffle=False, random_state=None):
         if n_folds <= 2:
             raise ValueError("k-fold cross-validation requires at least one " +
                              "train/valid/test split by setting n_folds=3 " +
                              "or more, got n_folds={}.".format(n_folds))
-        super(StratifiedValidationKFold, self).__init__(y, n_folds, indices)
+        super(StratifiedValidationKFold, self).__init__(
+            y, n_folds=n_folds, shuffle=shuffle, random_state=random_state)
 
     def __iter__(self):
         """
@@ -125,9 +112,8 @@ class StratifiedValidationKFold(StratifiedKFold):
         """
         for train, test in super(StratifiedKFold, self).__iter__():
             y = self.y[train]
-            train_cv = StratifiedKFold(y, n_folds=self.n_folds-1,
-                                       indices=self.indices)
-            train, valid = get_validation_set(train, train_cv, self.indices)
+            train_cv = StratifiedKFold(y, n_folds=self.n_folds-1)
+            train, valid = get_validation_set(train, train_cv)
             yield train, valid, test
 
 
@@ -163,18 +149,15 @@ class ValidationShuffleSplit(ShuffleSplit):
         split. If int, represents the absolute number of validation
         samples. If None, the value is automatically set to the complement
         of valid_size + test_size.
-    indices : bool or None
-        Return train/valid/test split as arrays of indices instead of
-        boolean masks. This argument is deprecated and will be removed in
-        future versions of sklearn.
     random_state : int, RandomState, or None
         Pseudorandom number seed or generator to use for shuffling.
     """
     def __init__(self, n, n_iter=10, test_size=0.1, valid_size=None,
-                 train_size=None, indices=None, random_state=None):
-        super(ValidationShuffleSplit, self).__init__(n, n_iter, test_size,
-                                                     train_size, indices,
-                                                     random_state)
+                 train_size=None, random_state=None):
+        super(ValidationShuffleSplit, self).__init__(n, n_iter=n_iter,
+                                                     test_size=test_size,
+                                                     train_size=train_size,
+                                                     random_state=random_state)
         if valid_size is None:
             valid_size = self.n_test
 
@@ -191,9 +174,8 @@ class ValidationShuffleSplit(ShuffleSplit):
         for train, test in super(ShuffleSplit, self).__iter__():
             n = len(np.arange(self.n)[train])  # works with indices or masks
             train_cv = ShuffleSplit(n, test_size=self.valid_size,
-                                    indices=self.indices,
                                     random_state=self.random_state)
-            train, valid = get_validation_set(train, train_cv, self.indices)
+            train, valid = get_validation_set(train, train_cv)
             yield train, valid, test
 
 
@@ -229,20 +211,14 @@ class StratifiedValidationShuffleSplit(StratifiedShuffleSplit):
         split. If int, represents the absolute number of validation
         samples. If None, the value is automatically set to the complement
         of valid_size + test_size.
-    indices : bool or None
-        Return train/valid/test split as arrays of indices instead of
-        boolean masks. This argument is deprecated and will be removed in
-        future versions of sklearn.
     random_state : int, RandomState, or None
         Pseudorandom number seed or generator to use for shuffling.
     """
     def __init__(self, y, n_iter=10, test_size=0.1, valid_size=None,
-                 train_size=None, indices=None, random_state=None):
-        super(StratifiedValidationShuffleSplit, self).__init__(y, n_iter,
-                                                               test_size,
-                                                               train_size,
-                                                               indices,
-                                                               random_state)
+                 train_size=None, random_state=None):
+        super(StratifiedValidationShuffleSplit, self).__init__(
+            y, n_iter=n_iter, test_size=test_size, train_size=train_size,
+            random_state=random_state)
         if valid_size is None:
             valid_size = self.n_test
 
@@ -259,7 +235,6 @@ class StratifiedValidationShuffleSplit(StratifiedShuffleSplit):
         for train, test in super(StratifiedShuffleSplit, self).__iter__():
             y = self.y[train]
             train_cv = StratifiedShuffleSplit(y, test_size=self.valid_size,
-                                              indices=self.indices,
                                               random_state=self.random_state)
-            train, valid = get_validation_set(train, train_cv, self.indices)
+            train, valid = get_validation_set(train, train_cv)
             yield train, valid, test
