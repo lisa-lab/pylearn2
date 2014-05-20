@@ -275,14 +275,14 @@ class RPROP(LearningRule):
 
     def add_channels_to_monitor(self, monitor, monitoring_dataset):
         monitor.add_channel(
-            'RPROP decrease_rate',
+            'rprop_decrease_rate',
             ipt=None,
             val=self.decrease_rate,
             dataset=monitoring_dataset,
             data_specs=(NullSpace(), '')
         )
         monitor.add_channel(
-            'RPROP increase_rate',
+            'rprop_increase_rate',
             ipt=None,
             val=self.increase_rate,
             dataset=monitoring_dataset,
@@ -332,7 +332,7 @@ class RPROP(LearningRule):
             # Created required shared variables
             lr = lr_scalers.get(param, learning_rate.get_value())
             delta = sharedX(
-                param.get_value() * 0. + lr,
+                np.zeros_like(param.get_value()) + lr,
                 borrow=True
             )
 
