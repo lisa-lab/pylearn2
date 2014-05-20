@@ -4416,15 +4416,24 @@ class CompositeLayer(Layer):
 
         rval = OrderedDict()
 
-        for l in range(len(self.layers)):
-            layer = self.layers[l]
-            if self.routing_needed and l in self.layers_to_inputs:
+        for i in range(len(self.layers)):
+            layer = self.layers[i]
+            if self.routing_needed and i in self.layers_to_inputs:
+                """
+                Only a subset of state_below is an
+                input to the layer. Gives the correct
+                input.
+                """
                 ch = layer.get_layer_monitoring_channels(
-                           state_below=state_below[self.layers_to_inputs[l]],
+                           state_below=state_below[self.layers_to_inputs[i]],
                            state=None,
                            targets=None
                            )
             else:
+                """
+                state_below is a the correct input
+                for the layer.
+                """
                 ch = layer.get_layer_monitoring_channels(
                            state_below=state_below,
                            state=None,
