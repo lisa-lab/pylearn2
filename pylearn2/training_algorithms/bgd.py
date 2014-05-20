@@ -68,15 +68,15 @@ class BGD(TrainingAlgorithm):
         `force_batch_size` attribute by calling set_batch_size on it.
     reset_alpha : bool, optional
         Passed through to the optimization.BatchGradientDescent's
-        `max_iters parameter`
+        `reset_alpha parameter
     conjugate : bool, optional
         Passed through to the optimization.BatchGradientDescent's
-        `max_iters parameter`
+        `conjugate` parameter
     min_init_alpha : float, optional
         WRITEME
     reset_conjugate : bool, optional
         Passed through to the optimization.BatchGradientDescent's
-        `max_iters parameter`
+        `reset_conjugate` parameter
     line_search_mode : WRITEME
     verbose_optimization : bool, optional
         WRITEME
