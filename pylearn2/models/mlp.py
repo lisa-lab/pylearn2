@@ -4418,7 +4418,14 @@ class CompositeLayer(Layer):
 
         for l in range(len(self.layers)):
             layer = self.layers[l]
-            ch = layer.get_layer_monitoring_channels(
+            if self.routing_needed and l in self.layers_to_inputs:
+                ch = layer.get_layer_monitoring_channels(
+                           state_below=state_below[self.layers_to_inputs[l]],
+                           state=None,
+                           targets=None
+                           )
+            else:
+                ch = layer.get_layer_monitoring_channels(
                            state_below=state_below,
                            state=None,
                            targets=None
