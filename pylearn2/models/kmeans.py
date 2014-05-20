@@ -7,6 +7,7 @@ from pylearn2.models.model import Model
 from pylearn2.space import VectorSpace
 from pylearn2.utils import sharedX
 from pylearn2.utils.mem import TypicalMemoryError
+from pylearn2.utils import wraps
 import warnings
 
 try:
@@ -190,17 +191,10 @@ class KMeans(Block, Model):
         self._params = [ self.mu ]
         return True
 
+    @wraps(Model.continue_learning)
     def continue_learning(self):
-        """
-        Overriding Model.continue_learning because train_all is used to train
-        the model.
-        
-        Returns
-        -------
-        rval : bool
-            True if training should continue
-
-        """
+        # One call to train_all currently trains the model fully,
+        # so return False immediately.
         return False
         
     def get_params(self):
