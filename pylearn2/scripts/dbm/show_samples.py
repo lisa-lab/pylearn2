@@ -89,7 +89,7 @@ class SamplesViewer(object):
         if display_batch.ndim == 2:
             display_batch = self.dataset.get_topological_view(display_batch)
         if self.mapback:
-            mapped_batch = get_mapped_batch(self.vis_batch)
+            mapped_batch = self.get_mapped_batch(self.vis_batch)
         for i in xrange(self.rows):
             row_start = self.cols * i
             for j in xrange(self.cols):
