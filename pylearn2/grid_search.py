@@ -27,6 +27,7 @@ except ImportError:
 from pylearn2.config import yaml_parse
 from pylearn2.cross_validation import TrainCV
 from pylearn2.train import SerializationGuard
+from pylearn2.train_extensions.best_params import MonitorBasedStoreBest
 from pylearn2.utils import serial
 
 
@@ -150,7 +151,9 @@ class GridSearch(object):
 
     def get_best_models(self, trainers=None):
         """
-        Get best models.
+        Get best models. If MonitorBasedStoreBest is used in the template
+        with self.monitor_channel, then take the best model from that
+        extension.
 
         Parameters
         ----------
@@ -165,6 +168,8 @@ class GridSearch(object):
         if isinstance(trainers[0], TrainCV):
             return self.get_best_cv_models()
 
+        # test for MonitorBasedSaveBest
+        if
         models = np.asarray([trainer.model for trainer in trainers])
         params = np.asarray(self.params)
         scores = self.score(models)
