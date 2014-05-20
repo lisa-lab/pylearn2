@@ -146,8 +146,6 @@ class MonitorBasedStoreBest(TrainExtension):
     ----------
     channel_name : str
         Channel to monitor.
-    save_path : str
-        Output filename.
     higher_is_better : bool
         Whether a higher channel value indicates a better model.
     """
