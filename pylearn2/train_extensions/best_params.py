@@ -88,28 +88,29 @@ class KeepBestParams(TrainExtension):
 
 class MonitorBasedSaveBest(TrainExtension):
     """
-    A callback that saves a copy of the model every time it achieves
-    a new minimal value of a monitoring channel.
+    A callback that saves a copy of the model every time it achieves a new
+    minimal value of a monitoring channel. Also stores the best model in
+    memory.
 
     Parameters
     ----------
     channel_name : str
-        The name of the channel we want to minimize
-    save_path : str
-        Path to save the best model to
+        The name of the monitor channel we want to minimize.
+    save_path : str or None, optional
+        Output filename for best model. If not provided, only stores the
+        best model in memory.
     higher_is_better : bool, optional
-        WRITEME
+        Whether a higher value of channel_name indicates a better model.
     """
-
-    def __init__(self, channel_name, save_path,higher_is_better=False):
-        self.__dict__.update(locals())
-        del self.self
+    def __init__(self, channel_name, save_path=None, higher_is_better=False):
+        self.channel_name = channel_name
+        self.save_path = save_path
         if higher_is_better:
             self.coeff = -1.
         else:
             self.coeff = 1.
         self.best_cost = np.inf
-
+        self.best_model = None
 
     def on_monitor(self, model, dataset, algorithm):
         """
@@ -126,7 +127,6 @@ class MonitorBasedSaveBest(TrainExtension):
         algorithm : TrainingAlgorithm
             Not used
         """
-
         monitor = model.monitor
         channels = monitor.channels
         channel = channels[self.channel_name]
@@ -135,49 +135,6 @@ class MonitorBasedSaveBest(TrainExtension):
 
         if new_cost < self.best_cost:
             self.best_cost = new_cost
-            serial.save(self.save_path, model, on_overwrite = 'backup')
-
-
-class MonitorBasedStoreBest(TrainExtension):
-    """
-    Saves the best model in memory.
-
-    Parameters
-    ----------
-    channel_name : str
-        Channel to monitor.
-    higher_is_better : bool
-        Whether a higher channel value indicates a better model.
-    """
-    def __init__(self, channel_name, higher_is_better=False):
-        self.channel_name = channel_name
-        self.higher_is_better = higher_is_better
-        self.best_cost = np.inf
-        self.best_model = None
-
-    def on_monitor(self, model, dataset, algorithm):
-        """
-        Check if the model performs better than before. Save best models in
-        memory to avoid race conditions.
-
-        Parameters
-        ----------
-        model : Model
-            Model to monitor.
-        dataset : Dataset
-            Training dataset.
-        algorithm : TrainingAlgorithm
-            Training algorithm.
-        """
-        monitor = model.monitor
-        channels = monitor.channels
-        channel = channels[self.channel_name]
-        val_record = channel.val_record
-        if self.higher_is_better:
-            new_cost = -1 * val_record[-1]
-        else:
-            new_cost = val_record[-1]
-
-        if new_cost < self.best_cost:
-            self.best_cost = new_cost
             self.best_model = deepcopy(model)
+            if self.save_path is not None:
+                serial.save(self.save_path, model, on_overwrite='backup')

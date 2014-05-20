@@ -11,8 +11,7 @@ import numpy as np
 import os
 
 from pylearn2.train import SerializationGuard
-from pylearn2.train_extensions.best_params import (MonitorBasedSaveBest,
-                                                   MonitorBasedStoreBest)
+from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
 from pylearn2.utils import serial
 
 
@@ -81,11 +80,10 @@ class MonitorBasedSaveBestCV(TrainCVExtension):
             if self.save_folds:
                 path, ext = os.path.splitext(self.save_path)
                 save_path = path + '-{}'.format(k) + ext
-                extension = MonitorBasedSaveBest(self.channel_name, save_path,
-                                                 self.higher_is_better)
-                trainer.extensions.append(extension)
-            extension = MonitorBasedStoreBest(self.channel_name,
-                                              self.higher_is_better)
+            else:
+                save_path = None
+            extension = MonitorBasedSaveBest(self.channel_name, save_path,
+                                             self.higher_is_better)
             trainer.extensions.append(extension)
 
     def on_save(self, trainers):
@@ -100,7 +98,7 @@ class MonitorBasedSaveBestCV(TrainCVExtension):
         models = []
         for trainer in trainers:
             for extension in trainer.extensions:
-                if isinstance(extension, MonitorBasedStoreBest):
+                if isinstance(extension, MonitorBasedSaveBest):
                     models.append(extension.best_model)
                     break
         assert len(models) == len(trainers)
