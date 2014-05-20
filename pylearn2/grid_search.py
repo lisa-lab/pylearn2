@@ -38,8 +38,8 @@ def random_seeds(size, random_state=None):
     ----------
     size : int
         Number of seeds to generate.
-    random_state : int, RandomState, or None
-        Random state.
+    random_state : int or None
+        Seed for random number generator.
     """
     rng = np.random.RandomState(random_state)
     seeds = rng.randint(0, sys.maxint, size)
