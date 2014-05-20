@@ -35,7 +35,7 @@ class DatasetCV(object):
         Full dataset for use in cross validation.
     subset_iterator : iterable
         Iterable that returns (train, test) or (train, valid, test) indices
-        or masks for partitioning the dataset during cross-validation.
+        for partitioning the dataset during cross-validation.
     preprocessor : Preprocessor or None
         Preprocessor to apply to child datasets.
     fit_preprocessor : bool

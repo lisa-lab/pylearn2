@@ -31,7 +31,7 @@ def get_validation_set(train, train_cv):
     Parameters
     ----------
     train : array_like
-        Indices or boolean mask corresponding to the training set.
+        Indices corresponding to the training set.
     train_cv : subset iterator
         Cross-validation iterator that returns train/test splits of the
         training set.
@@ -75,7 +75,7 @@ class ValidationKFold(KFold):
         before generating the validation set.
         """
         for train, test in super(KFold, self).__iter__():
-            n = len(self.idxs[train])  # works with indices or masks
+            n = len(self.idxs[train])
             train_cv = KFold(n, n_folds=self.n_folds-1)
             train, valid = get_validation_set(train, train_cv)
             yield train, valid, test
@@ -172,7 +172,7 @@ class ValidationShuffleSplit(ShuffleSplit):
         splitting the training set.
         """
         for train, test in super(ShuffleSplit, self).__iter__():
-            n = len(np.arange(self.n)[train])  # works with indices or masks
+            n = len(np.arange(self.n)[train])
             train_cv = ShuffleSplit(n, test_size=self.valid_size,
                                     random_state=self.random_state)
             train, valid = get_validation_set(train, train_cv)
