@@ -186,6 +186,7 @@ class GridSearch(object):
                     found = True
             if not found:
                 models.append(trainer.model)
+        models = np.asarray(models)
         params = np.asarray(self.params)
         scores = self.score(models)
         best_models = None

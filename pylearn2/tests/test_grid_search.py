@@ -75,6 +75,11 @@ test_grid_search_yaml = """
           train: *train,
         },
       },
+      extensions: [
+        !obj:pylearn2.train_extensions.best_params.MonitorBasedStoreBest {
+          channel_name: train_objective,
+        },
+      ],
     }",
   param_grid: {
     dim: [2, 4, 8]
