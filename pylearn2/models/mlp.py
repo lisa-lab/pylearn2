@@ -4402,7 +4402,7 @@ class CompositeLayer(Layer):
                            )
             else:
                 """
-                state_below is a the correct input
+                state_below is a correct input
                 for the layer.
                 """
                 ch = layer.get_layer_monitoring_channels(
