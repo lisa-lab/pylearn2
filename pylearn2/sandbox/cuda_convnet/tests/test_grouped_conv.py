@@ -1,8 +1,8 @@
 __authors__ = "Jan Schlueter"
 __credits__ = ["Jan Schlueter"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__maintainer__ = "LISA lab"
+__email__ = "pylearn-dev@googlegroups"
 
 from pylearn2.testing.skip import skip_if_no_gpu
 skip_if_no_gpu()

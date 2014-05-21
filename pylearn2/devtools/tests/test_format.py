@@ -438,6 +438,7 @@ whitelist_docstrings = [
     'sandbox/cuda_convnet/tests/test_pool.py',
     'sandbox/cuda_convnet/tests/test_common.py',
     'sandbox/cuda_convnet/tests/test_stochastic_pool.py',
+    "sandbox/cuda_convnet/tests/test_grouped_conv.py",
     'sandbox/cuda_convnet/shared_code.py',
     'sandbox/cuda_convnet/__init__.py',
     'sandbox/cuda_convnet/img_acts.py',
