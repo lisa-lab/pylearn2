@@ -606,7 +606,7 @@ def test_bad_monitoring_input_in_monitor_based_lr():
                     init_momentum=None,
                     set_batch_size=False)
 
-    #testing for bad dataset_name input
+    # testing for bad dataset_name input
     dummy = 'void'
 
     monitor_lr = MonitorBasedLRAdjuster(dataset_name=dummy)
@@ -633,7 +633,7 @@ def test_bad_monitoring_input_in_monitor_based_lr():
         raise AssertionError("MonitorBasedLRAdjuster takes dataset_name that "
                              "is invalid ")
 
-    #testing for bad channel_name input
+    # testing for bad channel_name input
     monitor_lr2 = MonitorBasedLRAdjuster(channel_name=dummy)
 
     model2 = SoftmaxModel(dim)
