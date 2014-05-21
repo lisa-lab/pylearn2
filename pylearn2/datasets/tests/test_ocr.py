@@ -7,8 +7,15 @@ from pylearn2.testing.skip import skip_if_no_data
 
 
 class TestOCR(unittest.TestCase):
-    """unit test of OCR dataset"""
+    """
+    Unit test of OCR dataset
+
+    Parameters
+    ----------
+    None
+    """
     def setUp(self):
+        """Load train, test, valid sets"""
         skip_if_no_data()
         self.train = OCR(which_set='train')
         self.valid = OCR(which_set='valid')

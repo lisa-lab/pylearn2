@@ -8,6 +8,15 @@ digs = string.digits + string.lowercase
 
 
 def int2base(x, base):
+    """
+    Takes an int (in base 10) and converts it to a string of
+    digits representing that int in another base.
+
+    Parameters
+    ----------
+    x - int to be converted
+    base - the base that x is converted into.
+    """
     if x < 0:
         sign = -1
     elif x == 0:

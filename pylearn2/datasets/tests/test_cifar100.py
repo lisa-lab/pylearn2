@@ -1,3 +1,5 @@
+"""Test for cifar100 dataset module"""
+
 import unittest
 import numpy as np
 from pylearn2.datasets.cifar100 import CIFAR100
