@@ -68,7 +68,7 @@ class BGD(TrainingAlgorithm):
         `force_batch_size` attribute by calling set_batch_size on it.
     reset_alpha : bool, optional
         Passed through to the optimization.BatchGradientDescent's
-        `reset_alpha parameter
+        `reset_alpha` parameter
     conjugate : bool, optional
         Passed through to the optimization.BatchGradientDescent's
         `conjugate` parameter
