@@ -14,6 +14,7 @@ class TestCIFAR100(unittest.TestCase):
     """
 
     def setUp(self):
+        """Load the train and test sets; check for nan and inf."""
         skip_if_no_data()
         self.train_set = CIFAR100(which_set='train')
         self.test_set = CIFAR100(which_set='test')
@@ -23,14 +24,20 @@ class TestCIFAR100(unittest.TestCase):
         assert not np.any(np.isinf(self.test_set.X))
 
     def test_adjust_for_viewer(self):
+        """Test method"""
         self.train_set.adjust_for_viewer(self.train_set.X)
 
     def test_adjust_to_be_viewed_with(self):
+        """Test method on train set"""
         self.train_set.adjust_to_be_viewed_with(
             self.train_set.X,
             np.ones(self.train_set.X.shape))
 
     def test_get_test_set(self):
+        """
+        Check that the train and test sets'
+        get_test_set methods return same thing.
+        """
         train_test_set = self.train_set.get_test_set()
         test_test_set = self.test_set.get_test_set()
         assert np.all(train_test_set.X == test_test_set.X)
@@ -61,9 +68,11 @@ class TestCIFAR100(unittest.TestCase):
         assert np.all(b01c_direct == b01c)
 
     def test_iterator(self):
-        # Tests that batches returned by an iterator with topological
-        # data_specs are the same as the ones returned by calling
-        # get_topological_view on the dataset with the corresponding order
+        """
+        Tests that batches returned by an iterator with topological
+        data_specs are the same as the ones returned by calling
+        get_topological_view on the dataset with the corresponding order
+        """
         batch_size = 100
         b01c_X = self.test_set.X[0:batch_size, :]
         b01c_topo = self.test_set.get_topological_view(b01c_X)
