@@ -137,15 +137,17 @@ class TrainCV(object):
         self.setup()
         if parallel:
             from IPython.parallel import Client
+
             if client_kwargs is None:
                 client_kwargs = {}
             client = Client(**client_kwargs)
-            view = client.load_balanced_view()
-            models = view.map(train, self.trainers,
-                              [time_budget] * len(self.trainers), block=True)
-            # ensure trained models are saved
-            for trainer, model in zip(self.trainers, models):
-                trainer.model = model
+            view = client[:]
+            view.use_dill()
+            call = view.map(train,
+                            self.trainers,
+                            [time_budget] * len(self.trainers),
+                            block=False)
+            self.trainers = call.get()
         else:
             for trainer in self.trainers:
                 trainer.main_loop(time_budget)
@@ -193,4 +195,4 @@ def train(trainer, time_budget=None):
         training. Default is `None`, no time limit.
     """
     trainer.main_loop(time_budget)
-    return trainer.model
+    return trainer
