@@ -245,3 +245,4 @@ class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
         super(MNIST_rotated_background, self).__init__(X=X, y=y, view_converter=view_converter)
 
         assert not N.any(N.isnan(self.X))
+
