@@ -66,6 +66,12 @@ def batch_train(trainers, time_budget=None, parallel=False,
     if parallel:
         from IPython.parallel import Client
 
+        # get all child trainers
+        trainers = []
+        for trainer in trainers:
+            if isinstance(trainer, TrainCV):
+                trainer
+
         def _train(trainer, time_budget, parallel, client_kwargs):
             if isinstance(trainer, TrainCV):
                 trainer.main_loop(time_budget, parallel, client_kwargs)
