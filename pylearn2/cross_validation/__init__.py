@@ -141,8 +141,11 @@ class TrainCV(object):
                 client_kwargs = {}
             client = Client(**client_kwargs)
             view = client.load_balanced_view()
-            view.map(lambda t, tb: t.main_loop(tb), self.trainers,
-                     [time_budget] * len(self.trainers), block=True)
+            models = view.map(train, self.trainers,
+                              [time_budget] * len(self.trainers), block=True)
+            # ensure trained models are saved
+            for trainer, model in zip(self.trainers, models):
+                trainer.model = model
         else:
             for trainer in self.trainers:
                 trainer.main_loop(time_budget)
@@ -175,3 +178,19 @@ class TrainCV(object):
             finally:
                 for trainer in self.trainers:
                     trainer.dataset._serialization_guard = None
+
+
+def train(trainer, time_budget=None):
+    """
+    Run main_loop of this trainer.
+
+    Parameters
+    ----------
+    trainer : Train object
+        Train object.
+    time_budget : int, optional
+        The maximum number of seconds before interrupting
+        training. Default is `None`, no time limit.
+    """
+    trainer.main_loop(time_budget)
+    return trainer.model
