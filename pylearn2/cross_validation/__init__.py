@@ -119,7 +119,7 @@ class TrainCV(object):
         for extension in self.cv_extensions:
             extension.setup(self.trainers)
 
-    def main_loop(self, time_budget=None):
+    def main_loop(self, time_budget=None, parallel=False, client_kwargs=None):
         """
         Run main_loop of each trainer.
 
@@ -128,10 +128,24 @@ class TrainCV(object):
         time_budget : int, optional
             The maximum number of seconds before interrupting
             training. Default is `None`, no time limit.
+        parallel : bool
+            Whether to train subtrainers in parallel using
+            IPython.parallel.
+        client_kwargs : dict or None
+            Keyword arguments for IPython.parallel.Client.
         """
         self.setup()
-        for trainer in self.trainers:
-            trainer.main_loop(time_budget)
+        if parallel:
+            from IPython.parallel import Client
+            if client_kwargs is None:
+                client_kwargs = {}
+            client = Client(**client_kwargs)
+            view = client.load_balanced_view()
+            view.map(lambda t, tb: t.main_loop(tb), self.trainers,
+                     [time_budget] * len(self.trainers), block=True)
+        else:
+            for trainer in self.trainers:
+                trainer.main_loop(time_budget)
         self.save()
 
     def save(self):
