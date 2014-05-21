@@ -47,6 +47,45 @@ def random_seeds(size, random_state=None):
     return seeds
 
 
+def batch_train(trainers, time_budget=None, parallel=False,
+                client_kwargs=None):
+    """
+    Run main_loop of each trainer.
+
+    Parameters
+    ----------
+    time_budget : int, optional
+        The maximum number of seconds before interrupting
+        training. Default is `None`, no time limit.
+    parallel : bool
+        Whether to train subtrainers in parallel using
+        IPython.parallel.
+    client_kwargs : dict or None
+        Keyword arguments for IPython.parallel.Client.
+    """
+    if parallel:
+        from IPython.parallel import Client
+
+        def _train(trainer, time_budget, parallel, client_kwargs):
+            if isinstance(trainer, TrainCV):
+                trainer.main_loop(time_budget, parallel, client_kwargs)
+            else:
+                trainer.main_loop(time_budget)
+
+        if client_kwargs is None:
+            client_kwargs = {}
+        client = Client(**client_kwargs)
+        view = client.load_balanced_view()
+        view.map(_train, trainers,
+                 [time_budget] * len(trainers),
+                 [parallel] * len(trainers),
+                 [client_kwargs] * len(trainers),
+                 block=True)
+    else:
+        for trainer in trainers:
+            trainer.main_loop(time_budget)
+
+
 class GridSearch(object):
     """
     Hyperparameter grid search using a YAML template. A trainer is
@@ -251,7 +290,7 @@ class GridSearch(object):
         self.best_params = best_params
         self.best_scores = best_scores
 
-    def main_loop(self, time_budget=None):
+    def main_loop(self, time_budget=None, parallel=False, client_kwargs=None):
         """
         Run main_loop of each trainer.
 
@@ -260,9 +299,13 @@ class GridSearch(object):
         time_budget : int, optional
             The maximum number of seconds before interrupting
             training. Default is `None`, no time limit.
+        parallel : bool
+            Whether to train subtrainers in parallel using
+            IPython.parallel.
+        client_kwargs : dict or None
+            Keyword arguments for IPython.parallel.Client.
         """
-        for trainer in self.trainers:
-            trainer.main_loop(time_budget)
+        batch_train(self.trainers, time_budget, parallel, client_kwargs)
         self.get_best_models()
         self.save()
 
@@ -381,7 +424,7 @@ class GridSearchCV(GridSearch):
         self.best_params = best_params
         self.best_scores = best_scores
 
-    def main_loop(self, time_budget=None):
+    def main_loop(self, time_budget=None, parallel=False, client_kwargs=None):
         """
         Run main_loop of each trainer.
 
@@ -390,16 +433,22 @@ class GridSearchCV(GridSearch):
         time_budget : int, optional
             The maximum number of seconds before interrupting
             training. Default is `None`, no time limit.
+        parallel : bool
+            Whether to train subtrainers in parallel using
+            IPython.parallel.
+        client_kwargs : dict or None
+            Keyword arguments for IPython.parallel.Client.
         """
-        for trainer in self.trainers:
-            trainer.main_loop(time_budget)
+        batch_train(self.trainers, time_budget, parallel, client_kwargs)
         self.get_best_cv_models()
         trainers = None
         if self.retrain:
-            trainers = self.retrain_best_models(time_budget)
+            trainers = self.retrain_best_models(time_budget, parallel,
+                                                client_kwargs)
         self.save(trainers)
 
-    def retrain_best_models(self, time_budget):
+    def retrain_best_models(self, time_budget=None, parallel=False,
+                            client_kwargs=None):
         """
         Train best models on full dataset.
 
@@ -408,6 +457,11 @@ class GridSearchCV(GridSearch):
         time_budget : int, optional
             The maximum number of seconds before interrupting
             training. Default is `None`, no time limit.
+        parallel : bool
+            Whether to train subtrainers in parallel using
+            IPython.parallel.
+        client_kwargs : dict or None
+            Keyword arguments for IPython.parallel.Client.
         """
         if self.retrain_dataset is not None:
             dataset = self.retrain_dataset
@@ -424,5 +478,5 @@ class GridSearchCV(GridSearch):
                 trainer.dataset = dataset
                 trainer.algorithm._set_monitoring_dataset({'train': dataset})
             trainers.append(trainer)
-            trainer.main_loop(time_budget)
+        batch_train(trainers, time_budget, parallel, client_kwargs)
         return trainers
