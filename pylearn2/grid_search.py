@@ -47,20 +47,6 @@ def random_seeds(size, random_state=None):
     return seeds
 
 
-def train(trainer, time_budget=None):
-    """
-    Run main_loop of each trainer.
-
-    Parameters
-    ----------
-    time_budget : int, optional
-        The maximum number of seconds before interrupting
-        training. Default is `None`, no time limit.
-    """
-    trainer.main_loop(time_budget)
-    return trainer.model
-
-
 def batch_train(trainers, time_budget=None, parallel=False,
                 client_kwargs=None):
     """
@@ -80,6 +66,19 @@ def batch_train(trainers, time_budget=None, parallel=False,
     if parallel:
         from IPython.parallel import Client
 
+        def _train(trainer, time_budget=None):
+            """
+            Run main_loop of each trainer.
+
+            Parameters
+            ----------
+            time_budget : int, optional
+                The maximum number of seconds before interrupting
+                training. Default is `None`, no time limit.
+            """
+            trainer.main_loop(time_budget)
+            return trainer
+
         if client_kwargs is None:
             client_kwargs = {}
         client = Client(**client_kwargs)
@@ -89,21 +88,20 @@ def batch_train(trainers, time_budget=None, parallel=False,
         calls = []
         for trainer in trainers:
             if isinstance(trainer, TrainCV):
-                call = view.map(train, trainer.trainers, block=False)
+                call = view.map(_train, trainer.trainers, block=False)
                 calls.append(call)
             else:
-                call = view.map(train, [trainer], block=False)
+                call = view.map(_train, [trainer], block=False)
                 calls.append(call)
-        for trainer, call in zip(trainers, calls):
+        for i, (trainer, call) in enumerate(zip(trainers, calls)):
             if isinstance(trainer, TrainCV):
-                for child, model in zip(trainer.trainers, call.get()):
-                    child.model = model
+                trainers[i].trainers = call.get()
             else:
-                model, = call.get()
-                trainer.model = model
+                trainers[i], = call.get()
     else:
         for trainer in trainers:
             trainer.main_loop(time_budget)
+    return trainers
 
 
 class GridSearch(object):
@@ -247,8 +245,6 @@ class GridSearch(object):
                 models.append(trainer.model)
         models = np.asarray(models)
         params = np.asarray(self.params)
-        import IPython
-        IPython.embed()
         scores = self.score(models)
         best_models = None
         best_params = None
@@ -327,7 +323,8 @@ class GridSearch(object):
         client_kwargs : dict or None
             Keyword arguments for IPython.parallel.Client.
         """
-        batch_train(self.trainers, time_budget, parallel, client_kwargs)
+        self.trainers = batch_train(self.trainers, time_budget, parallel,
+                                    client_kwargs)
         self.get_best_models()
         self.save()
 
@@ -461,7 +458,8 @@ class GridSearchCV(GridSearch):
         client_kwargs : dict or None
             Keyword arguments for IPython.parallel.Client.
         """
-        batch_train(self.trainers, time_budget, parallel, client_kwargs)
+        self.trainers = batch_train(self.trainers, time_budget, parallel,
+                                    client_kwargs)
         self.get_best_cv_models()
         trainers = None
         if self.retrain:
@@ -500,5 +498,5 @@ class GridSearchCV(GridSearch):
                 trainer.dataset = dataset
                 trainer.algorithm._set_monitoring_dataset({'train': dataset})
             trainers.append(trainer)
-        batch_train(trainers, time_budget, parallel, client_kwargs)
+        trainers = batch_train(trainers, time_budget, parallel, client_kwargs)
         return trainers

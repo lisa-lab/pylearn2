@@ -82,7 +82,7 @@ test_grid_search_yaml = """
       ],
     }",
   param_grid: {
-    dim: [2, 4, 8]
+    dim: [2, 4, 1]
   },
   monitor_channel: train_objective,
   n_best: 1,
