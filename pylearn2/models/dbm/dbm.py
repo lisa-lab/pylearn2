@@ -56,6 +56,12 @@ class DBM(Model):
         self.__dict__.update(locals())
         del self.self
         assert len(hidden_layers) >= 1
+
+        if len(hidden_layers) > 1 and niter <= 1:
+            raise ValueError("with more than one hidden layer, niter needs to "
+                             "be greater than 1; otherwise mean field won't "
+                             "work properly.")
+
         self.setup_rng()
         self.layer_names = set()
         self.visible_layer.set_dbm(self)
