@@ -8,8 +8,8 @@ __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
 
 import logging
 import numpy as np
@@ -68,15 +68,15 @@ class BGD(TrainingAlgorithm):
         `force_batch_size` attribute by calling set_batch_size on it.
     reset_alpha : bool, optional
         Passed through to the optimization.BatchGradientDescent's
-        `max_iters parameter`
+        `reset_alpha` parameter
     conjugate : bool, optional
         Passed through to the optimization.BatchGradientDescent's
-        `max_iters parameter`
+        `conjugate` parameter
     min_init_alpha : float, optional
         WRITEME
     reset_conjugate : bool, optional
         Passed through to the optimization.BatchGradientDescent's
-        `max_iters parameter`
+        `reset_conjugate` parameter
     line_search_mode : WRITEME
     verbose_optimization : bool, optional
         WRITEME
