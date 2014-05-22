@@ -1,28 +1,19 @@
+"""
+A module defining the Dataset class.
+"""
+
+
 class Dataset(object):
-    """Abstract interface for Datasets."""
-    def get_batch_design(self, batch_size, include_labels=False):
-        """
-        Returns a randomly chosen batch of data formatted as a design
-        matrix.
-
-        Deprecated, use `iterator()`.
-        """
-        raise NotImplementedError()
-
-    def get_batch_topo(self, batch_size):
-        """
-        Returns a topology-preserving batch of data.
-
-        The first index is over different examples, and has length
-        batch_size. The next indices are the topologically significant
-        dimensions of the data, i.e. for images, image rows followed by
-        image columns.  The last index is over separate channels.
-
-        Deprecated, use `iterator()`.
-        """
-        raise NotImplementedError()
+    """
+    Abstract interface for Datasets.
+    """
 
     def __iter__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.iterator()
 
     def iterator(self, mode=None, batch_size=None, num_batches=None,
@@ -30,6 +21,13 @@ class Dataset(object):
         """
         Return an iterator for this dataset with the specified
         behaviour. Unspecified values are filled-in by the default.
+
+        .. todo::
+
+            Parameters : targets
+
+            DWF or LD should fill this in, but IG thinks it is just
+            a bool saying whether to include the targets or not
 
         Parameters
         ----------
@@ -60,9 +58,8 @@ class Dataset(object):
             through the dataset and may potentially be shared by
             multiple iterator objects simultaneously (see "Notes"
             below).
-        targets: TODO WRITEME: DWF or LD should fill this in, but
-            IG thinks it is just a bool saying whether to include
-            the targets or not
+        targets: TODO
+            TODO
 
         Returns
         -------
@@ -90,15 +87,19 @@ class Dataset(object):
 
     def adjust_for_viewer(self, X):
         """
-            X: a tensor in the same space as the data
-            returns the same tensor shifted and scaled by a transformation
-            that maps the data range to [-1, 1] so that it can be displayed
-            with pylearn2.gui.patch_viewer tools
+        .. todo::
 
-            for example, for MNIST X will lie in [0,1] and the return value
-                should be X*2-1
+            WRITEME properly
 
-            Default is to do nothing
+        X: a tensor in the same space as the data
+        returns the same tensor shifted and scaled by a transformation
+        that maps the data range to [-1, 1] so that it can be displayed
+        with pylearn2.gui.patch_viewer tools
+
+        for example, for MNIST X will lie in [0,1] and the return value
+            should be X*2-1
+
+        Default is to do nothing
         """
 
         return X
@@ -116,4 +117,50 @@ class Dataset(object):
 
         # Subclasses that support topological view must implement this to
         # specify how their data is formatted.
+        raise NotImplementedError()
+
+    def get_batch_design(self, batch_size, include_labels=False):
+        """
+        Returns a randomly chosen batch of data formatted as a design
+        matrix.
+
+        This method is not guaranteed to have any particular properties
+        like not repeating examples, etc. It is mostly useful for getting
+        a single batch of data for a unit test or a quick-and-dirty
+        visualization. Using this method for serious learning code is
+        strongly discouraged. All code that depends on any particular
+        example sampling properties should use Dataset.iterator.
+
+        .. todo::
+
+            Refactor to use `include_targets` rather than `include_labels`,
+            to make the terminology more consistent with the rest of the
+            library.
+
+        Parameters
+        ----------
+        batch_size : int
+            The number of examples to include in the batch.
+        include_labels : bool
+            If True, returns the targets for the batch, as well as the
+            features.
+
+        Returns
+        -------
+        batch : member of feature space, or member of (feature, target) space.
+            Either numpy value of the features, or a (features, targets) tuple
+            of numpy values, depending on the value of `include_labels`.
+        """
+        raise NotImplementedError(str(type(self))+" does not implement "
+                "get_batch_design.")
+
+    def get_batch_topo(self, batch_size):
+        """
+        Returns a topology-preserving batch of data.
+
+        The first index is over different examples, and has length
+        batch_size. The next indices are the topologically significant
+        dimensions of the data, i.e. for images, image rows followed by
+        image columns.  The last index is over separate channels.
+        """
         raise NotImplementedError()

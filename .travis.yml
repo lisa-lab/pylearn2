@@ -30,7 +30,7 @@ install:
 # So we test with 0.9. Our internal buildbot have 0.7.2.
 # We install it later only for the PART that need it.
   - "pip install -q nose==1.0.0 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "pip install -q PIL --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "pip install -q Pillow --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
 #numexpr 2.0 need NumPy 1.6 or above. As we support NumPy 1.5,
 #we need an older numexpr version. numexpr is needed for pytables
   - "pip install -q numexpr==1.4.2 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
@@ -38,37 +38,33 @@ install:
   - "pip install -q cython --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "pip install -q tables==2.4.0 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "pip install -q pyyaml --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "pip install -q sphinx --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "pip install git+git://github.com/numpy/numpydoc.git@e433d273afe278162b07535f54ab182bff4f2565 || (cat /home/travis/.pip/pip.log; false)"
   - "pip install scipy==0.8 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "pip install argparse --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
 #More recent version then the one in the os
   - "pip install -q pyflakes --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
 
-  - "pip install -q git+git://git.assembla.com/jobman.git || cat /home/travis/.pip/pip.log"
-  - "pip install -q --no-deps git+git://github.com/Theano/Theano.git || cat /home/travis/.pip/pip.log"
-  - cd pylearn2/utils/
+  - "pip install -q git+git://git.assembla.com/jobman.git || (cat /home/travis/.pip/pip.log; false)"
+  - "pip install -q --no-deps git+git://github.com/Theano/Theano.git || (cat /home/travis/.pip/pip.log ; false)"
+  - "pip install nose-timelimit --use-mirrors"
   # Change this once we have a unified setup file.
-  - python setup.py build_ext --inplace
-  - cd ../../
+  - python setup.py develop
 
 # command to run tests
 env:
-  - FLAGS=floatX=float64 PART="-e test_autoencoder.py -e test_dbm.py -e test_dense_binary_dbm.py -e test_dropout.py -e test_maxout.py -e test_mlp.py -e test_mnd.py -e test_rbm.py -e test_reflection_clip.py -e test_s3c_inference.py -e test_s3c_misc.py -e test_svm.py"
+  - FLAGS=floatX=float64 PART="-e test_autoencoder.py -e test_convelemwise_rect.py -e test_convelemwise_sigm.py -e test_convelemwise_tanh.py -e test_dbm.py -e test_dropout.py -e test_gsn.py -e test_maxout.py -e test_mlp.py -e test_mnd.py -e test_rbm.py -e test_reflection_clip.py -e test_s3c_inference.py -e test_s3c_misc.py -e test_svm.py -e test_windowlayer.py"
   - FLAGS=floatX=float64 PART=pylearn2/models
 #Exclude file inside pylearn2/models, sadly I didn't found a better way.
-  - FLAGS=floatX=float32 PART="-e test_autoencoder.py -e test_dbm.py -e test_dense_binary_dbm.py -e test_dropout.py -e test_maxout.py -e test_mlp.py -e test_mnd.py -e test_rbm.py -e test_reflection_clip.py -e test_s3c_inference.py -e test_s3c_misc.py -e test_svm.py"
+  - FLAGS=floatX=float32 PART="-e test_autoencoder.py -e test_convelemwise_rect.py -e test_convelemwise_sigm.py -e test_convelemwise_tanh.py -e test_dbm.py -e test_dropout.py -e test_gsn.py -e test_maxout.py -e test_mlp.py -e test_mnd.py -e test_rbm.py -e test_reflection_clip.py -e test_s3c_inference.py -e test_s3c_misc.py -e test_svm.py -e test_windowlayer.py"
   - FLAGS=floatX=float32 PART=pylearn2/models
+  - TEST_DOC=YES
 
 # Start testing
 script:
 #We can't build the test dataset as the original is not present. We can't download the original as it
 # is too big to download each time. If present run: python make_dataset.py
-  - cd pylearn2/scripts/tutorials/grbm_smd/
-  - wget http://www.iro.umontreal.ca/~lisa/datasets/cifar10_preprocessed_train.pkl
-  - cd ../../../..
-  - export THEANO_FLAGS=$FLAGS,warn.ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise
-  - export TRAVIS=1
-  - nosetests --help
-  - theano-nose $PART
+  - sh .travis.sh
 
 after_failure:
   - cat /home/travis/.pip/pip.log

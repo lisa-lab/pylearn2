@@ -1,23 +1,26 @@
+import numpy as np
 import warnings
 
-from pylearn2.monitor import Monitor
-from pylearn2.space import VectorSpace
-from pylearn2.models.model import Model
-from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
-from pylearn2.training_algorithms.default import DefaultTrainingAlgorithm
-import numpy as np
-from theano import tensor as T
-from pylearn2.models.s3c import S3C, E_Step, Grad_M_Step
-from pylearn2.utils import py_integer_types
-from pylearn2.utils import sharedX
-from pylearn2.utils.serial import to_string
-from pylearn2.utils.serial import from_string
-from pylearn2.utils.iteration import _iteration_schemes
+from theano.compat import exc_message
 from theano import shared
-from pylearn2.testing.prereqs import ReadVerifyPrereq
-from pylearn2.monitor import _err_no_data
+from theano import tensor as T
+
+from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
+from pylearn2.models.model import Model
+from pylearn2.models.s3c import S3C, E_Step, Grad_M_Step
 from pylearn2.monitor import _err_ambig_data
+from pylearn2.monitor import _err_no_data
+from pylearn2.monitor import Monitor
+from pylearn2.monitor import push_monitor
+from pylearn2.space import VectorSpace
 from pylearn2.testing.datasets import ArangeDataset
+from pylearn2.training_algorithms.default import DefaultTrainingAlgorithm
+from pylearn2.utils.iteration import _iteration_schemes, has_uniform_batch_size
+from pylearn2.utils import py_integer_types
+from pylearn2.utils.serial import from_string
+from pylearn2.utils.serial import to_string
+from pylearn2.utils import sharedX
+from pylearn2.testing.prereqs import ReadVerifyPrereq
 
 
 class DummyModel(Model):
@@ -203,6 +206,12 @@ def test_revisit():
                 if num_mon_batches is None and mode in ['random_uniform', 'random_slice']:
                     continue
 
+                if has_uniform_batch_size(mode) and \
+                   num_mon_batches is not None and \
+                   num_mon_batches * mon_batch_size > num_examples:
+
+                    num_mon_batches = int(num_examples / float(mon_batch_size))
+
                 model = DummyModel(1)
                 monitor = Monitor.get_monitor(model)
 
@@ -214,8 +223,11 @@ def test_revisit():
                         batch_size=mon_batch_size, num_batches=num_mon_batches,
                         seed = 0)
 
-                if num_mon_batches is None:
-                    num_mon_batches = int(np.ceil(float(num_examples) / float(mon_batch_size)))
+                if has_uniform_batch_size(mode) and num_mon_batches is None:
+                    num_mon_batches = int(num_examples / float(mon_batch_size))
+                elif num_mon_batches is None:
+                    num_mon_batches = int(np.ceil(float(num_examples) /
+                                          float(mon_batch_size)))
 
                 batches = [ None ] * num_mon_batches
                 visited = [ False ] * num_mon_batches
@@ -355,6 +367,37 @@ def test_serialize_twice():
 
     assert x == y
 
+def test_save_load_save():
+
+    """
+    Test that a monitor can be saved, then loaded, and then the loaded
+    copy can be saved again.
+    This only tests that the serialization and deserialization processes
+    don't raise an exception. It doesn't test for correctness at all.
+    """
+
+    model = DummyModel(1)
+    monitor = Monitor.get_monitor(model)
+
+    num_examples = 2
+    num_features = 3
+    num_batches = 1
+    batch_size = 2
+
+    dataset = DummyDataset(num_examples, num_features)
+    monitor.add_dataset(dataset=dataset,
+                            num_batches=num_batches, batch_size=batch_size)
+    vis_batch = T.matrix()
+    mean = vis_batch.mean()
+    data_specs = (monitor.model.get_input_space(),
+                  monitor.model.get_input_source())
+    monitor.add_channel(name='mean', ipt=vis_batch, val=mean, dataset=dataset,
+                        data_specs=data_specs)
+
+    saved = to_string(monitor)
+    monitor = from_string(saved)
+    saved_again = to_string(monitor)
+
 def test_valid_after_serialize():
 
     # Test that serializing the monitor does not ruin it
@@ -473,7 +516,7 @@ def test_no_data():
             data_specs = (model.input_space, 'features'),
             val = 0.)
     except ValueError, e:
-        assert e.message == _err_no_data
+        assert exc_message(e) == _err_no_data
         return
     assert False
 
@@ -507,9 +550,27 @@ def test_ambig_data():
             val = 0.,
             data_specs=(model.get_input_space(), model.get_input_source()))
     except ValueError, e:
-        assert e.message == _err_ambig_data
+        assert exc_message(e) == _err_ambig_data
         return
     assert False
+
+def test_transfer_experience():
+
+    # Makes sure the transfer_experience flag of push_monitor works
+
+    model = DummyModel(num_features = 3)
+    monitor = Monitor.get_monitor(model)
+    monitor.report_batch(2)
+    monitor.report_batch(3)
+    monitor.report_epoch()
+    model = push_monitor(model, "old_monitor", transfer_experience=True)
+    assert model.old_monitor is monitor
+    monitor = model.monitor
+    assert monitor.get_epochs_seen() == 1
+    assert monitor.get_batches_seen() == 2
+    assert monitor.get_epochs_seen() == 1
+
+
 
 
 if __name__ == '__main__':

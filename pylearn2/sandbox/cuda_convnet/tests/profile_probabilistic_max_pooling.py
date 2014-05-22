@@ -5,7 +5,8 @@ from theano import function
 import time
 from pylearn2.utils import sharedX
 
-from pylearn2.sandbox.cuda_convnet.probabilistic_max_pooling import  prob_max_pool_c01b
+from pylearn2.sandbox.cuda_convnet.probabilistic_max_pooling import \
+        prob_max_pool_c01b
 from pylearn2.expr.probabilistic_max_pooling import max_pool_c01b
 
 def profile(f):
@@ -19,7 +20,8 @@ def profile(f):
     pool_cols = 3
     zv = rng.randn(channels, rows, cols, batch_size).astype(config.floatX)
 
-    #put the inputs + outputs in shared variables so we don't pay GPU transfer during test
+    # put the inputs + outputs in shared variables so we don't pay GPU
+    # transfer during test
     p_shared = sharedX(zv[:,0:rows:pool_rows,0:cols:pool_cols,:])
     h_shared = sharedX(zv)
     z_shared = sharedX(zv)
@@ -55,13 +57,15 @@ def profile_grad(f):
     pool_cols = 3
     zv = rng.randn(channels, rows, cols, batch_size).astype(config.floatX)
 
-    #put the inputs + outputs in shared variables so we don't pay GPU transfer during test
+    # put the inputs + outputs in shared variables so we don't pay GPU
+    # transfer during test
     grad_shared = sharedX(zv)
     z_shared = sharedX(zv)
 
     p_th, h_th = f( z_shared, (pool_rows, pool_cols) )
 
-    func = function([],updates = { grad_shared : T.grad(p_th.sum() +  h_th.sum(), z_shared)} )
+    func = function([],updates = { grad_shared : T.grad(p_th.sum() +
+        h_th.sum(), z_shared)} )
 
     print 'warming up'
     for i in xrange(10):

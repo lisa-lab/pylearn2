@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __author__ = 'Vincent Archambault-Bouffard'
 
 import theano.tensor as T
@@ -7,9 +12,14 @@ from pylearn2.space import CompositeSpace
 
 class MissingTargetCost(Cost):
     """
-    A cost when some targets are missing
-    The missing target is indicated by a value of -1
+    A cost when some targets are missing. The missing target is indicated by a
+    value of -1.
+
+    Parameters
+    ----------
+    dropout_args : WRITEME
     """
+
     supervised = True
 
     def __init__(self, dropout_args=None):
@@ -17,6 +27,11 @@ class MissingTargetCost(Cost):
         del self.self
 
     def expr(self, model, data):
+        """
+        .. todo::
+
+            WRITEME
+        """
         space, sources = self.get_data_specs(model)
         space.validate(data)
         (X, Y) = data
@@ -29,6 +44,11 @@ class MissingTargetCost(Cost):
         return model.cost_from_cost_matrix(costMatrix)
 
     def get_data_specs(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         space = CompositeSpace([model.get_input_space(), model.get_output_space()])
         sources = (model.get_input_source(), model.get_target_source())
         return (space, sources)

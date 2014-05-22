@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = "Mehdi Mirza"
 __copyright__ = "Copyright 2010-2013, Universite de Montreal"
 __credits__ = ["Mehdi Mirza"]
@@ -10,7 +15,6 @@ from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils import serial
 
 class OCR(dense_design_matrix.DenseDesignMatrix):
-
     """
     OCR dataset
 
@@ -26,7 +30,11 @@ class OCR(dense_design_matrix.DenseDesignMatrix):
     data_split = {"train" : 32152, "valid" : 10000, "test" : 10000 }
 
     def __init__(self, which_set, one_hot = False, axes=['b', 0, 1, 'c']):
+        """
+        .. todo::
 
+            WRITEME
+        """
         self.args = locals()
 
         assert which_set in self.data_split.keys()
@@ -73,5 +81,10 @@ class OCR(dense_design_matrix.DenseDesignMatrix):
 
 
     def get_test_set(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return OCR('test', one_hot = self.one_hot)
 

@@ -12,8 +12,33 @@ import logging
 import datetime
 
 
+def total_seconds(delta):
+    """
+    Extract the total number of seconds from a timedelta object
+    in a way that is compatible with Python <= 2.6.
+
+    Parameters
+    ----------
+    delta : object
+        A `datetime.timedelta` object.
+
+    Returns
+    -------
+    total : float
+        The time quantity represented by `delta` in seconds,
+        with a fractional portion.
+    """
+    if hasattr(delta, 'total_seconds'):
+        return delta.total_seconds()
+    else:
+        return (delta.microseconds +
+                (delta.seconds + delta.days * 24 * 3600) * 10 ** 6
+                ) / float(10 ** 6)
+
+
 @contextmanager
-def log_timing(logger, task, level=logging.INFO, final_msg=None, callbacks=None):
+def log_timing(logger, task, level=logging.INFO, final_msg=None,
+               callbacks=None):
     """
     Context manager that logs the start/end of an operation,
     and timing information, to a given logger.
@@ -24,15 +49,12 @@ def log_timing(logger, task, level=logging.INFO, final_msg=None, callbacks=None)
         A Python standard library logger object, or an object
         that supports the `logger.log(level, message, ...)`
         API it defines.
-
     task : str
         A string indicating the operation being performed.
         A '...' will be appended to the initial logged message.
         If `None`, no initial message will be printed.
-
     level : int, optional
         The log level to use. Default `logging.INFO`.
-
     final_msg : str, optional
         Display this before the reported time instead of
         '<task> done. Time elapsed:'. A space will be
@@ -40,7 +62,7 @@ def log_timing(logger, task, level=logging.INFO, final_msg=None, callbacks=None)
         time.
     callbacks: list, optional
         A list of callbacks taking as argument an
-        integer representing the total number of seconds 
+        integer representing the total number of seconds.
     """
     start = datetime.datetime.now()
     if task is not None:
@@ -48,12 +70,9 @@ def log_timing(logger, task, level=logging.INFO, final_msg=None, callbacks=None)
     yield
     end = datetime.datetime.now()
     delta = end - start
-    # delta.total_seconds() only defined in python 2.7
-    total_seconds = (delta.microseconds +
-                     (delta.seconds + delta.days * 24 * 3600) * 10 ** 6
-                 ) / 10 ** 6
-    if total_seconds < 60:
-        delta_str = '%f seconds' % total_seconds
+    total = total_seconds(delta)
+    if total < 60:
+        delta_str = '%f seconds' % total
     else:
         delta_str = str(delta)
     if final_msg is None:
@@ -62,4 +81,4 @@ def log_timing(logger, task, level=logging.INFO, final_msg=None, callbacks=None)
         logger.log(level, ' '.join((final_msg, delta_str)))
     if callbacks is not None:
         for callback in callbacks:
-            callback(total_seconds)
+            callback(total)

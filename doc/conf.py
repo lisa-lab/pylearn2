@@ -23,7 +23,8 @@ import sys, os
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.todo', 'numpydoc']#, 'ext']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.todo', 'numpydoc',
+              'sphinx.ext.autosummary']  #, 'ext']
 
 #Needed otherwise, there is many autosummary error done by numpydo:
 #https://github.com/phn/pytpm/issues/3#issuecomment-12133978
@@ -97,7 +98,8 @@ pygments_style = 'sphinx'
 # must exist either in Sphinx' static/ path, or in one of the custom paths
 # given in html_static_path.
 #html_style = 'default.css'
-html_theme = 'sphinxdoc'
+html_theme = 'solar'
+html_theme_path = ["./themes"]
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".

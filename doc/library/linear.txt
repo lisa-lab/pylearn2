@@ -33,4 +33,13 @@ Matrix Multiplication
 .. automodule:: pylearn2.linear.matrixmul
     :members:
 
+Linear Transformation
+=====================
+.. automodule:: pylearn2.linear.linear_transform
+    :members:
+
+Local C01B
+==========
+.. automodule:: pylearn2.linear.local_c01b
+    :members:
 

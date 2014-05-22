@@ -1,0 +1,115 @@
+!obj:pylearn2.train.Train {
+    dataset: &train !obj:pylearn2.datasets.zca_dataset.ZCA_Dataset {
+            preprocessed_dataset: !pkl: "${PYLEARN2_DATA_PATH}/cifar10/pylearn2_gcn_whitened/train.pkl",
+            preprocessor: !pkl: "${PYLEARN2_DATA_PATH}/cifar10/pylearn2_gcn_whitened/preprocessor.pkl",
+            axes: ['c', 0, 1, 'b']
+    },
+    model: !obj:pylearn2.models.mlp.MLP {
+        batch_size: 128,
+        layers: [
+                 !obj:pylearn2.models.maxout.MaxoutConvC01B {
+                     layer_name: 'h0',
+                     pad: 4,
+                     tied_b: 1,
+                     W_lr_scale: .05,
+                     b_lr_scale: .05,
+                     num_channels: 96,
+                     num_pieces: 2,
+                     kernel_shape: [8, 8],
+                     pool_shape: [4, 4],
+                     pool_stride: [2, 2],
+                     irange: .005,
+                     max_kernel_norm: .9,
+                     partial_sum: 33,
+                 },
+                 !obj:pylearn2.models.maxout.MaxoutConvC01B {
+                     layer_name: 'h1',
+                     pad: 3,
+                     tied_b: 1,
+                     W_lr_scale: .05,
+                     b_lr_scale: .05,
+                     num_channels: 192,
+                     num_pieces: 2,
+                     kernel_shape: [8, 8],
+                     pool_shape: [4, 4],
+                     pool_stride: [2, 2],
+                     irange: .005,
+                     max_kernel_norm: 1.9365,
+                     partial_sum: 15,
+                 },
+                 !obj:pylearn2.models.maxout.MaxoutConvC01B {
+                     pad: 3,
+                     layer_name: 'h2',
+                     tied_b: 1,
+                     W_lr_scale: .05,
+                     b_lr_scale: .05,
+                     num_channels: 192,
+                     num_pieces: 2,
+                     kernel_shape: [5, 5],
+                     pool_shape: [2, 2],
+                     pool_stride: [2, 2],
+                     irange: .005,
+                     max_kernel_norm: 1.9365,
+                 },
+                 !obj:pylearn2.models.maxout.Maxout {
+                    layer_name: 'h3',
+                    irange: .005,
+                    num_units: 500,
+                    num_pieces: 5,
+                    max_col_norm: 1.9
+                 },
+                 !obj:pylearn2.models.mlp.Softmax {
+                     max_col_norm: 1.9365,
+                     layer_name: 'y',
+                     n_classes: 10,
+                     irange: .005
+                 }
+                ],
+        input_space: !obj:pylearn2.space.Conv2DSpace {
+            shape: &window_shape [32, 32],
+            num_channels: 3,
+            axes: ['c', 0, 1, 'b'],
+        },
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        learning_rate: .17,
+        init_momentum: .5,
+        train_iteration_mode: 'even_shuffled_sequential',
+        monitor_iteration_mode: 'even_sequential',
+        monitoring_dataset:
+            {
+                'test' : &valid !obj:pylearn2.datasets.zca_dataset.ZCA_Dataset {
+        preprocessed_dataset: !pkl: "${PYLEARN2_DATA_PATH}/cifar10/pylearn2_gcn_whitened/test.pkl",
+        preprocessor: !pkl: "${PYLEARN2_DATA_PATH}/cifar10/pylearn2_gcn_whitened/preprocessor.pkl",
+        axes: ['c', 0, 1, 'b']
+                          },
+            },
+        cost: !obj:pylearn2.costs.mlp.dropout.Dropout {
+            input_include_probs: { 'h0' : .8 },
+            input_scales: { 'h0' : 1. }
+        },
+        termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
+            max_epochs: 474 
+        },
+    },
+    extensions: [
+        !obj:pylearn2.training_algorithms.sgd.MomentumAdjustor {
+            start: 1,
+            saturate: 250,
+            final_momentum: .65
+        },
+        !obj:pylearn2.training_algorithms.sgd.LinearDecayOverEpoch {
+            start: 1,
+            saturate: 500,
+            decay_factor: .01
+        },
+        !obj:pylearn2.train_extensions.window_flip.WindowAndFlip {
+            pad_randomized: 8,
+            window_shape: *window_shape,
+            randomize: [ *train],
+            center: [ *valid ]
+        }
+    ],
+    save_path: "${PYLEARN2_TRAIN_FILE_FULL_STEM}.pkl",
+    save_freq: 1
+}

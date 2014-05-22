@@ -1,6 +1,35 @@
+from numpy.testing import assert_
+import os
+import uuid
 from pylearn2.utils.string_utils import find_number
+from pylearn2.utils.string_utils import preprocess
 from pylearn2.utils.string_utils import tokenize_by_number
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
+
+
+def test_preprocess():
+    try:
+        keys = ["PYLEARN2_" + str(uuid.uuid1())[:8] for _ in xrange(3)]
+        strs = ["${%s}" % k for k in keys]
+        os.environ[keys[0]] = keys[1]
+        # Test with os.environ only.
+        assert preprocess(strs[0]) == keys[1]
+        # Test with provided dict only.
+        assert preprocess(strs[1], environ={keys[1]: keys[2]}) == keys[2]
+        # Provided overrides os.environ.
+        assert preprocess(strs[0], environ={keys[0]: keys[2]}) == keys[2]
+        raised = False
+        try:
+            preprocess(strs[2], environ={keys[1]: keys[0]})
+        except ValueError:
+            raised = True
+        assert raised
+
+    finally:
+        for key in keys:
+            if key in os.environ:
+                del os.environ[key]
+
 
 def test_find_number_0():
     r = find_number('sss')

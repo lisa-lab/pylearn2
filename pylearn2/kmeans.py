@@ -1,10 +1,12 @@
-"""KMeans as a postprocessing Block subclass."""
+"""K-means as a postprocessing Block subclass."""
 
+import logging
 import numpy
-from pylearn2.base import Block
+from pylearn2.blocks import Block
 from pylearn2.models.model import Model
 from pylearn2.space import VectorSpace
 from pylearn2.utils import sharedX
+from pylearn2.utils.mem import TypicalMemoryError
 import warnings
 
 try:
@@ -15,26 +17,31 @@ except:
                     It has a better k-means implementation. Falling back to
                     our own really slow implementation. """)
 
+logger = logging.getLogger(__name__)
+
+
 class KMeans(Block, Model):
     """
-    Block that outputs a vector of probabilities that a sample belong to means
-    computed during training.
+    Block that outputs a vector of probabilities that a sample belong
+    to means computed during training.
+
+    Parameters
+    ----------
+    k : int
+        Number of clusters
+    nvis : int
+        Dimension of input
+    convergence_th : float, optional
+        Threshold of distance to clusters under which k-means stops
+        iterating.
+    max_iter : int, optional
+        Maximum number of iterations. Defaults to infinity.
+    verbose : bool
+        WRITEME
     """
-    def __init__(self, k, nvis, convergence_th=1e-6, max_iter=None, verbose=False):
-        """
-        Parameters in conf:
 
-        :type k: int
-        :param k: number of clusters.
-
-        :type convergence_th: float
-        :param convergence_th: threshold of distance to clusters under which
-        kmeans stops iterating.
-
-        :type max_iter: int
-        :param max_iter: maximum number of iterations. Defaults to infinity.
-        """
-
+    def __init__(self, k, nvis, convergence_th=1e-6, max_iter=None,
+                 verbose=False):
         Block.__init__(self)
         Model.__init__(self)
 
@@ -54,6 +61,16 @@ class KMeans(Block, Model):
     def train_all(self, dataset, mu=None):
         """
         Process kmeans algorithm on the input to localize clusters.
+
+        Parameters
+        ----------
+        dataset : WRITEME
+        mu : WRITEME
+
+        Returns
+        -------
+        rval : bool
+            WRITEME
         """
 
         #TODO-- why does this sometimes return X and sometimes return nothing?
@@ -82,9 +99,9 @@ class KMeans(Block, Model):
             try:
                 dists = numpy.zeros((n, k))
             except MemoryError:
-                print ("dying trying to allocate dists matrix ",
-                       "for %d examples and %d means" % (n, k))
-                raise
+                raise TypicalMemoryError("dying trying to allocate dists "
+                                         "matrix for {0} examples and {1} "
+                                         "means".format(n, k))
 
             old_kills = {}
 
@@ -92,12 +109,12 @@ class KMeans(Block, Model):
             mmd = prev_mmd = float('inf')
             while True:
                 if self.verbose:
-                    print 'kmeans iter ' + str(iter)
+                    logger.info('kmeans iter {0}'.format(iter))
 
                 #print 'iter:',iter,' conv crit:',abs(mmd-prev_mmd)
                 #if numpy.sum(numpy.isnan(mu)) > 0:
                 if numpy.any(numpy.isnan(mu)):
-                    print 'nan found'
+                    logger.info('nan found')
                     return X
 
                 #computing distances
@@ -112,7 +129,7 @@ class KMeans(Block, Model):
                 #mean minimum distance:
                 mmd = min_dists.mean()
 
-                print 'cost: ',mmd
+                logger.info('cost: {0}'.format(mmd))
 
                 if iter > 0 and (iter >= self.max_iter or \
                                         abs(mmd - prev_mmd) < self.convergence_th):
@@ -159,7 +176,7 @@ class KMeans(Block, Model):
                     else:
                         mu[i, :] = numpy.mean(X[b, :], axis=0)
                         if numpy.any(numpy.isnan(mu)):
-                            print 'nan found at', i
+                            logger.info('nan found at {0}'.format(i))
                             return X
                         i += 1
 
@@ -173,6 +190,11 @@ class KMeans(Block, Model):
         return True
 
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         #patch older pkls
         if not hasattr(self.mu, 'get_value'):
             self.mu = sharedX(self.mu)
@@ -186,8 +208,14 @@ class KMeans(Block, Model):
         """
         Compute for each sample its probability to belong to a cluster.
 
-        :type inputs: numpy.ndarray, shape (n, d)
-        :param inputs: matrix of samples
+        Parameters
+        ----------
+        X : numpy.ndarray
+            Matrix of sampless of shape (n, d)
+
+        Returns
+        -------
+        WRITEME
         """
         n, m = X.shape
         k = self.k
@@ -198,9 +226,19 @@ class KMeans(Block, Model):
         return dists / dists.sum(axis=1).reshape(-1, 1)
 
     def get_weights(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.mu
 
     def get_weights_format(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ['h','v']
 
     # Use version defined in Model, rather than Block (which raises

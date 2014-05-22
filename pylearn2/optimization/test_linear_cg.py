@@ -34,7 +34,10 @@ def test_linear_cg():
     spf = eval_f( scipy.linalg.solve(M,b) )
     print "scipy.linalg.solve's value of f: "+str(spf)
 
-    assert abs(cgf - spf) < 1e-5
+    abs_diff = abs(cgf - spf)
+    if not (abs_diff < 1e-5):
+        raise AssertionError("Expected abs_diff < 1e-5, got abs_diff of " +
+                str(abs_diff))
 
 
 if __name__ == '__main__':

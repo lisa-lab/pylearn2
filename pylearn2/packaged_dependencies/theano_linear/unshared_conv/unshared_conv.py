@@ -26,6 +26,15 @@ def not_symbolic(*args):
 
 
 class Base(theano.Op):
+    """
+    .. todo::
+
+        WRITEME
+
+    Parameters
+    ----------
+    module_stride : WRITEME
+    """
     def __init__(self,
             module_stride=1,
             ):
@@ -113,8 +122,9 @@ class FilterActs(Base):
                             raise
                     hidacts[gg, :, mR, mC, :] = rc_hidacts
         ostor[0][0] = hidacts
-
-        if 0:
+        
+        print_sizes = 0
+        if print_sizes:
             print 'FilterActs shapes: images', images.shape
             print 'FilterActs shapes: filters', filters.shape
             print 'FilterActs shapes: hidacts', hidacts.shape

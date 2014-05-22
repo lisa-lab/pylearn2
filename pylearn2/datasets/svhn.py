@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import os
 import gc
 import warnings
@@ -11,9 +16,26 @@ from theano import config
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
 from pylearn2.utils.string_utils import preprocess
+from pylearn2.utils.rng import make_np_rng
 
 
 class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
+    """
+    Only for faster access there is a copy of hdf5 file in PYLEARN2_DATA_PATH
+    but it mean to be only readable.  If you wish to modify the data, you
+    should pass a local copy to the path argument.
+
+    Parameters
+    ----------
+    which_set : WRITEME
+    path : WRITEME
+    center : WRITEME
+    scale : WRITEME
+    start : WRITEME
+    stop : WRITEME
+    axes : WRITEME
+    preprocessor : WRITEME
+    """
 
     mapper = {'train': 0, 'test': 1, 'extra': 2, 'train_all': 3,
                 'splitted_train': 4, 'valid': 5}
@@ -23,12 +45,6 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
     def __init__(self, which_set, path = None, center = False, scale = False,
             start = None, stop = None, axes = ('b', 0, 1, 'c'),
             preprocessor = None):
-        """
-        Only for faster access there is a copy of hdf5 file in
-        PYLEARN2_DATA_PATH but it mean to be only readable.
-        If you wish to modify the data, you should pass a local copy
-        to the path argument.
-        """
 
         assert which_set in self.mapper.keys()
 
@@ -40,6 +56,9 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
             mode = 'r'
         else:
             mode = 'r+'
+            warnings.warn("Because path is not same as PYLEARN2_DATA_PATH "
+                          "be aware that data might have been "
+                          "modified or pre-processed.")
 
         if mode == 'r' and (scale or center or (start != None) or
                         (stop != None)):
@@ -50,12 +69,12 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
         # load data
         path = preprocess(path)
-        file_n = "{}_32x32.h5".format(os.path.join(path, "h5", which_set))
+        file_n = "{0}_32x32.h5".format(os.path.join(path, "h5", which_set))
         if os.path.isfile(file_n):
             make_new = False
         else:
             make_new = True
-            warnings.warn("Over riding existing file: {}".format(file_n))
+            warnings.warn("Over riding existing file: {0}".format(file_n))
 
         # if hdf5 file does not exist make them
         if make_new:
@@ -91,22 +110,31 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
 
     def get_test_set(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return SVHN(which_set = 'test', path = self.path,
                     center = self.center, scale = self.scale,
                     start = self.start, stop = self.stop,
                     axes = self.axes, preprocessor = self.preprocessor)
 
     def make_data(self, which_set, path, shuffle = True):
+        """
+        .. todo::
 
+            WRITEME
+        """
         sizes = {'train': 73257, 'test': 26032, 'extra': 531131,
                 'train_all': 604388, 'valid': 6000, 'splitted_train' : 598388}
         image_size = 32 * 32 * 3
-        h_file_n = "{}_32x32.h5".format(os.path.join(path, "h5", which_set))
+        h_file_n = "{0}_32x32.h5".format(os.path.join(path, "h5", which_set))
         h5file, node = self.init_hdf5(h_file_n, ([sizes[which_set],
                             image_size], [sizes[which_set], 10]))
 
         # For consistency between experiments better to make new random stream
-        rng = numpy.random.RandomState(322)
+        rng = make_np_rng(None, 322, which_method="shuffle")
 
         def design_matrix_view(data_x, data_y):
             """reshape data_x to deisng matrix view
@@ -133,15 +161,20 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
         def split_train_valid(path, num_valid_train = 400,
                                     num_valid_extra = 200):
-            """ Extract number of class balanced samples from train and extra
+            """
+            Extract number of class balanced samples from train and extra
             sets for validation, and regard the remaining as new train set.
 
-            num_valid_train: Number of samples per class from train
-            num_valid_extra: Number of samples per class from extra
+            Parameters
+            ----------
+            num_valid_train : int, optional
+                Number of samples per class from train
+            num_valid_extra : int, optional
+                Number of samples per class from extra
             """
 
             # load difficult train
-            data = load("{}train_32x32.mat".format(SVHN.data_path))
+            data = load("{0}train_32x32.mat".format(SVHN.data_path))
             valid_index = []
             for i in xrange(1, 11):
                 index = numpy.nonzero(data['y'] == i)[0]
@@ -168,7 +201,7 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
             gc.collect()
 
             # load extra train
-            data = load("{}extra_32x32.mat".format(SVHN.data_path))
+            data = load("{0}extra_32x32.mat".format(SVHN.data_path))
             valid_index = []
             for i in xrange(1, 11):
                 index = numpy.nonzero(data['y'] == i)[0]
@@ -206,7 +239,7 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
         # The original splits
         if which_set in ['train', 'test']:
-            data_x, data_y = load_data("{}{}_32x32.mat".format(path,
+            data_x, data_y = load_data("{0}{1}_32x32.mat".format(path,
                                                          which_set))
 
         # Train valid splits
@@ -220,9 +253,9 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
         # extra data
         elif which_set in ['train_all', 'extra']:
-            data_x, data_y = load_data("{}extra_32x32.mat".format(path))
+            data_x, data_y = load_data("{0}extra_32x32.mat".format(path))
             if which_set == 'train_all':
-                train_x, train_y = load_data("{}train_32x32.mat".format(path))
+                train_x, train_y = load_data("{0}train_32x32.mat".format(path))
                 data_x = numpy.concatenate((data_x, train_x))
                 data_y = numpy.concatenate((data_y, data_y))
 
@@ -240,6 +273,20 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
 
 class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
+    """
+    A version of SVHN dataset that loads everything into the memory instead of
+    using pytables.
+
+    Parameters
+    ----------
+    which_set : WRITEME
+    center : WRITEME
+    scale : WRITEME
+    start : WRITEME
+    stop : WRITEME
+    axes : WRITEME
+    preprocessor : WRITEME
+    """
 
     mapper = {'train': 0, 'test': 1, 'extra': 2, 'train_all': 3,
                 'splitted_train': 4, 'valid': 5}
@@ -247,10 +294,6 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False, scale = False,
             start = None, stop = None, axes = ('b', 0, 1, 'c'),
             preprocessor = None):
-        """
-        A version of SVHN dataset that loads everything into the memory
-        instead of using pytables.
-        """
 
         assert which_set in self.mapper.keys()
 
@@ -288,19 +331,28 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
         gc.collect()
 
     def get_test_set(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return SVHN_On_Memory(which_set = 'test', path = self.path,
                     center = self.center, scale = self.scale,
                     start = self.start, stop = self.stop,
                     axes = self.axes, preprocessor = self.preprocessor)
 
     def make_data(self, which_set, path, shuffle = True):
+        """
+        .. todo::
 
+            WRITEME
+        """
         sizes = {'train': 73257, 'test': 26032, 'extra': 531131,
                 'train_all': 604388, 'valid': 6000, 'splitted_train' : 598388}
         image_size = 32 * 32 * 3
 
         # For consistency between experiments better to make new random stream
-        rng = numpy.random.RandomState(322)
+        rng = make_np_rng(None, 322, which_method="shuffle")
 
         def design_matrix_view(data_x, data_y):
             """reshape data_x to deisng matrix view
@@ -329,15 +381,20 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
 
         def split_train_valid(path, num_valid_train = 400,
                                     num_valid_extra = 200):
-            """ Extract number of class balanced samples from train and extra
+            """
+            Extract number of class balanced samples from train and extra
             sets for validation, and regard the remaining as new train set.
 
-            num_valid_train: Number of samples per class from train
-            num_valid_extra: Number of samples per class from extra
+            Parameters
+            ----------
+            num_valid_train : int, optional
+                Number of samples per class from train
+            num_valid_extra : int, optional
+                Number of samples per class from extra
             """
 
             # load difficult train
-            data = load("{}train_32x32.mat".format(path))
+            data = load("{0}train_32x32.mat".format(path))
             valid_index = []
             for i in xrange(1, 11):
                 index = numpy.nonzero(data['y'] == i)[0]
@@ -364,7 +421,7 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
             gc.collect()
 
             # load extra train
-            data = load("{}extra_32x32.mat".format(path))
+            data = load("{0}extra_32x32.mat".format(path))
             valid_index = []
             for i in xrange(1, 11):
                 index = numpy.nonzero(data['y'] == i)[0]
@@ -401,7 +458,7 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
 
         # The original splits
         if which_set in ['train', 'test']:
-            data_x, data_y = load_data("{}{}_32x32.mat".format(path,
+            data_x, data_y = load_data("{0}{1}_32x32.mat".format(path,
                                                          which_set))
 
         # Train valid splits
@@ -415,9 +472,9 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
 
         # extra data
         elif which_set in ['train_all', 'extra']:
-            data_x, data_y = load_data("{}extra_32x32.mat".format(path))
+            data_x, data_y = load_data("{0}extra_32x32.mat".format(path))
             if which_set == 'train_all':
-                train_x, train_y = load_data("{}train_32x32.mat".format(path))
+                train_x, train_y = load_data("{0}train_32x32.mat".format(path))
                 data_x = numpy.concatenate((data_x, train_x))
                 data_y = numpy.concatenate((data_y, data_y))
 

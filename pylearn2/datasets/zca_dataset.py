@@ -10,12 +10,19 @@ __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
-from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
+
+import logging
+import warnings
 import numpy as np
+from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.config import yaml_parse
 from pylearn2.datasets import control
+
+
+logger = logging.getLogger(__name__)
+
 
 class ZCA_Dataset(DenseDesignMatrix):
     """
@@ -25,6 +32,11 @@ class ZCA_Dataset(DenseDesignMatrix):
     """
 
     def get_test_set(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         yaml = self.preprocessed_dataset.yaml_src
         yaml = yaml.replace('train', 'test')
         args = {}
@@ -36,13 +48,17 @@ class ZCA_Dataset(DenseDesignMatrix):
         return ZCA_Dataset(**args)
 
     def __init__(self,
-            preprocessed_dataset,
-            preprocessor,
-            convert_to_one_hot = True,
-            start = None,
-            stop = None,
-            axes = ['b', 0, 1, 'c']):
+                 preprocessed_dataset,
+                 preprocessor,
+                 convert_to_one_hot=True,
+                 start=None,
+                 stop=None,
+                 axes=['b', 0, 1, 'c']):
+        """
+        .. todo::
 
+            WRITEME
+        """
         self.args = locals()
 
         self.preprocessed_dataset = preprocessed_dataset
@@ -54,13 +70,15 @@ class ZCA_Dataset(DenseDesignMatrix):
         self.view_converter = preprocessed_dataset.view_converter
 
         self.y = preprocessed_dataset.y
+        self.y_labels = preprocessed_dataset.y_labels
         if convert_to_one_hot:
-            if not ( self.y.min() == 0):
-                raise AssertionError("Expected y.min == 0 but y.min == "+str(self.y.min()))
+            if not (self.y.min() == 0):
+                raise AssertionError("Expected y.min == 0 but y.min == %g" %
+                                     self.y.min())
             nclass = self.y.max() + 1
             y = np.zeros((self.y.shape[0], nclass), dtype='float32')
             for i in xrange(self.y.shape[0]):
-                y[i,self.y[i]] = 1.
+                y[i, self.y[i]] = 1.
             self.y = y
             assert self.y is not None
             space, source = self.data_specs
@@ -68,9 +86,9 @@ class ZCA_Dataset(DenseDesignMatrix):
 
         if control.get_load_data():
             if start is not None:
-                self.X = preprocessed_dataset.X[start:stop,:]
+                self.X = preprocessed_dataset.X[start:stop, :]
                 if self.y is not None:
-                    self.y = self.y[start:stop,:]
+                    self.y = self.y[start:stop, :]
                 assert self.X.shape[0] == stop-start
             else:
                 self.X = preprocessed_dataset.X
@@ -80,20 +98,35 @@ class ZCA_Dataset(DenseDesignMatrix):
             if self.y is not None:
                 assert self.y.shape[0] == self.X.shape[0]
 
-
         #self.mn = self.X.min()
         #self.mx = self.X.max()
-        print 'inverting...'
-        preprocessor.invert()
-        print '...done inverting'
+
+        if getattr(preprocessor, "inv_P_", None) is None:
+            warnings.warn("ZCA preprocessor.inv_P_ was none. Computing "
+                          "inverse of preprocessor.P_ now. This will take "
+                          "some time. For efficiency, it is recommended that "
+                          "in the future you compute the inverse in ZCA.fit() "
+                          "instead, by passing it compute_inverse=True.")
+            logger.info('inverting...')
+            preprocessor.inv_P_ = np.linalg.inv(preprocessor.P_)
+            logger.info('...done inverting')
 
         self.view_converter.set_axes(axes)
 
     def has_targets(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.preprocessed_dataset.has_targets()
 
     def adjust_for_viewer(self, X):
+        """
+        .. todo::
 
+            WRITEME
+        """
         #rval = X - self.mn
         #rval /= (self.mx-self.mn)
 
@@ -103,14 +136,17 @@ class ZCA_Dataset(DenseDesignMatrix):
 
         #rval = np.clip(rval,-1.,1.)
 
-
         for i in xrange(rval.shape[0]):
-            rval[i,:] /= np.abs(rval[i,:]).max() + 1e-12
+            rval[i, :] /= np.abs(rval[i, :]).max() + 1e-12
 
         return rval
 
-    def adjust_to_be_viewed_with(self, X, other, per_example = False):
+    def adjust_to_be_viewed_with(self, X, other, per_example=False):
+        """
+        .. todo::
 
+            WRITEME
+        """
         #rval = X - self.mn
         #rval /= (self.mx-self.mn)
 
@@ -123,16 +159,20 @@ class ZCA_Dataset(DenseDesignMatrix):
 
         if per_example:
             for i in xrange(rval.shape[0]):
-                rval[i,:] /= np.abs(other[i,:]).max()
+                rval[i, :] /= np.abs(other[i, :]).max()
         else:
             rval /= np.abs(other).max()
 
-        rval = np.clip(rval,-1.,1.)
+        rval = np.clip(rval, -1., 1.)
 
         return rval
 
     def mapback_for_viewer(self, X):
+        """
+        .. todo::
 
+            WRITEME
+        """
         assert X.ndim == 2
         rval = self.preprocessor.inverse(X)
         rval = self.preprocessed_dataset.adjust_for_viewer(rval)
@@ -140,5 +180,9 @@ class ZCA_Dataset(DenseDesignMatrix):
         return rval
 
     def mapback(self, X):
-        return self.preprocessor.inverse(X)
+        """
+        .. todo::
 
+            WRITEME
+        """
+        return self.preprocessor.inverse(X)

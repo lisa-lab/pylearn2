@@ -1,14 +1,20 @@
+"""
+Module for performing batch gradient methods.
+Technically, SGD and BGD both work with any batch size, but SGD has no line
+search functionality and is thus best suited to small batches, while BGD
+supports line searches and thuse works best with large batches.
+"""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
 
+import logging
 import numpy as np
 from theano import config
 from theano.compat.python2x import OrderedDict
-import theano.tensor as T
 
 from pylearn2.monitor import Monitor
 from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
@@ -18,60 +24,90 @@ from pylearn2.utils import safe_zip
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.termination_criteria import TerminationCriterion
 from pylearn2.utils import sharedX
-from pylearn2.space import CompositeSpace, NullSpace, Space
+from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.utils.data_specs import DataSpecsMapping
-from theano import config
+from pylearn2.utils.rng import make_np_rng
+
+
+logger = logging.getLogger(__name__)
 
 
 class BGD(TrainingAlgorithm):
-    """Batch Gradient Descent training algorithm class"""
+    """
+    Batch Gradient Descent training algorithm class
+
+    Parameters
+    ----------
+    cost : pylearn2.costs.Cost, optional
+        A pylearn2 Cost, or None, in which case model.get_default_cost()
+        will be used
+    batch_size : int, optional
+        Like the SGD TrainingAlgorithm, this TrainingAlgorithm still
+        iterates over minibatches of data. The difference is that this
+        class uses partial line searches to choose the step size along
+        each gradient direction, and can do repeated updates on the same
+        batch. The assumption is that you use big enough minibatches with
+        this algorithm that a large step size will generalize reasonably
+        well to other minibatches. To implement true Batch Gradient
+        Descent, set the batch_size to the total number of examples
+        available. If batch_size is None, it will revert to the model's
+        force_batch_size attribute.
+    batches_per_iter : int, optional
+        WRITEME
+    updates_per_batch : int, optional
+        Passed through to the optimization.BatchGradientDescent's
+        `max_iters parameter`
+    monitoring_batch_size : int
+        Size of monitoring batches.
+    monitoring_batches : WRITEME
+    monitoring_dataset : Dataset or dict, optional
+        A Dataset or a dictionary mapping string dataset names to Datasets
+    termination_criterion : WRITEME
+    set_batch_size : bool, optional
+        If True, BGD will attempt to override the model's
+        `force_batch_size` attribute by calling set_batch_size on it.
+    reset_alpha : bool, optional
+        Passed through to the optimization.BatchGradientDescent's
+        `reset_alpha` parameter
+    conjugate : bool, optional
+        Passed through to the optimization.BatchGradientDescent's
+        `conjugate` parameter
+    min_init_alpha : float, optional
+        WRITEME
+    reset_conjugate : bool, optional
+        Passed through to the optimization.BatchGradientDescent's
+        `reset_conjugate` parameter
+    line_search_mode : WRITEME
+    verbose_optimization : bool, optional
+        WRITEME
+    scale_step : float, optional
+        WRITEME
+    theano_function_mode : WRITEME
+    init_alpha : WRITEME
+    seed : WRITEME
+    """
     def __init__(self, cost=None, batch_size=None, batches_per_iter=None,
-                 updates_per_batch = 10,
+                 updates_per_batch=10, monitoring_batch_size=None,
                  monitoring_batches=None, monitoring_dataset=None,
-                 termination_criterion = None, set_batch_size = False,
-                 reset_alpha = True, conjugate = False,
-                 min_init_alpha = .001,
-                 reset_conjugate = True, line_search_mode = None,
-                 verbose_optimization=False, scale_step=1., theano_function_mode=None,
-                 init_alpha=None, seed=None):
-        """
-        cost: a pylearn2 Cost, or None, in which case model.get_default_cost()
-                will be used
-        batch_size: Like the SGD TrainingAlgorithm, this TrainingAlgorithm
-                    still iterates over minibatches of data. The difference
-                    is that this class uses partial line searches to choose
-                    the step size along each gradient direction, and can do
-                    repeated updates on the same batch. The assumption is
-                    that you use big enough minibatches with this algorithm that
-                    a large step size will generalize reasonably well to other
-                    minibatches.
-                    To implement true Batch Gradient Descent, set the batch_size
-                    to the total number of examples available.
-                    If batch_size is None, it will revert to the model's force_batch_size
-                    attribute.
-        set_batch_size: If True, BGD will attempt to override the model's force_batch_size
-                attribute by calling set_batch_size on it.
-        updates_per_batch: Passed through to the optimization.BatchGradientDescent's
-                   max_iters parameter
-        reset_alpha, conjugate, reset_conjugate: passed through to the
-            optimization.BatchGradientDescent parameters of the same names
-        monitoring_dataset: A Dataset or a dictionary mapping string dataset names to Datasets
-        """
+                 termination_criterion=None, set_batch_size=False,
+                 reset_alpha=True, conjugate=False, min_init_alpha=.001,
+                 reset_conjugate=True, line_search_mode=None,
+                 verbose_optimization=False, scale_step=1.,
+                 theano_function_mode=None, init_alpha=None, seed=None):
 
         self.__dict__.update(locals())
         del self.self
 
         if monitoring_dataset is None:
-            assert monitoring_batches == None
-
+            assert monitoring_batches is None
+            assert monitoring_batch_size is None
 
         self._set_monitoring_dataset(monitoring_dataset)
 
         self.bSetup = False
         self.termination_criterion = termination_criterion
-        if seed is None:
-            seed = [2012, 10, 16]
-        self.rng = np.random.RandomState(seed)
+        self.rng = make_np_rng(seed, [2012, 10, 16],
+                which_method=["randn","randint"])
 
     def setup(self, model, dataset):
         """
@@ -82,11 +118,11 @@ class BGD(TrainingAlgorithm):
 
         Parameters
         ----------
-        model: a Python object representing the model to train loosely
-        implementing the interface of models.model.Model.
-
-        dataset: a pylearn2.datasets.dataset.Dataset object used to draw
-        training data
+        model : object
+            A Python object representing the model to train. Loosely
+            implementing the interface of models.model.Model.
+        dataset : pylearn2.datasets.dataset.Dataset
+            Dataset object used to draw training data
         """
         self.model = model
 
@@ -102,8 +138,9 @@ class BGD(TrainingAlgorithm):
             elif hasattr(model, 'force_batch_size'):
                 if not (model.force_batch_size <= 0 or batch_size ==
                         model.force_batch_size):
-                    raise ValueError("batch_size is %d but model.force_batch_size is %d" %
-                            (batch_size, model.force_batch_size))
+                    raise ValueError("batch_size is %d but " +
+                                     "model.force_batch_size is %d" %
+                                     (batch_size, model.force_batch_size))
 
         self.monitor = Monitor.get_monitor(model)
         self.monitor.set_theano_function_mode(self.theano_function_mode)
@@ -137,9 +174,9 @@ class BGD(TrainingAlgorithm):
         assert isinstance(grad_updates, OrderedDict)
 
         if cost_value is None:
-            raise ValueError("BGD is incompatible with "+str(self.cost)+" because "
-                    " it is intractable, but BGD uses the cost function value to do "
-                    " line searches.")
+            raise ValueError("BGD is incompatible with " + str(self.cost) +
+                             " because it is intractable, but BGD uses the " +
+                             "cost function value to do line searches.")
 
         # obj_prereqs has to be a list of function f called with f(*data),
         # where data is a data tuple coming from the iterator.
@@ -152,53 +189,17 @@ class BGD(TrainingAlgorithm):
         obj_prereqs = [capture(f) for f in fixed_var_descr.on_load_batch]
 
         if self.monitoring_dataset is not None:
+            if (self.monitoring_batch_size is None and
+                    self.monitoring_batches is None):
+                self.monitoring_batch_size = self.batch_size
+                self.monitoring_batches = self.batches_per_iter
             self.monitor.setup(
                     dataset=self.monitoring_dataset,
                     cost=self.cost,
-                    batch_size=self.batch_size,
+                    batch_size=self.monitoring_batch_size,
                     num_batches=self.monitoring_batches,
                     obj_prereqs=obj_prereqs,
                     cost_monitoring_args=fixed_var_descr.fixed_vars)
-
-            '''
-            channels = model.get_monitoring_channels(theano_args)
-            if not isinstance(channels, dict):
-                raise TypeError("model.get_monitoring_channels must return a "
-                                "dictionary, but it returned " + str(channels))
-            channels.update(self.cost.get_monitoring_channels(model, theano_args, ** fixed_var_descr.fixed_vars))
-
-            for dataset_name in self.monitoring_dataset:
-                if dataset_name == '':
-                    prefix = ''
-                else:
-                    prefix = dataset_name + '_'
-                monitoring_dataset = self.monitoring_dataset[dataset_name]
-                self.monitor.add_dataset(dataset=monitoring_dataset,
-                                    mode="sequential",
-                                    batch_size=self.batch_size,
-                                    num_batches=self.monitoring_batches)
-
-                # The monitor compiles all channels for the same dataset into one function, and
-                # runs all prereqs before calling the function. So we only need to register the
-                # on_load_batch prereq once per monitoring dataset.
-                self.monitor.add_channel(prefix + 'objective',ipt=ipt,val=cost_value,
-                        dataset = monitoring_dataset, prereqs = fixed_var_descr.on_load_batch)
-
-                for name in channels:
-                    J = channels[name]
-                    if isinstance(J, tuple):
-                        assert len(J) == 2
-                        J, prereqs = J
-                    else:
-                        prereqs = None
-
-                    self.monitor.add_channel(name= prefix + name,
-                                             ipt=ipt,
-                                             val=J,
-                                             data_specs=data_specs,
-                                             dataset = monitoring_dataset,
-                                             prereqs=prereqs)
-                '''
 
         params = model.get_params()
 
@@ -208,7 +209,7 @@ class BGD(TrainingAlgorithm):
                             gradients = grads,
                             gradient_updates = grad_updates,
                             params = params,
-                            param_constrainers = [ model.censor_updates ],
+                            param_constrainers = [ model.modify_updates ],
                             lr_scalers = model.get_lr_scalers(),
                             inputs = theano_args,
                             verbose = self.verbose_optimization,
@@ -247,6 +248,11 @@ class BGD(TrainingAlgorithm):
         self.bSetup = True
 
     def train(self, dataset):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert self.bSetup
         model = self.model
 
@@ -294,6 +300,11 @@ class BGD(TrainingAlgorithm):
             model.monitor.report_batch(actual_batch_size)
 
     def continue_learning(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.termination_criterion is None:
             return True
         else:
@@ -302,22 +313,36 @@ class BGD(TrainingAlgorithm):
             return rval
 
     def before_step(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.scale_step != 1.:
             self.params = list(model.get_params())
             self.value = [ param.get_value() for param in self.params ]
 
     def after_step(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.scale_step != 1:
             for param, value in safe_zip(self.params, self.value):
-                value = (1.-self.scale_step) * value + self.scale_step * param.get_value()
+                value = (1.-self.scale_step) * value + self.scale_step \
+                        * param.get_value()
                 param.set_value(value)
 
 class StepShrinker(TrainExtension, TerminationCriterion):
+    """
+    .. todo::
 
-    def __init__(self, channel, scale, giveup_after, scale_up=1., max_scale=1.):
-        """
-        """
+        WRITEME
+    """
 
+    def __init__(self, channel, scale, giveup_after, scale_up=1.,
+            max_scale=1.):
         self.__dict__.update(locals())
         del self.self
         self.continue_learning = True
@@ -325,12 +350,18 @@ class StepShrinker(TrainExtension, TerminationCriterion):
         self.prev = np.inf
 
     def on_monitor(self, model, dataset, algorithm):
+        """
+        .. todo::
+
+            WRITEME
+        """
         monitor = model.monitor
 
         if self.first:
             self.first = False
             self.monitor_channel = sharedX(algorithm.scale_step)
-            # TODO: make monitor accept channels not associated with any dataset,
+            # TODO: make monitor accept channels not associated with any
+            # dataset,
             # so this hack won't be necessary
             hack = monitor.channels.values()[0]
             monitor.add_channel('scale_step', hack.graph_input,
@@ -341,51 +372,71 @@ class StepShrinker(TrainExtension, TerminationCriterion):
         if len(v) == 1:
             return
         latest = v[-1]
-        print "Latest "+self.channel+": "+str(latest)
+        logger.info("Latest {0}: {1}".format(self.channel, latest))
         # Only compare to the previous step, not the best step so far
-        # Another extension can be in charge of saving the best parameters ever seen.
-        # We want to keep learning as long as we're making progress.
-        # We don't want to give up on a step size just because it failed to undo the damage
-        # of the bigger one that preceded it in a single epoch
-        print "Previous is "+str(self.prev)
+        # Another extension can be in charge of saving the best parameters ever
+        # seen.We want to keep learning as long as we're making progress. We
+        # don't want to give up on a step size just because it failed to undo
+        # the damage of the bigger one that preceded it in a single epoch
+        logger.info("Previous is {0}".format(self.prev))
         cur = algorithm.scale_step
         if latest >= self.prev:
-            print "Looks like using "+str(cur)+" isn't working out so great for us."
+            logger.info("Looks like using {0} "
+                        "isn't working out so great for us.".format(cur))
             cur *= self.scale
             if cur < self.giveup_after:
-                print "Guess we just have to give up."
+                logger.info("Guess we just have to give up.")
                 self.continue_learning = False
                 cur = self.giveup_after
-            print "Let's see how "+str(cur)+" does."
+            logger.info("Let's see how {0} does.".format(cur))
         elif latest <= self.prev and self.scale_up != 1.:
-            print "Looks like we're making progress on the validation set, let's try speeding up"
+            logger.info("Looks like we're making progress "
+                        "on the validation set, let's try speeding up")
             cur *= self.scale_up
             if cur > self.max_scale:
                 cur = self.max_scale
-            print "New scale is",cur
+            logger.info("New scale is {0}".format(cur))
         algorithm.scale_step = cur
         self.monitor_channel.set_value(np.cast[config.floatX](cur))
         self.prev = latest
 
 
     def __call__(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.continue_learning
 
 class ScaleStep(TrainExtension):
+    """
+    .. todo::
+
+        WRITEME
+    """
+
     def __init__(self, scale, min_value):
         self.scale = scale
         self.min_value = min_value
         self.first = True
 
     def on_monitor(self, model, dataset, algorithm):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.first:
             monitor = model.monitor
             self.first = False
             self.monitor_channel = sharedX(algorithm.scale_step)
-            # TODO: make monitor accept channels not associated with any dataset,
+            # TODO: make monitor accept channels not associated with any
+            # dataset,
             # so this hack won't be necessary
             hack = monitor.channels.values()[0]
-            monitor.add_channel('scale_step', hack.graph_input, self.monitor_channel, dataset=hack.dataset)
+            monitor.add_channel('scale_step', hack.graph_input,
+                                self.monitor_channel, dataset=hack.dataset)
         cur = algorithm.scale_step
         cur *= self.scale
         cur = max(cur, self.min_value)
@@ -393,11 +444,14 @@ class ScaleStep(TrainExtension):
         self.monitor_channel.set_value(np.cast[config.floatX](cur))
 
 class BacktrackingStepShrinker(TrainExtension, TerminationCriterion):
+    """
+    .. todo::
 
-    def __init__(self, channel, scale, giveup_after, scale_up=1., max_scale=1.):
-        """
-        """
+        WRITEME
+    """
 
+    def __init__(self, channel, scale, giveup_after, scale_up=1.,
+            max_scale=1.):
         self.__dict__.update(locals())
         del self.self
         self.continue_learning = True
@@ -405,51 +459,66 @@ class BacktrackingStepShrinker(TrainExtension, TerminationCriterion):
         self.prev = np.inf
 
     def on_monitor(self, model, dataset, algorithm):
+        """
+        .. todo::
+
+            WRITEME
+        """
         monitor = model.monitor
 
         if self.first:
             self.first = False
             self.monitor_channel = sharedX(algorithm.scale_step)
-            # TODO: make monitor accept channels not associated with any dataset,
+            # TODO: make monitor accept channels not associated with any
+            # dataset,
             # so this hack won't be necessary
             hack = monitor.channels.values()[0]
-            monitor.add_channel('scale_step', hack.graph_input, self.monitor_channel, dataset=hack.dataset)
+            monitor.add_channel('scale_step', hack.graph_input,
+                                self.monitor_channel, dataset=hack.dataset)
         channel = monitor.channels[self.channel]
         v = channel.val_record
         if len(v) == 1:
             return
         latest = v[-1]
-        print "Latest "+self.channel+": "+str(latest)
+        logger.info("Latest {0}: {1}".format(self.channel, latest))
         # Only compare to the previous step, not the best step so far
-        # Another extension can be in charge of saving the best parameters ever seen.
-        # We want to keep learning as long as we're making progress.
-        # We don't want to give up on a step size just because it failed to undo the damage
-        # of the bigger one that preceded it in a single epoch
-        print "Previous is "+str(self.prev)
+        # Another extension can be in charge of saving the best parameters ever
+        # seen.We want to keep learning as long as we're making progress. We
+        # don't want to give up on a step size just because it failed to undo
+        # the damage of the bigger one that preceded it in a single epoch
+        logger.info("Previous is {0}".format(self.prev))
         cur = algorithm.scale_step
         if latest >= self.prev:
-            print "Looks like using "+str(cur)+" isn't working out so great for us."
+            logger.info("Looks like using {0} "
+                        "isn't working out so great for us.".format(cur))
             cur *= self.scale
             if cur < self.giveup_after:
-                print "Guess we just have to give up."
+                logger.info("Guess we just have to give up.")
                 self.continue_learning = False
                 cur = self.giveup_after
-            print "Let's see how "+str(cur)+" does."
-            print "Reloading saved params from last call"
+            logger.info("Let's see how {0} does.".format(cur))
+            logger.info("Reloading saved params from last call")
             for p, v in safe_zip(model.get_params(), self.stored_values):
                 p.set_value(v)
             latest = self.prev
         elif latest <= self.prev and self.scale_up != 1.:
-            print "Looks like we're making progress on the validation set, let's try speeding up"
+            logger.info("Looks like we're making progress "
+                        "on the validation set, let's try speeding up")
             cur *= self.scale_up
             if cur > self.max_scale:
                 cur = self.max_scale
-            print "New scale is",cur
+            logger.info("New scale is {0}".format(cur))
         algorithm.scale_step = cur
         self.monitor_channel.set_value(np.cast[config.floatX](cur))
         self.prev = latest
-        self.stored_values = [param.get_value() for param in model.get_params()]
+        self.stored_values = [param.get_value() for param in
+                model.get_params()]
 
 
     def __call__(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.continue_learning

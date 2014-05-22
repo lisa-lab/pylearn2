@@ -1,31 +1,72 @@
-import warnings
+"""
+.. todo::
+
+    WRITEME
+"""
+import logging
 from theano import function, shared
 from pylearn2.optimization import linear_cg as cg
 from pylearn2.optimization.feature_sign import feature_sign_search
 import numpy as N
 import theano.tensor as T
+from pylearn2.utils.rng import make_np_rng
+
+
+logger = logging.getLogger(__name__)
 
 
 class LocalCoordinateCoding(object):
+    """
+    .. todo::
+
+        WRITEME
+
+    Parameters
+    ----------
+    nvis : WRITEME
+    nhid : WRITEME
+    coeff : WRITEME
+    """
+
     def __init__(self, nvis, nhid, coeff):
         self.nvis = nvis
         self.nhid = nhid
         self.coeff = float(coeff)
-        self.rng = N.random.RandomState([1, 2, 3])
+        self.rng = make_np_rng(None, [1, 2, 3], which_method="randn")
 
         self.redo_everything()
 
     def get_output_channels(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.nhid
 
     def redo_everything(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.W = shared(self.rng.randn(self.nhid, self.nvis), name='W')
         self.W.T.name = 'W.T'
 
     def weights_format(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ['h', 'v']
 
     def optimize_gamma(self, example):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         #variable names chosen to follow the arguments to l1ls_featuresign
 
@@ -39,6 +80,11 @@ class LocalCoordinateCoding(object):
         return g
 
     def train_batch(self, dataset, batch_size):
+        """
+        .. todo::
+
+            WRITEME
+        """
         #TODO-- this results in compilation happening every time learn is
         # called should cache the compilation results, including those
         # inside cg
@@ -90,19 +136,20 @@ class LocalCoordinateCoding(object):
         batch_X = X[start:start + batch_size, :]
 
         #TODO-- optimize gamma
-        print 'optimizing gamma'
+        logger.info('optimizing gamma')
         for i in xrange(batch_size):
             #print str(i+1)+'/'+str(batch_size)
             gamma[i, :] = self.optimize_gamma(batch_X[i, :])
 
-        print 'max min'
-        print N.abs(gamma).min(axis=0).max()
-        print 'min max'
-        print N.abs(gamma).max(axis=0).max()
+        logger.info('max min')
+        logger.info(N.abs(gamma).min(axis=0).max())
+        logger.info('min max')
+        logger.info(N.abs(gamma).max(axis=0).max())
 
         #Optimize W
-        print 'optimizing W'
-        warnings.warn("not tested since switching to Razvan's all-theano implementation of linear cg")
+        logger.info('optimizing W')
+        logger.warning("not tested since switching to Razvan's all-theano "
+                       "implementation of linear cg")
         cg.linear_cg(J, [self.W], max_iters=3)
 
         err = 0.
@@ -111,5 +158,5 @@ class LocalCoordinateCoding(object):
             err += Jf(batch_X[i, :], gamma[i, :])
         assert not N.isnan(err)
         assert not N.isinf(err)
-        print 'err: ' + str(err)
+        logger.info('err: {0}'.format(err))
         return True

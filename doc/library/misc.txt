@@ -1,0 +1,17 @@
+=============
+Miscellaneous
+=============
+
+.. contents::
+   :depth: 3
+
+Blocks
+======
+.. automodule:: pylearn2.blocks
+    :members:
+
+RBM tools
+=========
+.. automodule:: pylearn2.rbm_tools
+    :members:
+

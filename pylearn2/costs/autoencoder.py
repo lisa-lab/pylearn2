@@ -1,47 +1,102 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 from theano import tensor
 import theano.sparse
-import warnings
-from pylearn2.costs.cost import Cost
-import numpy.random
+from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 from theano.tensor.shared_randomstreams import RandomStreams
 
-class GSNFriendlyCost(Cost):
+
+class GSNFriendlyCost(DefaultDataSpecsMixin, Cost):
+    """
+    .. todo::
+
+        WRITEME
+    """
+
     @staticmethod
     def cost(target, output):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError
 
     def expr(self, model, data, *args, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         X = data
         return self.cost(X, model.reconstruct(X))
 
-    def get_data_specs(self, model):
-        return (model.get_input_space(), model.get_input_source())
 
 class MeanSquaredReconstructionError(GSNFriendlyCost):
+    """
+    .. todo::
+
+        WRITEME
+    """
+
     @staticmethod
     def cost(a, b):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ((a - b) ** 2).sum(axis=1).mean()
 
 class MeanBinaryCrossEntropy(GSNFriendlyCost):
+    """
+    .. todo::
+
+        WRITEME
+    """
+
     @staticmethod
     def cost(target, output):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return tensor.nnet.binary_crossentropy(output, target).sum(axis=1).mean()
 
-class SampledMeanBinaryCrossEntropy(Cost):
+class SampledMeanBinaryCrossEntropy(DefaultDataSpecsMixin, Cost):
     """
+    .. todo::
+
+        WRITEME properly
+
     CE cost that goes with sparse autoencoder with L1 regularization on activations
 
     For theory:
     Y. Dauphin, X. Glorot, Y. Bengio. ICML2011
     Large-Scale Learning of Embeddings with Reconstruction Sampling
+
+    Parameters
+    ----------
+    L1 : WRITEME
+    ratio : WRITEME
     """
+
     def __init__(self, L1, ratio):
         self.random_stream = RandomStreams(seed=1)
         self.L1 = L1
         self.one_ratio = ratio
 
     def expr(self, model, data, ** kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         X = data
         # X is theano sparse
@@ -78,8 +133,6 @@ class SampledMeanBinaryCrossEntropy(Cost):
 
         return cost
 
-    def get_data_specs(self, model):
-        return (model.get_input_space(), model.get_input_source())
 
 
 class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
@@ -89,13 +142,24 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
     For theory:
     Y. Dauphin, X. Glorot, Y. Bengio. ICML2011
     Large-Scale Learning of Embeddings with Reconstruction Sampling
+
+    Parameters
+    ----------
+    L1 : WRITEME
+    ratio : WRITEME
     """
+
     def __init__(self, L1, ratio):
         self.random_stream = RandomStreams(seed=1)
         self.L1 = L1
         self.ratio = ratio
 
     def expr(self, model, data, ** kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         X = data
         # X is theano sparse
@@ -123,8 +187,6 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
 
         return cost
 
-    def get_data_specs(self, model):
-        return (model.get_input_space(), model.get_input_source())
 
 #class MeanBinaryCrossEntropyTanh(Cost):
 #     def expr(self, model, data):
@@ -138,3 +200,37 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
 #
 #    def get_data_specs(self, model):
 #        return (model.get_input_space(), model.get_input_source())
+
+
+class SparseActivation(DefaultDataSpecsMixin, Cost):
+    """
+    Autoencoder sparse activation cost.
+    
+    Regularize on KL divergence from desired average activation of each
+    hidden unit as described in Andrew Ng's CS294A Lecture Notes. See
+    http://www.stanford.edu/class/cs294a/sparseAutoencoder_2011new.pdf.
+
+    Parameters
+    ----------
+    coeff : float
+        Coefficient for this regularization term in the objective
+        function.
+    p : float
+        Desired average activation of each hidden unit.
+    """
+    def __init__(self, coeff, p):
+        self.coeff = coeff
+        self.p = p
+
+    def expr(self, model, data, **kwargs):
+        """
+        Calculate regularization penalty.
+        """
+        X = data
+        p = self.p
+        p_hat = tensor.abs_(model.encode(X)).mean(axis=0)
+        kl = p * tensor.log(p / p_hat) + (1 - p) * \
+            tensor.log((1 - p) / (1 - p_hat))
+        penalty = self.coeff * kl.sum()
+        penalty.name = 'sparse_activation_penalty'
+        return penalty

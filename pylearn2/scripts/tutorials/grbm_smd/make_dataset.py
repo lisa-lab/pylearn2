@@ -2,13 +2,16 @@
 # See README before reading this file
 #
 #
-# This script creates a preprocessed version of a dataset using pylearn2.#
+# This script creates a preprocessed version of a dataset using pylearn2.
 # It's not necessary to save preprocessed versions of your dataset to
 # disk but this is an instructive example, because later we can show
 # how to load your custom dataset in a yaml file.
 #
 # This is also a common use case because often you will want to preprocess
 # your data once and then train several models on the preprocessed data.
+
+import os.path
+import pylearn2
 
 # We'll need the serial module to save the dataset
 from pylearn2.utils import serial
@@ -21,7 +24,9 @@ from pylearn2.datasets import preprocessing
 
 if __name__ == "__main__":
     # Our raw training set is 32x32 color images
-    train = cifar10.CIFAR10(which_set="train")
+    # TODO: the one_hot=True is only necessary because one_hot=False is
+    # broken, remove it after one_hot=False is fixed.
+    train = cifar10.CIFAR10(which_set="train", one_hot=True)
 
     # We'd like to do several operations on them, so we'll set up a pipeline to
     # do so.
@@ -57,5 +62,9 @@ if __name__ == "__main__":
     # when re-loading (Pickle files, in general, use double their actual size
     # in the process of being re-loaded into a running process).
     # The dataset object itself is stored as a pickle file.
-    train.use_design_loc('train_design.npy')
-    serial.save('cifar10_preprocessed_train.pkl', train)
+    path = pylearn2.__path__[0]
+    train_example_path = os.path.join(path, 'scripts', 'tutorials', 'grbm_smd')
+    train.use_design_loc(os.path.join(train_example_path, 'cifar10_preprocessed_train_design.npy'))
+
+    train_pkl_path = os.path.join(train_example_path, 'cifar10_preprocessed_train.pkl')
+    serial.save(train_pkl_path, train)

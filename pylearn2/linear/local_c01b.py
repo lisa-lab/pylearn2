@@ -10,51 +10,70 @@ __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
 
+import logging
 import numpy as np
 import warnings
 
 from pylearn2.packaged_dependencies.theano_linear.unshared_conv.localdot import LocalDot
 
 from pylearn2.utils import sharedX
-from pylearn2.linear.conv2d import default_rng
-from pylearn2.linear.conv2d import default_sparse_rng
+from pylearn2.utils.rng import make_np_rng
+from pylearn2.linear.conv2d import default_seed, default_sparse_seed
 from pylearn2.linear.linear_transform import LinearTransform
+
+
+logger = logging.getLogger(__name__)
+
 
 class Local(LinearTransform, LocalDot):
     """
-    A pylearn2 linear operator based on local receptive fields
-    (convolution without parameter sharing)
-    implemented using Alex Krizhevsky's cuda-convnet library
-    + James Bergstra's TheanoLinear module
+    A pylearn2 linear operator based on local receptive fields (convolution
+    without parameter sharing) implemented using Alex Krizhevsky's cuda-convnet
+    library + James Bergstra's TheanoLinear module
+
+    Parameters
+    ----------
+    filters : WRITEME
+    image_shape : WRITEME
+    input_groups : WRITEME
+    input_axes : WRITEME
+    batch_size : WRITEME
+    output_axes : WRITEME
+    kernel_stride : WRITEME
+    pad : WRITEME
+    message : WRITEME
+    partial_sum : WRITEME
     """
 
-    def __init__(self,
-            filters,
-            image_shape,
-        input_groups,
-            input_axes = ('c', 0, 1, 'b'),
-            batch_size=None,
-            output_axes = ('c', 0, 1, 'b'),
-         kernel_stride=(1, 1), pad=0,
-         message = '', partial_sum=None):
-
+    def __init__(self, filters, image_shape, input_groups,
+                 input_axes=('c', 0, 1, 'b'), batch_size=None,
+                 output_axes=('c', 0, 1, 'b'), kernel_stride=(1, 1), pad=0,
+                 message='', partial_sum=None):
         self.input_groups = input_groups
 
-        warnings.warn("Local ignores partial_sum argument, TODO figure out how James' code controls it")
+        """TODO: Local ignores partial_sum argument,
+                 figure out how James' code controls it"""
+
+        logger.warning("partial_sum argument ignored")
 
         LocalDot.__init__(self,
             filters=filters,
             irows=image_shape[0],
             icols=image_shape[1],
-            kernel_stride=kernel_stride,
+            subsample=kernel_stride,
             padding_start=pad,
             message='')
 
 
     def lmul(self, x):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         reshaped = x.reshape(( self.input_groups, x.shape[0] / self.input_groups, x.shape[1], x.shape[2], x.shape[3]))
 
@@ -63,6 +82,11 @@ class Local(LinearTransform, LocalDot):
         return out.reshape((out.shape[0] * out.shape[1], out.shape[2], out.shape[3], out.shape[4]))
 
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return [self._filters]
 
 
@@ -73,11 +97,15 @@ def make_random_local(irange, input_channels, input_axes, input_groups,
         kernel_shape,
         kernel_stride = (1,1), pad=0, message = "", rng = None,
         partial_sum = None):
-    """ Creates a Local with random weights.
+    """
+    .. todo::
+
+        WRITEME properly
+
+    Creates a Local with random weights.
     """
 
-    if rng is None:
-        rng = default_rng()
+    rng = make_np_rng(rng, default_seed, which_method='uniform')
 
     def num_pos(img, stride, kwidth):
         img = img + 2 * pad
@@ -107,13 +135,17 @@ def make_random_local(irange, input_channels, input_axes, input_groups,
 def make_sparse_random_local(num_nonzero, input_space, output_space,
         kernel_shape, batch_size, \
         kernel_stride = (1,1), border_mode = 'valid', message = "", rng=None):
+    """
+    .. todo::
+
+        WRITEME
+    """
     raise NotImplementedError("Not yet modified after copy-paste from "
             "pylearn2.linear.conv2d_c01b")
     """ Creates a Conv2D with random kernels, where the randomly initialized
     values are sparse"""
 
-    if rng is None:
-        rng = default_sparse_rng()
+    rng = make_np_rng(rng, default_sparse_seed, which_method=['randn','randint'])
 
     W = np.zeros(( output_space.num_channels, input_space.num_channels, \
             kernel_shape[0], kernel_shape[1]))

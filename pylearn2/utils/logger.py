@@ -33,6 +33,11 @@ class CustomFormatter(Formatter):
     """
     Conditionally displays log level names and source loggers, only if
     the log level is WARNING or greater.
+
+    Parameters
+    ----------
+    prefix : WRITEME
+    only_from : WRITEME
     """
     def __init__(self, prefix='', only_from=None):
         Formatter.__init__(self)
@@ -103,7 +108,7 @@ class CustomStreamHandler(Handler):
     get written to the provided `stdout`, all other messages to
     `stderr`.
 
-    Note that sys.stdout and sys.stderr
+    If stream is not specified, sys.stderr is used.
 
     Parameters
     ----------
@@ -114,22 +119,15 @@ class CustomStreamHandler(Handler):
         Stream to which WARNING, ERROR, CRITICAL messages will be
         written. If `None`, `sys.stderr` will be used.
     formatter : `logging.Formatter` object, optional
-        Assigned to `self.formatter`, used to format outgoing
-        log messages.
+        Assigned to `self.formatter`, used to format outgoing log messages.
 
     Notes
     -----
-    N.B. it is **not** recommended to pass `sys.stdout` or
-    `sys.stderr` as constructor arguments explicitly, as certain
-    things (like nosetests) can reassign these during code
-    execution! Instead, simply pass `None`.
+    N.B. it is **not** recommended to pass `sys.stdout` or `sys.stderr` as
+    constructor arguments explicitly, as certain things (like nosetests) can
+    reassign these during code execution! Instead, simply pass `None`.
     """
     def __init__(self, stdout=None, stderr=None, formatter=None):
-        """
-        Initialize the handler.
-
-        If stream is not specified, sys.stderr is used.
-        """
         Handler.__init__(self)
         self._stdout = stdout
         self._stderr = stderr
@@ -137,16 +135,24 @@ class CustomStreamHandler(Handler):
 
     @property
     def stdout(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return sys.stdout if self._stdout is None else self._stdout
 
     @property
     def stderr(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return sys.stderr if self._stderr is None else self._stderr
 
     def flush(self):
-        """
-        Flushes the stream.
-        """
+        """Flushes the stream."""
         for stream in (self.stdout, self.stderr):
             stream.flush()
 
@@ -160,6 +166,10 @@ class CustomStreamHandler(Handler):
         traceback.print_exception and appended to the stream.  If the stream
         has an 'encoding' attribute, it is used to determine how to do the
         output to the stream.
+
+        Parameters
+        ----------
+        record : WRITEME
         """
         try:
             msg = self.format(record)
@@ -207,7 +217,7 @@ def configure_custom(debug=False, stdout=None, stderr=None):
 
     Parameters
     ----------
-    debug : boolean
+    debug : bool
         If `True`, display DEBUG messages on `stdout` along with
         INFO-level messages.
     stdout : file-like object, optional
@@ -274,3 +284,26 @@ def restore_defaults():
     # Delete any handlers that might be installed on our logger.
     while top_level_logger.handlers:
         top_level_logger.handlers.pop()
+
+
+def newline(logger, nb_blank_lines=1):
+    """
+    A simple method to write a real new line to logging.
+    Only works with the INFO level at the moment.
+
+    Parameters
+    ----------
+    logger : Logger object
+        The logger where the blank line will be added.
+    nb_blank_lines : int, optional
+        Number of blank lines in a row.
+    """
+    formatter = logging.Formatter(fmt='')
+    handler = CustomStreamHandler(formatter=formatter)
+
+    logger.addHandler(handler)
+
+    for i in xrange(nb_blank_lines):
+        logger.info('')
+
+    logger.removeHandler(handler)

@@ -13,8 +13,8 @@ from itertools import izip
 
 def pooling_matrix(groups, per_group, strides=None, dtype=None, sparse=None):
     """
-    Construct a pooling matrix, optionally with overlapping
-    pools arranged in a 1 or 2D topology.
+    Construct a pooling matrix, optionally with overlapping pools
+    arranged in a 1 or 2D topology.
 
     Parameters
     ----------

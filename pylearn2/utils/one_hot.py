@@ -10,9 +10,15 @@ __maintainer__ = "David Warde-Farley"
 __all__ = ['one_hot', 'k_hot', "compressed_one_hot"]
 
 import numpy as np
+import warnings
 
 
 def _validate_labels(labels, ndim):
+    """
+    .. todo::
+
+        WRITEME
+    """
     labels = np.asarray(labels)
     if labels.dtype.kind not in ('u', 'i'):
         raise ValueError("labels must have int or uint dtype")
@@ -28,6 +34,11 @@ def _validate_labels(labels, ndim):
 
 
 def _validate_max_label(labels, max_label):
+    """
+    .. todo::
+
+        WRITEME
+    """
     max_actual_label = labels.max()
     if max_label is None:
         max_label = max_actual_label
@@ -38,6 +49,11 @@ def _validate_max_label(labels, max_label):
 
 
 def _validate_dtype(labels, dtype, out):
+    """
+    .. todo::
+
+        WRITEME
+    """
     if dtype is not None and out is not None:
         raise ValueError("supplied both output array and dtype; "
                          "only supply one or the other")
@@ -49,6 +65,11 @@ def _validate_dtype(labels, dtype, out):
 
 
 def _validate_out(nlabels, max_label, dtype, out):
+    """
+    .. todo::
+
+        WRITEME
+    """
     if out is None:
         out = np.zeros((nlabels, max_label + 1), dtype=dtype)
     else:
@@ -63,6 +84,11 @@ def _validate_out(nlabels, max_label, dtype, out):
 
 
 def _one_hot_fill(labels, out):
+    """
+    .. todo::
+
+        WRITEME
+    """
     out.flat[np.arange(0, out.size, out.shape[1]) + labels] = 1
 
 
@@ -70,6 +96,12 @@ def one_hot(labels, max_label=None, dtype=None, out=None):
     """
     Construct a one-hot matrix from a vector of integer labels.
     Each row will have a single 1 with all other elements 0.
+
+    .. note::
+        `pylearn2.utils.one_hot is deprecated`. Use
+        `pylearn2.format.target_format.OneHotFormatter`
+        instead. `pylearn2.utils.one_hot` will be removed
+        on or after 13 August 2014".
 
     Parameters
     ----------
@@ -94,6 +126,10 @@ def one_hot(labels, max_label=None, dtype=None, out=None):
     out : ndarray, (nlabels, max_label + 1)
         The resulting one-hot matrix.
     """
+    warnings.warn("pylearn2.utils.one_hot is deprecated. Use "
+                  "pylearn2.format.target_format.OneHotFormatter "
+                  "instead. pylearn2.utils.one_hot will be removed "
+                  "on or after 13 August 2014", stacklevel=2)
     labels = _validate_labels(labels, 1)
     max_label = _validate_max_label(labels, max_label)
     dtype = _validate_dtype(labels, dtype, out)
@@ -107,6 +143,12 @@ def k_hot(labels, max_label=None, dtype=None, out=None):
     """
     Create a matrix of k-hot rows, where k (or less) elements
     are 1 and the rest are 0.
+
+    .. note::
+        `pylearn2.utils.one_hot is deprecated`. Use
+        `pylearn2.format.target_format.OneHotFormatter`
+        instead. `pylearn2.utils.one_hot` will be removed
+        on or after 13 August 2014".
 
     Parameters
     ----------
@@ -133,6 +175,10 @@ def k_hot(labels, max_label=None, dtype=None, out=None):
         in the same row more than once then there may be less
         than k elements active in the corresponding row of `out`.
     """
+    warnings.warn("pylearn2.utils.one_hot is deprecated. Use "
+                  "pylearn2.format.target_format.OneHotFormatter "
+                  "instead. pylearn2.utils.one_hot will be removed "
+                  "on or after 13 August 2014", stacklevel=2)
     labels = _validate_labels(labels, 2)
     max_label = _validate_max_label(labels, max_label)
     dtype = _validate_dtype(labels, dtype, out)
@@ -150,6 +196,12 @@ def compressed_one_hot(labels, dtype=None, out=None, simplify_binary=True):
     Construct a one-hot matrix from a vector of integer labels, but
     only including columns corresponding to integer labels that
     actually appear.
+
+    .. note::
+        `pylearn2.utils.one_hot is deprecated`. Use
+        `pylearn2.format.target_format.OneHotFormatter`
+        instead. `pylearn2.utils.one_hot` will be removed
+        on or after 13 August 2014".
 
     Parameters
     ----------
@@ -181,6 +233,10 @@ def compressed_one_hot(labels, dtype=None, out=None, simplify_binary=True):
         The array of unique values in `labels` in the order
         in which the corresponding columns appear in `out`.
     """
+    warnings.warn("pylearn2.utils.one_hot is deprecated. Use "
+                  "pylearn2.format.target_format.OneHotFormatter "
+                  "instead. pylearn2.utils.one_hot will be removed "
+                  "on or after 13 August 2014", stacklevel=2)
     labels = _validate_labels(labels, ndim=1)
     labels_ = labels.copy()
     uniq = np.unique(labels_)

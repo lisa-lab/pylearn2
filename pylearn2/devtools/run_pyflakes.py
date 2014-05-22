@@ -1,4 +1,5 @@
-""" Can be run as a script or imported as a module.
+"""
+Can be run as a script or imported as a module.
 
 Module exposes the run_pyflakes method which returns a dictionary.
 
@@ -12,20 +13,32 @@ __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
 
+import logging
 from pylearn2.devtools.list_files import list_files
 from pylearn2.utils.shell import run_shell_command
 
+
+logger = logging.getLogger(__name__)
+
+
 def run_pyflakes(no_warnings = False):
-    """ Returns a dictionary mapping pylearn2 .py filepaths
-        to outputs from pyflakes.
+    """
+    Return a description of all errors pyflakes finds in Pylearn2.
 
-        Omits files for which there was no output.
+    Parameters
+    ----------
+    no_warnings : bool
+        If True, omits pyflakes outputs that don't correspond to actual
+        errors.
 
-        If no_warnings = True, omits pyflakes outputs that don't
-        correspond to actual errors.
+    Returns
+    -------
+    rval : dict
+        Keys are pylearn2 .py filepaths
+        Values are outputs from pyflakes
     """
 
     files = list_files(".py")
@@ -52,6 +65,25 @@ def run_pyflakes(no_warnings = False):
     return rval
 
 def _filter(output, no_warnings):
+    """
+    .. todo::
+
+        WRITEME
+
+    Parameters
+    ----------
+    output : str
+        The output of pyflakes for a single.py file
+    no_warnings: bool
+        If True, removes lines corresponding to warnings rather than errors
+
+    Returns
+    -------
+    rval : None or str
+        `output` with blank lines and optionally lines corresponding to
+        warnings removed, or, if all lines are removed, returns None.
+        A return value of None indicates that the file is validly formatted.
+    """
     lines = output.split('\n')
 
     lines = [ line for line in lines if line != '' ]
@@ -83,6 +115,6 @@ if __name__ == '__main__':
     d = run_pyflakes( no_warnings = no_warnings)
 
     for key in d:
-        print key +':'
+        logger.info('{0}:'.format(key))
         for l in d[key].split('\n'):
-            print '\t'+l
+            logger.info('\t{0}'.format(l))

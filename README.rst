@@ -6,6 +6,7 @@ Pylearn2 is a library designed to make machine learning research easy.
 
 Pylearn2 has online `documentation <http://deeplearning.net/software/pylearn2/>`_.
 If you want to build a local copy of the documentation, run
+
     python ./doc/scripts/docgen.py
 
 More documentation is available in the form of commented examples scripts

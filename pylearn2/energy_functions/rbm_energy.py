@@ -1,21 +1,48 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
 from pylearn2.energy_functions.energy_function import EnergyFunction
 import theano.tensor as T
 
 class RBM_EnergyFunction(EnergyFunction):
+    """
+    .. todo::
+
+        WRITEME
+    """
+
     def __init__(self):
         pass
 
 class GRBM_EnergyFunction(RBM_EnergyFunction):
+    """
+    .. todo::
+
+        WRITEME
+    """
+
     def supports_vector_sigma(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError()
 
     def log_P_H_given_V(self, H, V):
+        """
+        .. todo::
+
+            WRITEME
+        """
         p_one = self.mean_H_given_V(V)
 
         rval =  T.log(H * p_one + (1.-H) * (1.-p_one)).sum(axis=1)
@@ -23,42 +50,57 @@ class GRBM_EnergyFunction(RBM_EnergyFunction):
         return rval
 
     def mean_H_given_V(self, V):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError()
 
 
 class GRBM_Type_1(GRBM_EnergyFunction):
-
     """
-        TODO: give a better name
+    .. todo::
 
-        This GRBM energy function is designed to make
-        it easy to interpret score matching as being a denoising autoencoder.
+        WRITEME properly
+    
+    TODO: give a better name
 
-        It is not the same energy function as presented in equation 4.6 of
-        Pascal Vincent's paper on denoising autoencoders and score matching,
-        because that energy function has no latent variables and therefore
-        is not an RBM. However, this is a very similar energy function,
-        and has the property that
+    This GRBM energy function is designed to make
+    it easy to interpret score matching as being a denoising autoencoder.
 
-        J_SMD = (1/sigma)^4 J_DAE
+    It is not the same energy function as presented in equation 4.6 of
+    Pascal Vincent's paper on denoising autoencoders and score matching,
+    because that energy function has no latent variables and therefore
+    is not an RBM. However, this is a very similar energy function,
+    and has the property that
 
-        when the same sigma is used for both the gaussian corruption process
-        and the model
+    J_SMD = (1/sigma)^4 J_DAE
 
-        E(v,h) = -(bias_vis^T v + v^T W h + bias_hid^T h - (1/2) v^T v ) / sigma^2
-        P(v|h) = N( Wh + bias_vis, sigma^2)
-        P(h|v) = sigmoid( (v^T Wh + bias_hid) / sigma^2 )
-        F(v) = ( (1/2) v^T v - bias_vis^T v) / sigma^2 - sum_i softplus( ( v^T W + c) / sigma^2 )_i
-        score(v) = -( v - bias_vis - sigmoid( (v^T W + bias_hid) / sigma^2 ) W^T )/sigma^2
+    when the same sigma is used for both the gaussian corruption process
+    and the model
 
-        This parameterization is motivated by this last property, that the entire score
-        function is divided by sigma^2, which makes the equivalence with denosing
-        autoencoders possible.
+    E(v,h) = -(bias_vis^T v + v^T W h + bias_hid^T h - (1/2) v^T v ) / sigma^2
+    P(v|h) = N( Wh + bias_vis, sigma^2)
+    P(h|v) = sigmoid( (v^T Wh + bias_hid) / sigma^2 )
+    F(v) = ( (1/2) v^T v - bias_vis^T v) / sigma^2 - sum_i softplus( ( v^T W + c) / sigma^2 )_i
+    score(v) = -( v - bias_vis - sigmoid( (v^T W + bias_hid) / sigma^2 ) W^T )/sigma^2
 
-        (As far as I know, I, Ian Goodfellow, just made this parameterization
-        of GRBMs up as a way of testing SMD, so don't try to use it to exactly
-        reproduce any published GRBM results, as they probably use one of the
-        other parameterizations)
+    This parameterization is motivated by this last property, that the entire score
+    function is divided by sigma^2, which makes the equivalence with denosing
+    autoencoders possible.
+
+    (As far as I know, I, Ian Goodfellow, just made this parameterization
+    of GRBMs up as a way of testing SMD, so don't try to use it to exactly
+    reproduce any published GRBM results, as they probably use one of the
+    other parameterizations)
+
+    Parameters
+    ----------
+    transformer : WRITEME
+    bias_hid : WRITEME
+    bias_vis : WRITEME
+    sigma : WRITEME
     """
 
     def __init__(self, transformer, bias_hid, bias_vis, sigma):
@@ -71,9 +113,19 @@ class GRBM_Type_1(GRBM_EnergyFunction):
 
     @classmethod
     def supports_vector_sigma(cls):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return False
 
     def energy(self, varlist):
+        """
+        .. todo::
+
+            WRITEME
+        """
         V, H = varlist
         return - (
                     T.dot(V, self.bias_vis) +
@@ -84,6 +136,11 @@ class GRBM_Type_1(GRBM_EnergyFunction):
 
 
     def mean_H_given_V(self, V):
+        """
+        .. todo::
+
+            WRITEME
+        """
         V_name = 'V'
         if hasattr(V, 'name') and V.name is not None:
             V_name = V.name
@@ -100,11 +157,21 @@ class GRBM_Type_1(GRBM_EnergyFunction):
         return rval
 
     def reconstruct(self, V):
+        """
+        .. todo::
+
+            WRITEME
+        """
         H = self.mean_H_given_V(V)
         R = self.mean_V_given_H(H)
         return R
 
     def mean_V_given_H(self, H):
+        """
+        .. todo::
+
+            WRITEME
+        """
         H_name = 'H'
         if hasattr(H,'name') and H.name is not None:
             H_name = H.name
@@ -118,6 +185,11 @@ class GRBM_Type_1(GRBM_EnergyFunction):
         return rval
 
     def free_energy(self, V):
+        """
+        .. todo::
+
+            WRITEME
+        """
         V_name = 'V' if V.name is None else V.name
 
         assert V.ndim == 2
@@ -140,6 +212,11 @@ class GRBM_Type_1(GRBM_EnergyFunction):
                 ) / T.sqr(self.sigma) - softplus_term
 
     def score(self, V):
+        """
+        .. todo::
+
+            WRITEME
+        """
         #score(v) = ( v - bias_vis - sigmoid( beta v^T W + bias_hid ) W^T )/sigma^2
 
         rval =  -( V \
@@ -152,4 +229,9 @@ class GRBM_Type_1(GRBM_EnergyFunction):
         return rval
 
 def grbm_type_1():
+    """
+    .. todo::
+
+        WRITEME
+    """
     return GRBM_Type_1

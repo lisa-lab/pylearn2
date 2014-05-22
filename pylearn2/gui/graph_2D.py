@@ -1,7 +1,24 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import numpy as N
 from theano import config
 
+
 class Graph2D:
+    """
+    .. todo::
+
+        WRITEME
+
+    Parameters
+    ----------
+    shape : WRITEME
+    xlim : WRITEME
+    ycenter : WRITEME
+    """
     def __init__(self, shape, xlim, ycenter):
         self.xmin = 0.
         self.xmax = 0.
@@ -12,12 +29,22 @@ class Graph2D:
         self.components = []
 
     def set_shape(self, shape):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.rows = shape[0]
         self.cols = shape[1]
 
 
 
     def set_xlim(self, xlim):
+        """
+        .. todo::
+
+            WRITEME
+        """
         #x coordinate of center of leftmost pixel
         self.xmin = xlim[0]
         #x coordinate of center of rightmost pixel
@@ -25,11 +52,21 @@ class Graph2D:
         self.delta_x = (self.xmax-self.xmin)/float(self.cols-1)
 
     def set_ycenter(self, ycenter):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.delta_y = self.delta_x
         self.ymin = ycenter - (self.rows / 2) * self.delta_y
         self.ymax = self.ymin + (self.rows -1) * self.delta_y
 
     def render(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rval = N.zeros((self.rows, self.cols, 3))
 
         for component in self.components:
@@ -39,6 +76,11 @@ class Graph2D:
         return rval
 
     def get_coords_for_col(self, i):
+        """
+        .. todo::
+
+            WRITEME
+        """
         X = N.zeros((self.rows,2),dtype=config.floatX)
         X[:,0] = self.xmin + float(i) * self.delta_x
         X[:,1] = self.ymin + N.cast[config.floatX](N.asarray(range(self.rows-1,-1,-1))) * self.delta_y
@@ -47,24 +89,34 @@ class Graph2D:
         return X
 
 class HeatMap:
+    """
+    .. todo::
+
+        WRITEME
+
+    Parameters
+    ----------
+    f : WRITEME
+        A callable that takes a design matrix of 2D coordinates and returns a
+        vector containing the function value at those coordinates
+    normalizer : WRITEME
+        None or a callable that takes a 2D numpy array and returns a 2D numpy
+        array
+    render_mode : WRITEME
+        * 'o' : opaque.
+        * 'r' : render only to the (r)ed channel
+    """
     def __init__(self, f, normalizer, render_mode = 'o'):
-        """
-            f:
-                A callable that takes a design matrix of 2D coordinates
-                and returns a vector containing the function value at
-                those coordinates
-            normalizer:
-                None or a callable that takes a 2D numpy array and returns
-                a 2D numpy array
-            render_mode:
-                'o': opaque.
-                'r': render only to the (r)ed channel
-        """
         self.f = f
         self.normalizer = normalizer
         self.render_mode = render_mode
 
     def render(self, prev_layer, parent):
+        """
+        .. todo::
+
+            WRITEME
+        """
         my_img = prev_layer * 0.0
 
         for i in xrange(prev_layer.shape[1]):

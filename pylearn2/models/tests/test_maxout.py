@@ -7,18 +7,42 @@ __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
+__maintainer__ = "LISA Lab"
 
+import numpy as np
 import unittest
 
 
 # Skip test if cuda_ndarray is not available.
 from nose.plugins.skip import SkipTest
 from theano import config
+from theano import function
 from theano.sandbox import cuda
+from theano import tensor as T
 
 from pylearn2.config import yaml_parse
 from pylearn2.datasets.exc import NoDataPathError
+from pylearn2.models.mlp import MLP
+from pylearn2.models.maxout import Maxout
+from pylearn2.space import VectorSpace
+
+def test_min_zero():
+    """
+    This test guards against a bug where the size of the zero buffer used with
+    the min_zero flag was specified to have the wrong size. The bug only
+    manifested when compiled with optimizations off, because the optimizations
+    discard information about the size of the zero buffer.
+    """
+    mlp = MLP(input_space=VectorSpace(1),
+            layers= [Maxout(layer_name="test_layer", num_units=1,
+                num_pieces = 2,
+            irange=.05, min_zero=True)])
+    X = T.matrix()
+    output = mlp.fprop(X)
+    # Compile in debug mode so we don't optimize out the size of the buffer
+    # of zeros
+    f = function([X], output, mode="DEBUG_MODE")
+    f(np.zeros((1, 1)).astype(X.dtype))
 
 
 def test_maxout_basic():
@@ -29,7 +53,8 @@ def test_maxout_basic():
 
     yaml_string = """
     !obj:pylearn2.train.Train {
-        dataset: &train !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix {
+        dataset: &train !obj:pylearn2.testing.datasets.random_one_hot_dense_d\
+esign_matrix {
             rng: !obj:numpy.random.RandomState { seed: [2013, 3, 16] },
             num_examples: 12,
             dim: 2,
@@ -72,10 +97,12 @@ def test_maxout_basic():
                 input_include_probs: { 'h0' : .8 },
                 input_scales: { 'h0': 1. }
             },
-            termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
+            termination_criterion: !obj:pylearn2.termination_criteria.EpochCo\
+unter {
                 max_epochs: 3,
             },
-            update_callbacks: !obj:pylearn2.training_algorithms.sgd.ExponentialDecay {
+            update_callbacks: !obj:pylearn2.training_algorithms.sgd.Exponenti\
+alDecay {
                 decay_factor: 1.000004,
                 min_lr: .000001
             }
@@ -96,7 +123,8 @@ def test_maxout_basic():
 
 yaml_string_maxout_conv_c01b_basic = """
     !obj:pylearn2.train.Train {
-        dataset: &train !obj:pylearn2.testing.datasets.random_one_hot_topological_dense_design_matrix {
+        dataset: &train !obj:pylearn2.testing.datasets.random_one_hot_topolog\
+ical_dense_design_matrix {
             rng: !obj:numpy.random.RandomState { seed: [2013, 3, 16] },
             shape: &input_shape [10, 10],
             channels: 1,
@@ -170,10 +198,12 @@ yaml_string_maxout_conv_c01b_basic = """
                 input_include_probs: { 'h0' : .8 },
                 input_scales: { 'h0': 1. }
             },
-            termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
+            termination_criterion: !obj:pylearn2.termination_criteria.EpochCo\
+unter {
                 max_epochs: 3
             },
-            update_callbacks: !obj:pylearn2.training_algorithms.sgd.ExponentialDecay {
+            update_callbacks: !obj:pylearn2.training_algorithms.sgd.Exponenti\
+alDecay {
                 decay_factor: 1.00004,
                 min_lr: .000001
             }
@@ -199,7 +229,7 @@ yaml_string_maxout_conv_c01b_cifar10 = """
             stop: 50000
         },
         model: !obj:pylearn2.models.mlp.MLP {
-            batch_size: 128,
+            batch_size: 100,
             input_space: !obj:pylearn2.space.Conv2DSpace {
                 shape: [32, 32],
                 num_channels: 3,
@@ -232,7 +262,7 @@ yaml_string_maxout_conv_c01b_cifar10 = """
                     ],
         },
         algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
-            batch_size: 128,
+            batch_size: 100,
             learning_rate: .01,
             init_momentum: .9,
             monitoring_dataset:
@@ -252,7 +282,8 @@ yaml_string_maxout_conv_c01b_cifar10 = """
                                   one_hot: 1,
                               }
                 },
-            termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
+            termination_criterion: !obj:pylearn2.termination_criteria.EpochCo\
+unter {
                 max_epochs: 5
             }
         }
@@ -310,7 +341,9 @@ class TestMaxout(unittest.TestCase):
             # Check that the performance is close to the expected one:
             # test_y_misclass: 0.3777000308036804
             misclass_chan = train.algorithm.monitor.channels['test_y_misclass']
-            assert misclass_chan.val_record[-1] < 0.38
+            assert misclass_chan.val_record[-1] < 0.38, \
+                ("misclass_chan.val_record[-1] = %g" %
+                 misclass_chan.val_record[-1])
             # test_y_nll: 1.0978516340255737
             nll_chan = train.algorithm.monitor.channels['test_y_nll']
             assert nll_chan.val_record[-1] < 1.1

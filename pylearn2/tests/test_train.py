@@ -2,8 +2,8 @@ __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
 import numpy as np
 from pylearn2.monitor import Monitor
 from pylearn2.train import Train
@@ -13,7 +13,11 @@ from pylearn2.space import VectorSpace
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 
 class DummyModel(Model):
+
+    _params = []
+
     def  __init__(self, num_features):
+        super(DummyModel, self).__init__()
         self.input_space = VectorSpace(num_features)
 
 class DummyAlgorithm(TrainingAlgorithm):

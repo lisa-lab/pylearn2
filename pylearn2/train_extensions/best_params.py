@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import numpy
 np = numpy
 from pylearn2.train_extensions import TrainExtension
@@ -10,20 +15,20 @@ class KeepBestParams(TrainExtension):
     """
     A callback which keeps track of a model's best parameters based on its
     performance for a given cost on a given dataset.
+
+    Parameters
+    ----------
+    model : pylearn2.models.model.Model
+        the model whose best parameters we want to keep track of
+    cost : tensor_like
+        cost function used to evaluate the model's performance
+    monitoring_dataset : pylearn2.datasets.dataset.Dataset
+        dataset on which to compute the cost
+    batch_size : int
+        size of the batches used to compute the cost
     """
+
     def __init__(self, model, cost, monitoring_dataset, batch_size):
-        """
-        Parameters
-        ----------
-        model : pylearn2.models.model.Model
-            the model whose best parameters we want to keep track of
-        cost : tensor_like
-            cost function used to evaluate the model's performance
-        monitoring_dataset : pylearn2.datasets.dataset.Dataset
-            dataset on which to compute the cost
-        batch_size : int
-            size of the batches used to compute the cost
-        """
         self.model = model
         self.cost = cost
         self.dataset = monitoring_dataset
@@ -53,11 +58,11 @@ class KeepBestParams(TrainExtension):
         Parameters
         ----------
         model : pylearn2.models.model.Model
-            not used
+            Not used
         dataset : pylearn2.datasets.dataset.Dataset
-            not used
+            Not used
         algorithm : TrainingAlgorithm
-            not used
+            Not used
         """
         if self.supervised:
             it = self.dataset.iterator('sequential',
@@ -76,9 +81,7 @@ class KeepBestParams(TrainExtension):
             self.best_params = self.model.get_param_values()
 
     def get_best_params(self):
-        """
-        Returns the best parameters up to now for the model.
-        """
+        """Returns the best parameters up to now for the model."""
         return self.best_params
 
 
@@ -86,15 +89,18 @@ class MonitorBasedSaveBest(TrainExtension):
     """
     A callback that saves a copy of the model every time it achieves
     a new minimal value of a monitoring channel.
-    """
-    def __init__(self, channel_name, save_path,higher_is_better=False):
-        """
-        Parameters
-        ----------
-        channel_name: the name of the channel we want to minimize
-        save_path: the path to save the best model to
-        """
 
+    Parameters
+    ----------
+    channel_name : str
+        The name of the channel we want to minimize
+    save_path : str
+        Path to save the best model to
+    higher_is_better : bool, optional
+        WRITEME
+    """
+
+    def __init__(self, channel_name, save_path,higher_is_better=False):
         self.__dict__.update(locals())
         del self.self
         if higher_is_better:
@@ -112,11 +118,12 @@ class MonitorBasedSaveBest(TrainExtension):
         Parameters
         ----------
         model : pylearn2.models.model.Model
-                model.monitor must contain a channel with name given by self.channel_name
+            model.monitor must contain a channel with name given by
+            self.channel_name
         dataset : pylearn2.datasets.dataset.Dataset
-            not used
+            Not used
         algorithm : TrainingAlgorithm
-            not used
+            Not used
         """
 
         monitor = model.monitor
@@ -128,4 +135,3 @@ class MonitorBasedSaveBest(TrainExtension):
         if new_cost < self.best_cost:
             self.best_cost = new_cost
             serial.save(self.save_path, model, on_overwrite = 'backup')
-

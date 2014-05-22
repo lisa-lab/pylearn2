@@ -114,7 +114,8 @@ def test_determinism():
     """
     Tests that apply nodes are all passed inputs
     with the same md5sums, apply nodes are run in same order, etc.
-    Uses disturb_mem to try to cause dictionaries to iterate in different orders, etc.
+    Uses disturb_mem to try to cause dictionaries to iterate in different
+    orders, etc.
     """
 
     def run_bgd(mode):
@@ -163,7 +164,8 @@ def test_determinism():
                 self.W1 = [sharedX(rng.randn(num_features, chunk_width)) for i
                     in xrange(num_chunks)]
                 disturb_mem.disturb_mem()
-                self.W2 = [sharedX(rng.randn(chunk_width)) for i in xrange(num_chunks)]
+                self.W2 = [sharedX(rng.randn(chunk_width)) for i in
+                        xrange(num_chunks)]
                 self._params = safe_union(self.W1, self.W2)
                 self.input_space = VectorSpace(num_features)
                 self.output_space = VectorSpace(1)
@@ -175,7 +177,8 @@ def test_determinism():
 
         class LotsOfSummingCost(Cost):
             """
-            Make a cost whose gradient on the parameters involves summing many terms together,
+            Make a cost whose gradient on the parameters involves summing many
+            terms together,
             so that T.grad is more likely to sum things in a random order.
             """
 
@@ -192,7 +195,8 @@ def test_determinism():
                     pred = sum(Z)
                     return pred
 
-                nonlinearity_predictions = map(mlp_pred, [T.nnet.sigmoid, T.nnet.softplus, T.sqr, T.sin])
+                nonlinearity_predictions = map(mlp_pred, [T.nnet.sigmoid,
+                    T.nnet.softplus, T.sqr, T.sin])
                 pred = sum(nonlinearity_predictions)
                 disturb_mem.disturb_mem()
 
@@ -253,6 +257,20 @@ def test_fixed_vars():
     functions are called the right number of times.
     """
 
+    """
+    Notes: this test is fairly messy. PL made some change to how
+    FixedVarDescr worked. FixedVarDescr got an added data_specs
+    field. But BGD itself was never changed to obey this data_specs.
+    Somehow these tests passed regardless. It looks like PL just built
+    a lot of machinery into the test itself to make the individual
+    callbacks reformat data internally. This mechanism required the
+    data_specs field to be present. Weirdly, the theano functions
+    never actually used any of the data, so their data_specs should
+    have just been NullSpace anyway. IG deleted a lot of this useless
+    code from these tests but there is still a lot of weird stuff here
+    that he has not attempted to clean up.
+    """
+
     rng = np.random.RandomState([2012, 11, 27, 9])
 
     batch_size = 5
@@ -296,7 +314,8 @@ def test_fixed_vars():
             self.get_data_specs(model)[0].validate(data)
             assert unsup_aux_var is unsup_counter
             called[1] = True
-            gradients, updates = Cost.get_gradients(self, model, data, unsup_aux_var=unsup_aux_var)
+            gradients, updates = Cost.get_gradients(self, model, data,
+                    unsup_aux_var=unsup_aux_var)
             updates[grad_counter] = grad_counter + 1
             return gradients, updates
 
@@ -305,20 +324,14 @@ def test_fixed_vars():
             data_specs[0].validate(data)
             rval = FixedVarDescr()
             rval.fixed_vars = {'unsup_aux_var': unsup_counter}
-            rval.data_specs = data_specs
 
             # The input to function should be a flat, non-redundent tuple
             mapping = DataSpecsMapping(data_specs)
             data_tuple = mapping.flatten(data, return_tuple=True)
-            theano_func = function(data_tuple,
+            theano_func = function([],
                     updates=[(unsup_counter, unsup_counter + 1)])
-            # the on_load_batch function will take numerical data formatted
-            # as rval.data_specs, so we have to flatten it inside the
-            # returned function too.
-            # Using default argument binds the variables used in the lambda
-            # function to the value they have when the lambda is defined.
-            on_load = (lambda batch, mapping=mapping, theano_func=theano_func:
-                    theano_func(*mapping.flatten(batch, return_tuple=True)))
+            def on_load(batch, mapping=mapping, theano_func=theano_func):
+                return theano_func()
             rval.on_load_batch = [on_load]
 
             return rval
@@ -351,21 +364,11 @@ def test_fixed_vars():
             data_specs[0].validate(data)
             rval = FixedVarDescr()
             rval.fixed_vars = {'sup_aux_var': sup_counter}
-            rval.data_specs = data_specs
 
-            # data has to be flattened into a tuple before being passed
-            # to `function`.
-            mapping = DataSpecsMapping(data_specs)
-            flat_data = mapping.flatten(data, return_tuple=True)
-            theano_func = function(flat_data,
-                                 updates=[(sup_counter, sup_counter + 1)])
-            # the on_load_batch function will take numerical data formatted
-            # as rval.data_specs, so we have to flatten it inside the
-            # returned function too.
-            # Using default argument binds the variables used in the lambda
-            # function to the value they have when the lambda is defined.
-            on_load = (lambda batch, mapping=mapping, theano_func=theano_func:
-                    theano_func(*mapping.flatten(batch, return_tuple=True)))
+            theano_func = function([], updates=[(sup_counter,
+                sup_counter + 1)])
+            def on_load(data):
+                theano_func()
             rval.on_load_batch = [on_load]
             return rval
 

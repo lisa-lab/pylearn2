@@ -23,9 +23,9 @@ Pylearn2 Vision
 * A machine learning toolbox for easy scientific experimentation.
 * All models/algorithms published by the LISA lab should have reference implementations
   in Pylearn2.
-* Pylearn2 may wrap other libraries such as scikits.learn when this is practical
-* Pylearn2 differs from scikits.learn in that Pylearn2 aims to provide great flexibility
-  and make it possible for a researcher to do almost anything, while scikits.learn
+* Pylearn2 may wrap other libraries such as scikit-learn when this is practical
+* Pylearn2 differs from scikit-learn in that Pylearn2 aims to provide great flexibility
+  and make it possible for a researcher to do almost anything, while scikit-learn
   aims to work as a "black box" that can produce good results even if the user does not
   understand the implementation
 * Dataset interface for vector, images, video, ...
@@ -39,15 +39,45 @@ Pylearn2 Vision
 Download and installation
 =========================
 
-No PyPI download yet. You must checkout the version in github for bleeding-edge/development
-version, available via:
+There is no PyPI download yet, so Pylearn2 cannot be installed using e.g. ``pip``.
+You must check out the bleeding-edge/development version from GitHub
+using:
 
 .. code-block:: bash
 
    git clone git://github.com/lisa-lab/pylearn2.git
 
-You also need to set your PYLEARN2_DATA_PATH variable. On linux, the best way to do this
-is to add a line to your .bashrc file:
+To make Pylearn2 available in your Python installation, run the following command in the
+top-level ``pylearn2`` directory (which should have been created by the previous command):
+
+.. code-block:: bash
+
+    python setup.py develop
+
+You may need to use ``sudo`` to invoke this command with administrator privileges.
+If you do not have such access (or would rather not add Pylearn2 to the global
+`site-packages` for whatever reason), you can install the relevant links inside the
+`user site-packages directory <https://docs.python.org/2/install/#alternate-installation-the-user-scheme>`_
+by issuing the command:
+
+.. code-block:: bash
+
+    python setup.py develop --user
+
+This command will also compile the Cython extensions required for e.g.
+``pylearn2.train_extensions.window_flip``.
+
+Alternatively, you can make Pylearn2 available by adding the installation directory to your
+``PYTHONPATH`` environment variable, but note that changing your ``PYTHONPATH``
+alone won't compile the Cython extensions (you will need to make sure the extension ``.so``
+files are built and accessible within the source tree, e.g. with
+``python setup.py build_ext --inplace``).
+
+Data path
+---------
+
+For some tutorials and tests you will also need to set your ``PYLEARN2_DATA_PATH`` variable.
+On Linux, the best way to do this is to add a line to your ``~/.bashrc`` file:
 
 .. code-block:: bash
 
@@ -56,6 +86,7 @@ is to add a line to your .bashrc file:
 Note that this is only an example, and if you are not in the LISA lab, you will need to
 choose a directory path that is valid on your filesystem. Simply choose a path where
 it will be convenient for you to store datasets for use with Pylearn2.
+
 
 Other methods
 -------------
@@ -83,7 +114,7 @@ Dependencies
       manually.
     * The original `Pylearn <http://deeplearning.net/software/pylearn/>`_ project is required
       for loading some datasets, such as the Unsupervised and Transfer Learning Challenge datasets
-    * Some features (SVMs) depend on scikits-learn.
+    * Some features (SVMs) depend on scikit-learn.
 
 License and Citations
 =====================
@@ -117,8 +148,9 @@ Roughly in order of what you'll want to check out:
 * :ref:`features` -- A list of features available in the library.
 * :ref:`overview` -- A detailed but high-level overview of how Pylearn2 works. This is the
   place to start if you want to really learn the library.
-* :ref:`libdoc` -- Documentation of the libray modules.
+* :ref:`libdoc` -- Documentation of the library modules.
 * :ref:`cluster` -- The tools we use at LISA for running Pylearn2 jobs on HPC clusters.
+* :ref:`large_data` -- A guide on how to deal with large datasets.
 * :ref:`vision` -- Some more detailed elaboration of some points of the Pylearn2 vision.
 
 
@@ -178,6 +210,7 @@ Developer
    internal/metadocumentation
    internal/data_specs
    overview
+   large_data
    tutorial/index
    tutorial/with_jobman
    vision

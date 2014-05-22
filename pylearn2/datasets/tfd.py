@@ -1,11 +1,41 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import numpy as np
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
+from pylearn2.utils.rng import make_np_rng
 
 class TFD(dense_design_matrix.DenseDesignMatrix):
     """
     Pylearn2 wrapper for the Toronto Face Dataset.
     http://aclab.ca/users/josh/TFD.html
+
+    Parameters
+    ----------
+    which_set : str
+        Dataset to load. One of ['train','valid','test','unlabeled'].
+    fold : int in {0,1,2,3,4}
+        TFD contains 5 official folds for train, valid and test.
+    image_size : int in [48,96]
+        Load smaller or larger dataset variant.
+    example_range : array_like or None, optional
+        Load only examples in range [example_range[0]:example_range[1]].
+    center : bool, optional
+        Move data from range [0., 255.] to [-127.5, 127.5]
+        False by default.
+    scale : bool, optional
+        Move data from range [0., 255.] to [0., 1.], or
+        from range [-127.5, 127.5] to [-1., 1.] if center is True
+        False by default.
+    shuffle : WRITEME
+    one_hot : WRITEME
+    rng : WRITEME
+    seed : WRITEME
+    preprocessor : WRITEME
+    axes : WRITEME
     """
 
     mapper = {'unlabeled': 0, 'train': 1, 'valid': 2, 'test': 3,
@@ -15,15 +45,6 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
                  example_range = None, center = False, scale = False,
                  shuffle=False, one_hot = False, rng=None, seed=132987,
                  preprocessor = None, axes = ('b', 0, 1, 'c')):
-        """
-        Creates a DenseDesignMatrix object for the Toronto Face Dataset.
-        :param which_set: dataset to load. One of ['train','valid','test','unlabeled'].
-        :param center: move data from range [0.,255.] to [-127.5,127.5]
-        :param example_range: array_like. Load only examples in range
-        [example_range[0]:example_range[1]].
-        :param fold: TFD contains 5 official folds for train, valid and test.
-        :param image_size: one of [48,96]. Load smaller or larger dataset variant.
-        """
         if which_set not in self.mapper.keys():
             raise ValueError("Unrecognized which_set value: %s. Valid values are %s." % (str(which_set), str(self.mapper.keys())))
         assert (fold >=0) and (fold <5)
@@ -54,14 +75,17 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
         data_x = data_x[ex_range]
         # create dense design matrix from topological view
         data_x = data_x.reshape(data_x.shape[0], image_size ** 2)
-        if center:
-            data_x -= 127.5
-        if scale:
-            assert not center
-            data_x /= 255.
+
+        if center and scale:
+            data_x[:] -= 127.5
+            data_x[:] /= 127.5
+        elif center:
+            data_x[:] -= 127.5
+        elif scale:
+            data_x[:] /= 255.
 
         if shuffle:
-            rng = rng if rng else np.random.RandomState(seed)
+            rng = make_np_rng(rng, seed, which_method='permutation')
             rand_idx = rng.permutation(len(data_x))
             data_x = data_x[rand_idx]
 

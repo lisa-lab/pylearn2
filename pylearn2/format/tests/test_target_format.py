@@ -15,8 +15,10 @@ def test_one_hot_formatter_simple():
             assert one_hot_labels[case, label] == 1
     rng = numpy.random.RandomState(0)
     for seed, dtype in enumerate(all_types):
-        yield (check_one_hot_formatter, seed, rng.random_integers(1, 30), dtype,
-               rng.random_integers(1, 100))
+        yield (check_one_hot_formatter, seed, rng.random_integers(1, 30),
+               dtype, rng.random_integers(1, 100))
+    fmt = OneHotFormatter(max_labels=10)
+    assert fmt.format(numpy.zeros((1, 1), dtype='uint8')).shape == (1, 1, 10)
 
 
 def test_one_hot_formatter_symbolic():
@@ -86,7 +88,7 @@ def test_bad_arguments():
     fmt = OneHotFormatter(max_labels=10)
     raised = False
     try:
-        fmt.format(numpy.zeros((2, 3), dtype='int32'))
+        fmt.format(numpy.zeros((2, 3, 4), dtype='int32'))
     except ValueError:
         raised = True
     assert raised
@@ -94,7 +96,7 @@ def test_bad_arguments():
     # Make sure an invalid ndim raises an error for theano_expr().
     raised = False
     try:
-        fmt.theano_expr(theano.tensor.imatrix())
+        fmt.theano_expr(theano.tensor.itensor3())
     except ValueError:
         raised = True
     assert raised

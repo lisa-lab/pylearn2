@@ -20,6 +20,11 @@ log.setLevel(logging.INFO)
 
 def _feature_sign_checkargs(dictionary, signals, sparsity, max_iter,
                             solution):
+    """
+    .. todo::
+
+        WRITEME
+    """
     if solution is not None:
         assert solution.ndim == signals.ndim, (
             "if provided, solutions must be same number of dimensions as "
@@ -265,7 +270,7 @@ def feature_sign_search(dictionary, signals, sparsity, max_iter=1000,
     .. math::
         (Y - AX)^2 + \gamma \sum_{i,j} |X_{ij}|
 
-    with :math:`A$` representing the dictionary, :math:`Y` being
+    with :math:`$A$` representing the dictionary, :math:`Y` being
     `signals.T` and math:`X` being `solutions.T`. However, in order
     to maintain the convention of training examples being indexed
     along the first dimension in the case of 2-dimensional `signals`

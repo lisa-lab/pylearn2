@@ -1,47 +1,110 @@
+"""
+.. todo::
+
+    WRITEME
+"""
+import logging
 import sys
 import numpy
 import theano
+import warnings
 from theano.gof import Variable, Op, utils, Type, Constant,  Value, Apply
 from theano.tensor import as_tensor_variable
+
+
+logger = logging.getLogger(__name__)
 
 try:
     import cv
 except ImportError:
-    print >> sys.stderr, "WARNING: cv not available"
+    warnings.warn("cv not available")
+
 
 def cv_available():
+    """
+    .. todo::
+
+        WRITEME
+    """
     return 'cv' in globals()
 
 class GaussianPyramid(Op):
     """
     Returns `n_levels` images
+
+    Parameters
+    ----------
+    n_levels : WRITEME
     """
     default_output = slice(0,None,1) #always return a list, even when there's only one element in it
+
     def __init__(self, n_levels):
         self.n_levels = n_levels
+
     def props(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return (self.n_levels,)
+
     def __hash__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return hash((type(self), self.props()))
+
     def __eq__(self, other):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return (type(self)==type(other) and self.props() == other.props())
+
     def __repr__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return '%s{n_levels=%s}' %(self.__class__.__name__, self.n_levels)
+
     def infer_shape(self, node, input_shapes):
+        """
+        .. todo::
+
+            WRITEME
+        """
         xshp, = input_shapes
         out_shapes = [xshp]
         while len(out_shapes) < self.n_levels:
             s = out_shapes[-1]
             out_shapes.append((s[0], s[1]//2, s[2]//2,s[3]))
         return out_shapes
+
     def make_node(self, x):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.n_levels < 1:
             raise ValueError(('It does not make sense for'
                 ' GaussianPyramid to generate %i levels'),
                 self.n_levels)
         x = as_tensor_variable(x)
         return Apply(self, [x], [x.type() for i in range(self.n_levels)])
+
     def perform(self, node, ins, outs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         x, = ins
         outs[0][0] = z = x.copy()
         B,M,N,K = x.shape
@@ -52,7 +115,7 @@ class GaussianPyramid(Op):
             if z0.shape[0] <=2 or z0.shape[1] <= 2:
                 raise ValueError('Cannot downsample an image smaller than 3x3',
                         z0.shape)
-            print z0.shape, z0.dtype, z0.strides
+            logger.info('{0} {1} {2}'.format(z0.shape, z0.dtype, z0.strides))
             out0 = cv.pyrDown(z0)
             assert out0.dtype == x.dtype
             if out0.ndim ==3:
