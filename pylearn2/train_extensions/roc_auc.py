@@ -112,7 +112,10 @@ class RocAucChannel(TrainExtension):
         """
         m_space, m_source = model.get_monitoring_data_specs()
         state, target = m_space.make_theano_batch()
-        y = T.argmax(target, axis=1)
+
+        # to generalize to the multiclass class, targets are
+        # yes/no for the positive_class_index
+        y = T.eq(T.argmax(target, axis=1), self.positive_class_index)
         y_hat = model.fprop(state)[:, self.positive_class_index]
         roc_auc = roc_auc_score(y, y_hat)
         roc_auc = T.cast(roc_auc, config.floatX)
