@@ -1,3 +1,4 @@
+"""Tests for the MonitorBasedSaveBest class."""
 import os
 import tempfile
 from pylearn2.models.model import Model
