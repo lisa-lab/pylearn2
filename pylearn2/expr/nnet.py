@@ -229,7 +229,7 @@ def compute_recall(y, tp):
     recall : Variable
         Recall for the binary classification.
     """
-    recall = tp / T.maximum(1., y.sum(axis=0))
+    recall = tp / T.maximum(1., y.sum())
     return recall
 
 def compute_f1(precision, recall):
