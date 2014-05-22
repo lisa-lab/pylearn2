@@ -50,7 +50,9 @@ def random_seeds(size, random_state=None):
 def batch_train(trainers, time_budget=None, parallel=False,
                 client_kwargs=None):
     """
-    Run main_loop of each trainer.
+    Run main_loop of each trainer. When run in parallel, all child trainers
+    (including children of TrainCV children) are added to the queue so
+    grid points and cross-validation folds are all processed simultanously.
 
     Parameters
     ----------
@@ -84,7 +86,9 @@ def batch_train(trainers, time_budget=None, parallel=False,
         client = Client(**client_kwargs)
         view = client.load_balanced_view()
 
-        # get all child trainers
+        # get all child trainers and run them in parallel, which
+        # simultaneously parallelizes over both grid points and
+        # cross-validation folds
         calls = []
         for trainer in trainers:
             if isinstance(trainer, TrainCV):
