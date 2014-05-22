@@ -1,4 +1,12 @@
 """Tests for the MonitorBasedSaveBest class."""
+
+__author__ = "David Warde-Farley"
+__copyright__ = "Copyright 2014, Universite de Montreal"
+__credits__ = ["David Warde-Farley"]
+__license__ = "3-clause BSD"
+__email__ = "wardefar@iro"
+__maintainer__ = "David Warde-Farley"
+
 import os
 import tempfile
 from pylearn2.models.model import Model
