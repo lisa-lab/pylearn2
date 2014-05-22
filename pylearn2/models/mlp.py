@@ -3689,6 +3689,35 @@ class ConvRectifiedLinear(ConvElemwise):
                                                   monitor_style=monitor_style)
 
 
+class SigmoidConvNonlinearity(LinearConvNonlinearity):
+    """
+        Sigmoid nonlinearity class for convolutional layers.
+    """
+    def __init__(self):
+        self.non_lin_name = "sigmoid"
+
+    def __call__(self, linear_response):
+        """
+            linear_response: linear response of the layer.
+        """
+        p = T.nnet.sigmoid(linear_response)
+        return p
+
+class TanhConvNonlinearity(LinearConvNonlinearity):
+    """
+        Tanh nonlinearity class for convolutional layers.
+    """
+    def __init__(self):
+        self.non_lin_name = "tanh"
+
+    def __call__(self, linear_response):
+        """
+            linear_response: linear response of the layer.
+        """
+        p = T.tanh(linear_response)
+        return p
+
+
 def max_pool(bc01, pool_shape, pool_stride, image_shape):
     """
     Theano's max pooling op only supports pool_stride = pool_shape
