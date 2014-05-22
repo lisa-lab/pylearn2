@@ -346,10 +346,15 @@ class GridSearch(object):
             trainers = self.trainers
             if self.best_models is not None:
                 models = self.best_models
+                params = self.best_params
             else:
                 models = self.models
+                params = self.params
         else:
             models = [trainer.model for trainer in trainers]
+            assert self.best_params is not None
+            params = self.best_params
+        results = (models, params)
 
         # Train extensions
         # TrainCV calls on_save automatically
@@ -369,7 +374,7 @@ class GridSearch(object):
             if self.save_path is not None:
                 if not self.allow_overwrite and os.path.exists(self.save_path):
                     raise IOError("Trying to overwrite file when not allowed.")
-                serial.save(self.save_path, models, on_overwrite='backup')
+                serial.save(self.save_path, results, on_overwrite='backup')
         finally:
             for trainer in trainers:
                 if isinstance(trainer, TrainCV):
@@ -465,11 +470,12 @@ class GridSearchCV(GridSearch):
         self.trainers = batch_train(self.trainers, time_budget, parallel,
                                     client_kwargs)
         self.get_best_cv_models()
-        trainers = None
         if self.retrain:
             trainers = self.retrain_best_models(time_budget, parallel,
                                                 client_kwargs)
-        self.save(trainers)
+            self.save(trainers)
+        else:
+            self.save()
 
     def retrain_best_models(self, time_budget=None, parallel=False,
                             client_kwargs=None):
