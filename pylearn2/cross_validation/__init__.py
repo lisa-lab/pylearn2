@@ -138,12 +138,26 @@ class TrainCV(object):
         if parallel:
             from IPython.parallel import Client
 
+            def _train(trainer, time_budget=None):
+                """
+                Run main_loop of this trainer.
+
+                Parameters
+                ----------
+                trainer : Train object
+                    Train object.
+                time_budget : int, optional
+                    The maximum number of seconds before interrupting
+                    training. Default is `None`, no time limit.
+                """
+                trainer.main_loop(time_budget)
+                return trainer
+
             if client_kwargs is None:
                 client_kwargs = {}
             client = Client(**client_kwargs)
-            view = client[:]
-            view.use_dill()
-            call = view.map(train,
+            view = client.load_balanced_view()
+            call = view.map(_train,
                             self.trainers,
                             [time_budget] * len(self.trainers),
                             block=False)
@@ -180,19 +194,3 @@ class TrainCV(object):
             finally:
                 for trainer in self.trainers:
                     trainer.dataset._serialization_guard = None
-
-
-def train(trainer, time_budget=None):
-    """
-    Run main_loop of this trainer.
-
-    Parameters
-    ----------
-    trainer : Train object
-        Train object.
-    time_budget : int, optional
-        The maximum number of seconds before interrupting
-        training. Default is `None`, no time limit.
-    """
-    trainer.main_loop(time_budget)
-    return trainer
