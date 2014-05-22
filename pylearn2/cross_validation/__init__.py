@@ -123,6 +123,9 @@ class TrainCV(object):
         """
         Run main_loop of each trainer.
 
+        Note: if you get PickleErrors when running in parallel, make sure
+        you have `dill` installed.
+
         Parameters
         ----------
         time_budget : int, optional
