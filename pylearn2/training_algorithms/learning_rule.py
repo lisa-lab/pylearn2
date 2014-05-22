@@ -292,42 +292,6 @@ class RPROP(LearningRule):
     def get_updates(self, learning_rate, grads, lr_scalers=None):
         updates = OrderedDict()
 
-        def _scan(
-            param,
-            grad,
-            delta,
-            decrease_rate,
-            increase_rate,
-            min_rate,
-            max_rate
-        ):
-            previous_grad = sharedX(0., borrow=True)
-            temp = T.mean(grad*previous_grad)
-            output = T.clip(
-                T.switch(
-                    T.eq(temp, 0.),
-                    delta,
-                    T.switch(
-                        T.lt(temp, 0.),
-                        delta*decrease_rate,
-                        delta*increase_rate
-                    )
-                ),
-                min_rate,
-                max_rate
-            )
-
-            previous_grad_inc = T.switch(
-                T.gt(temp, 0.),
-                T.mean(grad),
-                T.zeros_like(T.mean(grad))
-            )
-
-            updates = OrderedDict()
-            updates[previous_grad] = previous_grad_inc
-
-            return output, updates
-
         for param, grad in grads.iteritems():
             # Created required shared variables
             lr = lr_scalers.get(param, learning_rate.get_value())
@@ -335,22 +299,35 @@ class RPROP(LearningRule):
                 np.zeros_like(param.get_value()) + lr,
                 borrow=True
             )
+            previous_grad = sharedX(
+                np.zeros_like(param.get_value()),
+                borrow=True
+            )
 
             # Name variables according to the parameter name
             if param.name is not None:
                 delta.name = 'delta_'+param.name
-                #previous_grad.name = 'previous_grad_'+param.name
+                previous_grad.name = 'previous_grad_'+param.name
 
-            # Calculate the updates of the deltas
-            delta_inc, delta_updates = map(
-                fn=_scan,
-                sequences=[param, grad, delta],
-                non_sequences=[
-                    self.decrease_rate,
-                    self.increase_rate,
-                    self.min_rate,
-                    self.max_rate
-                ]
+            temp = grad*previous_grad
+            delta_inc = T.clip(
+                T.switch(
+                    T.eq(temp, 0.),
+                    delta,
+                    T.switch(
+                        T.lt(temp, 0.),
+                        delta*self.decrease_rate,
+                        delta*self.increase_rate
+                    )
+                ),
+                self.min_rate,
+                self.max_rate
+            )
+
+            previous_grad_inc = T.switch(
+                T.gt(temp, 0.),
+                grad,
+                T.zeros_like(grad)
             )
 
             # Calculate updates of parameters
@@ -359,8 +336,6 @@ class RPROP(LearningRule):
             # Compile the updates
             updates[param] = param + updated_inc
             updates[delta] = delta_inc
-
-            for previous_grad, previous_grad_inc in delta_updates.iteritems():
-                updates[previous_grad] = previous_grad_inc
+            updates[previous_grad] = previous_grad_inc
 
         return updates
