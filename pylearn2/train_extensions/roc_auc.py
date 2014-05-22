@@ -43,7 +43,8 @@ class RocAucScoreOp(gof.Op):
         """
         y_true = T.as_tensor_variable(y_true)
         y_score = T.as_tensor_variable(y_score)
-        output = [T.TensorType('float64', []).make_variable(name='roc_auc')]
+        output = [T.TensorType(config.floatX, []).make_variable(
+            name='roc_auc')]
         return gof.Apply(self, [y_true, y_score], output)
 
     def perform(self, node, inputs, output_storage):
@@ -64,7 +65,7 @@ class RocAucScoreOp(gof.Op):
             roc_auc = sklearn.metrics.roc_auc_score(y_true, y_score)
         except ValueError:
             roc_auc = np.nan
-        output_storage[0][0] = theano._asarray(roc_auc, dtype='float64')
+        output_storage[0][0] = theano._asarray(roc_auc, dtype=config.floatX)
 
 
 def roc_auc_score(y_true, y_score):
