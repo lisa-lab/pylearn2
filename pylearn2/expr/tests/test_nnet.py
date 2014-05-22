@@ -14,6 +14,7 @@ from theano import tensor as T
 from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
 from pylearn2.expr.nnet import softmax_numpy
 from pylearn2.expr.nnet import softmax_ratio
+from pylearn2.expr.nnet import compute_recall
 from pylearn2.utils import sharedX
 
 def test_softmax_ratio():
@@ -51,3 +52,16 @@ def test_pseudoinverse_softmax_numpy():
     p2 = p2[0,:]
 
     assert np.allclose(p, p2)
+
+def test_compute_recall():
+
+    tp_pyval = 4
+    ys_pyval = np.asarray([0, 1, 1, 0, 1, 1, 0])
+
+    tp = sharedX(tp_pyval, name="tp")
+    ys = sharedX(ys_pyval, name="ys_pyval")
+    recall_py = tp_pyval / ys_pyval.sum()
+    recall = compute_recall(ys, tp)
+    assert np.allclose(recall_py.eval(),
+                       recall_py)
+
