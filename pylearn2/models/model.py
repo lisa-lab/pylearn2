@@ -700,6 +700,13 @@ class Model(object):
             lets you do things like `model.tag[ext_name][quantity_name]`
             without the annoyance of first initializing the dict
             `model.tag[ext_name]`.
+
+        Notes
+        -----
+        Nothing critical to the implementation of a particular model or
+        training algorithm in the library should get stored in `tag`. This
+        is mainly for extensions or user code to take advantage of, and
+        segregate such things from actual model implementation attributes.
         """
         if not hasattr(self, '_tag'):
             self._tag = defaultdict(dict)
