@@ -43,8 +43,7 @@ class RocAucScoreOp(gof.Op):
         """
         y_true = T.as_tensor_variable(y_true)
         y_score = T.as_tensor_variable(y_score)
-        output = [T.TensorType(config.floatX, []).make_variable(
-            name='roc_auc')]
+        output = [T.scalar(name='roc_auc', dtype=config.floatX)]
         return gof.Apply(self, [y_true, y_score], output)
 
     def perform(self, node, inputs, output_storage):
