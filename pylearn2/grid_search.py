@@ -149,6 +149,8 @@ class GridSearch(object):
         param_grid = ParameterGrid(param_grid)
         self.save_path = save_path
         self.allow_overwrite = allow_overwrite
+        if monitor_channel is not None or n_best is not None:
+            assert monitor_channel is not None and n_best is not None
         self.monitor_channel = monitor_channel
         self.higher_is_better = higher_is_better
         self.n_best = n_best
@@ -191,6 +193,7 @@ class GridSearch(object):
             trainer = yaml_parse.load(self.template % grid_point)
             trainers.append(trainer)
             parameters.append(grid_point)
+        assert len(trainers) > 1  # why are you doing a grid search?
         if isinstance(trainers[0], TrainCV):
             self.cv = True
         self.trainers = trainers
@@ -205,14 +208,13 @@ class GridSearch(object):
         models : list
             Models to score.
         """
-        scores = None
-        if self.monitor_channel is not None:
-            scores = []
-            for model in models:
-                monitor = model.monitor
-                score = monitor.channels[self.monitor_channel].val_record[-1]
-                scores.append(score)
-            scores = np.asarray(scores)
+        assert self.monitor_channel is not None
+        scores = []
+        for model in models:
+            monitor = model.monitor
+            score = monitor.channels[self.monitor_channel].val_record[-1]
+            scores.append(score)
+        scores = np.asarray(scores)
         return scores
 
     def get_best_models(self, trainers=None):
@@ -248,11 +250,12 @@ class GridSearch(object):
             if not found:
                 models[i] = trainer.model
         params = np.asarray(self.params)
-        scores = self.score(models)
+        scores = None
         best_models = None
         best_params = None
         best_scores = None
-        if scores is not None and self.n_best is not None:
+        if self.n_best is not None:
+            scores = self.score(models)
             sort = np.argsort(scores)
             if self.higher_is_better:
                 sort = sort[::-1]
@@ -277,10 +280,15 @@ class GridSearch(object):
 
         The first dimension of self.best_models is the fold index.
         """
-        models = []
+        models = np.zeros((len(self.trainers), len(self.trainers[0].trainers)),
+                          dtype=object)
         params = []
         scores = []
-        best_models = []
+        if self.n_best is not None:
+            best_models = np.zeros((len(self.trainers), min(
+                self.n_best, len(self.trainers[0].trainers))), dtype=object)
+        else:
+            best_models = None
         best_params = []
         best_scores = []
         for k in xrange(len(self.trainers[0].trainers)):
@@ -290,12 +298,12 @@ class GridSearch(object):
              this_best_models,
              this_best_params,
              this_best_scores) = self.get_best_models(trainers)
-            models.append(this_models)
+            models[k] = this_models
             params.append(self.params)
             if this_scores is not None:
                 scores.append(this_scores)
             if this_best_scores is not None:
-                best_models.append(this_best_models)
+                best_models[k] = this_best_models
                 best_params.append(this_best_params)
                 best_scores.append(this_best_scores)
         self.models = models
@@ -434,13 +442,17 @@ class GridSearchCV(GridSearch):
         folds.
         """
         super(GridSearchCV, self).get_best_cv_models()
-        if self.scores is None or self.n_best is None:
+        if self.n_best is None:
             return
         mean_scores = np.mean(self.scores, axis=0)
         sort = np.argsort(mean_scores)
         if self.higher_is_better:
             sort = sort[::-1]
-        best_models = np.atleast_1d(self.models[0])[sort][:self.n_best]
+        # Sort the models trained on a single fold by averaged scores.
+        # This assumes that hyperparameters are the same at each index
+        # in each fold.
+        best_models = np.zeros((len(self.models[0])), dtype=object)
+        best_models[:] = self.models[0][sort][:self.n_best]
         best_params = np.atleast_1d(self.params[0])[sort][:self.n_best]
         best_scores = mean_scores[sort][:self.n_best]
         if len(best_models) == 1:
