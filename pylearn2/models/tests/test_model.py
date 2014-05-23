@@ -35,3 +35,21 @@ def test_get_set_vector():
     assert np.allclose(0. * vector, model.get_param_vector())
     model.set_param_vector(vector)
     assert np.allclose(model.get_param_vector(), vector)
+
+
+def test_tag():
+    """Test that the tag attribute works correctly."""
+    class DummyModel(Model):
+        """The simplest instance of Model possible."""
+    x = DummyModel()
+    x.tag['foo']['bar'] = 5
+
+    assert len(x.tag.keys()) == 1
+    assert len(x.tag['foo'].keys()) == 1
+    assert x.tag['foo']['bar'] == 5
+
+    assert 'bar' not in x.tag
+    x.tag['bar']['baz'] = 3
+    assert 'bar' in x.tag
+    assert 'baz' in x.tag['bar']
+    assert len(x.tag.keys()) == 2

@@ -3,12 +3,17 @@
 
     WRITEME
 """
+import logging
+import os.path
+import socket
 import numpy
 np = numpy
 from pylearn2.train_extensions import TrainExtension
 import theano
 import theano.tensor as T
 from pylearn2.utils import serial
+
+log = logging.getLogger(__name__)
 
 
 class KeepBestParams(TrainExtension):
@@ -98,9 +103,13 @@ class MonitorBasedSaveBest(TrainExtension):
         Path to save the best model to
     higher_is_better : bool, optional
         WRITEME
+    tag_key : str, optional
+        A unique key to use for storing diagnostic information in
+        `model.tag`. If `None`, use the class name (default).
     """
 
-    def __init__(self, channel_name, save_path,higher_is_better=False):
+    def __init__(self, channel_name, save_path,higher_is_better=False,
+                 tag_key=None):
         self.__dict__.update(locals())
         del self.self
         if higher_is_better:
@@ -109,6 +118,36 @@ class MonitorBasedSaveBest(TrainExtension):
             self.coeff = 1.
         self.best_cost = np.inf
 
+        # If no tag key is provided, use the class name by default.
+        if tag_key is None:
+            tag_key = self.__class__.__name__
+        self._tag_key = tag_key
+
+    def setup(self, model, dataset, algorithm):
+        """
+        Sets some model tag entries.
+
+        Parameters
+        ----------
+        model : pylearn2.models.model.Model
+        dataset : pylearn2.datasets.dataset.Dataset
+            Not used
+        algorithm : TrainingAlgorithm
+            Not used
+        """
+        if self._tag_key in model.tag:
+            log.warning('Model tag key "%s" already found. This may indicate '
+                        'multiple instances of %s trying to use the same tag '
+                        'entry.',
+                        self._tag_key, self.__class__.__name__)
+            log.warning('If this is the case, specify tag key manually in '
+                        '%s constructor.', self.__class__.__name__)
+        # This only needs to be written once.
+        model.tag[self._tag_key]['channel_name'] = self.channel_name
+        # Useful information for locating the saved model.
+        model.tag[self._tag_key]['save_path'] = os.path.abspath(self.save_path)
+        model.tag[self._tag_key]['hostname'] = socket.gethostname()
+        self._update_tag(model)
 
     def on_monitor(self, model, dataset, algorithm):
         """
@@ -132,6 +171,21 @@ class MonitorBasedSaveBest(TrainExtension):
         val_record = channel.val_record
         new_cost = self.coeff * val_record[-1]
 
+
         if new_cost < self.best_cost:
             self.best_cost = new_cost
+            # Update the tag of the model object before saving it.
+            self._update_tag(model)
             serial.save(self.save_path, model, on_overwrite = 'backup')
+
+    def _update_tag(self, model):
+        """
+        Update `model.tag` with information about the current best.
+
+        Parameters
+        ----------
+        model : pylearn2.models.model.Model
+            The model to update.
+        """
+        # More stuff to be added later. For now, we care about the best cost.
+        model.tag[self._tag_key]['best_cost'] = self.best_cost
