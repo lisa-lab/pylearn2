@@ -15,7 +15,8 @@ from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
 
 class MockModel(Model):
     """An empty model."""
-    pass
+    def __init__(self):
+        pass
 
 
 class MockChannel(object):
@@ -31,6 +32,7 @@ class MockMonitor(object):
 
 
 def test_tagging():
+    """Test the tagging functionality of this extension."""
     try:
         # TODO: serial.save should be able to take an open file-like object so
         # we can direct its output to a StringIO or something and not need to
