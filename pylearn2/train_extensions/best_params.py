@@ -3,6 +3,7 @@
 
     WRITEME
 """
+from copy import deepcopy
 import logging
 import os.path
 import socket
@@ -142,9 +143,9 @@ class MonitorBasedSaveBest(TrainExtension):
             self.best_cost = new_cost
             # Update the tag of the model object before saving it.
             self._update_tag(model)
-			self.best_model = deepcopy(model)
-			if self.save_path is not None:
-	            serial.save(self.save_path, model, on_overwrite='backup')
+            self.best_model = deepcopy(model)
+            if self.save_path is not None:
+                serial.save(self.save_path, model, on_overwrite='backup')
 
     def _update_tag(self, model):
         """
