@@ -106,15 +106,52 @@ class MonitorBasedSaveBest(TrainExtension):
         best model in memory.
     higher_is_better : bool, optional
         Whether a higher value of channel_name indicates a better model.
+    tag_key : str, optional
+        A unique key to use for storing diagnostic information in
+        `model.tag`. If `None`, use the class name (default).
     """
-    def __init__(self, channel_name, save_path=None, higher_is_better=False):
+    def __init__(self, channel_name, save_path=None, higher_is_better=False,
+                 tag_key=None):
         self.channel_name = channel_name
         self.save_path = save_path
         self.higher_is_better = higher_is_better
 
+        # If no tag key is provided, use the class name by default.
+        if tag_key is None:
+            tag_key = self.__class__.__name__
+        self._tag_key = tag_key
+
         # placeholders
         self.best_cost = np.inf
         self.best_model = None
+
+    def setup(self, model, dataset, algorithm):
+        """
+        Sets some model tag entries.
+
+        Parameters
+        ----------
+        model : pylearn2.models.model.Model
+        dataset : pylearn2.datasets.dataset.Dataset
+            Not used
+        algorithm : TrainingAlgorithm
+            Not used
+        """
+        if self._tag_key in model.tag:
+            log.warning('Model tag key "%s" already found. This may indicate '
+                        'multiple instances of %s trying to use the same tag '
+                        'entry.',
+                        self._tag_key, self.__class__.__name__)
+            log.warning('If this is the case, specify tag key manually in '
+                        '%s constructor.', self.__class__.__name__)
+        # This only needs to be written once.
+        model.tag[self._tag_key]['channel_name'] = self.channel_name
+        # Useful information for locating the saved model.
+        if self.save_path is not None:
+            model.tag[self._tag_key]['save_path'] = os.path.abspath(
+                self.save_path)
+        model.tag[self._tag_key]['hostname'] = socket.gethostname()
+        self._update_tag(model)
 
     def on_monitor(self, model, dataset, algorithm):
         """
