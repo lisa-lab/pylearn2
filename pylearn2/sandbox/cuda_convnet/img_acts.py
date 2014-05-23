@@ -69,10 +69,13 @@ class ImageActs(BaseActs):
     This op does the tranpose of that, so its output is sized like
     FilterActs' input.
 
-    * hid_acts: (output channels, rows, cols, batch_size)
-    * filters: (input channels, filter rows, filter cols, output channels).
+    * hid_acts: (output channels, rows, cols, batch size)
+    * filters: (filter channels, filter rows, filter cols, output channels)
       Rows must be the same as cols. Output channels must be a multiple
       of 16.
+    * output_shape: (2,)
+      2-element TensorVariable specifying the spatial shape of a single image
+      (rows, cols). Only needed if stride > 1.
     * output: (input channels, input rows, input cols, batch size)
 
     Notes
@@ -137,10 +140,22 @@ class ImageActs(BaseActs):
         return Apply(self, [hid_acts, filters, output_shape], [targets])
 
     def flops(self, inputs, outputs):
-        """ Useful with the hack in profilemode to print the MFlops"""
-        hid_acts, filters, output_shape = inputs
+        """
+        Returns the number of floating point operations for an application of
+        this Op.
+
+        * inputs: list of shapes of inputs to this node:
+          [(output channels, rows, cols, batch size),
+           (filter channels, filter rows, filter cols, output channels),
+           (2,)]
+        * outputs: list of shapes of outputs of this node:
+          [(input channels, input rows, input cols, batch size)]
+        """
+        hid_acts, filters, _ = inputs
         out, = outputs
         assert hid_acts[0] == filters[3]
+        # This Op computes a full convolution of `filters` with `hid_acts`,
+        # producing an output the same shape as `images`.
         flops = (hid_acts[3] * filters[0] * hid_acts[0] *
                  filters[1] * filters[2] *
                  hid_acts[1] * hid_acts[2] * 2)

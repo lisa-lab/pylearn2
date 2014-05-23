@@ -66,8 +66,9 @@ class WeightActs(BaseActs):
       Input channels must be divisible by 4.
     * hid_grads: (output channels, rows, cols, batch_size)
       Output channels must be a multiple of 16.
-    * output_shape: (filter rows, filter cols)
-      Filter rows must be equal to filter cols.
+    * output_shape: (2,)
+      2-element TensorVariable specifying the spatial shape of a single filter
+      (filter rows, filter columns). Filter rows must be equal to filter cols.
     * output: (filter channels, filter rows, filter cols, output channels)
       Filter channels must be input channels / self.groups, or
       self.pattern.shape[1]. Filter rows must be equal to filter cols.
@@ -95,7 +96,7 @@ class WeightActs(BaseActs):
         ----------
         images : WRITEME
         hid_grads : WRITEME
-        output_shape : 2-element TensorVariable, optional (?)
+        output_shape : 2-element TensorVariable
             The spatial shape of a single filter
         """
         if not isinstance(images.type, CudaNdarrayType):
@@ -134,18 +135,31 @@ class WeightActs(BaseActs):
                      [weights_grads, partial_sums])
 
     def flops(self, inputs, outputs):
-        """ Useful with the hack in profilemode to print the MFlops"""
-        images, kerns, output_shape = inputs
-        out, partial = outputs
-        # The partial sum is just a way to specify how to compute
-        # stuff inside the op.  It don't change the number of flops.
-        assert images[3] == kerns[3]
-        # nb mul and add by output pixed
-        flops = kerns[1] * kerns[2] * 2
-        #nb flops by output image
-        flops *= out[1] * out[2]
-        # for all outputs images#n_stack==self.imshp[0]
-        flops *= images[3] * kerns[0] * images[0]
+        """
+        Returns the number of floating point operations for an application of
+        this Op.
+
+        * inputs: list of shapes of inputs to this node:
+          [(input channels, rows, cols, batch_size),
+           (output channels, rows, cols, batch_size),
+           (2,)]
+        * outputs: list of shapes of outputs of this node:
+          [(filter channels, filter rows, filter cols, output channels),
+           (input channels, filter rows, filter cols, output channels)]
+        """
+        images, hid_grads, _ = inputs
+        kerns, partial = outputs
+        assert kerns[3] == hid_grads[0]
+        # This Op computes a valid convolution of `images` with `hid_grads`,
+        # producing an output the same shape as `filters`. We reuse the code of
+        # `FilterActs.flops()` with suitable replacement of the variable names.
+        # Note: The partial sum is just a way to specify how to compute
+        # stuff inside the Op.  It doesn't change the number of flops.
+        images, kerns, out = images, hid_grads, kerns
+        # number of mul and add by output pixel
+        flops = kerns[0] * kerns[1] * kerns[2] * 2
+        # multiplied by number of output pixels
+        flops *= out[0] * out[1] * out[2] * out[3]
         return flops
 
     def c_headers(self):

@@ -63,12 +63,12 @@ class FilterActs(BaseActs):
 
     Currently, this op must be inserted manually, not by optimizations.
 
-    * images: (input channels, rows, cols, batch_size). Channels must
+    * images: (input channels, rows, cols, batch size). Channels must
       be <=3, or be even. Note: if you want to take the gradient with
       respect to the weights, channels must be divisible by 4. Must be
       C contiguous. You can enforce this by calling
       `theano.sandbox.cuda.basic_ops.gpu_contiguous` on it.
-    * filters: (input channels, filter rows, filter cols, output channels).
+    * filters: (filter channels, filter rows, filter cols, output channels).
       Rows must be the same as cols output channels must be a multiple
       of 16. Must be C contiguous. You can enforce this by calling
       `theano.sandbox.cuda.basic_ops.gpu_contiguous` on it.
@@ -120,16 +120,22 @@ class FilterActs(BaseActs):
         return Apply(self, [images, filters], [targets])
 
     def flops(self, inputs, outputs):
-        """ Useful with the hack in profilemode to print the MFlops"""
+        """
+        Returns the number of floating point operations for an application of
+        this Op.
+
+        * inputs: list of shapes of inputs to this node:
+          [(input channels, rows, cols, batch_size),
+           (filter channels, filter rows, filter cols, output channels)]
+        * outputs: list of shapes of outputs of this node:
+          [(output channels, output rows, output cols, batch size)]
+        """
         images, kerns = inputs
         out, = outputs
-        assert images[0] == kerns[0]
-        # nb mul and add by output pixed
-        flops = kerns[1] * kerns[2] * 2
-        #nb flops by output image
-        flops *= out[1] * out[2]
-        # for all outputs images#n_stack==self.imshp[0]
-        flops *= images[0] * kerns[3] * images[3]
+        # number of mul and add by output pixel
+        flops = kerns[0] * kerns[1] * kerns[2] * 2
+        # multiplied by number of output pixels
+        flops *= out[0] * out[1] * out[2] * out[3]
         return flops
 
     def c_code(self, node, name, inputs, outputs, sub):
