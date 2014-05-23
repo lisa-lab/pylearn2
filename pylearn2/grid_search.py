@@ -235,19 +235,18 @@ class GridSearch(object):
             return self.get_best_cv_models()
 
         # test for MonitorBasedSaveBest
-        models = []
-        for trainer in trainers:
+        models = np.zeros(len(trainers), dtype=object)
+        for i, trainer in enumerate(trainers):
             found = False
             for extension in trainer.extensions:
                 if found:
                     break
                 if (isinstance(extension, MonitorBasedSaveBest) and
                         extension.channel_name == self.monitor_channel):
-                    models.append(extension.best_model)
+                    models[i] = extension.best_model
                     found = True
             if not found:
-                models.append(trainer.model)
-        models = np.asarray(models)
+                models[i] = trainer.model
         params = np.asarray(self.params)
         scores = self.score(models)
         best_models = None
