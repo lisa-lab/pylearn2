@@ -3,13 +3,17 @@
 
     WRITEME
 """
-from copy import deepcopy
+import logging
+import os.path
+import socket
 import numpy
 np = numpy
 from pylearn2.train_extensions import TrainExtension
 import theano
 import theano.tensor as T
 from pylearn2.utils import serial
+
+log = logging.getLogger(__name__)
 
 
 class KeepBestParams(TrainExtension):
@@ -136,6 +140,20 @@ class MonitorBasedSaveBest(TrainExtension):
 
         if new_cost < self.best_cost:
             self.best_cost = new_cost
-            self.best_model = deepcopy(model)
-            if self.save_path is not None:
-                serial.save(self.save_path, model, on_overwrite='backup')
+            # Update the tag of the model object before saving it.
+            self._update_tag(model)
+			self.best_model = deepcopy(model)
+			if self.save_path is not None:
+	            serial.save(self.save_path, model, on_overwrite='backup')
+
+    def _update_tag(self, model):
+        """
+        Update `model.tag` with information about the current best.
+
+        Parameters
+        ----------
+        model : pylearn2.models.model.Model
+            The model to update.
+        """
+        # More stuff to be added later. For now, we care about the best cost.
+        model.tag[self._tag_key]['best_cost'] = self.best_cost
