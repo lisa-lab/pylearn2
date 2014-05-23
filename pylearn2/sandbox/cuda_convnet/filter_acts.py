@@ -126,7 +126,7 @@ class FilterActs(BaseActs):
 
         * inputs: list of shapes of inputs to this node:
           [(input channels, rows, cols, batch_size),
-           (filter channels, filter rows, filter cols, output channels)]
+          (filter channels, filter rows, filter cols, output channels)]
         * outputs: list of shapes of outputs of this node:
           [(output channels, output rows, output cols, batch size)]
         """

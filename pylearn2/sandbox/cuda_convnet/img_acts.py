@@ -146,8 +146,8 @@ class ImageActs(BaseActs):
 
         * inputs: list of shapes of inputs to this node:
           [(output channels, rows, cols, batch size),
-           (filter channels, filter rows, filter cols, output channels),
-           (2,)]
+          (filter channels, filter rows, filter cols, output channels),
+          (2,)]
         * outputs: list of shapes of outputs of this node:
           [(input channels, input rows, input cols, batch size)]
         """

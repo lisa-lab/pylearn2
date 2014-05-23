@@ -141,11 +141,11 @@ class WeightActs(BaseActs):
 
         * inputs: list of shapes of inputs to this node:
           [(input channels, rows, cols, batch_size),
-           (output channels, rows, cols, batch_size),
-           (2,)]
+          (output channels, rows, cols, batch_size),
+          (2,)]
         * outputs: list of shapes of outputs of this node:
           [(filter channels, filter rows, filter cols, output channels),
-           (input channels, filter rows, filter cols, output channels)]
+          (input channels, filter rows, filter cols, output channels)]
         """
         images, hid_grads, _ = inputs
         kerns, partial = outputs
