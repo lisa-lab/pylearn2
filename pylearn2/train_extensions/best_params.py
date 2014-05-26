@@ -102,19 +102,29 @@ class MonitorBasedSaveBest(TrainExtension):
     channel_name : str
         The name of the monitor channel we want to minimize.
     save_path : str or None, optional
-        Output filename for best model. If not provided, only stores the
-        best model in memory.
+        Output filename for best model. At least one of save_path or
+        store_best_model should be defined. Defaults to None.
+    store_best_model : bool, optional
+        Whether to store the best model in memory. At least one of
+        save_path or store_best_model should be defined. Defaults to False.
     higher_is_better : bool, optional
         Whether a higher value of channel_name indicates a better model.
     tag_key : str, optional
         A unique key to use for storing diagnostic information in
         `model.tag`. If `None`, use the class name (default).
     """
-    def __init__(self, channel_name, save_path=None, higher_is_better=False,
-                 tag_key=None):
+    def __init__(self, channel_name, save_path=None, store_best_model=False,
+                 higher_is_better=False, tag_key=None):
         self.channel_name = channel_name
+        assert save_path is not None or store_best_model, (
+            "At least one of save_path or store_best_model must be defined.")
         self.save_path = save_path
+        self.store_best_model = store_best_model
         self.higher_is_better = higher_is_better
+        if higher_is_better:
+            self.coeff = -1.
+        else:
+            self.coeff = 1.
 
         # If no tag key is provided, use the class name by default.
         if tag_key is None:
@@ -173,14 +183,13 @@ class MonitorBasedSaveBest(TrainExtension):
         channel = channels[self.channel_name]
         val_record = channel.val_record
         new_cost = val_record[-1]
-        if self.higher_is_better:
-            new_cost *= -1.
 
-        if new_cost < self.best_cost:
+        if self.coeff * new_cost < self.best_cost:
             self.best_cost = new_cost
             # Update the tag of the model object before saving it.
             self._update_tag(model)
-            self.best_model = deepcopy(model)
+            if self.store_best_model:
+                self.best_model = deepcopy(model)
             if self.save_path is not None:
                 serial.save(self.save_path, model, on_overwrite='backup')
 
