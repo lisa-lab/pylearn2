@@ -12,13 +12,16 @@ __authors__ = "Ian Goodfellow and Mehdi Mirza"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
 import functools
 
 import logging
 import warnings
+
 import numpy as np
+
+from pylearn2.datasets import cache
 from pylearn2.utils.iteration import (
     FiniteDatasetIterator,
     resolve_iterator_class
@@ -454,10 +457,10 @@ class DenseDesignMatrix(Dataset):
 
             WRITEME
         """
-
         if d['design_loc'] is not None:
             if control.get_load_data():
-                d['X'] = np.load(d['design_loc'])
+                fname = cache.datasetCache.cache_file(d['design_loc'])
+                d['X'] = np.load(fname)
             else:
                 d['X'] = None
 
@@ -681,7 +684,7 @@ class DenseDesignMatrix(Dataset):
 
         if 'default_rng' not in dir(self):
             self.default_rng = make_np_rng(None, [17, 2, 946],
-                    which_method="random_integers")
+                                           which_method="random_integers")
         self.rng = copy.copy(self.default_rng)
 
     def apply_preprocessor(self, preprocessor, can_fit=False):

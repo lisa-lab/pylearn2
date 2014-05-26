@@ -19,8 +19,8 @@ __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
 
 import logging
 import theano.tensor as T
@@ -449,14 +449,8 @@ def max_pool_channels(z, pool_size, top_down=None, theano_rng=None):
         if theano_rng is None:
             return p, h
         else:
-            t1 = time.time()
             p_samples = theano_rng.binomial(p=p, size=p.shape,
                                             dtype=p.dtype, n=1)
-            t2 = time.time()
-            if t2 - t1 > 0.5:
-                # TODO: speed up theano's random number seeding.
-                logger.warning("max pooling spent {0} in a call to "
-                               "theano_rng.binomial.".format(t2 - t1))
             h_samples = p_samples
             return p_samples, h_samples, p_samples, h_samples
     else:
@@ -550,14 +544,8 @@ def max_pool_channels(z, pool_size, top_down=None, theano_rng=None):
         reshaped_events = stacked_events.reshape((batch_size * n // pool_size,
                                                   outcomes))
 
-        t1 = time.time()
         multinomial = theano_rng.multinomial(pvals=reshaped_events,
                                              dtype=p.dtype)
-        t2 = time.time()
-        if t2 - t1 > 0.5:
-            # TODO: speed up theano's random number seeding.
-            logger.warning("max pooling spent {0} in a call to "
-                           "theano_rng.multinomial.".format(t2 - t1))
 
         reshaped_multinomial = multinomial.reshape((batch_size,
                                                     n // pool_size,

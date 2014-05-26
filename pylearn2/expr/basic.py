@@ -5,8 +5,8 @@ __authors__ = "Ian Goodfellow and Razvan Pascanu"
 __copyright__ = "Copyright 2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow and Razvan Pascanu"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
 
 import numpy as np
 import theano.tensor as T

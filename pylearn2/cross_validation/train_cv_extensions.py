@@ -82,8 +82,9 @@ class MonitorBasedSaveBestCV(TrainCVExtension):
                 save_path = path + '-{}'.format(k) + ext
             else:
                 save_path = None
-            extension = MonitorBasedSaveBest(self.channel_name, save_path,
-                                             self.higher_is_better)
+            extension = MonitorBasedSaveBest(
+                self.channel_name, save_path=save_path, store_best_model=True,
+                higher_is_better=self.higher_is_better)
             trainer.extensions.append(extension)
 
     def on_save(self, trainers):

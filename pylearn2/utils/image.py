@@ -22,7 +22,7 @@ except ImportError:
     Image = None
 
 from pylearn2.utils import string_utils as string
-from tempfile import NamedTemporaryFile
+from tempfile import mkstemp
 from multiprocessing import Process
 
 import subprocess
@@ -138,26 +138,27 @@ def show(image):
                             str(image.shape) + " and dtype " +
                             str(image.dtype))
 
+    # Create a temporary file with the suffix '.png'.
+    fd, name = mkstemp(suffix='.png')
+    os.close(fd)
 
-    try:
-        f = NamedTemporaryFile(mode='r', suffix='.png', delete=False)
-    except TypeError:
-        # before python2.7, we can't use the delete argument
-        f = NamedTemporaryFile(mode='r', suffix='.png')
-        """
-        TODO: prior to python 2.7, NamedTemporaryFile has no delete = False
-        argument unfortunately, that means f.close() deletes the file.  we then
-        save an image to the file in the next line, so there's a race condition
-        where for an instant we  don't actually have the file on the filesystem
-        reserving the name, and then write to that name anyway
+    # Note:
+    #   Although we can use tempfile.NamedTemporaryFile() to create
+    #   a temporary file, the function should be used with care.
+    #
+    #   In Python earlier than 2.7, a temporary file created by the
+    #   function will be deleted just after the file is closed.
+    #   We can re-use the name of the temporary file, but there is an
+    #   instant where a file with the name does not exist in the file
+    #   system before we re-use the name. This may cause a race
+    #   condition.
+    #
+    #   In Python 2.7 or later, tempfile.NamedTemporaryFile() has
+    #   the 'delete' argument which can control whether a temporary
+    #   file will be automatically deleted or not. With the argument,
+    #   the above race condition can be avoided.
+    #
 
-        TODO: see if this can be remedied with lower level calls (mkstemp)
-        """
-        warnings.warn('filesystem race condition')
-
-    name = f.name
-    f.flush()
-    f.close()
     image.save(name)
     viewer_command = string.preprocess('${PYLEARN2_VIEWER_COMMAND}')
     if os.name == 'nt':
