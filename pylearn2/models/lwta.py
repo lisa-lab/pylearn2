@@ -4,12 +4,19 @@ from theano import tensor as T
 from pylearn2.models.mlp import Linear
 
 def lwta(p, block_size):
-    """
-    The hard local winner take all non-linearity from "Compete to Compute"
-    by Rupesh Srivastava et al
-    Our implementation differs slightly from theirs--we break ties by last index,
-    they break them by earliest index. This difference is just due to ease
-    of implementation in theano.
+    """Apply hard local winner-take-all on p and return the result.
+    
+    The hard local winner-take-all non-linearity is described in "Compete to 
+    Compute" by Rupesh Srivastava et al. In short, only one unit in each block
+    is activated which is the one with maximal net input. Its activation is 
+    exactly its net input. 
+    
+    Our implementation differs slightly from Rupesh Srivastava et al.'s -- we 
+    break ties by last index, they break them by earliest index. This difference 
+    is just due to ease of implementation in theano.
+    
+    @param p: 
+    @param block_size: 
     """
     batch_size = p.shape[0]
     num_filters = p.shape[1]
@@ -26,9 +33,9 @@ def lwta(p, block_size):
     return w3
 
 class LWTA(Linear):
-    """
-    An MLP Layer using the LWTA non-linearity.
-    """
+    
+    """An MLP Layer using the LWTA non-linearity."""
+    
     def __init__(self, block_size, **kwargs):
         super(LWTA, self).__init__(**kwargs)
         self.block_size = block_size
