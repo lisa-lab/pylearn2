@@ -275,10 +275,6 @@ class GridSearch(object):
             best_models = models[sort][:self.n_best]
             best_params = params[sort][:self.n_best]
             best_scores = scores[sort][:self.n_best]
-            if len(best_models) == 1:
-                best_models, = best_models
-                best_params, = best_params
-                best_scores, = best_scores
         self.models = models
         self.scores = scores
         self.best_models = best_models
