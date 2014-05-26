@@ -84,7 +84,7 @@ class KMeans(Block, Model):
 
         if milk is not None:
             #use the milk implementation of k-means if it's available
-            cluster_ids, mu = milk.kmeans(X,k)
+            cluster_ids, mu = milk.kmeans(X, k)
         else:
             #our own implementation
 
@@ -92,7 +92,8 @@ class KMeans(Block, Model):
             # them.
             if mu is not None:
                 if not len(mu) == k:
-                    raise Exception('You gave %i clusters, but k=%i were expected'
+                    raise Exception("You gave %i clusters"
+                                    ", but k=%i were expected"
                                     % (len(mu), k))
             else:
                 indices = numpy.random.randint(X.shape[0], size=k)
@@ -133,8 +134,8 @@ class KMeans(Block, Model):
 
                 logger.info('cost: {0}'.format(mmd))
 
-                if iter > 0 and (iter >= self.max_iter or \
-                                        abs(mmd - prev_mmd) < self.convergence_th):
+                if iter > 0 and (iter >= self.max_iter or
+                                 abs(mmd - prev_mmd) < self.convergence_th):
                     #converged
                     break
 
@@ -186,9 +187,8 @@ class KMeans(Block, Model):
 
                 iter += 1
 
-
-        self.mu = sharedX( mu )
-        self._params = [ self.mu ]
+        self.mu = sharedX(mu)
+        self._params = [self.mu]
         return True
 
     @wraps(Model.continue_learning)
@@ -196,7 +196,7 @@ class KMeans(Block, Model):
         # One call to train_all currently trains the model fully,
         # so return False immediately.
         return False
-        
+
     def get_params(self):
         """
         .. todo::
@@ -207,10 +207,9 @@ class KMeans(Block, Model):
         if not hasattr(self.mu, 'get_value'):
             self.mu = sharedX(self.mu)
         if not hasattr(self, '_params'):
-            self._params = [ self.mu ]
+            self._params = [self.mu]
 
-        return [ param for param in self._params ]
-
+        return [param for param in self._params]
 
     def __call__(self, X):
         """
@@ -247,7 +246,7 @@ class KMeans(Block, Model):
 
             WRITEME
         """
-        return ['h','v']
+        return ['h', 'v']
 
     # Use version defined in Model, rather than Block (which raises
     # NotImplementedError).
