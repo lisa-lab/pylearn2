@@ -26,6 +26,7 @@ except ImportError:
 
 from pylearn2.config import yaml_parse
 from pylearn2.cross_validation import TrainCV
+from pylearn2.cross_validation.dataset_iterators import DatasetCV
 from pylearn2.train import SerializationGuard
 from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
 from pylearn2.utils import serial
@@ -139,10 +140,17 @@ class GridSearch(object):
         Whether higher monitor_channel values correspond to better models.
     n_best : int or None
         Maximum number of models to save, ranked by monitor_channel value.
+    retrain : bool
+        Whether to retrain the best model(s). The training dataset is the
+        union of the training and validation sets (if any).
+    retrain_dataset : Dataset or dataset_iterator
+        Dataset to use for retraining best model(s). Required if
+        retrain_best is True.
     """
     def __init__(self, template, param_grid, save_path=None,
                  allow_overwrite=True, monitor_channel=None,
-                 higher_is_better=False, n_best=None):
+                 higher_is_better=False, n_best=None, retrain=False,
+                 retrain_dataset=None):
         self.template = template
         for key, value in param_grid.items():
             param_grid[key] = np.atleast_1d(value)  # must be iterable
@@ -154,6 +162,11 @@ class GridSearch(object):
         self.monitor_channel = monitor_channel
         self.higher_is_better = higher_is_better
         self.n_best = n_best
+        self.retrain = retrain
+        if retrain:
+            assert n_best is not None
+            assert retrain_dataset is not None
+        self.retrain_dataset = retrain_dataset
 
         # construct a trainer for each grid point
         self.cv = False  # True if best_models is indexed by cv fold
@@ -337,7 +350,12 @@ class GridSearch(object):
         self.trainers = batch_train(self.trainers, time_budget, parallel,
                                     client_kwargs)
         self.get_best_models()
-        self.save()
+        if self.retrain:
+            trainers = self.retrain_best_models(time_budget, parallel,
+                                                client_kwargs)
+            self.save(trainers)
+        else:
+            self.save()
 
     def save(self, trainers=None):
         """
@@ -358,10 +376,19 @@ class GridSearch(object):
                 models = self.models
                 params = self.params
         else:
-            models = [trainer.model for trainer in trainers]
+            if isinstance(trainers[0], TrainCV):
+                models = np.zeros((len(trainers[0].trainers), len(trainers)),
+                                  dtype=object)
+                for k in xrange(len(trainers[0].trainers)):
+                    for i, trainer in enumerate(trainers):
+                        models[k, i] = trainer.trainers[k].model
+            else:
+                models = np.zeros(len(trainers), dtype=object)
+                for i, trainer in enumerate(trainers):
+                    models[i] = trainer.model
             assert self.best_params is not None
             params = self.best_params
-        results = (models, params)
+        results = {'models': models, 'params': params}
 
         # Train extensions
         # TrainCV calls on_save automatically
@@ -389,6 +416,40 @@ class GridSearch(object):
                         t.dataset._serialization_guard = None
                 else:
                     trainer.dataset._serialization_guard = None
+
+    def retrain_best_models(self, time_budget=None, parallel=False,
+                            client_kwargs=None):
+        """
+        Retrain best models on the union of training and validation sets,
+        if available.
+
+        Parameters
+        ----------
+        time_budget : int, optional
+            The maximum number of seconds before interrupting
+            training. Default is `None`, no time limit.
+        parallel : bool
+            Whether to train subtrainers in parallel using
+            IPython.parallel.
+        client_kwargs : dict or None
+            Keyword arguments for IPython.parallel.Client.
+        """
+        trainers = []
+        for params in np.atleast_1d(self.best_params):
+            trainer = yaml_parse.load(self.template % params)
+            if isinstance(trainer, TrainCV):
+                assert isinstance(self.retrain_dataset, DatasetCV)
+                for datasets, this_trainer in zip(self.retrain_dataset,
+                                                  trainer.trainers):
+                    this_trainer.dataset = datasets['train']
+                    this_trainer.algorithm._set_monitoring_dataset(datasets)
+            else:
+                trainer.dataset = self.retrain_dataset
+                trainer.algorithm._set_monitoring_dataset(
+                    {'train': self.retrain_dataset})
+            trainers.append(trainer)
+        trainers = batch_train(trainers, time_budget, parallel, client_kwargs)
+        return trainers
 
 
 class GridSearchCV(GridSearch):
@@ -462,31 +523,6 @@ class GridSearchCV(GridSearch):
         self.best_models = best_models
         self.best_params = best_params
         self.best_scores = best_scores
-
-    def main_loop(self, time_budget=None, parallel=False, client_kwargs=None):
-        """
-        Run main_loop of each trainer.
-
-        Parameters
-        ----------
-        time_budget : int, optional
-            The maximum number of seconds before interrupting
-            training. Default is `None`, no time limit.
-        parallel : bool
-            Whether to train subtrainers in parallel using
-            IPython.parallel.
-        client_kwargs : dict or None
-            Keyword arguments for IPython.parallel.Client.
-        """
-        self.trainers = batch_train(self.trainers, time_budget, parallel,
-                                    client_kwargs)
-        self.get_best_cv_models()
-        if self.retrain:
-            trainers = self.retrain_best_models(time_budget, parallel,
-                                                client_kwargs)
-            self.save(trainers)
-        else:
-            self.save()
 
     def retrain_best_models(self, time_budget=None, parallel=False,
                             client_kwargs=None):
