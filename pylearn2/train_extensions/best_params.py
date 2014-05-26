@@ -102,11 +102,11 @@ class MonitorBasedSaveBest(TrainExtension):
     channel_name : str
         The name of the monitor channel we want to minimize.
     save_path : str or None, optional
-        Output filename for best model. At least one of save_path or
-        store_best_model should be defined. Defaults to None.
+        Output filename for best model. If None (the default),
+        store_best_model must be True.
     store_best_model : bool, optional
-        Whether to store the best model in memory. At least one of
-        save_path or store_best_model should be defined. Defaults to False.
+        Whether to store the best model in memory. If False (the default),
+        save_path must be defined.
     higher_is_better : bool, optional
         Whether a higher value of channel_name indicates a better model.
     tag_key : str, optional
@@ -117,7 +117,8 @@ class MonitorBasedSaveBest(TrainExtension):
                  higher_is_better=False, tag_key=None):
         self.channel_name = channel_name
         assert save_path is not None or store_best_model, (
-            "At least one of save_path or store_best_model must be defined.")
+            "Either save_path must be defined or store_best_model must be " +
+            "True. (Or both.)")
         self.save_path = save_path
         self.store_best_model = store_best_model
         self.higher_is_better = higher_is_better
@@ -184,7 +185,7 @@ class MonitorBasedSaveBest(TrainExtension):
         val_record = channel.val_record
         new_cost = val_record[-1]
 
-        if self.coeff * new_cost < self.best_cost:
+        if self.coeff * new_cost < self.coeff * self.best_cost:
             self.best_cost = new_cost
             # Update the tag of the model object before saving it.
             self._update_tag(model)
