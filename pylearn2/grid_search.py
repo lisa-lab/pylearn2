@@ -91,6 +91,7 @@ def batch_train(trainers, time_budget=None, parallel=False,
             client_kwargs = {}
         client = Client(**client_kwargs)
         view = client.load_balanced_view()
+        view.retries = 5
 
         # get all child trainers and run them in parallel, which
         # simultaneously parallelizes over both grid points and
@@ -98,7 +99,7 @@ def batch_train(trainers, time_budget=None, parallel=False,
         calls = []
         for trainer in trainers:
             if save_trainers:
-                trainers_.append(trainers)
+                trainers_.append(trainer)
             if isinstance(trainer, TrainCV):
                 call = view.map(_train, trainer.trainers, block=False)
                 calls.append(call)
