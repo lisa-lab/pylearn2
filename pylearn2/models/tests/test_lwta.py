@@ -46,5 +46,6 @@ def test_lwta_simple():
 
 
 def test_lwta_yaml():
+    """Test simple model on random data."""
     limited_epoch_train(os.path.join(pylearn2.__path__[0],
                                      "models/tests/lwta.yaml"))
