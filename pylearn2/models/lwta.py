@@ -11,10 +11,12 @@ from pylearn2.models.mlp import Linear, Layer
 
 def lwta(p, block_size):
     """
-    Apply hard local winner-take-all on p and return the result.
+    Apply hard local winner-take-all on every rows of a theano matrix.
 
     Parameters
     ----------
+    p: theano matrix
+        Matrix on whose rows LWTA will be applied.
     block_size: int
         Number of units in each block.
     """
@@ -35,11 +37,11 @@ def lwta(p, block_size):
 
 class LWTA(Linear):
     """
-    An MLP Layer using the LWTA non-linearity
+    An MLP Layer using the hard local winner-take-all non-linearity.
 
-    The hard local winner-take-all non-linearity is described in [1]. In short,
-    only one unit in each block is activated which is the one with maximal net
-    input. Its activation is exactly its net input.
+    The hard LWTA non-linearity is described in [1]. In short, only one unit
+    in each block is activated, which is the one with maximal net input. Its
+    activation is exactly its net input.
 
     .. [1] Srivastava, R. K., Masci, J., Kazerounian, S., Gomez, F., &
        Schmidhuber, J. (2013). Compete to compute. In Advances in Neural
