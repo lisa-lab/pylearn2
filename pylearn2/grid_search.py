@@ -18,6 +18,7 @@ __maintainer__ = "Steven Kearnes"
 import numpy as np
 import os
 import sys
+from types import GeneratorType
 import warnings
 try:
     from sklearn.grid_search import ParameterGrid
@@ -66,6 +67,10 @@ def batch_train(trainers, time_budget=None, parallel=False,
     client_kwargs : dict or None
         Keyword arguments for IPython.parallel.Client.
     """
+    save_trainers = False
+    if isinstance(trainers, GeneratorType):
+        save_trainers = True
+        trainers_ = []
     if parallel:
         from IPython.parallel import Client
 
@@ -92,12 +97,16 @@ def batch_train(trainers, time_budget=None, parallel=False,
         # cross-validation folds
         calls = []
         for trainer in trainers:
+            if save_trainers:
+                trainers_.append(trainers)
             if isinstance(trainer, TrainCV):
                 call = view.map(_train, trainer.trainers, block=False)
                 calls.append(call)
             else:
                 call = view.map(_train, [trainer], block=False)
                 calls.append(call)
+        if save_trainers:
+            trainers = trainers_
         for i, (trainer, call) in enumerate(zip(trainers, calls)):
             if isinstance(trainer, TrainCV):
                 trainers[i].trainers = call.get()
@@ -105,7 +114,11 @@ def batch_train(trainers, time_budget=None, parallel=False,
                 trainers[i], = call.get()
     else:
         for trainer in trainers:
+            if save_trainers:
+                trainers_.append(trainer)
             trainer.main_loop(time_budget)
+        if save_trainers:
+            trainers = trainers_
     return trainers
 
 
@@ -183,7 +196,8 @@ class GridSearch(object):
 
     def get_trainers(self, param_grid):
         """
-        Construct a trainer for each grid point.
+        Construct a trainer for each grid point. Uses a generator to limit
+        memory use.
 
         Parameters
         ----------
