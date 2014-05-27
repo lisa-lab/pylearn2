@@ -443,7 +443,13 @@ class GridSearch(object):
                     trainer = yaml_parse.load(self.template % params)
                     this_trainer = trainer.trainers[k]
                     this_trainer.dataset = datasets['train']
-                    this_trainer.algorithm._set_monitoring_dataset(datasets)
+
+                    # special handling for sklearn_wrapper.Train
+                    try:
+                        this_trainer.algorithm._set_monitoring_dataset(
+                            datasets)
+                    except AttributeError:
+                        this_trainer.set_monitoring_dataset(datasets)
                     this_trainers.append(this_trainer)
                 trainer.trainers = this_trainers
                 trainers.append(trainer)
