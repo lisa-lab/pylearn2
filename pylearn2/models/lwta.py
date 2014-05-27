@@ -10,7 +10,14 @@ from pylearn2.models.mlp import Linear, Layer
 
 
 def lwta(p, block_size):
-    """Apply hard local winner-take-all on p and return the result."""
+    """
+    Apply hard local winner-take-all on p and return the result.
+
+    Parameters
+    ----------
+    block_size: int
+        Number of units in each block.
+    """
     batch_size = p.shape[0]
     num_filters = p.shape[1]
     num_blocks = num_filters // block_size
@@ -41,7 +48,8 @@ class LWTA(Linear):
 
     Parameters
     ----------
-    block_size: Number of units in each block.
+    block_size: int
+        Number of units in each block.
 
     Notes
     ----------
