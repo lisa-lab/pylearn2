@@ -190,25 +190,22 @@ class GridSearch(object):
         param_grid : dict
             Parameter grid.
         """
-        trainers = []
         parameters = []
         for grid_point in param_grid:
-
-            # build output filename
             if self.save_path is not None:
                 prefix, ext = os.path.splitext(self.save_path)
                 for key, value in grid_point.items():
                     prefix += '-{}_{}'.format(key, value)
                 grid_point['save_path'] = prefix + ext
                 grid_point['best_save_path'] = prefix + '-best' + ext
-
-            # construct trainer
-            trainer = yaml_parse.load(self.template % grid_point)
-            trainers.append(trainer)
             parameters.append(grid_point)
-        assert len(trainers) > 1  # why are you doing a grid search?
-        if isinstance(trainers[0], TrainCV):
+        assert len(parameters) > 1  # why are you doing a grid search?
+        trainer = yaml_parse.load(self.template % parameters[0])
+        if isinstance(trainer, TrainCV):
             self.cv = True
+        del trainer
+        trainers = (yaml_parse.load(self.template % params)
+                    for params in parameters)
         self.trainers = trainers
         self.params = parameters
 
