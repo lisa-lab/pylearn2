@@ -36,7 +36,7 @@ class LWTA(Linear):
 
     .. [1] Srivastava, R. K., Masci, J., Kazerounian, S., Gomez, F., &
        Schmidhuber, J. (2013). Compete to compute. In Advances in Neural
-       Information Processing Systems (pp. 2310–2318).
+       Information Processing Systems (pp. 2310-2318).
        URL: http://www.idsia.ch/idsiareport/IDSIA-04-13.pdf
 
     Parameters
