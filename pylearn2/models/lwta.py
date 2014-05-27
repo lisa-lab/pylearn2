@@ -67,6 +67,6 @@ class LWTA(Linear):
     @wraps(Layer.fprop)
     def fprop(self, state_below):
         p = super(LWTA, self).fprop(state_below)
-        w = lwta(p, self.block_size)
-        w.name = self.layer_name + '_out'
-        return w
+        rval = lwta(p, self.block_size)
+        rval.name = self.layer_name + '_out'
+        return rval
