@@ -1,23 +1,16 @@
+"""
+Local winner-take-all layer.
+"""
 __author__ = "Xia Da, Ian Goodfellow, Minh Ngoc Le"
+
+from functools import wraps
 import numpy
 from theano import tensor as T
-from pylearn2.models.mlp import Linear
+from pylearn2.models.mlp import Linear, Layer
+
 
 def lwta(p, block_size):
-    """Apply hard local winner-take-all on p and return the result.
-    
-    The hard local winner-take-all non-linearity is described in "Compete to 
-    Compute" by Rupesh Srivastava et al. In short, only one unit in each block
-    is activated which is the one with maximal net input. Its activation is 
-    exactly its net input. 
-    
-    Our implementation differs slightly from Rupesh Srivastava et al.'s -- we 
-    break ties by last index, they break them by earliest index. This difference 
-    is just due to ease of implementation in theano.
-    
-    @param p: 
-    @param block_size: 
-    """
+    """Apply hard local winner-take-all on p and return the result."""
     batch_size = p.shape[0]
     num_filters = p.shape[1]
     num_blocks = num_filters // block_size
@@ -32,14 +25,36 @@ def lwta(p, block_size):
     w3 = w2.reshape((p.shape[0], p.shape[1]))
     return w3
 
+
 class LWTA(Linear):
-    
-    """An MLP Layer using the LWTA non-linearity."""
-    
+    """
+    An MLP Layer using the LWTA non-linearity
+
+    The hard local winner-take-all non-linearity is described in [1]. In short,
+    only one unit in each block is activated which is the one with maximal net
+    input. Its activation is exactly its net input.
+
+    .. [1] Srivastava, R. K., Masci, J., Kazerounian, S., Gomez, F., &
+       Schmidhuber, J. (2013). Compete to compute. In Advances in Neural
+       Information Processing Systems (pp. 2310–2318).
+       http://www.idsia.ch/idsiareport/IDSIA-04-13.pdf
+
+    Parameters
+    ----------
+    block_size: Number of units in each block.
+
+    Notes
+    ----------
+    Our implementation differs slightly from Rupesh Srivastava et al.'s -- we
+    break ties by last index, they break them by earliest index. This
+    difference is just due to ease of implementation in theano.
+    """
+
     def __init__(self, block_size, **kwargs):
         super(LWTA, self).__init__(**kwargs)
         self.block_size = block_size
 
+    @wraps(Layer.fprop)
     def fprop(self, state_below):
         p = super(LWTA, self).fprop(state_below)
         w = lwta(p, self.block_size)

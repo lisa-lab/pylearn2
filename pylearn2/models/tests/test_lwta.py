@@ -1,12 +1,17 @@
+"""
+Tests of the LWTA functionality.
+"""
 __author__ = "Ian Goodfellow, Minh Ngoc Le"
+
 import numpy as np
 from pylearn2.utils import sharedX
 from pylearn2.models.lwta import lwta
 
+
 def test_lwta():
-    
+
     """Test simple cases."""
-    
+
     example_input = np.zeros((2, 6))
 
     # begin block
