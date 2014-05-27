@@ -3,12 +3,15 @@ Tests of the LWTA functionality.
 """
 __author__ = "Ian Goodfellow, Minh Ngoc Le"
 
+import os
 import numpy as np
+import pylearn2
 from pylearn2.utils import sharedX
 from pylearn2.models.lwta import lwta
+from pylearn2.scripts.tests.yaml_testing import limited_epoch_train
 
 
-def test_lwta():
+def test_lwta_simple():
 
     """Test simple cases."""
 
@@ -40,3 +43,8 @@ def test_lwta():
     assert np.allclose(output[0, 3], -0.1) or np.allclose(output[0, 5], -0.1)
     assert np.allclose(output[1, 0], 5.0)
     assert np.allclose(output[1, 5], 2.0)
+
+
+def test_lwta_yaml():
+    limited_epoch_train(os.path.join(pylearn2.__path__[0],
+                                     "models/tests/lwta.yaml"))
