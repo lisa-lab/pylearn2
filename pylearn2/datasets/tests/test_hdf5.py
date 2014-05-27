@@ -52,7 +52,7 @@ trainer_yaml = """
                  !obj:pylearn2.models.mlp.Softmax {
                      max_col_norm: 1.9365,
                      layer_name: 'y',
-                     n_classes: 10,
+                     n_classes: 1,
                      irange: .005
                  }
                 ],
