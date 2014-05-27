@@ -258,6 +258,7 @@ class GridSearch(object):
                     break
                 if (isinstance(extension, MonitorBasedSaveBest) and
                         extension.channel_name == self.monitor_channel):
+                    assert extension.higher_is_better == self.higher_is_better
                     models[i] = extension.best_model
                     found = True
             if not found:
@@ -289,13 +290,13 @@ class GridSearch(object):
 
         The first dimension of self.best_models is the fold index.
         """
-        models = np.zeros((len(self.trainers), len(self.trainers[0].trainers)),
+        models = np.zeros((len(self.trainers[0].trainers), len(self.trainers)),
                           dtype=object)
         params = []
         scores = []
         if self.n_best is not None:
-            best_models = np.zeros((len(self.trainers), min(
-                self.n_best, len(self.trainers[0].trainers))), dtype=object)
+            best_models = np.zeros((len(self.trainers[0].trainers), min(
+                self.n_best, len(self.trainers))), dtype=object)
         else:
             best_models = None
         best_params = []
