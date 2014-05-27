@@ -431,19 +431,29 @@ class GridSearch(object):
             Keyword arguments for IPython.parallel.Client.
         """
         trainers = []
-        for params in np.atleast_1d(self.best_params):
-            trainer = yaml_parse.load(self.template % params)
-            if isinstance(trainer, TrainCV):
-                assert isinstance(self.retrain_dataset, DatasetCV)
-                for datasets, this_trainer in zip(self.retrain_dataset,
-                                                  trainer.trainers):
+
+        # cross-validation: best model(s) from each fold
+        # reassign TrainCV trainers to match best parameters for each fold
+        if np.asarray(self.best_params).ndim == 2:
+            assert isinstance(self.retrain_dataset, DatasetCV)
+            for k, datasets in enumerate(self.retrain_dataset):
+                trainer = None
+                this_trainers = []
+                for params in self.best_params[k]:
+                    trainer = yaml_parse.load(self.template % params)
+                    this_trainer = trainer.trainers[k]
                     this_trainer.dataset = datasets['train']
                     this_trainer.algorithm._set_monitoring_dataset(datasets)
-            else:
+                    this_trainers.append(this_trainer)
+                trainer.trainers = this_trainers
+                trainers.append(trainer)
+        else:
+            for params in self.params:
+                trainer = yaml_parse.load(self.template % params)
                 trainer.dataset = self.retrain_dataset
                 trainer.algorithm._set_monitoring_dataset(
                     {'train': self.retrain_dataset})
-            trainers.append(trainer)
+                trainers.append(trainer)
         trainers = batch_train(trainers, time_budget, parallel, client_kwargs)
         return trainers
 
