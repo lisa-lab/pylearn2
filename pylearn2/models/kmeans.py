@@ -7,6 +7,7 @@ from pylearn2.models.model import Model
 from pylearn2.space import VectorSpace
 from pylearn2.utils import sharedX
 from pylearn2.utils.mem import TypicalMemoryError
+from pylearn2.utils import wraps
 import warnings
 
 try:
@@ -48,6 +49,7 @@ class KMeans(Block, Model):
         self.input_space = VectorSpace(nvis)
 
         self.k = k
+        self.mu = None
         self.convergence_th = convergence_th
         if max_iter:
             if max_iter < 0:
@@ -73,7 +75,7 @@ class KMeans(Block, Model):
             WRITEME
         """
 
-        #TODO-- why does this sometimes return X and sometimes return nothing?
+        # TODO-- why does this sometimes return X and sometimes return nothing?
 
         X = dataset.get_design_matrix()
 
@@ -81,16 +83,17 @@ class KMeans(Block, Model):
         k = self.k
 
         if milk is not None:
-            #use the milk implementation of k-means if it's available
-            cluster_ids, mu = milk.kmeans(X,k)
+            # use the milk implementation of k-means if it's available
+            cluster_ids, mu = milk.kmeans(X, k)
         else:
-            #our own implementation
+            # our own implementation
 
             # taking random inputs as initial clusters if user does not provide
             # them.
             if mu is not None:
                 if not len(mu) == k:
-                    raise Exception('You gave %i clusters, but k=%i were expected'
+                    raise Exception("You gave %i clusters"
+                                    ", but k=%i were expected"
                                     % (len(mu), k))
             else:
                 indices = numpy.random.randint(X.shape[0], size=k)
@@ -111,13 +114,13 @@ class KMeans(Block, Model):
                 if self.verbose:
                     logger.info('kmeans iter {0}'.format(iter))
 
-                #print 'iter:',iter,' conv crit:',abs(mmd-prev_mmd)
-                #if numpy.sum(numpy.isnan(mu)) > 0:
+                # print 'iter:',iter,' conv crit:',abs(mmd-prev_mmd)
+                # if numpy.sum(numpy.isnan(mu)) > 0:
                 if numpy.any(numpy.isnan(mu)):
                     logger.info('nan found')
                     return X
 
-                #computing distances
+                # computing distances
                 for i in xrange(k):
                     dists[:, i] = numpy.square((X - mu[i, :])).sum(axis=1)
 
@@ -126,20 +129,20 @@ class KMeans(Block, Model):
 
                 min_dists = dists.min(axis=1)
 
-                #mean minimum distance:
+                # mean minimum distance:
                 mmd = min_dists.mean()
 
                 logger.info('cost: {0}'.format(mmd))
 
-                if iter > 0 and (iter >= self.max_iter or \
-                                        abs(mmd - prev_mmd) < self.convergence_th):
-                    #converged
+                if iter > 0 and (iter >= self.max_iter or
+                                 abs(mmd - prev_mmd) < self.convergence_th):
+                    # converged
                     break
 
-                #finding minimum distances
+                # finding minimum distances
                 min_dist_inds = dists.argmin(axis=1)
 
-                #computing means
+                # computing means
                 i = 0
                 blacklist = []
                 new_kills = {}
@@ -147,8 +150,8 @@ class KMeans(Block, Model):
                     b = min_dist_inds == i
                     if not numpy.any(b):
                         killed_on_prev_iter = True
-                        #initializes empty cluster to be the mean of the d data
-                        #points farthest from their corresponding means
+                        # initializes empty cluster to be the mean of the d
+                        # data points farthest from their corresponding means
                         if i in old_kills:
                             d = old_kills[i] - 1
                             if d == 0:
@@ -160,18 +163,18 @@ class KMeans(Block, Model):
                         for j in xrange(d):
                             idx = numpy.argmax(min_dists)
                             min_dists[idx] = 0
-                            #chose point idx
+                            # chose point idx
                             mu[i, :] += X[idx, :]
                             blacklist.append(idx)
                         mu[i, :] /= float(d)
-                        #cluster i was empty, reset it to d far out data points
-                        #recomputing distances for this cluster
+                        # cluster i was empty, reset it to d far out data
+                        # points recomputing distances for this cluster
                         dists[:, i] = numpy.square((X - mu[i, :])).sum(axis=1)
                         min_dists = dists.min(axis=1)
                         for idx in blacklist:
                             min_dists[idx] = 0
                         min_dist_inds = dists.argmin(axis=1)
-                        #done
+                        # done
                         i += 1
                     else:
                         mu[i, :] = numpy.mean(X[b, :], axis=0)
@@ -184,10 +187,15 @@ class KMeans(Block, Model):
 
                 iter += 1
 
-
-        self.mu = sharedX( mu )
-        self._params = [ self.mu ]
+        self.mu = sharedX(mu)
+        self._params = [self.mu]
         return True
+
+    @wraps(Model.continue_learning)
+    def continue_learning(self):
+        # One call to train_all currently trains the model fully,
+        # so return False immediately.
+        return False
 
     def get_params(self):
         """
@@ -195,14 +203,13 @@ class KMeans(Block, Model):
 
             WRITEME
         """
-        #patch older pkls
+        # patch older pkls
         if not hasattr(self.mu, 'get_value'):
             self.mu = sharedX(self.mu)
         if not hasattr(self, '_params'):
-            self._params = [ self.mu ]
+            self._params = [self.mu]
 
-        return [ param for param in self._params ]
-
+        return [param for param in self._params]
 
     def __call__(self, X):
         """
@@ -239,7 +246,7 @@ class KMeans(Block, Model):
 
             WRITEME
         """
-        return ['h','v']
+        return ['h', 'v']
 
     # Use version defined in Model, rather than Block (which raises
     # NotImplementedError).
