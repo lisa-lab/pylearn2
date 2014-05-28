@@ -27,12 +27,18 @@ class TestHDF5Dataset(unittest.TestCase):
 
     def test_hdf5(self):
         """Run trainer main loop."""
-        self.train.main_loop()
+        try:
+            self.train.main_loop()
+        except ValueError as e:
+            msg = str(e) + '\nMake sure that the model and dataset have been initialized with correct values. Both are defined in datasets/tests/test_hdf5.py'
+            raise ValueError(msg)
 
     def tearDown(self):
         os.remove("train.h5")
 
 # trainer is a modified version of scripts/papers/maxout/mnist_pi.yaml
+# The MNIST dataset is used, however, only the first 100 examples are
+# manipulated and only 1 class is contained.
 trainer_yaml = """
 !obj:pylearn2.train.Train {
     dataset: &train !obj:pylearn2.datasets.hdf5.HDF5Dataset {
