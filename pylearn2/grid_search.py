@@ -80,6 +80,8 @@ def batch_train(trainers, time_budget=None, parallel=False,
 
             Parameters
             ----------
+            trainer : Train
+                Trainer.
             time_budget : int, optional
                 The maximum number of seconds before interrupting
                 training. Default is `None`, no time limit.
@@ -101,16 +103,21 @@ def batch_train(trainers, time_budget=None, parallel=False,
             if save_trainers:
                 trainers_.append(trainer)
             if isinstance(trainer, TrainCV):
-                call = view.map(_train, trainer.trainers, block=False)
+                trainer.setup()
+                call = view.map(
+                    _train, zip(trainer.trainers,
+                                [time_budget] * len(trainer.trainers)),
+                    block=False)
                 calls.append(call)
             else:
-                call = view.map(_train, [trainer], block=False)
+                call = view.map(_train, [(trainer, time_budget)], block=False)
                 calls.append(call)
         if save_trainers:
             trainers = trainers_
         for i, (trainer, call) in enumerate(zip(trainers, calls)):
             if isinstance(trainer, TrainCV):
                 trainers[i].trainers = call.get()
+                trainers[i].save()
             else:
                 trainers[i], = call.get()
     else:
