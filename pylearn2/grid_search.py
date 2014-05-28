@@ -18,7 +18,7 @@ __maintainer__ = "Steven Kearnes"
 import numpy as np
 import os
 import sys
-from types import GeneratorType
+import types
 import warnings
 try:
     from sklearn.grid_search import ParameterGrid
@@ -68,7 +68,7 @@ def batch_train(trainers, time_budget=None, parallel=False,
         Keyword arguments for IPython.parallel.Client.
     """
     save_trainers = False
-    if isinstance(trainers, GeneratorType):
+    if isinstance(trainers, types.GeneratorType):
         save_trainers = True
         trainers_ = []
     if parallel:
