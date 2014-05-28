@@ -133,7 +133,7 @@ class MonitorBasedSaveBest(TrainExtension):
         self._tag_key = tag_key
 
         # placeholders
-        self.best_cost = np.inf
+        self.best_cost = self.coeff * np.inf
         self.best_model = None
 
     def setup(self, model, dataset, algorithm):
