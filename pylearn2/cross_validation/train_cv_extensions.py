@@ -56,14 +56,15 @@ class MonitorBasedSaveBestCV(TrainCVExtension):
         true.
     store_best_model : bool, optional
         Whether to store the best model in memory. If False (the default),
-        save_path must be defined.
+        save_path must be defined. Note that the best model from each child
+        trainer must be accessed through the extensions for that trainer.
     higher_is_better : bool, optional
         Whether a higher channel value indicates a better model.
     save_folds : bool
         Whether to write individual files for each cross-validation fold.
         Only used if save_path is not None.
     """
-    def __init__(self, channel_name, save_path=None, store_best_model=None,
+    def __init__(self, channel_name, save_path=None, store_best_model=False,
                  higher_is_better=False, save_folds=False):
         self.channel_name = channel_name
         assert save_path is not None or store_best_model, (
