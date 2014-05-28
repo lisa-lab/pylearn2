@@ -51,17 +51,26 @@ class MonitorBasedSaveBestCV(TrainCVExtension):
     ----------
     channel_name : str
         Channel to monitor.
-    save_path : str
-        Output filename.
-    higher_is_better : bool
+    save_path : str or None, optional
+        Output filename. If None (the default), store_best_model must be
+        true.
+    store_best_model : bool, optional
+        Whether to store the best model in memory. If False (the default),
+        save_path must be defined.
+    higher_is_better : bool, optional
         Whether a higher channel value indicates a better model.
     save_folds : bool
         Whether to write individual files for each cross-validation fold.
+        Only used if save_path is not None.
     """
-    def __init__(self, channel_name, save_path, higher_is_better=False,
-                 save_folds=False):
+    def __init__(self, channel_name, save_path=None, store_best_model=None,
+                 higher_is_better=False, save_folds=False):
         self.channel_name = channel_name
+        assert save_path is not None or store_best_model, (
+            "Either save_path must be defined or store_best_model must be " +
+            "True. (Or both.)")
         self.save_path = save_path
+        self.store_best_model = store_best_model
         self.higher_is_better = higher_is_better
         self.best_cost = np.inf
         self.best_model = None
@@ -77,7 +86,7 @@ class MonitorBasedSaveBestCV(TrainCVExtension):
             List of Train objects belonging to the parent TrainCV object.
         """
         for k, trainer in enumerate(trainers):
-            if self.save_folds:
+            if self.save_path is not None and self.save_folds:
                 path, ext = os.path.splitext(self.save_path)
                 save_path = path + '-{}'.format(k) + ext
             else:
@@ -96,6 +105,8 @@ class MonitorBasedSaveBestCV(TrainCVExtension):
         trainers : list
             List of Train objects belonging to the parent TrainCV object.
         """
+        if self.save_path is None:
+            return
         models = []
         for trainer in trainers:
             for extension in trainer.extensions:
