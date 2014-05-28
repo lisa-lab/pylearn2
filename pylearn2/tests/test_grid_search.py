@@ -136,6 +136,12 @@ test_grid_search_train_cv_yaml = """
             max_epochs: 1,
           },
       },
+      cv_extensions: [
+    !obj:pylearn2.cross_validation.train_cv_extensions.MonitorBasedSaveBestCV {
+          channel_name: train_objective,
+          store_best_model: 1,
+        },
+      ],
     }",
   param_grid: {
     dim: [2, 4, 8]
