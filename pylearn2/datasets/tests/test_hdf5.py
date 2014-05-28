@@ -31,7 +31,7 @@ class TestHDF5Dataset(unittest.TestCase):
             self.train.main_loop()
         except ValueError as e:
             msg = str(e) + '\nMake sure that the model and dataset have '\
-                'been initialized with correct values. Both are defined'\
+                'been initialized with correct values. Both are defined '\
                 'in datasets/tests/test_hdf5.py'
             raise ValueError(msg)
 
