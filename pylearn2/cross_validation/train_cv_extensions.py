@@ -60,12 +60,15 @@ class MonitorBasedSaveBestCV(TrainCVExtension):
         trainer must be accessed through the extensions for that trainer.
     higher_is_better : bool, optional
         Whether a higher channel value indicates a better model.
+    tag_key : str, optional
+        Unique key to associate with the best model. If provided, this key
+        will be modified to have a unique value for each child model.
     save_folds : bool
         Whether to write individual files for each cross-validation fold.
         Only used if save_path is not None.
     """
     def __init__(self, channel_name, save_path=None, store_best_model=False,
-                 higher_is_better=False, save_folds=False):
+                 higher_is_better=False, tag_key=None, save_folds=False):
         self.channel_name = channel_name
         assert save_path is not None or store_best_model, (
             "Either save_path must be defined or store_best_model must be " +
@@ -75,6 +78,7 @@ class MonitorBasedSaveBestCV(TrainCVExtension):
         self.higher_is_better = higher_is_better
         self.best_cost = np.inf
         self.best_model = None
+        self.tag_key = tag_key
         self.save_folds = save_folds
 
     def setup(self, trainers):
@@ -92,9 +96,13 @@ class MonitorBasedSaveBestCV(TrainCVExtension):
                 save_path = path + '-{}'.format(k) + ext
             else:
                 save_path = None
+            if self.tag_key is not None:
+                tag_key = '{}-{}'.format(self.tag_key, k)
+            else:
+                tag_key = None
             extension = MonitorBasedSaveBest(
                 self.channel_name, save_path=save_path, store_best_model=True,
-                higher_is_better=self.higher_is_better)
+                higher_is_better=self.higher_is_better, tag_key=tag_key)
             trainer.extensions.append(extension)
 
     def on_save(self, trainers):
