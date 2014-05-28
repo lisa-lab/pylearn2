@@ -17,13 +17,6 @@
         "learning_rate" : 1e-3,
         "batch_size" : 5,
         "monitoring_dataset" : *dataset,
-        cost : !obj:pylearn2.costs.cost.SumOfCosts { 
-            costs: [
-                [1.0, !obj:pylearn2.costs.autoencoder.MeanBinaryCrossEntropy {} ],
-                [0.1, !obj:pylearn2.costs.cost.MethodCost { method: 'contraction_penalty' } ]
-            ]
-        },
-
         "cost" : !obj:pylearn2.costs.cost.SumOfCosts { 
             "costs": [
                 [1.0, !obj:pylearn2.costs.autoencoder.MeanBinaryCrossEntropy {} ],
