@@ -27,7 +27,7 @@ def improve_memory_error_message(error, msg=""):
     Raises a TypicalMemoryError if the MemoryError has no messages
 
     Parameters
-    ---------
+    ----------
     error: MemoryError
         An instance of MemoryError
     msg: string
