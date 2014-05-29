@@ -88,13 +88,14 @@ test_grid_search_yaml = """
   monitor_channel: train_objective,
   n_best: 1,
   retrain: 1,
-  retrain_dataset:
+  retrain_kwargs: { 'dataset':
     !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix {
       rng: !obj:numpy.random.RandomState { seed: 1 },
       num_examples: 10,
       dim: 10,
       num_classes: 2,
     },
+  },
 }
 """
 
@@ -149,7 +150,7 @@ test_grid_search_train_cv_yaml = """
   monitor_channel: train_objective,
   n_best: 1,
   retrain: 1,
-  retrain_dataset:
+  retrain_kwargs: { 'dataset_iterator':
     !obj:pylearn2.cross_validation.dataset_iterators.DatasetKFold {
     dataset:
       !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix {
@@ -159,6 +160,7 @@ test_grid_search_train_cv_yaml = """
         num_classes: 2,
       },
     },
+  },
 }
 """
 
