@@ -275,7 +275,9 @@ class StratifiedDatasetKFold(StratifiedDatasetCV):
         except TypeError:
             assert not shuffle and not random_state, (
                 "The 'shuffle' and 'random_state' arguments are not " +
-                "supported by this version of sklearn.")
+                "supported by this version of sklearn. See "
+                "http://scikit-learn.org/stable/developers/index.html" +
+                "#git-repo for details on installing the development version.")
             cv = StratifiedKFold(y, n_folds=n_folds)
         super(StratifiedDatasetKFold, self).__init__(dataset, cv, **kwargs)
 

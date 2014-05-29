@@ -121,7 +121,9 @@ class StratifiedValidationKFold(StratifiedKFold):
         except TypeError:
             assert not shuffle and not random_state, (
                 "The 'shuffle' and 'random_state' arguments are not " +
-                "supported by this version of sklearn.")
+                "supported by this version of sklearn. See "
+                "http://scikit-learn.org/stable/developers/index.html" +
+                "#git-repo for details on installing the development version.")
             super(StratifiedValidationKFold, self).__init__(y, n_folds=n_folds)
 
     def __iter__(self):
