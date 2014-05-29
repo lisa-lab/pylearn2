@@ -1,0 +1,94 @@
+.. _faq:
+
+======
+F.A.Q.
+======
+
+We are so thrilled that number of Pylearn2 users is growing each day. With growth there is 
+a heavier traffic on the mailing list. Pylearn2 and its mailing list are mainly maintained by 
+graduate students at LISA lab. Each one of us has their own research projects and hopefully 
+some life outside the lab. Our resources are limited and we prefer these limited resources 
+to be invested in fixing real bugs and answering relevant questions. Also please notice that replying to 
+the mailing list is out of courtesy of the pylearn2 developers. Please read below FAQ 
+section before posting a question to the mailing list.
+
+
+F.A.Q.
+======
+
+#. *How do I set PYTHONPATH, I'm Python newbie, etc?*
+    If you do not have much experience with python, Theano, Linux shell, 
+    setting environmental variables and other basics, please spend some time 
+    learning them. A simple google search usually will answer your question 
+    and places like stackoverflow are an excellent resources for these sort of questions.
+
+#. *I'm getting errors like: Unrecognized environment variable PYLEARN2...*
+    Take a look at here :ref:`here <data_path>`. for list of pylearn2 environmental variables.
+
+#. *How do you solve my X machine learning problem?*
+    As stated here :ref:`here <welcome_vision>`., the library is mainly 
+    intended for ML researchers, nonetheless we are happy that the user scope is 
+    larger now. But if you have machine learning problem or a research question, 
+    places like metaoptimze, Google Plus Machine learning and Deep Learning groups 
+    would be the appropriate places to ask. And if you can't find your answers there, 
+    perhaps you need to hire a ML consultant.
+
+#. *My model doesn't work, doesn't seems to be learning, etc.*
+    Most of the models in ML have a set of hyper-parameters that need to be tuned. 
+    The expertise of how to tune those comes from better understanding of the theory and experience. 
+    There is some research in this area, search for hyper-parameter optimization in literature. 
+    Using the right model for the right data, proper data pre-processing are other factors that should be paid attention to. 
+
+#. *Is model X implemented? Is feature Y supported?*
+    Search through the documentation pages and source codes. grep and find are your saviors. 
+    If nothing comes up, probably it is not developed yet. We will receive your pull request 
+    with open arms if you implement what you were looking for.
+
+#. *Method X has no documentation?*
+    Pylearn2 is under rapid development to fit the needs of LISA members' research. 
+    Sometimes we have shipped a feature fast without documentation. 
+    But now there are unit-tests at work that will prevent any new PR without 
+    documentation to be merged. Hopefully soon the whole library will be well documented. 
+    We always welcome pull requests adding documentation and tutorials and are more 
+    likely to answer questions about how to use undocumented methods if you're asking 
+    because you're working on a documentation pull request
+
+#. *I went through all questions here, and still can't find my answer?*
+    Before posting your question, search the mailing list archive, 
+    someone might have answered your question already there.
+
+#. *Should I write to pylearn-dev or pylearn-users?*
+    If you have found a bug or want to develop a new feature pyelarn2-dev 
+    list would be the right list. All other questions should go to pylearn-users.
+
+#. *I found a bug, how do I report it?*
+    We can't read your mind yet, nor do we have access to NSA data. 
+    So please follow these instructions before reporting a bug so that we can understand 
+    it better and reproduce the error.
+
+    #. Are you using the latest version of Pylearn2 and Theano? By latest version we mean, 
+        the latest development version from the git repo. Both Pylearn2 and Theano are under 
+        active development, please take a moment to update them and see if the error 
+        still exists. :ref:`here <install>`.
+    #. Have you tried to figure out what's the source of the error? 
+        Pylearn2 is not a end-user customer product, it's an open source library, 
+        try to dig into soure code and find the cause of the error
+    #. If you followed steps 1 and 2 and found a real bug, please write down a 
+        detailed procedure for reproducing the error. The code, the command to execute it and the whole error stack trace.
+    #. Please only use plain-text in the email and avoid using formatting or attaching screenshots.
+
+#. *I have new feature to add, I have fixed a bug, how do I send a pull request?*
+    Look at :ref:`here <dev_start_guide>`.
+
+#. *I posted a question and haven't heard back for so long!*
+    #. Are you sure your question was not covered here?
+    #. Is it near ICML, NIPS or ICLR deadline, or is it summer? LISA members 
+        will be very busy during conference deadlines, and many students do summer internships. 
+        So unfortunately during those times it might take longer to answer your questions.
+
+#. *I have this problem in Windows.*
+    None of us work in Windows or even have access to it. But feel free to 
+    post your question, maybe some of the other users might be able to help you.
+
+#. *My prof has given us this assignment, could you help me PLEASE, PLEASE, PLEASE ^_^*
+    You would be flagged as moderated.
