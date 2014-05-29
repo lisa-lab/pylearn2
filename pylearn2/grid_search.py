@@ -49,6 +49,33 @@ def random_seeds(size, random_state=None):
     return seeds
 
 
+def get_model(trainer, channel_name=None, higher_is_better=False):
+    """
+    Extract the model(s) from this trainer, possibly taking the best model
+    from MonitorBasedSaveBest.
+
+    Parameters
+    ----------
+    trainer : Train or TrainCV
+        Trainer.
+    channel_name : str, optional
+        Monitor channel to match in MonitorBasedSaveBest.
+    higher_is_better : bool, optional
+        Whether higher channel values indicate better models (default
+        False).
+    """
+    found = False
+    for extension in trainer.extensions:
+        if found:
+            break
+        if (isinstance(extension, MonitorBasedSaveBest) and
+                extension.channel_name == self.monitor_channel):
+            assert extension.higher_is_better == self.higher_is_better
+            models[i] = extension.best_model
+            found = True
+    if not found:
+        models[i] = trainer.model
+
 def batch_train(trainers, time_budget=None, parallel=False,
                 client_kwargs=None):
     """
@@ -202,6 +229,8 @@ class GridSearch(object):
         self.best_models = None
         self.best_params = None
         self.best_scores = None
+        self.retrain_trainers = None
+        self.retrain_models = None
 
     def get_trainers(self, param_grid):
         """
@@ -368,46 +397,27 @@ class GridSearch(object):
                                     client_kwargs)
         self.get_best_models()
         if self.retrain:
-            trainers = self.retrain_best_models(time_budget, parallel,
-                                                client_kwargs)
-            self.save(trainers)
+            self.retrain_best_models(time_budget, parallel, client_kwargs)
+        self.save()
+
+    def save(self):
+        """Serialize best-scoring models."""
+        if self.retrain_trainers is not None:
+            trainers = self.retrain_trainers
         else:
-            self.save()
-
-    def save(self, trainers=None):
-        """
-        Serialize best-scoring models.
-
-        Parameters
-        ----------
-        trainers : list or None
-            Parent trainer(s) of the model(s) to save. If None, defaults to
-            self.trainers.
-        """
-        if trainers is None:
             trainers = self.trainers
-            if self.best_models is not None:
-                models = self.best_models
-                params = self.best_params
-            else:
-                models = self.models
-                params = self.params
-        else:
-            if isinstance(trainers[0], TrainCV):
-                models = np.zeros((len(trainers[0].trainers), len(trainers)),
-                                  dtype=object)
-                for k in xrange(len(trainers[0].trainers)):
-                    for i, trainer in enumerate(trainers):
-                        models[k, i] = trainer.trainers[k].model
-            else:
-                models = np.zeros(len(trainers), dtype=object)
-                for i, trainer in enumerate(trainers):
-                    models[i] = trainer.model
-            assert self.best_params is not None
+        if self.retrain_models is not None:
+            models = self.retrain_models
             params = self.best_params
+        elif self.best_models is not None:
+            models = self.best_models
+            params = self.best_params
+        else:
+            models = self.models
+            params = self.params
         results = {'models': models, 'params': params}
 
-        # Train extensions
+        # handle Train extensions
         # TrainCV calls on_save automatically
         for trainer in trainers:
             if not isinstance(trainer, TrainCV):
@@ -483,7 +493,20 @@ class GridSearch(object):
                 trainer.algorithm._set_monitoring_dataset({'train': dataset})
                 trainers.append(trainer)
         trainers = batch_train(trainers, time_budget, parallel, client_kwargs)
-        return trainers
+
+        # extract model(s)
+        if isinstance(trainers[0], TrainCV):
+            models = np.zeros((len(trainers[0].trainers), len(trainers)),
+                              dtype=object)
+            for k in xrange(len(trainers[0].trainers)):
+                for i, trainer in enumerate(trainers):
+                    models[k, i] = trainer.trainers[k].model
+        else:
+            models = np.zeros(len(trainers), dtype=object)
+            for i, trainer in enumerate(trainers):
+                models[i] = trainer.model
+        self.retrain_trainers = trainers
+        self.retrain_models = models
 
 
 class GridSearchCV(GridSearch):
