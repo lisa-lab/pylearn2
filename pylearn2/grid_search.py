@@ -64,17 +64,17 @@ def get_model(trainer, channel_name=None, higher_is_better=False):
         Whether higher channel values indicate better models (default
         False).
     """
-    found = False
+    model = None
     for extension in trainer.extensions:
-        if found:
-            break
         if (isinstance(extension, MonitorBasedSaveBest) and
-                extension.channel_name == self.monitor_channel):
-            assert extension.higher_is_better == self.higher_is_better
-            models[i] = extension.best_model
-            found = True
-    if not found:
-        models[i] = trainer.model
+                extension.channel_name == channel_name):
+            assert extension.higher_is_better == higher_is_better
+            model = extension.best_model
+            break
+    if model is None:
+        model = trainer.model
+    return model
+
 
 def batch_train(trainers, time_budget=None, parallel=False,
                 client_kwargs=None):
@@ -301,17 +301,8 @@ class GridSearch(object):
         # test for MonitorBasedSaveBest
         models = np.zeros(len(trainers), dtype=object)
         for i, trainer in enumerate(trainers):
-            found = False
-            for extension in trainer.extensions:
-                if found:
-                    break
-                if (isinstance(extension, MonitorBasedSaveBest) and
-                        extension.channel_name == self.monitor_channel):
-                    assert extension.higher_is_better == self.higher_is_better
-                    models[i] = extension.best_model
-                    found = True
-            if not found:
-                models[i] = trainer.model
+            models[i] = get_model(trainer, self.monitor_channel,
+                                  self.higher_is_better)
         params = np.asarray(self.params)
         scores = None
         best_models = None
@@ -499,12 +490,15 @@ class GridSearch(object):
             models = np.zeros((len(trainers[0].trainers), len(trainers)),
                               dtype=object)
             for k in xrange(len(trainers[0].trainers)):
-                for i, trainer in enumerate(trainers):
-                    models[k, i] = trainer.trainers[k].model
+                for i, parent in enumerate(trainers):
+                    trainer = parent.trainers[k]
+                    models[k, i] = get_model(trainer, self.monitor_channel,
+                                             self.higher_is_better)
         else:
             models = np.zeros(len(trainers), dtype=object)
             for i, trainer in enumerate(trainers):
-                models[i] = trainer.model
+                models[i] = get_model(trainer, self.monitor_channel,
+                                      self.higher_is_better)
         self.retrain_trainers = trainers
         self.retrain_models = models
 
