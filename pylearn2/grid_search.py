@@ -68,7 +68,10 @@ def get_model(trainer, channel_name=None, higher_is_better=False):
     for extension in trainer.extensions:
         if (isinstance(extension, MonitorBasedSaveBest) and
                 extension.channel_name == channel_name):
+            # These are assertions and not part of the conditional since
+            # failures are likely to indicate errors in the input YAML.
             assert extension.higher_is_better == higher_is_better
+            assert extension.store_best_model
             model = extension.best_model
             break
     if model is None:
