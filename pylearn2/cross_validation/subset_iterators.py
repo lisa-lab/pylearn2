@@ -115,8 +115,14 @@ class StratifiedValidationKFold(StratifiedKFold):
             raise ValueError("k-fold cross-validation requires at least one " +
                              "train/valid/test split by setting n_folds=3 " +
                              "or more, got n_folds={}.".format(n_folds))
-        super(StratifiedValidationKFold, self).__init__(
-            y, n_folds=n_folds, shuffle=shuffle, random_state=random_state)
+        try:
+            super(StratifiedValidationKFold, self).__init__(
+                y, n_folds=n_folds, shuffle=shuffle, random_state=random_state)
+        except TypeError:
+            assert not shuffle and not random_state, (
+                "The 'shuffle' and 'random_state' arguments are not " +
+                "supported by this version of sklearn.")
+            super(StratifiedValidationKFold, self).__init__(y, n_folds=n_folds)
 
     def __iter__(self):
         """Yield train/valid/test splits."""
