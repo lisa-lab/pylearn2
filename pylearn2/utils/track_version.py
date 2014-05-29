@@ -156,6 +156,8 @@ class LibVersion(object):
             if len(modified):
                 version += ' M'
             return version
+        except:
+            pass
         finally:
             os.chdir(cwd_backup)
 
