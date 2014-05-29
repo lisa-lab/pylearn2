@@ -22,6 +22,25 @@ def get_memory_usage():
     return int(stdout_list[0])
 
 
+def improve_memory_error_message(error, msg=""):
+    """
+    Raises a TypicalMemoryError if the MemoryError has no messages
+
+    Parameters
+    ---------
+    error: MemoryError
+        An instance of MemoryError
+    msg: string
+        A message explaining what possibly happened
+    """
+    assert isinstance(error, MemoryError)
+
+    if str(error):
+        raise error
+    else:
+        raise TypicalMemoryError(msg)
+
+
 class TypicalMemoryError(MemoryError):
     """
     Memory error that could have been caused by typical errors such
