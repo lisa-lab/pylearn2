@@ -163,14 +163,14 @@ class GridSearch(object):
     retrain : bool
         Whether to retrain the best model(s). The training dataset is the
         union of the training and validation sets (if any).
-    retrain_dataset : Dataset or dataset_iterator
-        Dataset to use for retraining best model(s). Required if
-        retrain_best is True.
+    retrain_kwargs : dict, optional
+        Keyword arguments to modify the template trainer prior to
+        retraining. Must contain 'dataset' or 'dataset_iterator'.
     """
     def __init__(self, template, param_grid, save_path=None,
                  allow_overwrite=True, monitor_channel=None,
                  higher_is_better=False, n_best=None, retrain=False,
-                 retrain_dataset=None):
+                 retrain_kwargs=None):
         self.template = template
         for key, value in param_grid.items():
             param_grid[key] = np.atleast_1d(value)  # must be iterable
@@ -185,8 +185,10 @@ class GridSearch(object):
         self.retrain = retrain
         if retrain:
             assert n_best is not None
-            assert retrain_dataset is not None
-        self.retrain_dataset = retrain_dataset
+            assert retrain_kwargs is not None
+            assert ('dataset' in retrain_kwargs or
+                    'dataset_iterator' in retrain_kwargs)
+        self.retrain_kwargs = retrain_kwargs
 
         # construct a trainer for each grid point
         self.cv = False  # True if best_models is indexed by cv fold
@@ -454,8 +456,9 @@ class GridSearch(object):
         # cross-validation: best model(s) from each fold
         # reassign TrainCV trainers to match best parameters for each fold
         if np.asarray(self.best_params).ndim == 2:
-            assert isinstance(self.retrain_dataset, DatasetCV)
-            for k, datasets in enumerate(self.retrain_dataset):
+            dataset_iterator = self.retrain_kwargs['dataset_iterator']
+            assert isinstance(dataset_iterator, DatasetCV)
+            for k, datasets in enumerate(dataset_iterator):
                 trainer = None
                 this_trainers = []
                 for params in self.best_params[k]:
@@ -475,9 +478,9 @@ class GridSearch(object):
         else:
             for params in self.params:
                 trainer = yaml_parse.load(self.template % params)
-                trainer.dataset = self.retrain_dataset
-                trainer.algorithm._set_monitoring_dataset(
-                    {'train': self.retrain_dataset})
+                dataset = self.retrain_kwargs['dataset']
+                trainer.dataset = dataset
+                trainer.algorithm._set_monitoring_dataset({'train': dataset})
                 trainers.append(trainer)
         trainers = batch_train(trainers, time_budget, parallel, client_kwargs)
         return trainers
@@ -512,21 +515,27 @@ class GridSearchCV(GridSearch):
         Maximum number of models to save, ranked by monitor_channel value.
     retrain : bool
         Whether to train the best model(s).
-    retrain_dataset : Dataset, dict, or None
-        Dataset or dict of datasets to use for training best model(s). If
-        None, the dataset is extracted from TrainCV.dataset_iterator. If a
-        dict, it must contain a 'train' key.
+    retrain_kwargs : dict, optional
+        Keyword arguments to modify the template trainer prior to
+        retraining. If not provided when retrain is True, the dataset is
+        extracted from the template dataset_iterator. Otherwise,
+        retrain_kwargs must contain 'dataset', which can be a Dataset or
+        a dict containing at least a 'train' dataset.
     """
     def __init__(self, template, param_grid, save_path=None,
                  allow_overwrite=True, monitor_channel=None,
                  higher_is_better=False, n_best=None, retrain=True,
-                 retrain_dataset=None):
+                 retrain_kwargs=None):
         super(GridSearchCV, self).__init__(template, param_grid, save_path,
                                            allow_overwrite, monitor_channel,
                                            higher_is_better, n_best)
         self.cv = False  # True if best_models is indexed by cv fold
         self.retrain = retrain
-        self.retrain_dataset = retrain_dataset
+        if retrain_kwargs is not None:
+            assert 'dataset' in retrain_kwargs
+            if isinstance(retrain_kwargs['dataset'], dict):
+                assert 'train' in retrain_kwargs['dataset']
+        self.retrain_kwargs = retrain_kwargs
 
     def get_best_cv_models(self):
         """
@@ -571,8 +580,8 @@ class GridSearchCV(GridSearch):
         client_kwargs : dict or None
             Keyword arguments for IPython.parallel.Client.
         """
-        if self.retrain_dataset is not None:
-            dataset = self.retrain_dataset
+        if self.retrain_kwargs is not None:
+            dataset = self.retrain_kwargs['dataset']
         else:
             dataset = self.trainers[0].dataset_iterator.dataset
         trainers = []
