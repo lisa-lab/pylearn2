@@ -3,6 +3,7 @@
 
     WRITEME
 """
+from copy import deepcopy
 import logging
 import os.path
 import socket
@@ -92,36 +93,48 @@ class KeepBestParams(TrainExtension):
 
 class MonitorBasedSaveBest(TrainExtension):
     """
-    A callback that saves a copy of the model every time it achieves
-    a new minimal value of a monitoring channel.
+    A callback that saves a copy of the model every time it achieves a new
+    minimal value of a monitoring channel. Also stores the best model in
+    memory.
 
     Parameters
     ----------
     channel_name : str
-        The name of the channel we want to minimize
-    save_path : str
-        Path to save the best model to
+        The name of the monitor channel we want to minimize.
+    save_path : str or None, optional
+        Output filename for best model. If None (the default),
+        store_best_model must be True.
+    store_best_model : bool, optional
+        Whether to store the best model in memory. If False (the default),
+        save_path must be defined.
     higher_is_better : bool, optional
-        WRITEME
+        Whether a higher value of channel_name indicates a better model.
     tag_key : str, optional
         A unique key to use for storing diagnostic information in
         `model.tag`. If `None`, use the class name (default).
     """
-
-    def __init__(self, channel_name, save_path,higher_is_better=False,
-                 tag_key=None):
-        self.__dict__.update(locals())
-        del self.self
+    def __init__(self, channel_name, save_path=None, store_best_model=False,
+                 higher_is_better=False, tag_key=None):
+        self.channel_name = channel_name
+        assert save_path is not None or store_best_model, (
+            "Either save_path must be defined or store_best_model must be " +
+            "True. (Or both.)")
+        self.save_path = save_path
+        self.store_best_model = store_best_model
+        self.higher_is_better = higher_is_better
         if higher_is_better:
             self.coeff = -1.
         else:
             self.coeff = 1.
-        self.best_cost = np.inf
 
         # If no tag key is provided, use the class name by default.
         if tag_key is None:
             tag_key = self.__class__.__name__
         self._tag_key = tag_key
+
+        # placeholders
+        self.best_cost = self.coeff * np.inf
+        self.best_model = None
 
     def setup(self, model, dataset, algorithm):
         """
@@ -145,7 +158,9 @@ class MonitorBasedSaveBest(TrainExtension):
         # This only needs to be written once.
         model.tag[self._tag_key]['channel_name'] = self.channel_name
         # Useful information for locating the saved model.
-        model.tag[self._tag_key]['save_path'] = os.path.abspath(self.save_path)
+        if self.save_path is not None:
+            model.tag[self._tag_key]['save_path'] = os.path.abspath(
+                self.save_path)
         model.tag[self._tag_key]['hostname'] = socket.gethostname()
         self._update_tag(model)
 
@@ -164,19 +179,20 @@ class MonitorBasedSaveBest(TrainExtension):
         algorithm : TrainingAlgorithm
             Not used
         """
-
         monitor = model.monitor
         channels = monitor.channels
         channel = channels[self.channel_name]
         val_record = channel.val_record
-        new_cost = self.coeff * val_record[-1]
+        new_cost = val_record[-1]
 
-
-        if new_cost < self.best_cost:
+        if self.coeff * new_cost < self.coeff * self.best_cost:
             self.best_cost = new_cost
             # Update the tag of the model object before saving it.
             self._update_tag(model)
-            serial.save(self.save_path, model, on_overwrite = 'backup')
+            if self.store_best_model:
+                self.best_model = deepcopy(model)
+            if self.save_path is not None:
+                serial.save(self.save_path, model, on_overwrite='backup')
 
     def _update_tag(self, model):
         """
