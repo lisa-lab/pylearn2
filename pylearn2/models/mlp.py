@@ -261,14 +261,6 @@ class Layer(Model):
         raise NotImplementedError(str(type(self)) +
                                   " does not implement mlp.Layer.cost_matrix")
 
-    def get_weights(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        raise NotImplementedError
-
     def set_weights(self, weights):
         """
         Sets the weights of the layer.
@@ -410,7 +402,7 @@ class MLP(Layer):
         Number of "visible units" (input units). Equivalent to specifying
         `input_space=VectorSpace(dim=nvis)`. Note that certain methods require
         a different type of input space (e.g. a Conv2Dspace in the case of
-        convnets). Use the input_space parameter in such cases. Should be 
+        convnets). Use the input_space parameter in such cases. Should be
         None if the MLP is part of another MLP.
     input_space : Space object, optional
         A Space specifying the kind of input the MLP accepts. If None,
