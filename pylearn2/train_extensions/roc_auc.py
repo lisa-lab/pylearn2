@@ -93,7 +93,7 @@ class RocAucChannel(TrainExtension):
     ----------
     suffix : str, optional (default 'roc_auc')
         Channel name suffix.
-    positive_class_index : int, optional (default=1)
+    positive_class_index : int, optional (default 1)
         Index of positive class in predicted values.
     """
     def __init__(self, suffix='roc_auc', positive_class_index=1):
