@@ -4532,6 +4532,12 @@ class CompositeLayer(Layer):
 
         return rval
 
+    @wraps(Model._modify_updates)
+    def _modify_updates(self, updates):
+        for layer in self.layers:
+            layer.modify_updates(updates)
+
+
 
 class FlattenerLayer(Layer):
     """
