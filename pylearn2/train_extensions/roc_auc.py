@@ -91,10 +91,13 @@ class RocAucChannel(TrainExtension):
 
     Parameters
     ----------
-    positive_class_index : int (default=1)
+    suffix : str, optional (default 'roc_auc')
+        Channel name suffix.
+    positive_class_index : int, optional (default=1)
         Index of positive class in predicted values.
     """
-    def __init__(self, positive_class_index=1):
+    def __init__(self, suffix='roc_auc', positive_class_index=1):
+        self.suffix = suffix
         self.positive_class_index = positive_class_index
 
     def setup(self, model, dataset, algorithm):
@@ -121,9 +124,9 @@ class RocAucChannel(TrainExtension):
         roc_auc = T.cast(roc_auc, config.floatX)
         for dataset_name, dataset in algorithm.monitoring_dataset.items():
             if dataset_name:
-                channel_name = '{}_y_roc_auc'.format(dataset_name)
+                channel_name = '{}_{}'.format(dataset_name, self.suffix)
             else:
-                channel_name = 'y_roc_auc'
+                channel_name = self.suffix
             model.monitor.add_channel(name=channel_name,
                                       ipt=(state, target),
                                       val=roc_auc,
