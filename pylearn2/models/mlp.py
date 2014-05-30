@@ -146,9 +146,9 @@ class Layer(Model):
             A dictionary mapping channel names to monitoring channels of
             interest for this layer.
         """
-        warnings.warn("Layer.get_monitoring_channels is " + \
+        warnings.warn("Layer.get_monitoring_channels_from_state is " + \
                     "deprecated. Use get_layer_monitoring_channels " + \
-                    "instead. Layer.get_monitoring_channels " + \
+                    "instead. Layer.get_monitoring_channels_from_state " + \
                     "will be removed on or after september 24th 2014",
                     stacklevel=2)
 
