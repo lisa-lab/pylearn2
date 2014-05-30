@@ -4497,6 +4497,41 @@ class CompositeLayer(Layer):
         for layer in self.layers:
             layer.set_mlp(mlp)
 
+    @wraps(Layer.get_layer_monitoring_channels)
+    def get_layer_monitoring_channels(self, state_below=None,
+                                    state=None, targets=None):
+        rval = OrderedDict()
+        # TODO: reduce redundancy with fprop method
+        for i, layer in enumerate(self.layers):
+            if self.routing_needed and i in self.layers_to_inputs:
+                cur_state_below = [state_below[j]
+                                   for j in self.layers_to_inputs[i]]
+                # This is to mimic the behavior of CompositeSpace's restrict
+                # method, which only returns a CompositeSpace when the number
+                # of components is greater than 1
+                if len(cur_state_below) == 1:
+                    cur_state_below, = cur_state_below
+            else:
+                cur_state_below = state_below
+
+            if state is not None:
+                cur_state = state[i]
+            else:
+                cur_state = None
+
+            if targets is not None:
+                cur_targets = targets[i]
+            else:
+                cur_targets = None
+
+            d = layer.get_layer_monitoring_channels(cur_state_below,
+                    cur_state, cur_targets)
+
+            for key in d:
+                rval[layer.layer_name + '_' + key] = d[key]
+
+        return rval
+
 
 class FlattenerLayer(Layer):
     """
