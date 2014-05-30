@@ -12,7 +12,7 @@ import time
 import warnings
 import sys
 from pylearn2.utils.string_utils import preprocess
-from pylearn2.utils.mem import TypicalMemoryError
+from pylearn2.utils.mem import improve_memory_error_message
 from cPickle import BadPickleGet
 io = None
 hdf_reader = None
@@ -156,7 +156,7 @@ def load(filepath, recurse_depth=0, retry=True):
                 if os.path.exists(filepath) and not os.path.isdir(filepath):
                     raise
                 raise_cannot_open(filepath)
-    except MemoryError, e:
+    except MemoryError as e:
         # We want to explicitly catch this exception because for MemoryError
         # __str__ returns the empty string, so some of our default printouts
         # below don't make a lot of sense.
@@ -165,15 +165,14 @@ def load(filepath, recurse_depth=0, retry=True):
         # that makes it clear this exception is caused by their machine not
         # meeting requirements.
         if os.path.splitext(filepath)[1] == ".pkl":
-            raise TypicalMemoryError("You do not have enough memory to open "
-                                     "%s \n + Try using numpy.{save,load} (file "
-                                     "with extension '.npy') to save your file. "
-                                     "It uses less memory"
-                                     " when reading and writing files than "
-                                     "pickled files." % filepath)
+            improve_memory_error_message(e, 
+                "You do not have enough memory to open %s \n"
+                " + Try using numpy.{save,load} (file with extension '.npy') "
+                "to save your file. It uses less memory when reading and "
+                "writing files than pickled files." % filepath)
         else:
-            raise TypicalMemoryError("You do not have enough memory to open %s"
-                                     % filepath)
+            improve_memory_error_message(e, 
+                "You do not have enough memory to open %s" % filepath)
 
     except BadPickleGet, e:
         logger.exception('Failed to open {0} due to BadPickleGet '

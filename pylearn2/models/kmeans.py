@@ -6,7 +6,7 @@ from pylearn2.blocks import Block
 from pylearn2.models.model import Model
 from pylearn2.space import VectorSpace
 from pylearn2.utils import sharedX
-from pylearn2.utils.mem import TypicalMemoryError
+from pylearn2.utils.mem import improve_memory_error_message
 from pylearn2.utils import wraps
 import warnings
 
@@ -101,10 +101,11 @@ class KMeans(Block, Model):
 
             try:
                 dists = numpy.zeros((n, k))
-            except MemoryError:
-                raise TypicalMemoryError("dying trying to allocate dists "
-                                         "matrix for {0} examples and {1} "
-                                         "means".format(n, k))
+            except MemoryError as e:
+                improve_memory_error_message(e, "dying trying to allocate "
+                                                "dists matrix for {0} "
+                                                "examples and {1} "
+                                                "means".format(n, k))
 
             old_kills = {}
 

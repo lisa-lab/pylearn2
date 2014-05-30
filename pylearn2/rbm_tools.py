@@ -4,7 +4,7 @@ import theano
 from theano import tensor, config
 from theano.tensor import nnet
 from pylearn2.utils.rng import make_np_rng, make_theano_rng
-from pylearn2.utils.mem import TypicalMemoryError
+from pylearn2.utils.mem import improve_memory_error_message
 
 
 def compute_log_z(rbm, free_energy_fn, max_bits=15):
@@ -70,10 +70,11 @@ def compute_log_z(rbm, free_energy_fn, max_bits=15):
     # configurations.
     try:
         nFE = numpy.zeros(2 ** width, dtype=config.floatX)
-    except MemoryError:
-        raise TypicalMemoryError("failed to allocate free energy storage "
-                                 "array in compute_log_z; your model is too "
-                                 "big to use with this function")
+    except MemoryError as e:
+        improve_memory_error_message(e, 
+            "failed to allocate free energy storage "
+            "array in compute_log_z; your model is too "
+            "big to use with this function")
 
     # now loop 2**(width - block_bits) times, filling in the
     # most-significant bits
