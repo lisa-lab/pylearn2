@@ -783,23 +783,7 @@ class MLP(Layer):
     @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
 
-        rval = OrderedDict()
-
-        params = self.get_params()
-
-        for layer in self.layers:
-            contrib = layer.get_lr_scalers()
-
-            assert isinstance(contrib, OrderedDict)
-            # No two layers can contend to scale a parameter
-            assert not any([key in rval for key in contrib])
-            # Don't try to scale anything that's not a parameter
-            assert all([key in params for key in contrib])
-
-            rval.update(contrib)
-        assert all([isinstance(val, float) for val in rval.values()])
-
-        return rval
+        return get_lr_scalers_from_layers(self)
 
     @wraps(Layer.get_weights)
     def get_weights(self):
@@ -4537,6 +4521,11 @@ class CompositeLayer(Layer):
         for layer in self.layers:
             layer.modify_updates(updates)
 
+    @wraps(Layer.get_lr_scalers)
+    def get_lr_scalers(self):
+
+        return get_lr_scalers_from_layers(self)
+
 
 
 class FlattenerLayer(Layer):
@@ -4957,3 +4946,37 @@ class BadInputSpaceError(TypeError):
     An error raised by an MLP layer when set_input_space is given an
     object that is not one of the Spaces that layer supports.
     """
+
+def get_lr_scalers_from_layers(owner):
+    """
+    Get the learning rate scalers for all member layers of
+    `owner`.
+
+    Parameters
+    ----------
+    owner : Model
+        Any Model with a `layers` field
+
+    Returns
+    -------
+    lr_scalers : OrderedDict
+        A dictionary mapping parameters of `owner` to learning
+        rate scalers.
+    """
+    rval = OrderedDict()
+
+    params = owner.get_params()
+
+    for layer in owner.layers:
+        contrib = layer.get_lr_scalers()
+
+        assert isinstance(contrib, OrderedDict)
+        # No two layers can contend to scale a parameter
+        assert not any([key in rval for key in contrib])
+        # Don't try to scale anything that's not a parameter
+        assert all([key in params for key in contrib])
+
+        rval.update(contrib)
+    assert all([isinstance(val, float) for val in rval.values()])
+
+    return rval
