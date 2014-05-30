@@ -9,11 +9,10 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Steven Kearnes"
 
 import numpy as np
-import warnings
 try:
-    import sklearn.metrics
+    from sklearn.metrics import roc_auc_score
 except ImportError:
-    warnings.warn("Cannot import from sklearn.")
+    roc_auc_score = None
 
 import theano
 from theano import gof, config
@@ -59,26 +58,14 @@ class RocAucScoreOp(gof.Op):
         output_storage : list
             List of mutable 1-element lists.
         """
+        if roc_auc_score is None:
+            raise RuntimeError("Could not import from sklearn.")
         y_true, y_score = inputs
         try:
-            roc_auc = sklearn.metrics.roc_auc_score(y_true, y_score)
+            roc_auc = roc_auc_score(y_true, y_score)
         except ValueError:
             roc_auc = np.nan
         output_storage[0][0] = theano._asarray(roc_auc, dtype=config.floatX)
-
-
-def roc_auc_score(y_true, y_score):
-    """
-    Calculate ROC AUC score.
-
-    Parameters
-    ----------
-    y_true: tensor_like
-        Target class values.
-    y_score: tensor_like
-        Predicted class labels or probabilities for positive class.
-    """
-    return RocAucScoreOp()(y_true, y_score)
 
 
 class RocAucChannel(TrainExtension):
@@ -120,7 +107,7 @@ class RocAucChannel(TrainExtension):
         # are boolean against the positive_class_index
         y = T.eq(T.argmax(target, axis=1), self.positive_class_index)
         y_hat = model.fprop(state)[:, self.positive_class_index]
-        roc_auc = roc_auc_score(y, y_hat)
+        roc_auc = RocAucScoreOp()(y, y_hat)
         roc_auc = T.cast(roc_auc, config.floatX)
         for dataset_name, dataset in algorithm.monitoring_dataset.items():
             if dataset_name:
