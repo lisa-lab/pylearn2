@@ -3460,11 +3460,26 @@ class ConvElemwise(Layer):
 
         row_norms = T.sqrt(sq_W.sum(axis=(1, 2, 3)))
 
-        return OrderedDict([
+        rval = OrderedDict([
                            ('kernel_norms_min', row_norms.min()),
                            ('kernel_norms_mean', row_norms.mean()),
                            ('kernel_norms_max', row_norms.max()),
                            ])
+
+        orval = super(ConvElemwise, self).get_monitoring_channels_from_state(state,
+                                                                            targets)
+
+        rval.update(orval)
+
+        cst = self.cost
+        orval = self.nonlin.get_monitoring_channels_from_state(state,
+                                                               targets,
+                                                               cost_fn=cst)
+
+        rval.update(orval)
+
+        return rval
+
 
     @wraps(Layer.fprop)
     def fprop(self, state_below):
