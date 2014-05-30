@@ -95,7 +95,6 @@ whitelist_pep8 = [
     "datasets/tests/test_utlc.py",
     "datasets/preprocessing.py",
     "datasets/config.py",
-    "datasets/tfd.py",
     "datasets/icml07.py",
     "datasets/filetensor.py",
     "datasets/hepatitis.py",
