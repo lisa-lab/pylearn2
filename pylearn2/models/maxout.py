@@ -1066,11 +1066,12 @@ class MaxoutConvC01B(Layer):
 
                 # max_x.mean_u is "the mean over *u*nits of the max over
                 # e*x*amples" The x and u are included in the name because
-                # otherwise its hard to remember which axis is which when reading
-                # the monitor I use inner.outer rather than outer_of_inner or
-                # something like that because I want mean_x.* to appear next to
-                # each other in the alphabetical list, as these are commonly
-                # plotted together
+                # otherwise its hard to remember which axis is which when
+                # reading the monitor I use inner.outer rather than
+                # outer_of_inner or something like that because I want
+                # mean_x.* to appear next to each other in the
+                # alphabetical list, as these are commonly plotted
+                # together
                 for key, val in [('max_x.max_u',    v_max.max()),
                                  ('max_x.mean_u',   v_max.mean()),
                                  ('max_x.min_u',    v_max.min()),
@@ -1502,7 +1503,6 @@ class MaxoutLocalC01B(Layer):
                       "will be removed on or after september 24th 2014",
                       stacklevel=2)
 
-
         filter_norms = self.get_filter_norms()
 
         return OrderedDict([('filter_norms_min',  filter_norms.min()),
@@ -1693,11 +1693,12 @@ class MaxoutLocalC01B(Layer):
 
                 # max_x.mean_u is "the mean over *u*nits of the max over
                 # e*x*amples" The x and u are included in the name because
-                # otherwise its hard to remember which axis is which when reading
-                # the monitor I use inner.outer rather than outer_of_inner or
-                # something like that because I want mean_x.* to appear next to
-                # each other in the alphabetical list, as these are commonly
-                # plotted together
+                # otherwise its hard to remember which axis is which when
+                # reading the monitor I use inner.outer rather than
+                # outer_of_inner or something like that because I want
+                # mean_x.* to appear next to each other in the
+                # alphabetical list, as these are commonly plotted
+                # together
                 for key, val in [('max_x.max_u',    v_max.max()),
                                  ('max_x.mean_u',   v_max.mean()),
                                  ('max_x.min_u',    v_max.min()),
