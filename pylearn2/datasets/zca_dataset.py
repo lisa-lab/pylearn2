@@ -10,8 +10,8 @@ __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
 
 import logging
 import warnings
@@ -70,6 +70,7 @@ class ZCA_Dataset(DenseDesignMatrix):
         self.view_converter = preprocessed_dataset.view_converter
 
         self.y = preprocessed_dataset.y
+        self.y_labels = preprocessed_dataset.y_labels
         if convert_to_one_hot:
             if not (self.y.min() == 0):
                 raise AssertionError("Expected y.min == 0 but y.min == %g" %

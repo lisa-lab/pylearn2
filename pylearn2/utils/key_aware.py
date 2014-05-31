@@ -1,6 +1,4 @@
-"""
-A key-aware analog to defaultdict.
-"""
+"""A key-aware analog to defaultdict."""
 
 
 class KeyAwareDefaultDict(dict):

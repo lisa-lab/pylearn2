@@ -6,6 +6,8 @@ ARGS=$@
 PROFILING=""
 
 if [ "$1" == "--buildbot" ]; then
+    shift
+    ARGS="Pylearn2 $@"
     COMPILEDIR=/Tmp/lisa_theano_compile_dir_pylearn2
     ROOT_CWD=/Tmp/nightly_build
     FLAGS=compiledir=$COMPILEDIR
@@ -19,7 +21,6 @@ if [ "$1" == "--buildbot" ]; then
     cd ../../../..
 
     cd ..
-    ARGS="Pylearn2"
     PROFILING="--with-coverage --cover-package=theano"
     NOSETESTS=${ROOT_CWD}/Theano/bin/theano-nose
 else

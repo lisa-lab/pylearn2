@@ -18,9 +18,15 @@ __maintainer__ = "Matthew Koichi Grimes"
 __email__ = "mkg alum mit edu (@..)"
 
 
+import bz2
+import gzip
 import logging
-import os, gzip, bz2, warnings
-import numpy, theano
+import os
+import warnings
+
+import numpy
+import theano
+
 
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.datasets.cache import datasetCache
@@ -231,7 +237,7 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
                 if from_gzip is None:
                     from_gzip = isinstance(file_handle,
-                                          (gzip.GzipFile, bz2.BZ2File))
+                                           (gzip.GzipFile, bz2.BZ2File))
 
                 key_to_type = {0x1E3D4C51: ('float32', 4),
                                # what is a packed matrix?

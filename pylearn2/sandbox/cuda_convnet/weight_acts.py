@@ -5,8 +5,8 @@ __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow and David Warde-Farley"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
 
 """
 This module may contain code copied directly or modified from cuda-convnet.
@@ -62,18 +62,19 @@ class WeightActs(BaseActs):
 
     Note that the word "input" below refers to the input to FilterActs.
 
-    images:          (input channels, rows, cols, batch_size)
-                        input channels must be divisible by 4.
-    hid_grads:       (output channels, rows, cols, batch_size)
-                     output channels must be a multiple of 16
+    * images: (input channels, rows, cols, batch_size)
+      Input channels must be divisible by 4.
+    * hid_grads: (output channels, rows, cols, batch_size)
+      Output channels must be a multiple of 16.
+    * filters: (input channels, filter rows, filter cols, output channels)
+      Filter rows must be the same as filter cols.
 
-    filters:         (input channels, filter rows, filter cols, output channels)
-                     filter rows must be the same as filter cols
-
-    Note: all of these convolution routines are optimized for the case when
-    the number of images (i.e. the minibatch size) is a multiple of 128.
-    Other batch sizes will work, but Alex "made no attempt whatsoever
-    to make them work fast."
+    Notes
+    -----
+    All of these convolution routines are optimized for the case
+    when the number of images (i.e. the minibatch size) is a multiple
+    of 128. Other batch sizes will work, but Alex "made no attempt
+    whatsoever to make them work fast."
     """
 
     # __eq__ and __hash__ are defined in BaseActs.
@@ -82,6 +83,11 @@ class WeightActs(BaseActs):
     # in WeightActs, that considers these parameters.
 
     def make_node(self, images, hid_grads, output_shape):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if not isinstance(images.type, CudaNdarrayType):
             raise TypeError("WeightActs: expected images.type "
                             "to be CudaNdarrayType, "
@@ -133,6 +139,11 @@ class WeightActs(BaseActs):
         return flops
 
     def c_headers(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # For some reason, the function called in the C code (_weightActs)
         # is not defined in cudaconv2.cuh, so I defined it in weight_acts.cuh
         headers = super(WeightActs, self).c_headers()
@@ -140,6 +151,11 @@ class WeightActs(BaseActs):
         return headers
 
     def c_code(self, node, name, inputs, outputs, sub):
+        """
+        .. todo::
+
+            WRITEME
+        """
         partial_sum = self.partial_sum if self.partial_sum is not None else 0
         images, hid_grads, output_shape = inputs
         weights_grads, partialsum_storage = outputs
@@ -172,7 +188,7 @@ class WeightActs(BaseActs):
         const int hidGradsSizeX = hid_grads_dims[2];
         const int numModules = hidGradsSizeX * hidGradsSizeY;
         int partialSum = %(partial_sum)d > 0 ? %(partial_sum)d : numModules;
-        
+
         // using this expression instead of numModules %% partialSum
         // because nvcc+msvc9 yield a strange behaviour when using %%
         if ( numModules - (numModules / partialSum) * partialSum != 0) {
@@ -381,4 +397,9 @@ class WeightActs(BaseActs):
         return rval
 
     def c_code_cache_version(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return (7,)

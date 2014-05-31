@@ -1,12 +1,10 @@
-"""
-Tools for estimating the partition function of an RBM
-"""
+"""Tools for estimating the partition function of an RBM"""
 import numpy
 import theano
 from theano import tensor, config
 from theano.tensor import nnet
 from pylearn2.utils.rng import make_np_rng, make_theano_rng
-from pylearn2.utils.mem import TypicalMemoryError
+from pylearn2.utils.mem import improve_memory_error_message
 
 
 def compute_log_z(rbm, free_energy_fn, max_bits=15):
@@ -20,7 +18,7 @@ def compute_log_z(rbm, free_energy_fn, max_bits=15):
     free_energy_fn : callable
         A callable object (e.g. Theano function) that computes the
         free energy of a stack of configuration for this RBM.
-    max_bits : int
+    max_bits : int, optional
         The (base-2) log of the number of states to enumerate (and
         compute free energy for) at a time.
 
@@ -72,10 +70,11 @@ def compute_log_z(rbm, free_energy_fn, max_bits=15):
     # configurations.
     try:
         nFE = numpy.zeros(2 ** width, dtype=config.floatX)
-    except MemoryError:
-        raise TypicalMemoryError("failed to allocate free energy storage "
-                                 "array in compute_log_z; your model is too "
-                                 "big to use with this function")
+    except MemoryError as e:
+        improve_memory_error_message(e, 
+            "failed to allocate free energy storage "
+            "array in compute_log_z; your model is too "
+            "big to use with this function")
 
     # now loop 2**(width - block_bits) times, filling in the
     # most-significant bits
@@ -114,45 +113,47 @@ def compute_nll(rbm, data, log_z, free_energy_fn, bufsize=1000, preproc=None):
 def rbm_ais(rbm_params, n_runs, visbias_a=None, data=None,
             betas=None, key_betas=None, rng=None, seed=23098):
     """
-    Implements Annealed Importance Sampling for Binary-Binary RBMs, as
-    described in:
-
-    * Neal, R. M. (1998) "Annealed importance sampling", Technical Report No.
-      9805 (revised), Dept. of Statistics, University of Toronto, 25 pages
-
-    * Ruslan Salakhutdinov, Iain Murray. "On the quantitative analysis of deep
-      belief networks".
-      Proceedings of the 25th International Conference on Machine Learning,
-      p.872-879, July 5--9, 2008, Helsinki, Finland
+    Implements Annealed Importance Sampling for Binary-Binary RBMs
 
     Parameters
     ----------
     rbm_params : list
-        list of `numpy.ndarrays` containing model parameters: \
+        list of `numpy.ndarrays` containing model parameters:
         [weights,visbias,hidbias]
     n_runs : int
         Number of particles to use in AIS simulation (size of minibatch)
-    visbias_a : numpy.ndarray
-        Optional override for visible biases. If both visbias_a and data \
-        are None, visible biases will be set to the same values of the \
+    visbias_a : numpy.ndarray, optional
+        Optional override for visible biases. If both visbias_a and data
+        are None, visible biases will be set to the same values of the
         temperature 1 model. For best results, use the `data` parameter.
-    data : numpy.ndarray
-        Training data used to initialize the visible biases of the base-rate \
-        model (usually infinite temperature), to the log-mean of the \
-        distribution (maximum likelihood solution assuming a zero-weight \
-        matrix). This ensures that the base-rate model is the "closest" to \
-        the model at temperature 1.
-    betas : numpy.ndarray
-        Vector specifying inverse temperature of intermediate distributions (in
-        increasing order). If None, defaults to AIS.dflt_betas
-    key_betas : numpy.ndarray
-        If not None, AIS.run will save the log AIS weights for all \
-        temperatures in `key_betas`. This allows the user to estimate logZ at \
-        several temperatures in a single pass of AIS.
-    rng : None or RandomStream
+    data : numpy.ndarray, optional
+        Training data used to initialize the visible biases of the
+        base-rate model (usually infinite temperature), to the log-mean
+        of the distribution (maximum likelihood solution assuming a
+        zero-weight matrix). This ensures that the base-rate model is
+        the "closest" to the model at temperature 1.
+    betas : numpy.ndarray, optional
+        Vector specifying inverse temperature of intermediate
+        distributions (in increasing order).
+        If None, defaults to AIS.dflt_betas
+    key_betas : numpy.ndarray, optional
+        If not None, AIS.run will save the log AIS weights for all
+        temperatures in `key_betas`. This allows the user to estimate
+        logZ at several temperatures in a single pass of AIS.
+    rng : None or RandomStream, optional
         Random number generator object to use.
-    seed : int
+    seed : int, optional
         If rng is None, initialize rng with this seed.
+
+    References
+    ----------
+    .. [1] Neal, R. M. (1998) "Annealed importance sampling",
+       Technical Report No. 9805 (revised), Dept. of Statistics,
+       University of Toronto, 25 pages
+    .. [2] Ruslan Salakhutdinov, Iain Murray. "On the quantitative
+           analysis of deep belief networks". Proceedings of the 25th
+           International Conference on Machine Learning, p.872-879,
+           July 5--9, 2008, Helsinki, Finland
     """
     (weights, visbias, hidbias) = rbm_params
 
@@ -191,23 +192,23 @@ def rbm_ais(rbm_params, n_runs, visbias_a=None, data=None,
 def rbm_z_ratio(rbmA_params, rbmB_params, n_runs, v0=None,
                 betas=None, key_betas=None, rng=None, seed=23098):
     """
-    Computes the AIS log-weights :math:`log_wi`, such that
+    Computes the AIS log-weights :math:`log\:w^{(i)}`, such that
 
     .. math::
-        \\log Z_b = \\log Z_a + \\log \\frac{1}{M} \\sum_{i=1}^M \\exp(log_ais_wi)
+        \\log Z_b = \\log Z_a + \\log \\frac{1}{M} \\sum_{i=1}^M
+        \\exp(log_{ais} w^{(i)})
 
     Parameters
     ----------
     rbmA_params : list
-        List of `numpy.ndarrays`, corresponding to parameters of RBM whose \
-        partition :math:`Z_a` is usually known (i.e. baserate model at \
-        beta=0).  Parameters are given in the order: \
+        List of `numpy.ndarrays`, corresponding to parameters of RBM
+        whose partition :math:`Z_a` is usually known (i.e. baserate
+        model at beta=0).  Parameters are given in the order:
         [weights, visbias, hidbias]
-
     rbmB_params : list
-        List of `numpy.ndarrays`, corresponding to parameters of RBM whose \
-        partition :math:`Z_a` is usually known (i.e. baserate model at \
-        beta=0).  Parameters are given in the order: \
+        List of `numpy.ndarrays`, corresponding to parameters of RBM
+        whose partition :math:`Z_a` is usually known (i.e. baserate
+        model at beta=0).  Parameters are given in the order:
         [weights, visbias, hidbias]
     n_runs : int
         WRITEME
@@ -220,7 +221,8 @@ def rbm_z_ratio(rbmA_params, rbmB_params, n_runs, v0=None,
 
     Notes
     -----
-    Additional parameters are as described in the docstring for `rbm_ais`.
+    Additional parameters are as described in the docstring for
+    `rbm_ais`.
     """
     # check that both models have the same number of hidden units
     assert rbmA_params[0].shape[0] == rbmB_params[0].shape[0]
@@ -261,10 +263,10 @@ def rbm_z_ratio(rbmA_params, rbmB_params, n_runs, v0=None,
 def rbm_ais_pk_free_energy(rbmA_params, rbmB_params, beta, v_sample):
     """
     Computes the free-energy of visible unit configuration `v_sample`,
-    according to the interpolating distribution at temperature beta. The
-    interpolating distributions are given by
-    :math:`p_a(v)^{1-\\beta} p_b(v)^\\beta`. See equation 10, of Salakhutdinov
-    & Murray 2008.
+    according to the interpolating distribution at temperature beta.
+    The interpolating distributions are given by
+    :math:`p_a(v)^{1-\\beta} p_b(v)^\\beta`.
+    See equation 10, of Salakhutdinov & Murray 2008.
 
     Parameters
     ----------
@@ -275,14 +277,14 @@ def rbm_ais_pk_free_energy(rbmA_params, rbmB_params, beta, v_sample):
     beta : int
         Inverse temperature at which to compute the free-energy.
     v_sample : tensor.matrix
-        Matrix whose rows indexes into the minibatch, and columns into the \
-        data dimensions.
+        Matrix whose rows indexes into the minibatch, and columns into
+        the data dimensions.
 
     Returns
     -------
     f : float (scalar)
-       Free-energy of configuration `v_sample` given by the interpolating \
-       distribution at temperature beta.
+       Free-energy of configuration `v_sample` given by the
+       interpolating distribution at temperature beta.
     """
 
     def rbm_fe(rbm_params, v, b):
@@ -307,9 +309,9 @@ def rbm_ais_gibbs_for_v(rbmA_params, rbmB_params, beta, v_sample, seed=23098):
     Parameters
     ----------
     rbmA_params : list
-        Parameters of the baserate model (usually infinite temperature). List \
-        should be of length 3 and contain numpy.ndarrays corresponding to \
-        model parameters (weights, visbias, hidbias).
+        Parameters of the baserate model (usually infinite temperature).
+        List should be of length 3 and contain numpy.ndarrays
+        corresponding to model parameters (weights, visbias, hidbias).
 
     rbmB_params : list
         Similar to `rbmA_params`, but for model at temperature 1.
@@ -320,7 +322,7 @@ def rbm_ais_gibbs_for_v(rbmA_params, rbmB_params, beta, v_sample, seed=23098):
     v_sample : theano.shared
         Matrix of shape (n_runs, nvis), state of current particles.
 
-    seed : int
+    seed : int, optional
         Optional seed parameter for sampling from binomial units.
     """
 
@@ -362,22 +364,28 @@ class AIS(object):
 
     The notation used here is slightly different than in Salakhutdinov & Murray
     2008. We write the AIS weights as follows (note that the denominator is
-    always of the form :math:`p_i(x_i)` to indicate that :math:`x_i ~ p_i`.)
+    always of the form :math:`p_i(x_i)` to indicate that
+    :math:`x_i \sim p_i`). The free energy is denoted by :math:`\mathcal{F}`.
 
     .. math::
-        w^i = p1(v0)*p2(v1)*...*pk(v_{k-1}) / [p0(v0)*p1(v1)*...*p_{k-1}(vk-1)]
-            = p1(v0)/p0(v0) * p2(v1)/p1(v1) * ... * pk(v_{k-1})/p_{k-1}(vk-1)
-        log_w^i = fe_0(v0) - fe_1(v0) +
-                  fe_1(v1) - fe_2(v1) + ... +
-                  fe_{k-1}(v_{k-1}) - fe_{k}(v_{k-1})
+        w^{(i)} = p_1(v_0)*p_2(v_1)*...*p_k(v_{k-1}) /
+                 [p_0(v_0)*p_1(v_1)*...*p_{k-1}(v_{k-1})]
+
+        = p_1(v_0)/p_0(v_0) * p_2(v_1)/p_1(v_1) * ...
+          * p_k(v_{k-1})/p_{k-1}(v_{k-1})
+
+        log\:w^{(i)} = \mathcal{F}_0(v_0) - \mathcal{F}_1(v_0) +
+                       \mathcal{F}_1(v_1) - \mathcal{F}_2(v_1) + ... +
+                       \mathcal{F}_{k-1}(v_{k-1}) - \mathcal{F}_{k}(v_{k-1})
 
     Parameters
     ----------
     sample_fn : compiled theano function
-        `sample_fn(beta, v_sample)` returns new model samples, at inverse
-        temperature `beta`.  Internally, we do this by performing block
-        gibbs sampling using Eq.(15-17) (implemented in
-        `rbm_ais_gibbs_for_v`) starting from configuration `v_sample`.
+        `sample_fn(beta, v_sample)` returns new model samples, at
+        inverse temperature `beta`. Internally, we do this by
+        performing block gibbs sampling using Eq.(15-17) (implemented
+        in `rbm_ais_gibbs_for_v`) starting from configuration
+        `v_sample`.
     free_energy_fn : theano function
         `free_energy_fn(beta,v_sample)` computes the free-energy of
         configuration `v_sample` at the interpolating distribution
@@ -430,10 +438,10 @@ class AIS(object):
             Vector of temperatures specifying interpolating distributions
 
         key_betas : numpy.ndarray, optional
-            If specified (not None), specifies specific temperatures at which \
-            we want to compute the AIS estimate. AIS.run will then return a \
-            vector, containing AIS at each key_beta temperature, including \
-            the nominal temperature.
+            If specified (not None), specifies specific temperatures at
+            which we want to compute the AIS estimate. AIS.run will
+            then return a vector, containing AIS at each key_beta
+            temperature, including the nominal temperature.
         """
         self.key_betas = None if key_betas is None else numpy.sort(key_betas)
 
@@ -452,13 +460,13 @@ class AIS(object):
 
         .. math::
 
-            log_w^i += fe_{k-1}(v_{k-1}) - fe_{k}(v_{k-1})
+            log\:w^{(i)} += \mathcal{F}_{k-1}(v_{k-1}) - \mathcal{F}_{k}(v_{k-1})
 
         recursively for all temperatures.
 
         Parameters
         ----------
-        n_steps : int
+        n_steps : int, optional
             WRITEME
         """
         if not hasattr(self, 'betas'):
@@ -510,13 +518,13 @@ class AIS(object):
         Parameters
         ----------
         log_ais_w : None or 1D numpy.ndarray
-            optional override for log_ais_w. When None, estimates log(Zb/Za) \
+            optional override for log_ais_w. When None, estimates log(Zb/Za)
             using the log AIS weights computed by AIS.run() method.
 
         Returns
         -------
         f : float
-            Estimated mean of log(Zb/Za), log-ratio of partition functions of \
+            Estimated mean of log(Zb/Za), log-ratio of partition functions of
             model B and A.
 
         v : float

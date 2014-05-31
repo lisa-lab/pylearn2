@@ -29,6 +29,7 @@ def main():
                 if key not in values:
                     values[key] = []
                 values[key].append(channels[key].val_record[-1])
+    print 'number of models: {}'.format(len(epochs))
     if len(epochs) > 1:
         print 'epochs seen: {} +/- {}'.format(np.mean(epochs), np.std(epochs))
         print 'training time: {} +/- {}'.format(np.mean(time), np.std(time))

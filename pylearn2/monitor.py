@@ -6,8 +6,8 @@ __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
 
 import copy, time, warnings, logging
 import numpy as np
@@ -34,16 +34,18 @@ class Monitor(object):
     """
     A class for monitoring Models while they are being trained.
 
-    A monitor object records the number of minibatches and number of examples
-    the model has trained, as well as any number of "channels" that track
-    quantities of interest (examples: the objective function, measures of
-    hidden unit activity, reconstruction error, sum of squared second
-    derivatives, average norm of the weight vectors,  etc.)
+    A monitor object records the number of minibatches and number of
+    examples the model has trained, as well as any number of "channels"
+    that track quantities of interest (examples: the objective
+    function, measures of hidden unit activity, reconstruction error,
+    sum of squared second derivatives, average norm of the weight
+    vectors, etc.)
 
     Parameters
     ----------
     model : `pylearn2.models.model.Model`
     """
+
     def __init__(self, model):
         self.training_succeeded = False
         self.model = model
@@ -69,8 +71,8 @@ class Monitor(object):
         """
         Computes a nested data_specs for input and all channels
 
-        Also computes the mapping to flatten it. This function is called from
-        redo_theano.
+        Also computes the mapping to flatten it. This function is
+        called from redo_theano.
         """
         # Ask the model what it needs
         m_space, m_source = self.model.get_monitoring_data_specs()
@@ -96,11 +98,15 @@ class Monitor(object):
 
     def set_theano_function_mode(self, mode):
         """
+        .. todo::
+
+            WRITEME
+
         Parameters
         ----------
         mode : theano.compile.Mode
-            Theano functions for the monitoring channels will be compiled and
-            run using this mode.
+            Theano functions for the monitoring channels will be
+            compiled and run using this mode.
         """
         if self.theano_function_mode != mode:
             self._dirty = True
@@ -116,15 +122,15 @@ class Monitor(object):
         dataset : object
             A `pylearn2.datasets.Dataset` object.
         mode : str or object, optional
-            Iteration mode; see the docstring of the `iterator` method \
+            Iteration mode; see the docstring of the `iterator` method
             on `pylearn2.datasets.Dataset` for details.
         batch_size : int, optional
-            The size of an individual batch. Optional if `mode` is \
-            'sequential' and `num_batches` is specified (batch size \
+            The size of an individual batch. Optional if `mode` is
+            'sequential' and `num_batches` is specified (batch size
             will be calculated based on full dataset size).
         num_batches : int, optional
-            The total number of batches. Unnecessary if `mode` is \
-            'sequential' and `batch_size` is specified (number of \
+            The total number of batches. Unnecessary if `mode` is
+            'sequential' and `batch_size` is specified (number of
             batches will be calculated based on full dataset size).
         seed : int, optional
             Optional. The seed to be used for random iteration modes.
@@ -186,8 +192,8 @@ class Monitor(object):
 
     def __call__(self):
         """
-        Runs the model on the monitoring dataset in order to add one data point
-        to each of the channels.
+        Runs the model on the monitoring dataset in order to add one
+        data point to each of the channels.
         """
 
         # If the channels have changed at all, we need to recompile the theano
@@ -267,13 +273,15 @@ class Monitor(object):
 
     def run_prereqs(self, data, dataset):
         """
-        Runs all "prerequistie functions" on a batch of data. Always called
-        right before computing the monitoring channels on that batch.
+        Runs all "prerequistie functions" on a batch of data. Always
+        called right before computing the monitoring channels on that
+        batch.
 
         Parameters
         ----------
         data : tuple or Variable
-            a member of the Space used as input to the monitoring functions
+            a member of the Space used as input to the monitoring
+            functions
         dataset : Dataset
             the Dataset the data was drawn from
         """
@@ -284,13 +292,18 @@ class Monitor(object):
 
     def get_batches_seen(self):
         """
-        Returns the number of batches the model has learned on (assuming that
-        the learning code has been calling Monitor.report_batch correctly).
+        Returns the number of batches the model has learned on
+        (assuming that the learning code has been calling
+        Monitor.report_batch correctly).
         """
         return self._num_batches_seen
 
     def get_epochs_seen(self):
         """
+        .. todo::
+
+            WRITEME
+
         Returns
         -------
         epochs_seen : int
@@ -301,18 +314,23 @@ class Monitor(object):
 
     def get_examples_seen(self):
         """
+        .. todo::
+
+            WRITEME
+
         Returns
         -------
         examples_seen : int
-            The number of examples the model has learned on (assuming that
-            the learning code has been calling Monitor.report_batch correctly)
+            The number of examples the model has learned on (assuming
+            that the learning code has been calling Monitor.report_batch
+            correctly)
         """
         return self._examples_seen
 
     def report_batch(self, num_examples):
         """
-        Call this whenever the model has learned on another batch of examples.
-        Report how many examples were learned on.
+        Call this whenever the model has learned on another batch of
+        examples. Report how many examples were learned on.
 
         Parameters
         ----------
@@ -324,8 +342,9 @@ class Monitor(object):
 
     def report_epoch(self):
         """
-        Call this whenever the model has completed another "epoch" of learning.
-        We regard one pass through Dataset.iterator as one epoch.
+        Call this whenever the model has completed another "epoch" of
+        learning. We regard one pass through Dataset.iterator as one
+        epoch.
         """
         self._epochs_seen += 1
 
@@ -333,14 +352,15 @@ class Monitor(object):
         """
         Recompiles Theano functions used by this monitor.
 
-        This is called any time we need to evaluate the channels and the
-        channel definitions have changed since last we called it, or if the
-        theano functions are unavailable for any other reason (first time they
-        are needed after construction or deserialization, etc.)
+        This is called any time we need to evaluate the channels and
+        the channel definitions have changed since last we called it,
+        or if the theano functions are unavailable for any other reason
+        (first time they are needed after construction or
+        deserialization, etc.)
 
-        All channels are compiled as part of the same theano function so that
-        the theano optimizations can eliminate subexpressions that are shared
-        between multiple channels.
+        All channels are compiled as part of the same theano function
+        so that the theano optimizations can eliminate subexpressions
+        that are shared between multiple channels.
         """
         self._dirty = False
 
@@ -503,15 +523,17 @@ class Monitor(object):
 
     def __getstate__(self):
         """
-        In order to avoid pickling a copy of the dataset whenever a monitor
-        is saved, the __getstate__ method replaces the dataset field with the
-        dataset's yaml source. This is not a perfect solution because it won't
-        work with job resuming, which would require saving the state of the
-        dataset's random number generator.
+        In order to avoid pickling a copy of the dataset whenever a
+        monitor is saved, the __getstate__ method replaces the dataset
+        field with the dataset's yaml source. This is not a perfect
+        solution because it won't work with job resuming, which would
+        require saving the state of the dataset's random number
+        generator.
 
-        Like in the Model class, we also need to avoid saving any Theano
-        functions, so we delete everything that can be regenerated with
-        `redo_theano` by deleting the fields in `self.names_to_del`
+        Like in the Model class, we also need to avoid saving any
+        Theano functions, so we delete everything that can be
+        regenerated with `redo_theano` by deleting the fields in
+        `self.names_to_del`
         """
 
         # Patch old pickled monitors
@@ -560,26 +582,26 @@ class Monitor(object):
     def add_channel(self, name, ipt, val, dataset=None, prereqs=None,
                     data_specs=None):
         """
-        Asks the monitor to start tracking a new value.  Can be called even
-        after the monitor is already in use.
+        Asks the monitor to start tracking a new value.  Can be called
+        even after the monitor is already in use.
 
         Parameters
         ----------
         name : str
             The display name in the monitor.
         ipt : tensor_like
-            The symbolic tensor which should be clamped to the data. \
-            (or a list/tuple containing symbolic tensors, following the \
+            The symbolic tensor which should be clamped to the data.
+            (or a list/tuple containing symbolic tensors, following the
             data_specs)
         val : tensor_like
             The value (function of `ipt`) to be tracked.
         dataset : pylearn2.datasets.Dataset
             Which dataset to compute this channel on
         prereqs : list of callables that take a list of numpy tensors
-            Each prereq must be called exactly once per each new batch of \
-            data drawn *from dataset* before the channel value is computed \
-            if two channels provide a prereq with exactly the same id, that \
-            prereq will only be called once
+            Each prereq must be called exactly once per each new batch
+            of data drawn *from dataset* before the channel value is
+            computed if two channels provide a prereq with exactly the
+            same id, that prereq will only be called once
         data_specs : (space, source) pair
             Identifies the order, format and semantics of ipt
         """
@@ -675,10 +697,11 @@ class Monitor(object):
     def _sanity_check(self):
         """
         Sometimes we serialize models and then load them somewhere else
-        but still try to use their Monitor, and the Monitor is in a mangled
-        state. I've added some calls to _sanity_check to try to catch when
-        that happens. Not sure what to do for a long term fix. I think it
-        requires making theano graphs serializable first.
+        but still try to use their Monitor, and the Monitor is in a
+        mangled state. I've added some calls to _sanity_check to try to
+        catch when that happens. Not sure what to do for a long term
+        fix. I think it requires making theano graphs serializable
+        first.
         """
         for name in self.channels:
             channel = self.channels[name]
@@ -687,14 +710,14 @@ class Monitor(object):
     @classmethod
     def get_monitor(cls, model):
         """
-        Returns a model's monitor. If the model doesn't have a monitor yet,
-        installs one and returns that.
+        Returns a model's monitor. If the model doesn't have a monitor
+        yet, installs one and returns that.
 
         Parameters
         ----------
         model : object
-            An object that implements the `Model` interface specified in \
-            `pylearn2.models`.
+            An object that implements the `Model` interface specified
+            in `pylearn2.models`.
         """
 
         if hasattr(model, 'monitor'):
@@ -710,6 +733,10 @@ class Monitor(object):
     @property
     def batch_size(self):
         """
+        .. todo::
+
+            WRITEME
+
         Returns
         -------
         batch_size : int
@@ -721,6 +748,10 @@ class Monitor(object):
     @property
     def num_batches(self):
         """
+        .. todo::
+
+            WRITEME
+
         Returns
         -------
         num_batches : int
@@ -734,23 +765,26 @@ class Monitor(object):
         """
         Sets up the monitor for a cost minimization problem.
         Adds channels defined by both the model and the cost for
-        the specified dataset(s), as well as a channel called 'objective'
-        defined by the costs' __call__ method.
+        the specified dataset(s), as well as a channel called
+        'objective' defined by the costs' __call__ method.
 
         Parameters
         ----------
         dataset : pylearn2.datasets.Dataset
-            Dataset or dictionary mapping string names to Datasets.  If \
-            string names are used, then for every dataset, each channel \
-            defined by the model or cost will be replicated with that \
-            dataset's name followed by an underscore as the prefix. For \
-            example, if your cost defines a channel called 'misclass', and \
-            datasets is {'train' : train_dataset, 'valid' : valid_dataset} \
-            you will get channels called 'train_misclass' and 'valid_misclass'.
+            Dataset or dictionary mapping string names to Datasets.
+            If string names are used, then for every dataset, each
+            channel defined by the model or cost will be replicated
+            with that dataset's name followed by an underscore as the
+            prefix. For example, if your cost defines a channel called
+            'misclass', and datasets is
+            {'train' : train_dataset, 'valid' : valid_dataset},
+            you will get channels called 'train_misclass' and
+            'valid_misclass'.
         cost : pylearn2.costs.Cost
-            The cost being optimized by training. The value of the cost will
-            appear as the `objective` channel. Its `get_monitoring_channels`
-            method will also be used to supply other channels.
+            The cost being optimized by training. The value of the cost
+            will appear as the `objective` channel. Its
+            `get_monitoring_channels` method will also be used to
+            supply other channels.
         extra_costs : OrderedDict, optional
             A dictionary mapping channel names to Cost objects.
             Their value will appear as the specified channel name.
@@ -759,8 +793,9 @@ class Monitor(object):
         obj_prereqs : None, or list of functions
             Functions to pass as prerequisites to the `objective` channel.
         cost_monitoring_args : dict
-            Dictionary of kwargs that will be passed to \
-            `cost.get_monitoring_channels()` (but not for the extra_costs).
+            Dictionary of kwargs that will be passed to
+            `cost.get_monitoring_channels()`
+            (but not for the extra_costs).
         """
 
         if dataset is None:
@@ -910,11 +945,12 @@ class MonitorChannel(object):
     data_specs : (space, source) pair
         Identifies the order, format and semantics of graph_input
     prereqs : list of callables
-        Callables that take numpy tensors each prereq must be called \
-        exactly once per each new batch of data before the channel value \
-        is computed if two channels provide a prereq with exactly the \
-        same id, that prereq will only be called once
+        Callables that take numpy tensors each prereq must be called
+        exactly once per each new batch of data before the channel
+        value is computed if two channels provide a prereq with exactly
+        the same id, that prereq will only be called once
     """
+
     def __init__(self, graph_input, val, name, data_specs, dataset,
                  prereqs=None):
         self.name = name
@@ -952,6 +988,10 @@ class MonitorChannel(object):
 
     def __str__(self):
         """
+        .. todo::
+
+            WRITEME
+
         Returns
         -------
         s : str
@@ -984,6 +1024,10 @@ class MonitorChannel(object):
 
     def __getstate__(self):
         """
+        .. todo::
+
+            WRITEME
+
         Returns
         -------
         d : dict
@@ -1055,16 +1099,16 @@ def push_monitor(model, name, transfer_experience=False):
     name : str
         Will save the old monitor to model.name
     transfer_experience : bool
-        If True, the new monitor will start with its epochs seen, batches \
-        seen, and examples seen set to where the old monitor left off. This \
-        is nice for stitching together learning curves across multiple stages \
-        of learning.
+        If True, the new monitor will start with its epochs seen,
+        batches seen, and examples seen set to where the old monitor
+        left off. This is nice for stitching together learning curves
+        across multiple stages of learning.
 
     Returns
     -------
-    model:
-        Returns the model itself so you can use an !obj:push_monitor call as
-        the definition of a model in a YAML file.
+    model : WRITEME
+        Returns the model itself so you can use an !obj:push_monitor
+        call as the definition of a model in a YAML file.
     """
 
     assert hasattr(model, 'monitor')
@@ -1092,9 +1136,10 @@ def read_channel(model, channel_name, monitor_name='monitor'):
         The model to read the channel from
     channel_name : str
         The name of the channel to read from
-    monitor_name: str, optional
+    monitor_name : str, optional
         The name of the Monitor to read from
-        (In case you want to read from an old Monitor moved by `push_monitor`)
+        (In case you want to read from an old Monitor moved by
+        `push_monitor`)
 
     Returns
     -------
@@ -1122,7 +1167,8 @@ def get_channel(model, dataset, channel, cost, batch_size):
 
     Returns
     -------
-    The value of the requested channel.
+    value : WRITEME
+        The value of the requested channel.
 
     Notes
     -----
@@ -1146,12 +1192,12 @@ def get_monitor_doc(var):
 
     Parameters
     ----------
-    var: theano.gof.Variable
+    var : theano.gof.Variable
         The variable to get the documentation of
 
     Returns
     -------
-    doc: str or None
+    doc : str or None
         var.__doc__ if var has an instance-level doc, otherwise None
     """
 

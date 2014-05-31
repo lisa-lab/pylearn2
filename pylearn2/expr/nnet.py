@@ -5,8 +5,8 @@ __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
 
 import numpy as np
 import theano
@@ -229,7 +229,7 @@ def compute_recall(y, tp):
     recall : Variable
         Recall for the binary classification.
     """
-    recall = tp / T.maximum(1., y.sum(axis=0))
+    recall = tp / T.maximum(1., y.sum())
     return recall
 
 def compute_f1(precision, recall):

@@ -8,8 +8,8 @@ __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
 
 import logging
 import numpy as np
@@ -33,54 +33,54 @@ logger = logging.getLogger(__name__)
 
 
 class BGD(TrainingAlgorithm):
-    """Batch Gradient Descent training algorithm class
-
+    """
+    Batch Gradient Descent training algorithm class
 
     Parameters
     ----------
-    cost : pylearn2.costs.Cost
-        A pylearn2 Cost, or None, in which case model.get_default_cost() \
+    cost : pylearn2.costs.Cost, optional
+        A pylearn2 Cost, or None, in which case model.get_default_cost()
         will be used
-    batch_size : int
-        Like the SGD TrainingAlgorithm, this TrainingAlgorithm still \
-        iterates over minibatches of data. The difference is that this \
-        class uses partial line searches to choose the step size along \
-        each gradient direction, and can do repeated updates on the same \
-        batch. The assumption is that you use big enough minibatches with \
-        this algorithm that a large step size will generalize reasonably \
-        well to other minibatches. To implement true Batch Gradient \
-        Descent, set the batch_size to the total number of examples \
-        available. If batch_size is None, it will revert to the model's \
+    batch_size : int, optional
+        Like the SGD TrainingAlgorithm, this TrainingAlgorithm still
+        iterates over minibatches of data. The difference is that this
+        class uses partial line searches to choose the step size along
+        each gradient direction, and can do repeated updates on the same
+        batch. The assumption is that you use big enough minibatches with
+        this algorithm that a large step size will generalize reasonably
+        well to other minibatches. To implement true Batch Gradient
+        Descent, set the batch_size to the total number of examples
+        available. If batch_size is None, it will revert to the model's
         force_batch_size attribute.
-    batches_per_iter : int
+    batches_per_iter : int, optional
         WRITEME
-    updates_per_batch : int
-        Passed through to the optimization.BatchGradientDescent's \
+    updates_per_batch : int, optional
+        Passed through to the optimization.BatchGradientDescent's
         `max_iters parameter`
     monitoring_batch_size : int
         Size of monitoring batches.
     monitoring_batches : WRITEME
-    monitoring_dataset: Dataset or dict
+    monitoring_dataset : Dataset or dict, optional
         A Dataset or a dictionary mapping string dataset names to Datasets
     termination_criterion : WRITEME
-    set_batch_size : bool
-        If True, BGD will attempt to override the model's \
+    set_batch_size : bool, optional
+        If True, BGD will attempt to override the model's
         `force_batch_size` attribute by calling set_batch_size on it.
-    reset_alpha : bool
-        Passed through to the optimization.BatchGradientDescent's \
-        `max_iters parameter`
-    conjugate : bool
-        Passed through to the optimization.BatchGradientDescent's \
-        `max_iters parameter`
-    min_init_alpha : float
+    reset_alpha : bool, optional
+        Passed through to the optimization.BatchGradientDescent's
+        `reset_alpha` parameter
+    conjugate : bool, optional
+        Passed through to the optimization.BatchGradientDescent's
+        `conjugate` parameter
+    min_init_alpha : float, optional
         WRITEME
-    reset_conjugate : bool
-        Passed through to the optimization.BatchGradientDescent's \
-        `max_iters parameter`
+    reset_conjugate : bool, optional
+        Passed through to the optimization.BatchGradientDescent's
+        `reset_conjugate` parameter
     line_search_mode : WRITEME
-    verbose_optimization : bool
+    verbose_optimization : bool, optional
         WRITEME
-    scale_step : float
+    scale_step : float, optional
         WRITEME
     theano_function_mode : WRITEME
     init_alpha : WRITEME
@@ -119,7 +119,7 @@ class BGD(TrainingAlgorithm):
         Parameters
         ----------
         model : object
-            A Python object representing the model to train loosely \
+            A Python object representing the model to train. Loosely
             implementing the interface of models.model.Model.
         dataset : pylearn2.datasets.dataset.Dataset
             Dataset object used to draw training data
@@ -340,6 +340,7 @@ class StepShrinker(TrainExtension, TerminationCriterion):
 
         WRITEME
     """
+
     def __init__(self, channel, scale, giveup_after, scale_up=1.,
             max_scale=1.):
         self.__dict__.update(locals())
@@ -414,6 +415,7 @@ class ScaleStep(TrainExtension):
 
         WRITEME
     """
+
     def __init__(self, scale, min_value):
         self.scale = scale
         self.min_value = min_value
@@ -447,6 +449,7 @@ class BacktrackingStepShrinker(TrainExtension, TerminationCriterion):
 
         WRITEME
     """
+
     def __init__(self, channel, scale, giveup_after, scale_up=1.,
             max_scale=1.):
         self.__dict__.update(locals())

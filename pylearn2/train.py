@@ -1,12 +1,10 @@
-"""
-Module containing the Train class and support functionality.
-"""
+"""Module containing the Train class and support functionality."""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
 from datetime import datetime
 import os
 import sys
@@ -34,11 +32,12 @@ class Train(object):
     ----------
     dataset : `pylearn2.datasets.dataset.Dataset`
     model : `pylearn2.models.model.Model`
-    algorithm : <Optional>
-    `pylearn2.training_algorithms.training_algorithm.TrainingAlgorithm`
-    save_path : <Optional> str
+    algorithm : \
+        `pylearn2.training_algorithms.training_algorithm.TrainingAlgorithm`, \
+        optional
+    save_path : str, optional
         Path to save (with pickle / joblib) the model.
-    save_freq : <Optional> int
+    save_freq : int, optional
         Frequency of saves, in epochs. A frequency of zero disables
         automatic saving altogether. A frequency of 1 saves every
         epoch. A frequency of 2 saves every other epoch, etc.
@@ -46,14 +45,15 @@ class Train(object):
         enabled (eg save_freq > 0), the model is always saved after
         learning, even when the final epoch is not a multiple of
         `save_freq`.
-    extensions : <Optional> iterable
+    extensions : iterable, optional
         A collection of `TrainExtension` objects whose callbacks are
         triggered at various points in learning.
-    allow_overwrite : <Optional> bool
+    allow_overwrite : bool, optional
         If `True`, will save the model to save_path even if there is
         already something there. Otherwise, will raise an error if the
         `save_path` is already occupied.
     """
+
     def __init__(self, dataset, model, algorithm=None, save_path=None,
                  save_freq=0, extensions=None, allow_overwrite=True):
         self.allow_overwrite = allow_overwrite
@@ -90,9 +90,7 @@ class Train(object):
         self.total_seconds = sharedX(value=0, name='total_seconds_last_epoch')
 
     def setup_extensions(self):
-        """
-        Calls setup on all extensions.
-        """
+        """ Calls setup on all extensions."""
         for ext in self.extensions:
             ext.setup(self.model, self.dataset, self.algorithm)
 
@@ -156,7 +154,7 @@ class Train(object):
                 self.model.monitor.report_epoch()
                 extension_continue = self.run_callbacks_and_monitoring()
                 freq = self.save_freq
-                if freq > 0 and self.model.monitor.epochs_seen % freq == 0:
+                if freq > 0 and self.model.monitor.get_epochs_seen() % freq == 0:
                     self.save()
                 continue_learning = (self.model.continue_learning() and
                                      extension_continue)
@@ -216,7 +214,7 @@ already been reported."""
                     self.model.monitor.report_epoch()
                     extension_continue = self.run_callbacks_and_monitoring()
                     if self.save_freq > 0 and \
-                       self.model.monitor._epochs_seen % self.save_freq == 0:
+                       self.model.monitor.get_epochs_seen() % self.save_freq == 0:
                         self.save()
                 continue_learning = (
                     self.algorithm.continue_learning(self.model) and
@@ -237,7 +235,7 @@ already been reported."""
 
         Returns
         -------
-        continue_learning: bool
+        continue_learning : bool
             If `False`, signals that at least one train
             extension wants to stop learning.
         """

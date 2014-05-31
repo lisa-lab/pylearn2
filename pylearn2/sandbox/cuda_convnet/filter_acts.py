@@ -5,8 +5,8 @@ __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow", "David Warde-Farley"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
 
 """
 This module may contain code copied directly or modified from cuda-convnet.
@@ -63,23 +63,23 @@ class FilterActs(BaseActs):
 
     Currently, this op must be inserted manually, not by optimizations.
 
-    * images: (input channels, rows, cols, batch_size). Channels must be <=3,
-      or be even. Note: if you want to take the gradient with respect to the
-      weights, channels must be divisible by 4. Must be C contiguous. You can
-      enforce this by calling `theano.sandbox.cuda.basic_ops.gpu_contiguous` on
-      it.
+    * images: (input channels, rows, cols, batch_size). Channels must
+      be <=3, or be even. Note: if you want to take the gradient with
+      respect to the weights, channels must be divisible by 4. Must be
+      C contiguous. You can enforce this by calling
+      `theano.sandbox.cuda.basic_ops.gpu_contiguous` on it.
     * filters: (input channels, filter rows, filter cols, output channels).
-      Rows must be the same as cols output channels must be a multiple of 16.
-      Must be C contiguous. You can enforce this by calling
+      Rows must be the same as cols output channels must be a multiple
+      of 16. Must be C contiguous. You can enforce this by calling
       `theano.sandbox.cuda.basic_ops.gpu_contiguous` on it.
     * output: (output channels, output rows, output cols, batch size)
 
     Notes
     -----
-    All of these convolution routines are optimized for the case when the
-    number of images (i.e. the minibatch size) is a multiple of 128. Other
-    batch sizes will work, but Alex made no attempt whatsoever to make them
-    work fast.
+    All of these convolution routines are optimized for the case when
+    the number of images (i.e. the minibatch size) is a multiple of 128.
+    Other batch sizes will work, but Alex made no attempt whatsoever to
+    make them work fast.
     """
 
     # __eq__ and __hash__ are defined in BaseActs.
@@ -88,7 +88,11 @@ class FilterActs(BaseActs):
     # in FilterActs, that considers these parameters.
 
     def make_node(self, images, filters):
+        """
+        .. todo::
 
+            WRITEME
+        """
         if not isinstance(images.type, CudaNdarrayType):
             raise TypeError("FilterActs: expected images.type to be CudaNdarrayType, "
                     "got "+str(images.type))
@@ -129,6 +133,11 @@ class FilterActs(BaseActs):
         return flops
 
     def c_code(self, node, name, inputs, outputs, sub):
+        """
+        .. todo::
+
+            WRITEME
+        """
         images, filters = inputs
         targets, = outputs
         fail = sub['fail']
@@ -314,9 +323,19 @@ class FilterActs(BaseActs):
         return rval
 
     def c_code_cache_version(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return (10,)
 
     def R_op(self, inputs, evals):
+        """
+        .. todo::
+
+            WRITEME
+        """
         images, filters = inputs
         images_ev, filters_ev = evals
         if 'Cuda' not in str(type(images)):
@@ -336,7 +355,11 @@ class FilterActs(BaseActs):
         return [sol]
 
     def grad(self, inputs, dout):
+        """
+        .. todo::
 
+            WRITEME
+        """
         images, filters = inputs
 
         if 'Cuda' not in str(type(images)):

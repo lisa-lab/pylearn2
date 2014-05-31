@@ -91,6 +91,13 @@ class LocalDatasetCache:
                       remote_name)
             return filename
 
+        if not remote_name.startswith(self.dataset_remote_dir):
+            log.warning(
+                "We cache in the local directory only what is"
+                " under $PYLEARN2_DATA_PATH: %s" %
+                remote_name)
+            return filename
+
         # Create the $PYLEARN2_LOCAL_DATA_PATH folder if needed
         self.safe_mkdir(self.dataset_local_dir)
 
@@ -115,7 +122,7 @@ class LocalDatasetCache:
 
             # Check that there is enough space to cache the file
             if not self.check_enough_space(remote_name, local_name):
-                log.warning("Not enough free space : file %s not cached" %
+                log.warning("File %s not cached: Not enough free space" %
                             remote_name)
                 self.release_writelock()
                 return filename
@@ -124,7 +131,28 @@ class LocalDatasetCache:
             self.copy_from_server_to_local(remote_name, local_name)
             log.info("File %s has been locally cached to %s" %
                      (remote_name, local_name))
-
+        elif os.path.getmtime(remote_name) > os.path.getmtime(local_name):
+            log.warning("File %s in cache will not be used: The remote file "
+                        "(modified %s) is newer than the locally cached file "
+                        "%s (modified %s)."
+                        % (remote_name,
+                           time.strftime(
+                               '%Y-%m-%d %H:%M:%S',
+                               time.localtime(os.path.getmtime(remote_name))
+                           ),
+                           local_name,
+                           time.strftime(
+                               '%Y-%m-%d %H:%M:%S',
+                               time.localtime(os.path.getmtime(local_name))
+                           )))
+            return filename
+        elif os.path.getsize(local_name) != os.path.getsize(remote_name):
+            log.warning("File %s not cached: The remote file (%d bytes) is of "
+                        "a different size than the locally cached file %s "
+                        "(%d bytes). The local cache might be corrupt."
+                        % (remote_name, os.path.getsize(remote_name),
+                           local_name, os.path.getsize(local_name)))
+            return filename
         else:
             log.debug("File %s has previously been locally cached to %s" %
                       (remote_name, local_name))

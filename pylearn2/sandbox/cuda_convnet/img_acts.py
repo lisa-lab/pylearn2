@@ -5,8 +5,8 @@ __authors__ = "David Warde-Farley and Ian Goodfellow"
 __copyright__ = "Copyright 2010-2013, Universite de Montreal"
 __credits__ = ["David Warde-Farley and Ian Goodfellow"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
 
 """
 This module may contain code copied directly or modified from cuda-convnet.
@@ -66,20 +66,21 @@ class ImageActs(BaseActs):
     Currently, this op must be inserted manually, not by optimizations.
 
     Note that below the term "input" refers to the input to FilterActs.
-    This op does the tranpose of that, so its output is sized like FilterActs'
-    input.
+    This op does the tranpose of that, so its output is sized like
+    FilterActs' input.
 
     * hid_acts: (output channels, rows, cols, batch_size)
     * filters: (input channels, filter rows, filter cols, output channels).
-      Rows must be the same as cols. Output channels must be a multiple of 16.
+      Rows must be the same as cols. Output channels must be a multiple
+      of 16.
     * output: (input channels, input rows, input cols, batch size)
 
     Notes
     -----
-    All of these convolution routines are optimized for the case when the
-    number of images (i.e. the minibatch size) is a multiple of 128. Other
-    batch sizes will work, but Alex "made no attempt whatsoever to make them
-    work fast."
+    All of these convolution routines are optimized for the case when
+    the number of images (i.e. the minibatch size) is a multiple of 128.
+    Other batch sizes will work, but Alex "made no attempt whatsoever
+    to make them work fast."
     """
 
     # __eq__ and __hash__ are defined in BaseActs.
@@ -89,7 +90,16 @@ class ImageActs(BaseActs):
 
     def make_node(self, hid_acts, filters, output_shape=None):
         """
-        output_shape: 2-element TensorVariable giving the spatial shape of the image
+        .. todo::
+
+            WRITEME
+
+        Parameters
+        ----------
+        hid_acts : WRITEME
+        filters : WRITEME
+        output_shape : 2-element TensorVariable, optional
+            The spatial shape of the image
         """
 
         if not isinstance(hid_acts.type, CudaNdarrayType):
@@ -137,9 +147,19 @@ class ImageActs(BaseActs):
         return flops
 
     def connection_pattern(self, node):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return [[1], [1], [0]]
 
     def grad(self, inputs, g_outputs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         hid_acts, filters, output_shape = inputs
         g_images, = g_outputs
         g_images = as_cuda_ndarray_variable(g_images)
@@ -161,6 +181,11 @@ class ImageActs(BaseActs):
         return [g_hid_acts, g_filters, DisconnectedType()()]
 
     def c_code(self, node, name, inputs, outputs, sub):
+        """
+        .. todo::
+
+            WRITEME
+        """
         hid_acts, filters, output_shape = inputs
         targets, = outputs
         fail = sub['fail']
@@ -367,4 +392,9 @@ class ImageActs(BaseActs):
         return rval
 
     def c_code_cache_version(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return (9,)

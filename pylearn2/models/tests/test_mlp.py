@@ -1,9 +1,14 @@
+from itertools import product
+
 import numpy as np
 import theano
 from theano import tensor
+
 from pylearn2.models.mlp import (MLP, Linear, Softmax, Sigmoid,
                                  exhaustive_dropout_average,
-                                 sampled_dropout_average)
+                                 sampled_dropout_average, CompositeLayer)
+from pylearn2.space import VectorSpace, CompositeSpace
+from pylearn2.utils import is_iterable
 
 
 class IdentityLayer(Linear):
@@ -162,3 +167,81 @@ if __name__ == "__main__":
     test_sigmoid_layer_misclass_reporting()
     test_batchwise_dropout()
     test_sigmoid_detection_cost()
+
+
+def test_composite_layer():
+    """
+    Test the routing functionality of the CompositeLayer
+    """
+    # Without routing
+    composite_layer = CompositeLayer('composite_layer',
+                                     [Linear(2, 'h0', irange=0),
+                                      Linear(2, 'h1', irange=0),
+                                      Linear(2, 'h2', irange=0)])
+    mlp = MLP(nvis=2, layers=[composite_layer])
+    for i in range(3):
+        composite_layer.layers[i].set_weights(
+            np.eye(2, dtype=theano.config.floatX)
+        )
+        composite_layer.layers[i].set_biases(
+            np.zeros(2, dtype=theano.config.floatX)
+        )
+    X = tensor.matrix()
+    y = mlp.fprop(X)
+    funs = [theano.function([X], y_elem) for y_elem in y]
+    x_numeric = np.random.rand(2, 2).astype('float32')
+    y_numeric = [f(x_numeric) for f in funs]
+    assert np.all(x_numeric == y_numeric)
+
+    # With routing
+    for inputs_to_layers in [{0: [1], 1: [2], 2: [0]},
+                             {0: [1], 1: [0, 2], 2: []},
+                             {0: [], 1: []}]:
+        composite_layer = CompositeLayer('composite_layer',
+                                         [Linear(2, 'h0', irange=0),
+                                          Linear(2, 'h1', irange=0),
+                                          Linear(2, 'h2', irange=0)],
+                                         inputs_to_layers)
+        input_space = CompositeSpace([VectorSpace(dim=2),
+                                      VectorSpace(dim=2),
+                                      VectorSpace(dim=2)])
+        mlp = MLP(input_space=input_space, layers=[composite_layer])
+        for i in range(3):
+            composite_layer.layers[i].set_weights(
+                np.eye(2, dtype=theano.config.floatX)
+            )
+            composite_layer.layers[i].set_biases(
+                np.zeros(2, dtype=theano.config.floatX)
+            )
+        X = [tensor.matrix() for _ in range(3)]
+        y = mlp.fprop(X)
+        funs = [theano.function(X, y_elem, on_unused_input='ignore')
+                for y_elem in y]
+        x_numeric = [np.random.rand(2, 2).astype(theano.config.floatX)
+                     for _ in range(3)]
+        y_numeric = [f(*x_numeric) for f in funs]
+        assert all([all([np.all(x_numeric[i] == y_numeric[j])
+                         for j in inputs_to_layers[i]])
+                    for i in inputs_to_layers])
+
+    # Get the weight decay expressions from a composite layer
+    composite_layer = CompositeLayer('composite_layer',
+                                     [Linear(2, 'h0', irange=0.1),
+                                      Linear(2, 'h1', irange=0.1)])
+    input_space = VectorSpace(dim=10)
+    mlp = MLP(input_space=input_space, layers=[composite_layer])
+    for attr, coeff in product(['get_weight_decay', 'get_l1_weight_decay'],
+                               [[0.7, 0.3], 0.5]):
+        f = theano.function([], getattr(composite_layer, attr)(coeff))
+        if is_iterable(coeff):
+            g = theano.function(
+                [], tensor.sum([getattr(layer, attr)(c) for c, layer
+                                in zip(coeff, composite_layer.layers)])
+            )
+            assert np.allclose(f(), g())
+        else:
+            g = theano.function(
+                [], tensor.sum([getattr(layer, attr)(coeff) for layer
+                                in composite_layer.layers])
+            )
+            assert np.allclose(f(), g())
