@@ -27,8 +27,14 @@ class RocAucScoreOp(gof.Op):
 
     Parameters
     ----------
+    name : str, optional (default 'roc_auc')
+        Name of this Op.
     use_c_code : WRITEME
     """
+    def __init__(self, name='roc_auc', use_c_code=theano.config.cxx):
+        super(RocAucScoreOp, self).__init__(use_c_code)
+        self.name = name
+
     def make_node(self, y_true, y_score):
         """
         Calculate ROC AUC score.
@@ -42,7 +48,7 @@ class RocAucScoreOp(gof.Op):
         """
         y_true = T.as_tensor_variable(y_true)
         y_score = T.as_tensor_variable(y_score)
-        output = [T.scalar(name='roc_auc', dtype=config.floatX)]
+        output = [T.scalar(name=self.name, dtype=config.floatX)]
         return gof.Apply(self, [y_true, y_score], output)
 
     def perform(self, node, inputs, output_storage):
@@ -82,10 +88,16 @@ class RocAucChannel(TrainExtension):
         Channel name suffix.
     positive_class_index : int, optional (default 1)
         Index of positive class in predicted values.
+    negative_class_index : int or None, optional (default None)
+        Index of negative class in predicted values for calculation of
+        one vs. one performance. If None, uses all examples not in the
+        positive class (one vs. the rest).
     """
-    def __init__(self, channel_name_suffix='roc_auc', positive_class_index=1):
+    def __init__(self, channel_name_suffix='roc_auc', positive_class_index=1,
+                 negative_class_index=None):
         self.channel_name_suffix = channel_name_suffix
         self.positive_class_index = positive_class_index
+        self.negative_class_index = negative_class_index
 
     def setup(self, model, dataset, algorithm):
         """
@@ -103,11 +115,22 @@ class RocAucChannel(TrainExtension):
         m_space, m_source = model.get_monitoring_data_specs()
         state, target = m_space.make_theano_batch()
 
-        # to generalize to the one vs. rest multiclass case, true targets
-        # are boolean against the positive_class_index
-        y = T.eq(T.argmax(target, axis=1), self.positive_class_index)
+        y = T.argmax(target, axis=1)
         y_hat = model.fprop(state)[:, self.positive_class_index]
-        roc_auc = RocAucScoreOp()(y, y_hat)
+
+        # one vs. the rest
+        if self.negative_class_index is None:
+            y = T.eq(y, self.positive_class_index)
+
+        # one vs. one
+        else:
+            pos = T.eq(y, self.positive_class_index)
+            neg = T.eq(y, self.negative_class_index)
+            keep = T.add(pos, neg).nonzero()
+            y = T.eq(y[keep], self.positive_class_index)
+            y_hat = y_hat[keep]
+
+        roc_auc = RocAucScoreOp(self.channel_name_suffix)(y, y_hat)
         roc_auc = T.cast(roc_auc, config.floatX)
         for dataset_name, dataset in algorithm.monitoring_dataset.items():
             if dataset_name:
