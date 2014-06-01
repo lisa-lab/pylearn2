@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """Script to load (or just parse) a YAML file to verify it before launch."""
 __authors__ = "David Warde-Farley"
 __copyright__ = "Copyright 2014, Universite de Montreal"
