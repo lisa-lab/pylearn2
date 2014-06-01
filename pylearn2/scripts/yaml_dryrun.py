@@ -13,7 +13,15 @@ from yaml import load as yaml_load
 from pylearn2.config.yaml_parse import load, initialize
 
 
-def main():
+def main(args=None):
+    """
+    Execute the main body of the script.
+
+    Parameters
+    ----------
+    args : list, optional
+        Command-line arguments. If unspecified, `sys.argv[1:]` is used.
+    """
     parser = argparse.ArgumentParser(description='Load a YAML file without '
                                                  'performing any training.')
     parser.add_argument('yaml_file', type=argparse.FileType('r'),
@@ -26,7 +34,7 @@ def main():
                              'checking a file that requires a GPU in an '
                              'environment that lacks one (e.g. a cluster '
                              'head node)')
-    args = parser.parse_args()
+    args = parser.parse_args(args=args)
     name = args.yaml_file.name
     initialize()
     if args.no_instantiate:
