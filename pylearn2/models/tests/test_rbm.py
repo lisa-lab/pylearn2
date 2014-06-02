@@ -50,6 +50,6 @@ def test_train_batch():
     train = DenseDesignMatrix(X=X)
 
     rbm = RBM(nvis=dim, nhid=3)
-    trainer = DefaultTrainingAlgorithm(batch_size=1)
+    trainer = DefaultTrainingAlgorithm(batch_size=1, batches_per_iter=10)
     trainer.setup(rbm, train)
     trainer.train(train)
