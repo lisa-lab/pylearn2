@@ -2,6 +2,7 @@
 Routines for extracting (reflected) windows of image stacks in
 (channels, rows, cols, batch_size) format.
 """
+import logging
 import numpy as np
 cimport numpy as np
 cimport cython
@@ -9,8 +10,18 @@ cimport cython
 from pylearn2.utils.rng import make_np_rng
 
 
-cdef extern from "stdlib.h":
-    int rand_r(unsigned int *seedp) nogil
+IF UNAME_SYSNAME == "Windows":
+    cdef extern from "stdlib.h":
+        int rand()
+    cdef int rand_r(unsigned int *seedp) nogil:
+        return rand()
+    log = logging.getLogger(__name__)
+    log.warning("Microsoft Windows detected; experiments with WindowAndFlip "
+                "will not be deterministic/repeatable even with same seed "
+                "because MSVCRT does not implement rand_r.")
+ELSE:
+    cdef extern from "stdlib.h":
+        int rand_r(unsigned int *seedp) nogil
 
 
 def _check_args(np.ndarray[np.float32_t, ndim=4] images,
