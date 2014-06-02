@@ -1,0 +1,29 @@
+!obj:pylearn2.train.Train {
+    dataset: !obj:pylearn2.datasets.dense_design_matrix.DenseDesignMatrix &dataset {
+        "X" : !obj:numpy.random.normal { 'size':[5,6] },
+        "y" : !obj:numpy.random.normal { 'size':[5,6] },
+    },
+    model: !obj:pylearn2.models.mlp.MLP {
+        nvis: 6,
+        layers: [
+                 !obj:pylearn2.models.lwta.LWTA {
+                     block_size: 2,
+                     layer_name: 'h0',
+                     dim: 4,
+                     irange : 0.05,
+                 }, !obj:pylearn2.models.mlp.Linear {
+                     layer_name: 'y',
+                     dim: 6,
+                     irange : 0.05,
+                 }
+                ],
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        "learning_rate" : 1e-3,
+        "batch_size" : 5,
+        "monitoring_dataset" : *dataset,
+        "termination_criterion" : !obj:pylearn2.termination_criteria.EpochCounter {
+            "max_epochs": 1,
+        },
+    },
+}
