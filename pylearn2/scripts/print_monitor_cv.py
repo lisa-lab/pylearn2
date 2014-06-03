@@ -70,6 +70,7 @@ if __name__ == '__main__':
     parser.add_argument('models', nargs='+',
                         help='Model or models to analyze.')
     parser.add_argument('-a', '--all', action='store_true',
-                        help='Print values for all models instead of averages.')
+                        help='Print values for all models instead of ' +
+                             'averages.')
     args = parser.parse_args()
     main()
