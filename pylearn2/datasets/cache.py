@@ -115,6 +115,13 @@ class LocalDatasetCache:
         # Also, if another process is currently caching the same file,
         # it forces the current process to wait for it to be done before
         # using the file.
+        if not os.access(local_folder, os.W_OK):
+            log.warning("Local folder %s isn't writable."
+                        " This is needed for synchronization."
+                        " We will use the remove version."
+                        " Manually fix the permission."
+                        % local_folder)
+            return filename
         self.get_writelock(local_name)
 
         # If the file does not exist locally, consider creating it
@@ -157,7 +164,7 @@ class LocalDatasetCache:
             return filename
         elif not os.access(local_name, os.R_OK):
             log.warning("File %s in cache isn't readable. We will use the"
-                        " remote version. Manually fix the permission"
+                        " remote version. Manually fix the permission."
                         % (local_name))
             self.release_writelock()
             return filename
