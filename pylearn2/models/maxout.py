@@ -34,6 +34,7 @@ from itertools import izip
 from theano.compat.python2x import OrderedDict
 from theano.sandbox import cuda
 from theano import tensor as T
+from theano import config
 
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.mlp import Layer
@@ -119,6 +120,12 @@ class Maxout(Layer):
         If true, includes a zero in the set we take a max over for each
         maxout unit. This is equivalent to pooling over rectified
         linear units.
+    bias_init : object, optional
+        The Initialization object that governs how the biases
+        will be initialized.
+    weights_init : object, optional
+        The Initialization object that governs how the weights
+        will be initialized.
     """
 
     def __str__(self):
@@ -147,7 +154,9 @@ class Maxout(Layer):
                  max_col_norm=None,
                  max_row_norm=None,
                  mask_weights=None,
-                 min_zero=False):
+                 min_zero=False,
+                 bias_init=None,
+                 weights_init=None):
 
         super(Maxout, self).__init__()
 
@@ -160,11 +169,16 @@ class Maxout(Layer):
         self.__dict__.update(locals())
         del self.self
 
+        # TODO: add deprecation warning here when bias_init
+        # is more widely supported among layers.
         self.b = sharedX(np.zeros((self.detector_layer_dim,)) + init_bias,
-                         name=(layer_name + '_b'))
+                         name=layer_name + '_b')
 
         if max_row_norm is not None:
             raise NotImplementedError()
+
+        # Must match order in get_params().
+        self._initializers = [weights_init, bias_init]
 
     @functools.wraps(Model.get_lr_scalers)
     def get_lr_scalers(self):
@@ -225,34 +239,40 @@ class Maxout(Layer):
         self.output_space = VectorSpace(self.pool_layer_dim)
 
         rng = self.mlp.rng
-        if self.irange is not None:
-            assert self.sparse_init is None
-            W = rng.uniform(-self.irange,
-                            self.irange,
-                            (self.input_dim, self.detector_layer_dim)) * \
-                (rng.uniform(0., 1., (self.input_dim, self.detector_layer_dim))
-                 < self.include_prob)
-        else:
-            assert self.sparse_init is not None
-            W = np.zeros((self.input_dim, self.detector_layer_dim))
+        if self.weights_init is None:
+            # TODO: add deprecation warning here when weights_init
+            # is more widely supported among layers.
+            if self.irange is not None:
+                assert self.sparse_init is None
+                W = rng.uniform(-self.irange,
+                                self.irange,
+                                (self.input_dim, self.detector_layer_dim)) * \
+                    (rng.uniform(0.,1., (self.input_dim, self.detector_layer_dim))
+                    < self.include_prob)
+            else:
+                assert self.sparse_init is not None
+                W = np.zeros((self.input_dim, self.detector_layer_dim))
 
-            def mask_rejects(idx, i):
-                if self.mask_weights is None:
-                    return False
-                return self.mask_weights[idx, i] == 0.
+                def mask_rejects(idx, i):
+                    if self.mask_weights is None:
+                        return False
+                    return self.mask_weights[idx, i] == 0.
 
-            for i in xrange(self.detector_layer_dim):
-                assert self.sparse_init <= self.input_dim
-                for j in xrange(self.sparse_init):
-                    idx = rng.randint(0, self.input_dim)
-                    while W[idx, i] != 0 or mask_rejects(idx, i):
+                for i in xrange(self.detector_layer_dim):
+                    assert self.sparse_init <= self.input_dim
+                    for j in xrange(self.sparse_init):
                         idx = rng.randint(0, self.input_dim)
-                    W[idx, i] = rng.randn()
-            W *= self.sparse_stdev
+                        while W[idx, i] != 0 or mask_rejects(idx, i):
+                            idx = rng.randint(0, self.input_dim)
+                        W[idx, i] = rng.randn()
+                W *= self.sparse_stdev
+        else:
+            assert (self.irange is None and self.sparse_init is None)
+            W = np.nan * np.empty((self.input_dim, self.detector_layer_dim),
+                                  dtype=config.floatX)
 
         W = sharedX(W)
         W.name = self.layer_name + '_W'
-
         self.transformer = MatrixMul(W)
 
         W, = self.transformer.get_params()
@@ -753,8 +773,6 @@ class MaxoutConvC01B(Layer):
         setup_detector_layer_c01b(layer=self,
                                   input_space=space,
                                   rng=self.mlp.rng)
-
-        rng = self.mlp.rng
 
         detector_shape = self.detector_space.shape
 
