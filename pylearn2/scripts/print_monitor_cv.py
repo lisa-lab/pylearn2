@@ -3,7 +3,7 @@
 Print (average) channel values for a collection of models, such as that
 serialized by TrainCV. Based on print_monitor.py
 
-usage: print_monitor_cv.py model.pkl
+usage: print_monitor_cv.py model.pkl [-a]
 """
 
 __author__ = "Steven Kearnes"
@@ -13,7 +13,6 @@ __maintainer__ = "Steven Kearnes"
 
 import argparse
 import numpy as np
-import sys
 
 from pylearn2.utils import serial
 
