@@ -1438,34 +1438,52 @@ class ShuffleAndSplit(Preprocessor):
 
 
 class TorontoPreprocessor(Preprocessor):
+    """Takes the min and max of the pixels in the training data and subtracts
+       min + (max - min)/2.
+
+       Subtracting the min makes the values be between 0 to (max - min), then
+       subtracting (max - min)/2 centers the values around 0.
+
+       NOTE: the max and min values are computed wrt each feature
+    """
     def __init__(self):
         """
         Initialize the TorontoPreprocessor preprocessor.
         """
-        self._mean = None
+        self._max = None
+        self._min = None
 
     def apply(self, dataset, can_fit=False):
         X = dataset.get_design_matrix()
-        X = X / 255.
         if can_fit:
-            self._mean = X.mean(axis=0)
+            self._max = X.max(axis=0)
+            self._min = X.min(axis=0)
         else:
-            if self._mean is None:
+            if self._max is None or self._min is None:
                 raise ValueError("can_fit is False, but TorontoPreprocessor "
-                                    "object has no stored mean")
-        new = X - self._mean
+                                 "object has no stored max nor min")
+        new = X - (self._min + ((self._max - self._min)/2.))
         dataset.set_design_matrix(new)
 
 
 class CenterPreprocessor(Preprocessor):
+    """Substracts (max - min)/2.
+
+       It centers the values around 0.
+
+       NOTE: the max and min values are computed wrt each feature
+    """
     def apply(self, dataset, can_fit=False):
         X = dataset.get_design_matrix()
-        X -= 127.5
+        X -= (X.max(axis=0) - X.min(axis=0))/2
         dataset.set_design_matrix(X)
 
 
 class RescalePreprocessor(Preprocessor):
+    """Rescales the features by dividing them by the max absolute value
+       wrt each feature.
+    """
     def apply(self, dataset, can_fit=False):
         X = dataset.get_design_matrix()
-        X /= 127.5
+        X /= abs(X.max(axis=0))
         dataset.set_design_matrix(X)
