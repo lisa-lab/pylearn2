@@ -145,6 +145,7 @@ class LocalDatasetCache:
                                '%Y-%m-%d %H:%M:%S',
                                time.localtime(os.path.getmtime(local_name))
                            )))
+            self.release_writelock()
             return filename
         elif os.path.getsize(local_name) != os.path.getsize(remote_name):
             log.warning("File %s not cached: The remote file (%d bytes) is of "
@@ -152,6 +153,13 @@ class LocalDatasetCache:
                         "(%d bytes). The local cache might be corrupt."
                         % (remote_name, os.path.getsize(remote_name),
                            local_name, os.path.getsize(local_name)))
+            self.release_writelock()
+            return filename
+        elif not os.access(local_name, os.R_OK):
+            log.warning("File %s in cache isn't readable. We will use the"
+                        " remote version. Manually fix the permission"
+                        % (local_name))
+            self.release_writelock()
             return filename
         else:
             log.debug("File %s has previously been locally cached to %s" %
