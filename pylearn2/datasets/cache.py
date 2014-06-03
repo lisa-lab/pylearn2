@@ -80,6 +80,9 @@ class LocalDatasetCache:
         if self.dataset_local_dir == "":
             return filename
 
+        common_msg = ("Message from Pylearn2 local cache of dataset"
+                      "(specified by the environment variable "
+                      "PYLEARN2_LOCAL_DATA_PATH): ")
         # Make sure the file to cache exists and really is a file
         if not os.path.exists(remote_name):
             log.error("Error : Specified file %s does not exist" %
@@ -93,6 +96,7 @@ class LocalDatasetCache:
 
         if not remote_name.startswith(self.dataset_remote_dir):
             log.warning(
+                common_msg +
                 "We cache in the local directory only what is"
                 " under $PYLEARN2_DATA_PATH: %s" %
                 remote_name)
@@ -119,9 +123,10 @@ class LocalDatasetCache:
         # it forces the current process to wait for it to be done before
         # using the file.
         if not os.access(local_folder, os.W_OK):
-            log.warning("Local folder %s isn't writable."
+            log.warning(common_msg +
+                        "Local folder %s isn't writable."
                         " This is needed for synchronization."
-                        " We will use the remove version."
+                        " We will use the remote version."
                         " Manually fix the permission."
                         % local_folder)
             return filename
@@ -132,17 +137,19 @@ class LocalDatasetCache:
 
             # Check that there is enough space to cache the file
             if not self.check_enough_space(remote_name, local_name):
-                log.warning("File %s not cached: Not enough free space" %
+                log.warning(common_msg +
+                            "File %s not cached: Not enough free space" %
                             remote_name)
                 self.release_writelock()
                 return filename
 
             # There is enough space; make a local copy of the file
             self.copy_from_server_to_local(remote_name, local_name)
-            log.info("File %s has been locally cached to %s" %
+            log.info(common_msg + "File %s has been locally cached to %s" %
                      (remote_name, local_name))
         elif os.path.getmtime(remote_name) > os.path.getmtime(local_name):
-            log.warning("File %s in cache will not be used: The remote file "
+            log.warning(common_msg +
+                        "File %s in cache will not be used: The remote file "
                         "(modified %s) is newer than the locally cached file "
                         "%s (modified %s)."
                         % (remote_name,
@@ -158,7 +165,8 @@ class LocalDatasetCache:
             self.release_writelock()
             return filename
         elif os.path.getsize(local_name) != os.path.getsize(remote_name):
-            log.warning("File %s not cached: The remote file (%d bytes) is of "
+            log.warning(common_msg +
+                        "File %s not cached: The remote file (%d bytes) is of "
                         "a different size than the locally cached file %s "
                         "(%d bytes). The local cache might be corrupt."
                         % (remote_name, os.path.getsize(remote_name),
@@ -166,7 +174,8 @@ class LocalDatasetCache:
             self.release_writelock()
             return filename
         elif not os.access(local_name, os.R_OK):
-            log.warning("File %s in cache isn't readable. We will use the"
+            log.warning(common_msg +
+                        "File %s in cache isn't readable. We will use the"
                         " remote version. Manually fix the permission."
                         % (local_name))
             self.release_writelock()
