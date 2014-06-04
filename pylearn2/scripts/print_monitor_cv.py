@@ -81,4 +81,4 @@ if __name__ == '__main__':
                         help='Print values for all models instead of ' +
                              'averages.')
     args = parser.parse_args()
-    main(**args)
+    main(**vars(args))
