@@ -17,16 +17,16 @@ import numpy as np
 from pylearn2.utils import serial
 
 
-def main():
+def main(models, all=False):
     """
     Print (average) final channel values for a collection of models.
     """
     epochs = []
     time = []
     values = {}
-    for filename in args.models:
-        models = serial.load(filename)
-        for model in list(models):
+    for filename in models:
+        this_models = serial.load(filename)
+        for model in list(this_models):
             monitor = model.monitor
             channels = monitor.channels
             epochs.append(monitor._epochs_seen)
@@ -38,7 +38,7 @@ def main():
     n_models = len(epochs)
     print 'number of models: {}'.format(n_models)
     if n_models > 1:
-        if args.all:
+        if all:
             print '\nepochs seen:\n{}\n{} +/- {}'.format(np.asarray(epochs),
                                                          np.mean(epochs),
                                                          np.std(epochs))
@@ -51,7 +51,7 @@ def main():
             print 'training time: {} +/- {}'.format(np.mean(time),
                                                     np.std(time))
         for key in sorted(values.keys()):
-            if args.all:
+            if all:
                 print '\n{}:\n{}\n{} +/- {}'.format(key,
                                                     np.asarray(values[key]),
                                                     np.mean(values[key]),
@@ -73,4 +73,4 @@ if __name__ == '__main__':
                         help='Print values for all models instead of ' +
                              'averages.')
     args = parser.parse_args()
-    main()
+    main(**args)
