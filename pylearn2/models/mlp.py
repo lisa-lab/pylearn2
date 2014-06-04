@@ -3283,7 +3283,7 @@ class ConvElemwise(Layer):
             output_shape = [(self.input_space.shape[0] + self.kernel_shape[0])
                             / self.kernel_stride[0] - 1,
                             (self.input_space.shape[1] + self.kernel_shape[1])
-                            / self.kernel_stride_stride[1] - 1]
+                            / self.kernel_stride[1] - 1]
 
         self.detector_space = Conv2DSpace(shape=output_shape,
                                           num_channels=self.output_channels,
