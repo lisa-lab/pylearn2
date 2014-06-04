@@ -316,7 +316,7 @@ class Layer(Model):
 
     def get_weight_decay(self, coeff):
         """
-        Provides an expresion for a squared L2 penalty on the weights.
+        Provides an expression for a squared L2 penalty on the weights.
 
         Parameters
         ----------
@@ -341,7 +341,7 @@ class Layer(Model):
 
     def get_l1_weight_decay(self, coeff):
         """
-        Provides an expresion for an L1 penalty on the weights.
+        Provides an expression for an L1 penalty on the weights.
 
         Parameters
         ----------
