@@ -566,13 +566,6 @@ class MLP(Layer):
 
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
-        #
-        # Notes
-        # -----
-        # We are only monitoring the last layer for data dependent channels.
-        # If you want to monitor every inner layer you should change the
-        # get_monitoring_channels_from_state method.
-
         warnings.warn("Layer.get_monitoring_channels_from_state is " + \
                     "deprecated. Use get_layer_monitoring_channels " + \
                     "instead. Layer.get_monitoring_channels_from_state " + \
@@ -622,72 +615,30 @@ class MLP(Layer):
                                         state=None, targets=None):
 
         rval = OrderedDict()
-        if state_below is not None:
-            state = state_below
+        state = state_below
 
-            for layer in self.layers:
-                # We don't go through all the inner layers recursively
-                state = layer.fprop(state)
-                args = [None, state]
-                if layer is self.layers[-1] and targets is not None:
-                    args.append(targets)
-                ch = layer.get_layer_monitoring_channels(*args)
-                if not isinstance(ch, OrderedDict):
-                    raise TypeError(str((type(ch), layer.layer_name)))
-                for key in ch:
-                    value = ch[key]
-                    doc = get_monitor_doc(value)
-                    if doc is None:
-                        doc = str(type(layer)) + \
-                            ".get_monitoring_channels_from_state did" + \
-                            " not provide any further documentation for" + \
-                            " this channel."
-                    doc = 'This channel came from a layer called "' + \
-                            layer.layer_name + '" of an MLP.\n' + doc
-                    value.__doc__ = doc
-                    rval[layer.layer_name+'_'+key] = value
-
-
-        elif state is not None:
-
-            for layer in self.layers:
-                if layer is self.layers[-1]:
-                    args = [None, state]
-                    if targets is not None:
-                        args.append(targets)
-                    ch = layer.get_layer_monitoring_channels(*args)
-                else:
-                    ch = layer.get_layer_monitoring_channels()
-                for key in ch:
-                    value = ch[key]
-                    doc = get_monitor_doc(value)
-                    if doc is None:
-                        doc = str(type(layer)) + \
-                            ".get_monitoring_channels did" + \
-                            " not provide any further documentation for" + \
-                            " this channel."
-                    doc = 'This channel came from a layer called "' + \
-                            layer.layer_name + '" of an MLP.\n' + doc
-                    value.__doc__ = doc
-                    rval[layer.layer_name+'_'+key] = value
-
-        else:
-            for layer in self.layers:
-                ch = layer.get_layer_monitoring_channels()
-                if not isinstance(ch, OrderedDict):
-                    raise TypeError(str((type(ch), layer.layer_name)))
-                for key in ch:
-                    value = ch[key]
-                    doc = get_monitor_doc(value)
-                    if doc is None:
-                        doc = str(type(layer)) + \
-                            ".get_monitoring_channels_from_state did" + \
-                            " not provide any further documentation for" + \
-                            " this channel."
-                    doc = 'This channel came from a layer called "' + \
-                            layer.layer_name + '" of an MLP.\n' + doc
-                    value.__doc__ = doc
-                    rval[layer.layer_name+'_'+key] = value
+        for layer in self.layers:
+            # We don't go through all the inner layers recursively
+            state_below = state
+            state = layer.fprop(state)
+            args = [state_below, state]
+            if layer is self.layers[-1] and targets is not None:
+                args.append(targets)
+            ch = layer.get_layer_monitoring_channels(*args)
+            if not isinstance(ch, OrderedDict):
+                raise TypeError(str((type(ch), layer.layer_name)))
+            for key in ch:
+                value = ch[key]
+                doc = get_monitor_doc(value)
+                if doc is None:
+                    doc = str(type(layer)) + \
+                        ".get_monitoring_channels_from_state did" + \
+                        " not provide any further documentation for" + \
+                        " this channel."
+                doc = 'This channel came from a layer called "' + \
+                        layer.layer_name + '" of an MLP.\n' + doc
+                value.__doc__ = doc
+                rval[layer.layer_name+'_'+key] = value
 
         return rval
 
