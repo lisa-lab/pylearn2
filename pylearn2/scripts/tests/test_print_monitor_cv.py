@@ -19,10 +19,10 @@ def test_print_monitor_cv():
     trainer.main_loop()
 
     # run print_monitor_cv.py main
-    print_monitor_cv.main([filename])
+    print_monitor_cv.main(filename)
 
     # run print_monitor_cv.py main with all=True
-    print_monitor_cv.main([filename], all=True)
+    print_monitor_cv.main(filename, all=True)
 
     # cleanup
     os.remove(filename)
