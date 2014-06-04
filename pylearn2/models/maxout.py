@@ -793,8 +793,7 @@ class MaxoutConvC01B(Layer):
 
         dummy_p = max_pool_c01b(c01b=dummy_detector,
                                 pool_shape=self.pool_shape,
-                                pool_stride=self.pool_stride,
-                                image_shape=self.detector_space.shape)
+                                pool_stride=self.pool_stride)
         dummy_p = dummy_p.eval()
         self.output_space = Conv2DSpace(shape=[dummy_p.shape[1],
                                                dummy_p.shape[2]],
@@ -939,8 +938,7 @@ class MaxoutConvC01B(Layer):
                 z = self.detector_normalization(z)
 
             p = max_pool_c01b(c01b=z, pool_shape=self.pool_shape,
-                              pool_stride=self.pool_stride,
-                              image_shape=self.detector_space.shape)
+                              pool_stride=self.pool_stride)
         else:
 
             if self.detector_normalization is not None:
@@ -949,8 +947,7 @@ class MaxoutConvC01B(Layer):
                                           "never exists as a stage of "
                                           "processing in this implementation.")
             z = max_pool_c01b(c01b=z, pool_shape=self.pool_shape,
-                              pool_stride=self.pool_stride,
-                              image_shape=self.detector_space.shape)
+                              pool_stride=self.pool_stride)
             if self.num_pieces != 1:
                 s = None
                 for i in xrange(self.num_pieces):
@@ -1395,8 +1392,7 @@ class MaxoutLocalC01B(Layer):
 
             dummy_p = max_pool_c01b(c01b=dummy_detector,
                                     pool_shape=self.pool_shape,
-                                    pool_stride=self.pool_stride,
-                                    image_shape=self.detector_space.shape)
+                                    pool_stride=self.pool_stride)
             dummy_p = dummy_p.eval()
             self.output_space = Conv2DSpace(shape=[dummy_p.shape[1],
                                                    dummy_p.shape[2]],
@@ -1569,8 +1565,7 @@ class MaxoutLocalC01B(Layer):
             else:
                 p = max_pool_c01b(c01b=z,
                                   pool_shape=self.pool_shape,
-                                  pool_stride=self.pool_stride,
-                                  image_shape=self.detector_space.shape)
+                                  pool_stride=self.pool_stride)
         else:
 
             if self.detector_normalization is not None:
@@ -1582,8 +1577,7 @@ class MaxoutLocalC01B(Layer):
             if self.pool_shape is not None or np.prod(self.pool_shape) > 1:
                 z = max_pool_c01b(c01b=z,
                                   pool_shape=self.pool_shape,
-                                  pool_stride=self.pool_stride,
-                                  image_shape=self.detector_space.shape)
+                                  pool_stride=self.pool_stride)
             if self.num_pieces != 1:
                 s = None
                 for i in xrange(self.num_pieces):
