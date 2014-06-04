@@ -84,13 +84,18 @@ class BaseActs(GpuOp):
         self.stride = stride
         self.copy_non_contiguous = 0
         if pattern is not None:
-            groups = len(pattern)
-        self.groups = groups
-        if pattern is not None:
-            pattern = np.array(pattern, dtype=np.int)
+            pattern = np.array(pattern, dtype=np.int)            
+            if groups == 1:
+                groups = len(pattern)
+            elif groups != len(pattern):
+                raise ValueError("The supplied value `groups=%d` does not match "
+                        "the number of groups in the supplied connection pattern "
+                        "(%d). Either omit `groups` or set it to the correct "
+                        "value." % (groups, len(pattern)))
             # TODO: implement in FilterActs/ImageActs/WeightActs.c_code()
             raise NotImplementedError("custom connection patterns not supported yet")
         self.pattern = pattern
+        self.groups = groups
         self.dense_connectivity = (groups == 1) and (pattern is None)  # defined for backwards compatibility, not sure if anybody uses it
 
     def c_header_dirs(self):
