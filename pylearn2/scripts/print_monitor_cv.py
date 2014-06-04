@@ -20,11 +20,19 @@ from pylearn2.utils import serial
 def main(models, all=False):
     """
     Print (average) final channel values for a collection of models.
+
+    Parameters
+    ----------
+    models : list
+        Filename(s) for models to analyze.
+    all : bool, optional (default False)
+        Whether to output values for all models. If False, only averages
+        and standard deviations across all models are displayed.
     """
     epochs = []
     time = []
     values = {}
-    for filename in models:
+    for filename in np.atleast_1d(models):
         this_models = serial.load(filename)
         for model in list(this_models):
             monitor = model.monitor
