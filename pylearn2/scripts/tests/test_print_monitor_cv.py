@@ -1,6 +1,6 @@
 """
 Test print_monitor_cv.py by training on a short TrainCV YAML file and
-attempting to analyze the output pickle.
+analyzing the output pickle.
 """
 import os
 import tempfile
