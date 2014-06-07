@@ -16,9 +16,11 @@ __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
-from pylearn2.utils import serial
+import gc
 import numpy as np
 import sys
+
+from pylearn2.utils import serial
 from theano.printing import _TagGenerator
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
 import argparse
@@ -98,6 +100,8 @@ def main():
 
         for channel in this_model_channels:
             channels[channel+postfix] = this_model_channels[channel]
+        del model
+        gc.collect()
 
 
     while True:
