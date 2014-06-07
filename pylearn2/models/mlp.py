@@ -2611,6 +2611,7 @@ class Sigmoid(Linear):
         div = kl(Y=Y, Y_hat=Y_hat, batch_axis=batch_axis)
         return div
 
+    @wraps(Layer.cost_matrix)
     def cost_matrix(self, Y, Y_hat):
         rval = elemwise_kl(Y, Y_hat)
         assert rval.ndim == 2

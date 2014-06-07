@@ -1508,7 +1508,7 @@ def from_dataset(dataset, num_examples):
                                      view_converter=dataset.view_converter)
         raise
 
-    rval = DenseDesignMatrix(topo_view=V, y = y, y_labels=dataset.y_labels)
+    rval = DenseDesignMatrix(topo_view=V, y=y, y_labels=dataset.y_labels)
     rval.adjust_for_viewer = dataset.adjust_for_viewer
 
     return rval
