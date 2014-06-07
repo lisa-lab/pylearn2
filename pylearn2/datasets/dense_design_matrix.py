@@ -1476,9 +1476,18 @@ class DefaultViewConverter(object):
 
 def from_dataset(dataset, num_examples):
     """
-    .. todo::
+    Constructs a random subset of a DenseDesignMatrix
 
-        WRITEME
+    Parameters
+    ----------
+    dataset : DenseDesignMatrix
+    num_examples : int
+
+    Returns
+    -------
+    sub_dataset : DenseDesignMatrix
+        A new dataset containing `num_examples` examples randomly
+        drawn (without replacement) from `dataset`
     """
     try:
 
@@ -1499,7 +1508,7 @@ def from_dataset(dataset, num_examples):
                                      view_converter=dataset.view_converter)
         raise
 
-    rval = DenseDesignMatrix(topo_view=V, y=y)
+    rval = DenseDesignMatrix(topo_view=V, y = y, y_labels=dataset.y_labels)
     rval.adjust_for_viewer = dataset.adjust_for_viewer
 
     return rval
