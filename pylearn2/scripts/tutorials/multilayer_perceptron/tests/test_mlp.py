@@ -27,7 +27,6 @@ def test_part_2():
     with open(os.path.join(YAML_FILE_PATH,
               'mlp_tutorial_part_2.yaml'), 'r') as f:
         train = f.read()
-    f.close()
     hyper_params = {'train_stop': 50,
                     'valid_stop': 50050,
                     'dim_h0': 5,
@@ -44,7 +43,6 @@ def test_part_3():
     with open(os.path.join(YAML_FILE_PATH,
               'mlp_tutorial_part_3.yaml'), 'r') as f:
         train_2 = f.read()
-    f.close()
     hyper_params = {'train_stop': 50,
                     'valid_stop': 50050,
                     'dim_h0': 5,
@@ -63,7 +61,6 @@ def test_part_4():
     with open(os.path.join(YAML_FILE_PATH,
               'mlp_tutorial_part_4.yaml'), 'r') as f:
         train_3 = f.read()
-    f.close()
     hyper_params = {'train_stop': 50,
                     'valid_stop': 50050,
                     'dim_h0': 5,
