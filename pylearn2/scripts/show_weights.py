@@ -1,18 +1,42 @@
 #!/usr/bin/env python
 """
-.. todo::
-
-    WRITEME
+Visualizes the weight matrices of a pickled model
 """
-#usage: show_weights.py model.pkl
-from pylearn2.gui import get_weights_report
 import argparse
 
-def main():
-    """
-    .. todo::
+from pylearn2.gui import get_weights_report
 
+
+def show_weights(model_path, rescale="individual",
+                 border=False, out=None):
+    """
+    Show or save weights to an image for a pickled model
+
+    Parameters
+    ----------
+    model_path : str
+        Path of the model to show weights for
+    rescale : str
         WRITEME
+    border : bool, optional
+        WRITEME
+    out : str, optional
+        Output file to save weights to
+    """
+    pv = get_weights_report.get_weights_report(model_path=model_path,
+                                               rescale=rescale,
+                                               border=border)
+
+    if out is None:
+        pv.show()
+    else:
+        pv.save(out)
+
+
+def make_argument_parser():
+    """
+    Creates an ArgumentParser to read the options for this script from
+    sys.argv
     """
     parser = argparse.ArgumentParser()
 
@@ -20,17 +44,9 @@ def main():
     parser.add_argument("--out", default=None)
     parser.add_argument("--border", action="store_true", default=False)
     parser.add_argument("path")
-
-    options = parser.parse_args()
-
-    pv = get_weights_report.get_weights_report(model_path=options.path,
-                                               rescale=options.rescale,
-                                               border=options.border)
-
-    if options.out is None:
-        pv.show()
-    else:
-        pv.save(options.out)
+    return parser
 
 if __name__ == "__main__":
-    main()
+    parser = make_argument_parser()
+    args = parser.parse_args()
+    show_weights(args.path, args.rescale, args.border, args.out)

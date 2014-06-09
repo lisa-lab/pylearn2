@@ -31,22 +31,38 @@ try:
 except ImportError:
     h5py_works = False
 
+matplotlib_works = True
+try:
+    from matplotlib import pyplot
+except ImportError:
+    matplotlib_works = False
+
+
 def skip_if_no_data():
     if 'PYLEARN2_DATA_PATH' not in os.environ:
         raise SkipTest()
+
 
 def skip_if_no_scipy():
     if not scipy_works:
         raise SkipTest()
 
+
 def skip_if_no_sklearn():
     if not sklearn_works:
         raise SkipTest()
+
 
 def skip_if_no_gpu():
     if cuda.cuda_available == False:
         raise SkipTest('Optional package cuda disabled.')
 
+
 def skip_if_no_h5py():
     if not h5py_works:
         raise SkipTest()
+
+
+def skip_if_no_matplotlib():
+    if not matplotlib_works:
+        raise SkipTest("matplotlib and pyplot are not available")
