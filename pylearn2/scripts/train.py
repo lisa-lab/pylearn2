@@ -89,6 +89,11 @@ class FeatureDump(object):
     topo : WRITEME
     """
     def __init__(self, encoder, dataset, path, batch_size=None, topo=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.encoder = encoder
         self.dataset = dataset
         self.path = path
@@ -99,6 +104,11 @@ class FeatureDump(object):
         """
         .. todo::
 
+            WRITEME
+
+        Parameters
+        ----------
+        **kwargs : dict, optional
             WRITEME
         """
         if self.batch_size is None:
@@ -156,15 +166,39 @@ def make_argument_parser():
     return parser
 
 
-if __name__ == "__main__":
-    """See module-level docstring for a description of the script."""
-    parser = make_argument_parser()
-    args = parser.parse_args()
-    train_obj = serial.load_train_file(args.config)
+def train(config, level_name=None, timestamp=None, time_budget=None,
+          verbose_logging=None, debug=None):
+    """
+    Trains a given YAML file.
+
+    Parameters
+    ----------
+    config : str
+        A YAML configuration file specifying the
+        training procedure.
+    level_name : bool, optional
+        Display the log level (e.g. DEBUG, INFO)
+        for each logged message.
+    timestamp : bool, optional
+        Display human-readable timestamps for
+        each logged message.
+    time_budget : int, optional
+        Time budget in seconds. Stop training at
+        the end of an epoch if more than this
+        number of seconds has elapsed.
+    verbose_logging : bool, optional
+        Display timestamp, log level and source
+        logger for every logged message
+        (implies timestamp and level_name are True).
+    debug : bool, optional
+        Display any DEBUG-level log messages,
+        False by default.
+    """
+    train_obj = serial.load_train_file(config)
     try:
         iter(train_obj)
         iterable = True
-    except TypeError as e:
+    except TypeError:
         iterable = False
 
     # Undo our custom logging setup.
@@ -172,12 +206,12 @@ if __name__ == "__main__":
     # Set up the root logger with a custom handler that logs stdout for INFO
     # and DEBUG and stderr for WARNING, ERROR, CRITICAL.
     root_logger = logging.getLogger()
-    if args.verbose_logging:
+    if verbose_logging:
         formatter = logging.Formatter(fmt="%(asctime)s %(name)s %(levelname)s "
                                           "%(message)s")
         handler = CustomStreamHandler(formatter=formatter)
     else:
-        if args.timestamp:
+        if timestamp:
             prefix = '%(asctime)s '
         else:
             prefix = ''
@@ -185,7 +219,7 @@ if __name__ == "__main__":
         handler = CustomStreamHandler(formatter=formatter)
     root_logger.addHandler(handler)
     # Set the root logger level.
-    if args.debug:
+    if debug:
         root_logger.setLevel(logging.DEBUG)
     else:
         root_logger.setLevel(logging.INFO)
@@ -198,11 +232,21 @@ if __name__ == "__main__":
             os.environ[phase_variable] = phase_value
 
             # Execute this training phase.
-            subobj.main_loop(time_budget=args.time_budget)
+            subobj.main_loop(time_budget=time_budget)
 
             # Clean up, in case there's a lot of memory used that's
             # necessary for the next phase.
             del subobj
             gc.collect()
     else:
-        train_obj.main_loop(time_budget=args.time_budget)
+        train_obj.main_loop(time_budget=time_budget)
+
+
+if __name__ == "__main__":
+    """
+    See module-level docstring for a description of the script.
+    """
+    parser = make_argument_parser()
+    args = parser.parse_args()
+    train(args.config, args.level_name, args.timestamp, args.time_budget,
+          args.verbose_logging, args.debug)
