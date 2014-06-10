@@ -118,7 +118,7 @@ class GSNCost(Cost):
         .. todo::
 
             WRITEME properly
-        
+
         Handles the different GSNCost modes.
         """
         layer_idxs = [idx for idx, _, _ in self.costs]
@@ -171,7 +171,7 @@ class GSNCost(Cost):
         .. todo::
 
             WRITEME properly
-        
+
         Provides monitoring of the individual costs that are being added together.
 
         This is a very useful method to subclass if you need to monitor more

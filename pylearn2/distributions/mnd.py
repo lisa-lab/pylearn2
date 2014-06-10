@@ -25,7 +25,7 @@ class MND(object):
     .. todo::
 
         WRITEME properly
-    
+
     Parameters
     -----------
     sigma : WRITEME
@@ -92,7 +92,7 @@ def fit(dataset, n_samples=None):
     .. todo::
 
         WRITEME properly
-    
+
     Returns an MND fit to n_samples drawn from dataset.
 
     Not a class method because we currently don't have a means
@@ -134,7 +134,7 @@ class AdditiveDiagonalMND:
         Parameters
         ----------
         X : WRITEME
-            A theano variable containing a design matrix of 
+            A theano variable containing a design matrix of
             observations of the random vector to condition on.
         """
         Z = self.s_rng.normal(size=X.shape,

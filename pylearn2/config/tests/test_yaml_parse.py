@@ -193,7 +193,7 @@ def test_duplicate_keywords_2():
 def test_parse_null_as_none():
     """
     Tests whether None may be passed via yaml kwarg null.
-    """ 
+    """
     initialize()
     yamlfile = """{
              "model": !obj:pylearn2.models.autoencoder.Autoencoder {

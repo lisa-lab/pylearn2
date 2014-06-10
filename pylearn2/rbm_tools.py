@@ -71,7 +71,7 @@ def compute_log_z(rbm, free_energy_fn, max_bits=15):
     try:
         nFE = numpy.zeros(2 ** width, dtype=config.floatX)
     except MemoryError as e:
-        improve_memory_error_message(e, 
+        improve_memory_error_message(e,
             "failed to allocate free energy storage "
             "array in compute_log_z; your model is too "
             "big to use with this function")

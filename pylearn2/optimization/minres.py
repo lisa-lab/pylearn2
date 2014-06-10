@@ -40,7 +40,7 @@ def minres(compute_Av,
     """
     Attempts to find the minimum-length and minimum-residual-norm
     solution :math:`x` to the system of linear equations :math:`A*x = b`
-    or least squares problem :math:`\\min||Ax-b||`. 
+    or least squares problem :math:`\\min||Ax-b||`.
 
     The n-by-n coefficient matrix A must be symmetric (but need not be
     positive definite or invertible). The right-hand-side column vector
@@ -114,7 +114,7 @@ def minres(compute_Av,
 
     References
     ----------
-    .. [1] Choi, Sou-Cheng. Iterative Methods for Singular Linear 
+    .. [1] Choi, Sou-Cheng. Iterative Methods for Singular Linear
            Equations and Least-Squares Problems, PhD Dissertation,
            Stanford University, 2006.
     """

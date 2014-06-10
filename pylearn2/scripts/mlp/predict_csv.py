@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
 # x is a numpy array
 # x = pickle.load(open(test_path, 'rb'))
-    x = np.loadtxt(test_path, delimiter=',')	# no labels in the file
+    x = np.loadtxt(test_path, delimiter=',') # no labels in the file
 
     y = f(x)
 

@@ -59,7 +59,7 @@ if __name__ == '__main__':
             "batch_size" : %(batch_size)d,
             "monitoring_batches" : 5,
             "monitoring_dataset" : *dataset,
-            "cost" : !obj:pylearn2.costs.cost.SumOfCosts { 
+            "cost" : !obj:pylearn2.costs.cost.SumOfCosts {
                 "costs": [
                     [1.0, !obj:pylearn2.costs.autoencoder.MeanBinaryCrossEntropy {} ],
                     [%(coefficient)f, !obj:pylearn2.costs.cost.MethodCost { method: 'contraction_penalty' } ]

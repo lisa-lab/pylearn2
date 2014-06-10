@@ -83,13 +83,13 @@ class NpzDataset(DenseDesignMatrix):
             "zipped groups of arrays (.npz) only"
         )
         assert key in loaded, "%s not found in loaded NPZFile" % key
-        
+
         if target_key != None:
             assert target_key in loaded, "%s not found in loaded NPZFile" % target_key
             y = loaded[target_key]
         else:
             y = None
-        
+
         if len(loaded[key].shape) == 2:
             super(NpzDataset, self).__init__(X=loaded[key], y=y)
         else:

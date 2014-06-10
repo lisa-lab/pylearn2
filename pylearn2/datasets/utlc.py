@@ -20,7 +20,7 @@ from pylearn2.utils.rng import make_np_rng
 def load_ndarray_dataset(name, normalize=True, transfer=False,
                          normalize_on_the_fly=False, randomize_valid=False,
                          randomize_test=False):
-    """ 
+    """
     Load the train,valid,test data for the dataset `name` and return it in ndarray format.
 
     We suppose the data was created with ift6266h11/pretraitement/to_npy.py that
@@ -35,10 +35,10 @@ def load_ndarray_dataset(name, normalize=True, transfer=False,
     transfer : bool
         If True also return the transfer labels
     normalize_on_the_fly : bool
-        If True, we return a Theano Variable that will give as output the normalized 
+        If True, we return a Theano Variable that will give as output the normalized
         value. If the user only take a subtensor of that variable, Theano optimization
-        should make that we will only have in memory the subtensor portion that is 
-        computed in normalized form. We store the original data in shared memory in 
+        should make that we will only have in memory the subtensor portion that is
+        computed in normalized form. We store the original data in shared memory in
         its original dtype. This is usefull to have the original data in its original
         dtype in memory to same memory. Especialy usefull to be able to use rita and
         harry with 1G per jobs.
@@ -55,7 +55,7 @@ def load_ndarray_dataset(name, normalize=True, transfer=False,
         Datasets returned if transfer = False
     train, valid, test, transfer : ndarrays
         Datasets returned if transfer = False
-    
+
     """
     assert not (normalize and normalize_on_the_fly), "Can't normalize in 2 way at the same time!"
 
@@ -128,7 +128,7 @@ def load_ndarray_dataset(name, normalize=True, transfer=False,
 def load_sparse_dataset(name, normalize=True, transfer=False,
                         randomize_valid=False,
                         randomize_test=False):
-    """ 
+    """
     Load the train,valid,test data for the dataset `name` and return it in sparse format.
 
     We suppose the data was created with ift6266h11/pretraitement/to_npy.py that
@@ -138,7 +138,7 @@ def load_sparse_dataset(name, normalize=True, transfer=False,
         Which dataset to load
     normalize : bool
         If True, we normalize the train dataset before returning it
-    transfer : 
+    transfer :
         If True also return the transfer label
     randomize_valid : bool
         Do we randomize the order of the valid set?  We always use the same random order
@@ -205,7 +205,7 @@ def load_sparse_dataset(name, normalize=True, transfer=False,
 def load_ndarray_transfer(name):
     """
     Load the transfer labels for the training set of data set `name`.
-        
+
     Parameters
     ----------
     name : 'avicenna', 'harry', 'rita', 'sylvester' or 'ule'
@@ -217,7 +217,7 @@ def load_ndarray_transfer(name):
         Transfer dataset loaded
     """
     assert name in ['avicenna','harry','rita','sylvester','terry','ule']
-    
+
     fname = os.path.join(preprocess('${PYLEARN2_DATA_PATH}'), 'UTLC', 'filetensor', name+'_transfer.ft')
     transfer = load_filetensor(fname)
     return transfer

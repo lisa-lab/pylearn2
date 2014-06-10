@@ -63,7 +63,7 @@ class GRBM_Type_1(GRBM_EnergyFunction):
     .. todo::
 
         WRITEME properly
-    
+
     TODO: give a better name
 
     This GRBM energy function is designed to make

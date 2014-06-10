@@ -18,7 +18,7 @@ from pylearn2.datasets.dense_design_matrix import (
 class ICML07DataSet(DenseDesignMatrix):
     """
     Base class for ICML07 datasets.
-    
+
     All these datasets can be displayed as 28x28 pixel datapoints.
     """
 
@@ -43,7 +43,7 @@ class ICML07DataSet(DenseDesignMatrix):
         assert np.isfinite(data_y).all()
         assert data_x.shape[0] == data_y.shape[0]
 
-        # extract 
+        # extract
         n_train, n_valid, n_test = split
         sets = {
             'train' : (0              , n_train),
@@ -66,7 +66,7 @@ class ICML07DataSet(DenseDesignMatrix):
 
         view_converter = DefaultViewConverter((28,28,1))
         super(ICML07DataSet, self).__init__(X = data_x, y = data_y, view_converter = view_converter)
-    
+
     def get_test_set(self):
         """
         .. todo::
@@ -89,16 +89,16 @@ class MNIST_rotated_background(ICML07DataSet):
         Parameters
         ----------
         which_set : 'train', 'valid', 'test'
-            Choose a dataset 
+            Choose a dataset
         one_hot : bool
             Encode labels one-hot
         split : (n_train, n_valid, n_test)
             Choose a split into train, validateion and test datasets
-        
+
         Default split: 10000 training, 2000 validation and 10000 in test dataset.
         """
         super(MNIST_rotated_background, self).__init__('mnist_rotated_background_images', which_set, one_hot, split)
-   
+
 
 class Convex(ICML07DataSet):
     """
@@ -113,12 +113,12 @@ class Convex(ICML07DataSet):
         Parameters
         ----------
         which_set : 'train', 'valid', 'test'
-            Choose a dataset 
+            Choose a dataset
         one_hot : bool
             Encode labels one-hot
         split : (n_train, n_valid, n_test)
             Choose a split into train, validateion and test datasets
- 
+
         Default split: 6000 training, 2000 validation and 50000 in test dataset.
         """
         super(Convex, self).__init__('convex', which_set, one_hot, split)
@@ -138,12 +138,12 @@ class Rectangles(ICML07DataSet):
         Parameters
         ----------
         which_set : 'train', 'valid', 'test'
-            Choose a dataset 
+            Choose a dataset
         one_hot : bool
             Encode labels one-hot
         split : (n_train, n_valid, n_test)
             Choose a split into train, validateion and test datasets
- 
+
         Default split: 1000 training, 200 validation and 50000 in test dataset.
         """
         super(Rectangles, self).__init__('rectangles', which_set, one_hot, split)
@@ -158,16 +158,16 @@ class RectanglesImage(ICML07DataSet):
     def __init__(self, which_set, one_hot=False, split=(10000, 2000, 50000)):
         """
         Load ICML07 Rectangles/images dataset:
- 
+
         Parameters
         ----------
         which_set : 'train', 'valid', 'test'
-            Choose a dataset 
+            Choose a dataset
         one_hot : bool
             Encode labels one-hot
         split : (n_train, n_valid, n_test)
             Choose a split into train, validateion and test datasets
-        
+
         Default split: 10000 training, 2000 validation and 50000 in test dataset.
         """
         super(RectanglesImage, self).__init__('rectangles_images', which_set, one_hot, split)
