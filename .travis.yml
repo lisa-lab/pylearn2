@@ -25,29 +25,29 @@ install:
   - "python --version"
 # If we don't install numpy before SciPy, the SciPy installations fails.
 # We can't compile scipy 0.9 sparse stuff  with NumPy 1.5/1.5.1 due to a bug.
-  - "pip install -q numpy==1.6 --use-mirrors"
+  - "travis_retry pip install -q numpy==1.6 --use-mirrors"
 # We support scipy 0.7.2, but it is not available on pypi anymore.
 # So we test with 0.9. Our internal buildbot have 0.7.2.
 # We install it later only for the PART that need it.
-  - "pip install -q nose==1.0.0 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "pip install -q Pillow --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "travis_retry pip install -q nose==1.0.0 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "travis_retry pip install -q Pillow --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
 #numexpr 2.0 need NumPy 1.6 or above. As we support NumPy 1.5,
 #we need an older numexpr version. numexpr is needed for pytables
-  - "pip install -q numexpr==1.4.2 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "travis_retry pip install -q numexpr==1.4.2 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
 #cython is needed by pylearn2/utils/setup.py
-  - "pip install -q cython --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "pip install -q tables==2.4.0 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "pip install -q pyyaml --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "pip install -q sphinx --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "pip install git+git://github.com/numpy/numpydoc.git@e433d273afe278162b07535f54ab182bff4f2565 || (cat /home/travis/.pip/pip.log; false)"
-  - "pip install scipy==0.8 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "pip install argparse --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "travis_retry pip install -q cython --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "travis_retry pip install -q tables==2.4.0 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "travis_retry pip install -q pyyaml --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "travis_retry pip install -q sphinx --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "travis_retry pip install git+git://github.com/numpy/numpydoc.git@e433d273afe278162b07535f54ab182bff4f2565 || (cat /home/travis/.pip/pip.log; false)"
+  - "travis_retry pip install scipy==0.8 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "travis_retry pip install argparse --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
 #More recent version then the one in the os
-  - "pip install -q pyflakes --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "travis_retry pip install -q pyflakes --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
 
-  - "pip install -q git+git://git.assembla.com/jobman.git || (cat /home/travis/.pip/pip.log; false)"
-  - "pip install -q --no-deps git+git://github.com/Theano/Theano.git || (cat /home/travis/.pip/pip.log ; false)"
-  - "pip install nose-timelimit --use-mirrors"
+  - "travis_retry pip install -q git+git://git.assembla.com/jobman.git || (cat /home/travis/.pip/pip.log; false)"
+  - "travis_retry pip install -q --no-deps git+git://github.com/Theano/Theano.git || (cat /home/travis/.pip/pip.log ; false)"
+  - "travis_retry pip install nose-timelimit --use-mirrors"
   # Change this once we have a unified setup file.
   - python setup.py develop
 
