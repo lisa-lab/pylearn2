@@ -271,7 +271,7 @@ def decode(dense_X, img_shp, rings):
 
         WRITEME
 
-	Parameters
+    Parameters
     ----------
     dense_X : WRITEME
         matrix in DenseDesignMatrix format (batch, dim)
