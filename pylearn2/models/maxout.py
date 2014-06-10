@@ -1051,7 +1051,7 @@ class MaxoutConvC01B(Layer):
 
         if (state is not None) or (state_below is not None):
             if state is None:
-                state = self.fprop(state)
+                state = self.fprop(state_below)
 
             P = state
 
