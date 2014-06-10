@@ -165,13 +165,13 @@ def load(filepath, recurse_depth=0, retry=True):
         # that makes it clear this exception is caused by their machine not
         # meeting requirements.
         if os.path.splitext(filepath)[1] == ".pkl":
-            improve_memory_error_message(e, 
+            improve_memory_error_message(e,
                 "You do not have enough memory to open %s \n"
                 " + Try using numpy.{save,load} (file with extension '.npy') "
                 "to save your file. It uses less memory when reading and "
                 "writing files than pickled files." % filepath)
         else:
-            improve_memory_error_message(e, 
+            improve_memory_error_message(e,
                 "You do not have enough memory to open %s" % filepath)
 
     except BadPickleGet, e:

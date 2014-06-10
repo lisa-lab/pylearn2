@@ -65,13 +65,13 @@ class MNISTPlus(dense_design_matrix.DenseDesignMatrix):
 
         if center:
             data_x -= np.mean(data_x, axis=0)
- 
+
         # get labels
         data_y = None
         if label_type is not None:
 
             data_y = data[label_type]
-            
+
             # convert to float for performing regression
             if label_type in ['azimuth','rotation']:
                 data_y = np.cast[config.floatX](data_y / 360.)

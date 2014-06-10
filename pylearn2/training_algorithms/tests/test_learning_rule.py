@@ -68,7 +68,7 @@ def test_adadelta():
     Make sure that learning_rule.AdaDelta obtains the same parameter values as
     with a hand-crafted AdaDelta implementation, given a dummy model and
     learning rate scaler for each parameter.
-    
+
     Reference:
     "AdaDelta: An Adaptive Learning Rate Method", Matthew D. Zeiler.
     """

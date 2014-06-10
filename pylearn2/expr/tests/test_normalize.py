@@ -59,13 +59,13 @@ def basic_test():
     # use a big value of alpha so mistakes involving alpha show up strong
     alpha = 1.5
     beta = 0.75
-    
+
     # Perform test for C01B
 
     rng = np.random.RandomState([2013,2])
 
     c01b = rng.randn(*shape).astype(config.floatX)
-    
+
     normalizer = CrossChannelNormalization(k=k, n=n, alpha=alpha, beta=beta)
     warnings.warn("TODO: add test for the CudaConvnet version.")
 
@@ -91,13 +91,13 @@ def basic_test():
         print 'expected output: '
         print ground_out
         assert False
-        
+
     # Perform test for BC01
-    
+
     bc01 = np.transpose(c01b, [3,0,1,2])
-    
+
     normalizerBC01 = CrossChannelNormalizationBC01(k=k, n=n, alpha=alpha, beta=beta)
-    
+
     X = T.TensorType(dtype=config.floatX, broadcastable=tuple([False]*4))()
 
     out = normalizerBC01(X)

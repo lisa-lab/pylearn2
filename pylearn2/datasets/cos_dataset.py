@@ -45,7 +45,7 @@ class CosDataset(object):
         .. todo::
 
             WRITEME properly
-        
+
         This dataset can generate an infinite amount of examples.
         This function gives the pdf from which the examples are drawn.
         """
@@ -63,7 +63,7 @@ class CosDataset(object):
         .. todo::
 
             WRITEME properly
-        
+
         This dataset can generate an infinite amount of examples.
         This function gives the energy function for the distribution from which the examples are drawn.
         """
@@ -80,7 +80,7 @@ class CosDataset(object):
         .. todo::
 
             WRITEME properly
-        
+
         This dataset can generate an infinite amount of examples.
         This function gives the pdf from which the examples are drawn.
         """

@@ -35,7 +35,7 @@ class CSVDataset(DenseDesignMatrix):
     delimiter : WRITEME
     """
 
-    def __init__(self, 
+    def __init__(self,
             path = 'train.csv',
             one_hot = False,
             expect_labels = True,
@@ -51,14 +51,14 @@ class CSVDataset(DenseDesignMatrix):
         self.expect_labels = expect_labels
         self.expect_headers = expect_headers
         self.delimiter = delimiter
-        
+
         self.view_converter = None
 
         # and go
 
         self.path = preprocess(self.path)
         X, y = self._load_data()
-        
+
         super(CSVDataset, self).__init__(X=X, y=y)
 
     def _load_data(self):
@@ -68,16 +68,16 @@ class CSVDataset(DenseDesignMatrix):
             WRITEME
         """
         assert self.path.endswith('.csv')
-    
+
         if self.expect_headers:
             data = np.loadtxt(self.path, delimiter = self.delimiter, skiprows = 1)
         else:
             data = np.loadtxt(self.path, delimiter = self.delimiter)
-        
+
         if self.expect_labels:
             y = data[:,0]
             X = data[:,1:]
-            
+
             # get unique labels and map them to one-hot positions
             labels = np.unique(y)
             #labels = { x: i for i, x in enumerate(labels) }    # doesn't work in python 2.6

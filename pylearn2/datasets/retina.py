@@ -119,7 +119,7 @@ def defoveate_channel(img, rings, dense_input, start_idx):
     rings : WRITEME
         list of ring_sizes which were used to generate dense_input
     dense_input : WRITEME
-        DenseDesignMatrix containing foveated dataset, of shape 
+        DenseDesignMatrix containing foveated dataset, of shape
         (batch, dims)
     start_idx : WRITEME
         channel pointed to by img starts at dense_input[start_idx]

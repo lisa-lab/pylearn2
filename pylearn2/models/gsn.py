@@ -901,7 +901,7 @@ class JointGSN(GSN):
 
             This method does not directly control whether or not
             corruption and sampling is applied during classification.
-            These are decided by self._corrupt_switch and 
+            These are decided by self._corrupt_switch and
             self._sample_switch.
         """
         mean = self._get_aggregate_classification(minibatch, trials=trials,

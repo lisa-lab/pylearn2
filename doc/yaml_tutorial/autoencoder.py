@@ -73,7 +73,7 @@ if __name__ == '__main__':
            "nvis": 784,
            "nhid": 100,
            "iscale": 1.0,
-           "activation_fn": !import 'pylearn2.expr.nnet.sigmoid_numpy', 
+           "activation_fn": !import 'pylearn2.expr.nnet.sigmoid_numpy',
         }
     """
     stream = StringIO()

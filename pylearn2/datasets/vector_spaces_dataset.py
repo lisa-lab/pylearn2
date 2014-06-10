@@ -48,9 +48,9 @@ class VectorSpacesDataset(Dataset):
         topological view specified by the `Conv2DSpace`, and y being a 2-D
         ndarray of width 1, containing the labels or targets for each example.
     data_specs : (space, source) pair
-        space is an instance of `Space` (possibly a `CompositeSpace`), 
-        and `source` is a string (or tuple of strings, if `space` is a 
-        `CompositeSpace`), defining the format and labels associated 
+        space is an instance of `Space` (possibly a `CompositeSpace`),
+        and `source` is a string (or tuple of strings, if `space` is a
+        `CompositeSpace`), defining the format and labels associated
         to `data`.
     rng : object, optional
         A random number generator used for picking random indices into the
