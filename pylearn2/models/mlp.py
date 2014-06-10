@@ -691,8 +691,9 @@ class MLP(Layer):
         for layer, coeff in safe_izip(self.layers, coeffs):
             if coeff != 0.:
                 layer_costs += [layer.get_weight_decay(coeff)]
-            else:
-                layer_costs += [0.]
+
+        if len(layer_costs) == 0:
+            return T.constant(0, dtype=config.floatX)
 
         total_cost = reduce(lambda x, y: x + y, layer_costs)
 
@@ -709,8 +710,9 @@ class MLP(Layer):
         for layer, coeff in safe_izip(self.layers, coeffs):
             if coeff != 0.:
                 layer_costs += [layer.get_l1_weight_decay(coeff)]
-            else:
-                layer_costs += [0.]
+
+        if len(layer_costs) == 0:
+            return T.constant(0, dtype=config.floatX)
 
         total_cost = reduce(lambda x, y: x + y, layer_costs)
 
