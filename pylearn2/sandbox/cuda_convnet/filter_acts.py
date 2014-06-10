@@ -44,7 +44,6 @@ from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 from pylearn2.sandbox.cuda_convnet.base_acts import UnimplementedError
-#from pylearn2.sandbox.cuda_convnet.weight_acts import WeightActs
 from pylearn2.sandbox.cuda_convnet.img_acts import ImageActs
 from pylearn2.sandbox.cuda_convnet.weight_acts import WeightActs
 from pylearn2.utils import py_integer_types

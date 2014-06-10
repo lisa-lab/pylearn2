@@ -15,6 +15,8 @@ This means you can write Pylearn2 plugins (new models, algorithms, etc) using
 mathematical expressions, and theano will optimize and stabilize those expressions for
 you, and compile them to a backend of your choice (CPU or GPU).
 
+.. _welcome_vision:
+
 Pylearn2 Vision
 ===============
 
@@ -35,6 +37,8 @@ Pylearn2 Vision
   the other sub-components if you choose not to.
 * Support cross-platform serialization of learned models.
 * Remain approachable enough to be used in the classroom (IFT6266 at the University of Montreal).
+
+.. _install:
 
 Download and installation
 =========================
@@ -72,6 +76,8 @@ Alternatively, you can make Pylearn2 available by adding the installation direct
 alone won't compile the Cython extensions (you will need to make sure the extension ``.so``
 files are built and accessible within the source tree, e.g. with
 ``python setup.py build_ext --inplace``).
+
+.. _data_path:
 
 Data path
 ---------
@@ -152,6 +158,7 @@ Roughly in order of what you'll want to check out:
 * :ref:`cluster` -- The tools we use at LISA for running Pylearn2 jobs on HPC clusters.
 * :ref:`large_data` -- A guide on how to deal with large datasets.
 * :ref:`vision` -- Some more detailed elaboration of some points of the Pylearn2 vision.
+* :ref:`faq` -- Please read the FAQ section before posting to mailing-lists.
 
 
 Community
@@ -214,6 +221,7 @@ Developer
    tutorial/index
    tutorial/with_jobman
    vision
+   faq
    yaml_tutorial/index
    tutorial/notebook_tutorials
    LICENSE

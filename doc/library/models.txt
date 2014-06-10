@@ -17,7 +17,7 @@ Logistic Regression
 
 K-means
 =======
-.. automodule:: pylearn2.kmeans
+.. automodule:: pylearn2.models.kmeans
     :members:
 
 MLP

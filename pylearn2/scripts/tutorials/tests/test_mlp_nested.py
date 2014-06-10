@@ -15,7 +15,6 @@ def test_nested():
     with open(os.path.join(pylearn2.__path__[0], 'scripts', 'tutorials',
               'mlp_nested.yaml'), 'r') as f:
         train_3 = f.read()
-    f.close()
     hyper_params = {'train_stop': 50,
                     'valid_stop': 50050,
                     'dim_h0': 5,
