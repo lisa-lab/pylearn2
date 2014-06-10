@@ -1,0 +1,310 @@
+.. _pull_request_checklist:
+
+###############################
+Pylearn2 Pull Request Checklist
+###############################
+
+*Last updated: June 8, 2014*
+
+This is a preliminary list of common pull request fixes requested. It's
+presumed that your pull request should already pass the Travis buildbot,
+including docstring and code formatting checks.
+
+.. contents::
+    :local:
+
+
+Are you breaking a statement over multiple lines?
+=================================================
+Python supports breaking a logical line over multiple file lines in
+a number of ways. One is to use backslashes before the line ending. Another
+is to enclose the broken section is parentheses (), ([] also works but
+you should only use this if you are otherwise creating a list). Note that
+if you have open parentheses from a function call you do not need additional
+parentheses.
+
+In Pylearn2 we generally prefer parentheses, because it means there's less
+markup to maintain and leads to less spurious errors.
+
+Yes::
+
+    assert some_complicated_conditional_thing, (
+        "This is the assertion error on a separate line."
+    )
+
+No::
+
+    assert some_complicated_conditional_thing, \
+        "This just gets annoying, especially if there are multiple " \
+	"lines of text."
+
+Note that string concatenation across lines is automatic, no need for `+`.
+If enclosed in parentheses you don't need a \ either::
+
+    # Valid Python.
+    print ("The quick brown fox jumps over the lazy dog. And then "
+           "the fox did it again.")
+
+See the `PEP8 indentation recommendations`_ for how to arrange indentation
+for continuation lines.
+
+.. _PEP8 indentation recommendations: http://www.python.org/dev/peps/pep-0008/#indentation
+
+Do tests exist for the code you're modifying?
+=============================================
+Pylearn2 grew rapidly in the beginning, often without proper attention to
+testing. Modifying a piece of code in the codebase may alter how it works;
+if you make such a modification, you should not only verify that tests pass
+but that tests _exist_ for the piece of code you're modifying. You should
+verify that those tests exist and update them as needed, including a
+test case for the behaviour you're adding or modifying.
+
+Usually tests for a module `foo` are found in `tests/test_foo.py`.
+
+Are you fixing a bug? Did you add a regression test?
+====================================================
+Tests that test for previously existing bugs are particularly critical,
+as further modification of the code may reintroduce the bug by those
+who are not aware of the subtleties that led to it in the first place.
+
+Are you fixing an issue that is on the issue tracker?
+=====================================================
+Your pull request *description* (or a commit message for one of the commits)
+should include `one of the supported variants`_ of the syntax so that the
+issue is auto-closed upon merge.
+
+.. _one of the supported variants: https://help.github.com/articles/closing-issues-via-commit-messages
+
+Have you squashed out any nuisance commits?
+===========================================
+Pull requests with lots and lots of tiny commits are hard to review. Lots
+of commits that subsequently introduce a minor bug and then fix them can also
+make bisecting a pain.
+
+Your final pull request should comprise as few commits as logically make
+sense. Each commit should ideally leave the repository in a working state
+(tests passing, functionality preserved).
+
+You can squash commits using `git rebase -i` and following the instructions.
+Note that you will have to `git push --force origin my_branch_name` after a
+rebase.
+
+You should squash to a minimal set of semantically distinct commits before
+asking for a review, and then possibly squash again if you've made lots
+of commits in response to feedback (note that you can reorder the commits
+in the editor window given by `git rebase -i`).
+
+Are you using OrderedDict where necessary? Are you iterating over sets?
+=======================================================================
+The order of iteration over dictionaries in Python is not guaranteed
+to remain the same across different invocations of the same program. This is
+a result of a randomized hashing algorithm and is actually an important
+security feature for preventing certain kinds of Denial-of-Service attacks.
+Unfortunately, where such data structures are employed in scientific
+simulations, this can pose reproducibility problems.
+
+The main reason for this is that computations in `floating point`_ do not
+precisely obey the typical laws of arithmetic (commutativity, associativity,
+distributivity), and slight differences in the order of operations can
+introduce small differences in result, which can have `butterfly effects`_ that
+significantly alter the results of a long-running job. The order of operations
+can be altered by the order in which a Theano graph is assembled, and the
+precise form it takes can unfortunately sometimes alter which compile-time
+graph optimizations are performed.
+
+.. _floating point: http://en.wikipedia.org/wiki/Floating_point
+.. _butterfly effects: http://en.wikipedia.org/wiki/Butterfly_effect
+
+In order to stamp out inconsistencies introduced by an unpredictable iteration
+order, we make extensive use of the `OrderedDict` class. This class is part of
+the `collections` module in Python 2.7 and Python 3.x, however, in order to
+maintain Python 2.6 compatibility, we import it from `theano.compat.python2x`,
+which provides an equivalent pure-Python implementation if the built-in version
+is not available.
+
+You should consider carefully whether the iteration order over a dictionary
+you're using could result in different behaviour. If in doubt, use an 
+`OrderedDict`. For the `updates` parameter when creating Theano functions, you
+_must_ use an `OrderedDict`, or a list of `(shared_variable,
+update_expression)` tuples.
+
+When iterating over sets, consider whether you should first sort your set.
+The `sorted()` built-in function is a simple way of doing this.
+
+Are you using print statements?
+===============================
+In most cases you should be using logging statements instead. You can
+initialize a logger in a new module with::
+
+    import logging
+
+    log = logging.getLogger(__name__)
+
+And subsequently call into it with `log.info()`, `log.warning()`, etc.
+
+Are you creating a sequence and then immediately iterating over it? 
+===================================================================
+
+If so, consider using the faster and more memory efficient versions.
+
+* `xrange` instead of `range`
+* `itertools.izip` instead of `zip`
+
+
+Are you using `zip()`/`izip()` on sequences you expect to be the same length?
+=============================================================================
+**Note that zip and izip truncate the sequence of tuples they produce
+to the length of the shortest input sequence.** If you expect, as is
+often the case, that the sequences you are zipping together should be
+the same length, use `safe_zip` or `safe_izip` defined in `pylearn2.utils`.
+
+Also see `itertools.izip_longest` if you want to zip together sequences of
+unequal length with a fill value.
+
+Are you using the dict/`OrderedDict` methods `keys()`/`values()`/`items()`?
+===========================================================================
+For `values()` and `items()` consider whether `itervalues()` or `iteritems()`
+would be more appropriate, if you're only iterating over them once,
+not keeping the result around for any length of time, and don't need random
+access.
+
+Also, don't bother with `keys()` or `iterkeys()` at all if you're just going
+to iterate over it. `for k in my_dictionary` iterates over keys by default.
+
+An exception to these rules is if you are _modifying_ the dictionary within
+the loop. Then you probably want to duplicate things with the `keys()`,
+`values()` and `items()` calls.
+
+Are you updating a dictionary or OrderedDict with `.update()`?
+==============================================================
+If you are using the `update()` method of a dictionary or `OrderedDict`
+and you expect that none of the keys in the argument should already be
+in the dictionary, use `safe_update()` defined in `pylearn2.utils`.
+
+
+Do you have an `except:` block?
+===============================
+You should almost never have a bare `except:` in library code. Use::
+
+    except Exception:
+        ...
+
+instead. This catches any subclass of `Exception` but lets through certain
+low-level exceptions like `KeyboardInterrupt`, `SystemExit`, etc. that
+inherit from `BaseException` instead. You almost certainly do not want your
+code to catch these.
+
+Are you checking to see if an argument is iterable?
+===================================================
+In places where a list, tuple, or other iterable object (say, a deque)
+will suffice, use `pylearn2.utils.is_iterable`.
+
+Are you checking if something is a string?
+==========================================
+Unless you have a very good reason you should probably be using
+`isinstance(foo, basestring)` which correctly handles both `str` and
+`unicode` instances.
+
+Are you checking if something is a number?
+==========================================
+Usually such checks are unnecessary but where they might be, we've defined
+some helpful constants.
+
+Are you checking if something is _any_ kind of number?
+------------------------------------------------------
+Use `isinstance(foo, pylearn2.utils.py_number_types)`. This checks against
+Python builtins as well as NumPy-defined numerical types.
+
+Are you checking if something is an integer?
+--------------------------------------------
+Use `isinstance(foo, pylearn2.utils.py_integer_types)`. This checks against
+Python builtins as well as NumPy-defined integer types.
+
+Are you checking if something is a float?
+-----------------------------------------
+First, ask yourself: do you really need to? Would passing an integer
+here be inappropriate in all circumstances? Would a cast (i.e.
+`float()` be sufficient?
+
+If you really need to, use `isinstance(foo, pylearn2.utils.py_float_types)`.
+This checks against Python builtins as well as NumPy-defined float types.
+
+Are you checking if something is a complex number?
+--------------------------------------------------
+Again, ask yourself whether passing a real here would be an error, and
+whether you can get away with a cast.
+
+If you really need to, use `isinstance(foo, pylearn2.utils.py_complex_types)`.
+This checks against Python builtins as well as NumPy-defined complex types.
+
+Are you creating Theano functions?
+==================================
+If you're building Theano functions, use `pylearn2.utils.function`. This
+disables the `on_unused_input` check, which in most cases you don't want
+to consider an error if you're doing any kind of generic graph building.
+
+Are you creating Theano shared variables?
+=========================================
+If your model, cost, etc. creates floating point shared variables you
+should probably create them with `pylearn2.utils.sharedX`, which creates
+shared variables with the dtype set to `theano.config.floatX`.
+
+Are you casting symbols/constants to a Theano floating point type?
+==================================================================
+Use `pylearn2.utils.as_floatX` to cast symbolic quantities to the default
+floating point type, and use `constantX` to create symbolic constants from
+a scalar or ndarray with the dtype specified in `theano.config.floatX`.
+
+Do you have big nested loops for generating a Cartesian product?
+================================================================
+Example::
+
+    stuff = []
+    for i in range(50):
+        for j in range(20):
+	    for k in range(30):
+	        stuff.append((i, j, k))
+
+Consider whether `itertools.product` will get the job done more readably
+and probably more efficiently.
+
+Are you generating combinations or permutations of a set (or list, ...)?
+========================================================================
+`itertools` contains the functions `permutations`, `combinations` and
+`combinations_with_replacement` that will probably get the job done
+more efficiently than your own code.
+
+Are you overriding methods in your class?
+=========================================
+Use the decorator `pylearn2.utils.wraps` to inherit the docstring if it is
+unchanged.  If you add a docstring to a function that is wrapped in this
+fashion, it will be appended below the inherited docstring.
+
+Are you writing functions that uses pseudo-random numbers?
+==========================================================
+If you are using the NumPy generator, are you providing a way to seed it
+as well as a default seed ? You should **never** be using `numpy.random`
+functions directly. Use `pylearn2.utils.rng.make_np_rng` with a user-provided
+seed and a `default_seed` argument.
+
+If you are using the Theano RNG you should create it similarly with
+`pylearn2.utils.rng.make_theano_rng`.
+
+Are you assembling filesystem paths with `dir` + `/` + `filename` or similar?
+=============================================================================
+Use `os.path.join` rather than concatenating together with '/'. This ensures
+the code still works on Windows.
+
+Are you extracting the directory name or base filename from a file path?
+========================================================================
+Use `os.path.basename` and `os.path.dirname` to ensure Windows compatibility.
+
+Are you opening/closing files?
+==============================
+Use the `with` statement, i.e.::
+
+    with open(fname, 'w') as f:
+        f.write('blah blah blah')
+
+This is cleaner and ensures that the file always gets closed, even in an
+error condition.

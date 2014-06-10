@@ -191,6 +191,7 @@ Developer
 
 * :ref:`api_change` -- the best practices guide you should follow when changing any API in the library
 * :ref:`dev_start_guide` -- how to contribute code to Pylearn2
+* :ref:`pull_request_checklist` -- Things you should check your pull request for before review.
 * :ref:`data_specs` -- the interface different elements use to request and provide data
 
 
@@ -216,6 +217,7 @@ Developer
    internal/index
    internal/metadocumentation
    internal/data_specs
+   internal/pull_request_checklist
    overview
    large_data
    tutorial/index
