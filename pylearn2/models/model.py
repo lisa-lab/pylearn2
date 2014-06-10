@@ -19,6 +19,7 @@ from pylearn2.space import NullSpace
 from pylearn2.utils import function
 from pylearn2.utils import safe_zip
 from pylearn2.utils.track_version import MetaLibVersion
+from pylearn2.utils.data_specs import get_source_from_space
 
 
 class Model(object):
@@ -427,17 +428,17 @@ class Model(object):
 
     def get_input_source(self):
         """
-        Returns a string, stating the source for the input. By default the
-        input source (when is the only one) is called 'features'.
+        Returns the source for the input. Uses self.get_input_space
+        to determine it.
         """
-        return 'features'
+        return get_source_from_space('features', self.get_input_space())
 
     def get_target_source(self):
         """
-        Returns a string, stating the source for the output. By default the
-        output source (when is the only one) is called 'targets'.
+        Returns the source for the output. Uses self.get_output_space
+        to determine it.
         """
-        return 'targets'
+        return get_source_from_space('targets', self.get_output_space())
 
     def free_energy(self, V):
         """
