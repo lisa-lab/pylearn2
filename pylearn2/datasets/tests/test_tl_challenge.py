@@ -8,11 +8,13 @@ from pylearn2.testing.skip import skip_if_no_data
 class TestTL_Challenge(unittest.TestCase):
     def setUp(self):
         skip_if_no_data()
-        self.train = TL_Challenge(which_set='train')
-        self.unlabeled = TL_Challenge(which_set='unlabeled')
-        self.test = TL_Challenge(which_set='test')
+
+    def test_load(self):
+        TL_Challenge(which_set='unlabeled')
+        TL_Challenge(which_set='test')
 
     def test_topo(self):
         """Tests that a topological batch has 4 dimensions"""
-        topo = self.train.get_batch_topo(1)
+        train = TL_Challenge(which_set='train')
+        topo = train.get_batch_topo(1)
         assert topo.ndim == 4
