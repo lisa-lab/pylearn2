@@ -4387,7 +4387,7 @@ class CompositeLayer(Layer):
             assert all(layer_coeff >= 0 for layer_coeff in coeff)
             return T.sum([getattr(layer, method_name)(layer_coeff) for
                           layer, layer_coeff in safe_zip(self.layers, coeff)
-                          if layer_coeff > 0])
+                          if layer_coeff > 0], dtype=config.floatX)
         else:
             raise TypeError("CompositeLayer's " + method_name + " received "
                             "coefficients of type " + str(type(coeff)) + " "
