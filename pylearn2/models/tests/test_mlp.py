@@ -159,6 +159,13 @@ def test_sigmoid_detection_cost():
     y_hat = model.fprop(X)
     model.cost(y, y_hat).eval()
 
+def test_weight_decay_0():
+    nested_mlp = MLP(layer_name='nested_mlp', layers=[IdentityLayer(2, 'h0', irange=0)])
+    mlp = MLP(nvis=2, layers=[nested_mlp])
+    weight_decay = mlp.get_weight_decay([0])
+    assert isinstance(weight_decay, theano.tensor.TensorConstant)
+    assert weight_decay.dtype == theano.config.floatX
+
 if __name__ == "__main__":
     test_masked_fprop()
     test_sampled_dropout_average()
@@ -167,6 +174,7 @@ if __name__ == "__main__":
     test_sigmoid_layer_misclass_reporting()
     test_batchwise_dropout()
     test_sigmoid_detection_cost()
+    test_weight_decay_0()
 
 
 def test_composite_layer():
