@@ -4252,9 +4252,9 @@ class CompositeLayer(Layer):
         The name of this layer
     layers : tuple or list
         The component layers to run in parallel.
-    inputs_to_components : dict mapping int to list of ints, optional
+    inputs_to_layers : dict mapping int to list of ints, optional
         Can only be used if the input space is a CompositeSpace.
-        If inputs_to_components[i] contains j, it means input i will
+        If inputs_to_layers[i] contains j, it means input i will
         be given as input to component j. Note that if multiple inputs are
         passed on to e.g. an inner CompositeLayer, the same order will
         be maintained. If the list is empty, the input will be discarded.
@@ -4266,7 +4266,7 @@ class CompositeLayer(Layer):
     >>> composite_layer = CompositeLayer(
     ...     layer_name='composite_layer',
     ...     layers=[Tanh(7, 'h0', 0.1), Sigmoid(5, 'h1', 0.1)],
-    ...     inputs_to_components={
+    ...     inputs_to_layers={
     ...         0: [1],
     ...         1: [0]
     ...     })
@@ -4280,8 +4280,8 @@ class CompositeLayer(Layer):
     ...     layers=[Linear(9, 'h2', 0.1),
     ...             composite_layer,
     ...             Tanh(7, 'h3', 0.1)],
-    ...     inputs_to_components={
-    ...         0: [0],
+    ...     inputs_to_layers={
+    ...         0: [1],
     ...         2: []
     ...     })
 
