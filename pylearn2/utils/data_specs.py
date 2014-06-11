@@ -5,6 +5,7 @@ See :ref:`data_specs` for a high level overview of the relevant concepts.
 """
 from pylearn2.space import CompositeSpace, NullSpace, Space
 from pylearn2.utils import safe_zip
+from itertools import izip as izip_no_length_check
 
 
 class DataSpecsMapping(object):
@@ -323,3 +324,35 @@ def is_flat_specs(data_specs):
         WRITEME
     """
     return is_flat_space(data_specs[0]) and is_flat_source(data_specs[1])
+
+
+def get_source_from_space(basic_name, space, to_append=""):
+    """
+    Get the correct source from a space
+
+
+    Parameters
+    ----------
+    basic_name : string
+        The name of the source for a simple space.
+        for example 'features'
+    space : instance of pylearn2.space.Space
+        The space from which we want to get the source
+    to_append : string
+        A string to append to the names of the source
+
+    Returns
+    -------
+    source : the source associated to the space
+    """
+
+    if not isinstance(space, CompositeSpace):
+        return basic_name + to_append
+    else:
+        ncomponents = len(space.components)
+        return tuple(
+            get_source_from_space(basic_name, sub_space,
+                                  to_append="_" + str(i))
+            for sub_space, i in
+            izip_no_length_check(space.components, xrange(ncomponents))
+            )
