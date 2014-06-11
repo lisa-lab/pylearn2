@@ -40,6 +40,7 @@ from pylearn2.utils import safe_zip
 from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
 from pylearn2.utils import wraps
+from pylearn2.utils.data_specs import DataSpecsMapping
 
 from pylearn2.expr.nnet import (elemwise_kl, kl, compute_precision,
                                     compute_recall, compute_f1)
@@ -408,6 +409,12 @@ class MLP(Layer):
         A Space specifying the kind of input the MLP accepts. If None,
         input space is specified by nvis. Should be None if the MLP is
         part of another MLP.
+    input_source : string or (nested) tuple of strings, optional
+        A (nested) tuple of strings specifiying the input sources this
+        MLP accepts. The structure should match that of input_space.
+        None should be passed if the MLP is part of another
+        MLP. If this is the outer MLP the input_source will default to
+        'features' if not passed here.
     layer_name : name of the MLP layer. Should be None if the MLP is
         not part of another MLP.
     seed : WRITEME
@@ -416,7 +423,8 @@ class MLP(Layer):
     """
 
     def __init__(self, layers, batch_size=None, input_space=None,
-                 nvis=None, seed=None, layer_name=None, **kwargs):
+                 input_source=None, nvis=None, seed=None, layer_name=None,
+                 **kwargs):
         super(MLP, self).__init__(**kwargs)
 
         self.seed = seed
@@ -438,8 +446,6 @@ class MLP(Layer):
 
             self.layer_names.add(layer.layer_name)
 
-
-
         self.layers = layers
 
         self.batch_size = batch_size
@@ -450,13 +456,28 @@ class MLP(Layer):
 
             # check if the layer_name is None (the MLP is the outer MLP)
             assert layer_name is None
+            # if it is the outer MLP, the default input_source is 'features'
+            if input_source is None:
+                input_source = 'features'
 
             if nvis is not None:
                 input_space = VectorSpace(nvis)
 
+            # Check whether the input_space and input_source structures match
+            try:
+                DataSpecsMapping((input_space, input_source))
+            except ValueError:
+                raise ValueError("The structures of input_space, %s, and "
+                                 "input_source, %s do not match"
+                                 % (input_space, input_source))
+
             self.input_space = input_space
+            self.input_source = input_source
 
             self._update_layer_input_spaces()
+        elif input_source is not None:
+            raise ValueError("MLP was given an input_source (%s) but does not "
+                             "have an input_space" % (input_source,))
 
         self.freeze_set = set([])
 
