@@ -8,7 +8,7 @@ _logger = logging.getLogger(__name__)
 
 import numpy as np
 N = np
-from pylearn2.datasets import dense_design_matrix
+from pylearn2.datasets import cache, dense_design_matrix
 from pylearn2.expr.preprocessing import global_contrast_normalize
 
 
@@ -251,6 +251,8 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
             raise IOError(fname+" was not found. You probably need to download "
                     "the CIFAR-10 dataset by using the download script in pylearn2/scripts/datasets/download_cifar10.sh "
                     "or manually from http://www.cs.utoronto.ca/~kriz/cifar.html")
+        fname = cache.datasetCache.cache_file(fname)
+
         _logger.info('loading file %s' % fname)
         fo = open(fname, 'rb')
         dict = cPickle.load(fo)
