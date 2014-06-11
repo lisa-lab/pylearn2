@@ -29,5 +29,5 @@
             "max_epochs": 1,
         },
     },
-    "save_path": "./garbage.pkl",
+#    "save_path": "./garbage.pkl",
 }
