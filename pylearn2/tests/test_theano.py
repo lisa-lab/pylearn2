@@ -49,8 +49,8 @@ def test_biglayer():
     skip_if_no_gpu()
     yaml_string = """
     !obj:pylearn2.train.Train {
-dataset: &train !obj:pylearn2.testing.datasets.
-    random_one_hot_topological_dense_design_matrix {
+dataset: &train
+!obj:pylearn2.testing.datasets.random_one_hot_topological_dense_design_matrix {
             rng: !obj:numpy.random.RandomState { seed: [2014, 6, 6] },
             shape: &input_shape [%(xsize)i, %(ysize)i],
             channels: 4,
