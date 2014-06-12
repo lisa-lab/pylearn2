@@ -14,10 +14,12 @@ __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 import numpy as np
+import theano
 from theano import tensor as T
 
-from pylearn2.config import yaml_parse
 import pylearn2
+from pylearn2.config import yaml_parse
+from pylearn2.testing.skip import skip_if_no_gpu
 
 
 def test_grad():
@@ -44,6 +46,7 @@ def test_biglayer():
     here.
 
     """
+    skip_if_no_gpu()
     yaml_string = """
     !obj:pylearn2.train.Train {
 dataset: &train !obj:pylearn2.testing.datasets.
@@ -127,7 +130,14 @@ dataset: &train !obj:pylearn2.testing.datasets.
     }
     """
 
-    x_size, y_size = 4, 4
-    parameters = {'xsize': x_size, 'ysize': y_size}
-    test = yaml_parse.load(yaml_string % parameters)
-    test.main_loop()
+    try:
+        orig_floatX = theano.config.floatX
+        theano.config.floatX = 'float32'
+        theano.sandbox.cuda.use('gpu')
+        x_size, y_size = 4, 4
+        parameters = {'xsize': x_size, 'ysize': y_size}
+        test = yaml_parse.load(yaml_string % parameters)
+        test.main_loop()
+    finally:
+        theano.config.floatX = orig_floatX
+        theano.sandbox.cuda.unuse()
