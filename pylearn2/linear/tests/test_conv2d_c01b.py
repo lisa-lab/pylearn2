@@ -25,6 +25,9 @@ class TestConv2DC01b(unittest.TestCase):
         """
         Set up a test image and filter to re-use
         """
+        self.orig_floatX = theano.config.floatX
+        theano.config.floatX = 'float32'
+        theano.sandbox.cuda.use('gpu')
         self.image = \
             numpy.random.rand(16, 3, 3, 1).astype(theano.config.floatX)
         self.image_tensor = tensor.tensor4()
@@ -33,6 +36,10 @@ class TestConv2DC01b(unittest.TestCase):
         )
         self.filters = sharedX(self.filters_values, name='filters')
         self.conv2d = Conv2D(self.filters)
+
+    def tearDown(self):
+        theano.config.floatX = self.orig_floatX
+        theano.sandbox.cuda.unuse()
 
     def test_get_params(self):
         """
