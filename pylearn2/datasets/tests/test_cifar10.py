@@ -8,12 +8,12 @@ from pylearn2.testing.skip import skip_if_no_data
 class TestCIFAR10(unittest.TestCase):
     def setUp(self):
         skip_if_no_data()
-        self.train = CIFAR10(which_set='train')
         self.test = CIFAR10(which_set='test')
 
     def test_topo(self):
         """Tests that a topological batch has 4 dimensions"""
-        topo = self.train.get_batch_topo(1)
+        train = CIFAR10(which_set='train')
+        topo = train.get_batch_topo(1)
         assert topo.ndim == 4
 
     def test_topo_c01b(self):
