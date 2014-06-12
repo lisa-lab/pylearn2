@@ -33,7 +33,7 @@ from pylearn2.linear.conv2d import default_seed, default_sparse_seed
 from pylearn2.linear.linear_transform import LinearTransform
 from pylearn2.sandbox.cuda_convnet import check_cuda
 from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
-from pylearn2.sandbox.cuda_convnet.filter_acts import ImageActs
+from pylearn2.sandbox.cuda_convnet.img_acts import ImageActs
 from pylearn2.space import Conv2DSpace
 from pylearn2.utils.call_check import checked_call
 from pylearn2.utils import sharedX
