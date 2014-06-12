@@ -209,7 +209,9 @@ def test_composite_layer():
         input_space = CompositeSpace([VectorSpace(dim=2),
                                       VectorSpace(dim=2),
                                       VectorSpace(dim=2)])
-        mlp = MLP(input_space=input_space, layers=[composite_layer])
+        input_source = ('features0', 'features1', 'features2')
+        mlp = MLP(input_space=input_space, input_source=input_source,
+                  layers=[composite_layer])
         for i in range(3):
             composite_layer.layers[i].set_weights(
                 np.eye(2, dtype=theano.config.floatX)
