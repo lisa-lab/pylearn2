@@ -12,7 +12,7 @@ from pylearn2.utils.rng import make_np_rng
 
 IF UNAME_SYSNAME == "Windows":
     cdef extern from "stdlib.h":
-        int rand()
+        int rand() nogil
     cdef int rand_r(unsigned int *seedp) nogil:
         return rand()
     log = logging.getLogger(__name__)
