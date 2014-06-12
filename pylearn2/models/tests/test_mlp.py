@@ -289,3 +289,18 @@ def test_multiple_inputs():
     train = Train(dataset, mlp, SGD(0.1, batch_size=5))
     train.algorithm.termination_criterion = EpochCounter(1)
     train.main_loop()
+
+
+def test_nested_mlp():
+    """
+    Constructs a nested MLP and tries to fprop through it
+    """
+    inner_mlp = MLP(layers=[Linear(10, 'h0', 0.1), Linear(10, 'h1', 0.1)],
+                    layer_name='inner_mlp')
+    outer_mlp = MLP(layers=[CompositeLayer(layer_name='composite',
+                                           layers=[inner_mlp,
+                                                   Linear(10, 'h2', 0.1)])],
+                    nvis=10)
+    X = outer_mlp.get_input_space().make_theano_batch()
+    f = theano.function([X], outer_mlp.fprop(X))
+    f(np.random.rand(5, 10).astype(theano.config.floatX))

@@ -411,10 +411,9 @@ class MLP(Layer):
         part of another MLP.
     input_source : string or (nested) tuple of strings, optional
         A (nested) tuple of strings specifiying the input sources this
-        MLP accepts. The structure should match that of input_space.
-        None should be passed if the MLP is part of another
-        MLP. If this is the outer MLP the input_source will default to
-        'features' if not passed here.
+        MLP accepts. The structure should match that of input_space. The
+        default is 'features'. Note that this argument is ignored when
+        the MLP is nested.
     layer_name : name of the MLP layer. Should be None if the MLP is
         not part of another MLP.
     seed : WRITEME
@@ -423,8 +422,8 @@ class MLP(Layer):
     """
 
     def __init__(self, layers, batch_size=None, input_space=None,
-                 input_source=None, nvis=None, seed=None, layer_name=None,
-                 **kwargs):
+                 input_source='features', nvis=None, seed=None,
+                 layer_name=None, **kwargs):
         super(MLP, self).__init__(**kwargs)
 
         self.seed = seed
@@ -451,14 +450,14 @@ class MLP(Layer):
         self.batch_size = batch_size
         self.force_batch_size = batch_size
 
+        self._input_source = input_source
+
         if input_space is not None or nvis is not None:
+            self._nested = False
             self.setup_rng()
 
             # check if the layer_name is None (the MLP is the outer MLP)
             assert layer_name is None
-            # if it is the outer MLP, the default input_source is 'features'
-            if input_source is None:
-                input_source = 'features'
 
             if nvis is not None:
                 input_space = VectorSpace(nvis)
@@ -467,17 +466,17 @@ class MLP(Layer):
             try:
                 DataSpecsMapping((input_space, input_source))
             except ValueError:
-                raise ValueError("The structures of input_space, %s, and "
-                                 "input_source, %s do not match"
+                raise ValueError("The structures of `input_space`, %s, and "
+                                 "`input_source`, %s do not match. If you "
+                                 "specified a CompositeSpace as an input, "
+                                 "be sure to specify the data sources as well."
                                  % (input_space, input_source))
 
             self.input_space = input_space
-            self.input_source = input_source
 
             self._update_layer_input_spaces()
-        elif input_source is not None:
-            raise ValueError("MLP was given an input_source (%s) but does not "
-                             "have an input_space" % (input_source,))
+        else:
+            self._nested = True
 
         self.freeze_set = set([])
 
@@ -486,12 +485,18 @@ class MLP(Layer):
                 return None
             return 1. / x
 
+    @property
+    def input_source(self):
+        assert not self._nested, "A nested MLP does not have an input source"
+        return self._input_source
+
     def setup_rng(self):
         """
         .. todo::
 
             WRITEME
         """
+        assert not self._nested, "Nested MLPs should use their parent's RNG"
         if self.seed is None:
             self.seed = [2013, 1, 4]
 
@@ -511,6 +516,7 @@ class MLP(Layer):
     def set_input_space(self, space):
 
         if hasattr(self, "mlp"):
+            assert self._nested
             self.rng = self.mlp.rng
             self.batch_size = self.mlp.batch_size
 
