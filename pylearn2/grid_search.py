@@ -555,49 +555,12 @@ class GridSearchCV(GridSearch):
 
     Parameters
     ----------
-    template : str
-        YAML template, possibly containing % formatting fields.
-    param_grid : dict
-        Parameter grid, with keys matching template fields. Additional
-        keys will also be used to generate additional models. For example,
-        {'n': [1, 2, 3]} (when no %(n)s field exists in the template) will
-        cause each model to be trained three times; useful when working
-        with stochastic models.
-    save_path : str or None
-        Output filename for trained model(s). Also used (with modification)
-        for individual models if template contains %(save_path)s or
-        %(best_save_path)s fields.
-    allow_overwrite : bool
-        Whether to overwrite pre-existing output file matching save_path.
-    monitor_channel : str or None
-        Monitor channel to use to compare models.
-    higher_is_better : bool
-        Whether higher monitor_channel values correspond to better models.
-    n_best : int or None
-        Maximum number of models to save, ranked by monitor_channel value.
-    retrain : bool
-        Whether to train the best model(s).
-    retrain_kwargs : dict, optional
-        Keyword arguments to modify the template trainer prior to
-        retraining. If not provided when retrain is True, the dataset is
-        extracted from the template dataset_iterator. Otherwise,
-        retrain_kwargs must contain 'dataset', which can be a Dataset or
-        a dict containing at least a 'train' dataset.
+    kwargs : dict
+        Keyword arguments for GridSearch.
     """
-    def __init__(self, template, param_grid, save_path=None,
-                 allow_overwrite=True, monitor_channel=None,
-                 higher_is_better=False, n_best=None, retrain=True,
-                 retrain_kwargs=None):
-        super(GridSearchCV, self).__init__(template, param_grid, save_path,
-                                           allow_overwrite, monitor_channel,
-                                           higher_is_better, n_best)
+    def __init__(self, **kwargs):
+        super(GridSearchCV, self).__init__(**kwargs)
         self.cv = False  # only True if best_models is indexed by cv fold
-        self.retrain = retrain
-        if retrain_kwargs is not None:
-            assert 'dataset' in retrain_kwargs
-            if isinstance(retrain_kwargs['dataset'], dict):
-                assert 'train' in retrain_kwargs['dataset']
-        self.retrain_kwargs = retrain_kwargs
 
     def get_best_cv_models(self):
         """
@@ -625,37 +588,3 @@ class GridSearchCV(GridSearch):
         self.best_models = best_models
         self.best_params = best_params
         self.best_scores = best_scores
-
-    def retrain_best_models(self, time_budget=None, parallel=False,
-                            client_kwargs=None):
-        """
-        Train best models on full dataset.
-
-        Parameters
-        ----------
-        time_budget : int, optional
-            The maximum number of seconds before interrupting
-            training. Default is `None`, no time limit.
-        parallel : bool
-            Whether to train subtrainers in parallel using
-            IPython.parallel.
-        client_kwargs : dict or None
-            Keyword arguments for IPython.parallel.Client.
-        """
-        if self.retrain_kwargs is not None:
-            dataset = self.retrain_kwargs['dataset']
-        else:
-            dataset = self.trainers[0].dataset_iterator.dataset
-        trainers = []
-        for params in np.atleast_1d(self.best_params):
-            parent = yaml_parse.load(self.template % params)
-            trainer = parent.trainers[0]
-            if isinstance(dataset, dict):
-                trainer.dataset = dataset['train']
-                trainer.algorithm._set_monitoring_dataset(dataset)
-            else:
-                trainer.dataset = dataset
-                trainer.algorithm._set_monitoring_dataset({'train': dataset})
-            trainers.append(trainer)
-        trainers = batch_train(trainers, time_budget, parallel, client_kwargs)
-        return trainers
