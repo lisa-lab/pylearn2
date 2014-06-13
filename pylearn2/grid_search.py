@@ -21,7 +21,7 @@ import sys
 import types
 import warnings
 try:
-    from sklearn.grid_search import ParameterGrid
+    from sklearn.grid_search import ParameterGrid, ParameterSampler
 except ImportError:
     warnings.warn("Could not import from sklearn.")
 
@@ -204,7 +204,7 @@ class GridSearch(object):
         self.template = template
         for key, value in param_grid.items():
             param_grid[key] = np.atleast_1d(value)  # must be iterable
-        param_grid = ParameterGrid(param_grid)
+        param_grid = self.get_param_grid(param_grid)
         self.save_path = save_path
         self.allow_overwrite = allow_overwrite
         if monitor_channel is not None or n_best is not None:
@@ -235,6 +235,17 @@ class GridSearch(object):
         self.retrain_trainers = None
         self.retrain_models = None
 
+    def get_param_grid(self, param_grid):
+        """
+        Construct a parameter grid.
+
+        Parameters
+        ----------
+        param_grid : dict
+            Parameter grid.
+        """
+        return ParameterGrid(param_grid)
+
     def get_trainers(self, param_grid):
         """
         Construct a trainer for each grid point. Uses a generator to limit
@@ -242,8 +253,8 @@ class GridSearch(object):
 
         Parameters
         ----------
-        param_grid : dict
-            Parameter grid.
+        param_grid : iterable
+            Parameter grid point iterator.
         """
         parameters = []
         for grid_point in param_grid:
@@ -506,6 +517,37 @@ class GridSearch(object):
         self.retrain_models = models
 
 
+class RandomGridSearch(GridSearch):
+    """
+    Hyperparameter grid search using a YAML template and random selection
+    of a subset of the grid points.
+
+    Parameters
+    ----------
+    n_iter : int
+        Number of grid points to sample.
+    random_state : int, optional
+        Random seed.
+    kwargs : dict, optional
+        Keyword arguments for GridSearch.
+    """
+    def __init__(self, n_iter, random_state=None, **kwargs):
+        self.n_iter = n_iter
+        self.random_state = random_state
+        super(RandomGridSearch, self).__init__(**kwargs)
+
+    def get_param_grid(self, param_grid):
+        """
+        Construct a parameter grid.
+
+        Parameters
+        ----------
+        param_grid : dict
+            Parameter grid.
+        """
+        return ParameterSampler(param_grid, self.n_iter, self.random_state)
+
+
 class GridSearchCV(GridSearch):
     """
     Use a TrainCV template to select the best hyperparameters by cross-
@@ -549,7 +591,7 @@ class GridSearchCV(GridSearch):
         super(GridSearchCV, self).__init__(template, param_grid, save_path,
                                            allow_overwrite, monitor_channel,
                                            higher_is_better, n_best)
-        self.cv = False  # True if best_models is indexed by cv fold
+        self.cv = False  # only True if best_models is indexed by cv fold
         self.retrain = retrain
         if retrain_kwargs is not None:
             assert 'dataset' in retrain_kwargs
