@@ -183,13 +183,13 @@ test_random_grid_search_yaml = """
     !obj:pylearn2.train.Train {
       dataset: &train
       !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix {
-          rng: !obj:numpy.random.RandomState { seed: 1 },
-          num_examples: 10,
+          rng: !obj:numpy.random.RandomState { seed: %(seed)s },
+          num_examples: 100,
           dim: 10,
           num_classes: 2,
         },
       model: !obj:pylearn2.models.mlp.MLP {
-        nvis: %(nvis),
+        nvis: 10,
         layers: [
           !obj:pylearn2.models.mlp.Sigmoid {
             dim: %(dim)s,
@@ -204,7 +204,7 @@ test_random_grid_search_yaml = """
         ],
       },
       algorithm: !obj:pylearn2.training_algorithms.bgd.BGD {
-        batch_size: 5,
+        batch_size: 10,
         line_search_mode: 'exhaustive',
         conjugate: 1,
         termination_criterion:
@@ -223,7 +223,7 @@ test_random_grid_search_yaml = """
       ],
     }",
   param_grid: {
-    nvis: [10, 20, 30],
+    seed: [1, 2, 3],
     dim: [2, 4, 1],
   },
   monitor_channel: train_objective,
