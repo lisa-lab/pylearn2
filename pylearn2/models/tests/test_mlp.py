@@ -166,6 +166,14 @@ def test_weight_decay_0():
     assert isinstance(weight_decay, theano.tensor.TensorConstant)
     assert weight_decay.dtype == theano.config.floatX
 
+    weight_decay = mlp.get_weight_decay([[0]])
+    assert isinstance(weight_decay, theano.tensor.TensorConstant)
+    assert weight_decay.dtype == theano.config.floatX
+
+    nested_mlp.add_layers([IdentityLayer(2, 'h1', irange=0)])
+    weight_decay = mlp.get_weight_decay([[0, 0.1]])
+    assert weight_decay.dtype == theano.config.floatX
+
 if __name__ == "__main__":
     test_masked_fprop()
     test_sampled_dropout_average()
