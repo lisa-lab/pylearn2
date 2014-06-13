@@ -3665,7 +3665,7 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
     mean_pool : Mean pooling instead of max pooling
     """
     if pool_shape == pool_stride:
-        return max_pool_2d(bc01, pool_shape, True)
+        return max_pool_2d(bc01, pool_shape, False)
     mx = None
     r, c = image_shape
     pr, pc = pool_shape
