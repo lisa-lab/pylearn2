@@ -58,13 +58,11 @@ class UniqueParameterSampler(object):
         self.params = []
 
     def __iter__(self):
-        count = 0
         for params in self.sampler:
-            if count >= self.n_iter:
+            if len(self.params) >= self.n_iter:
                 break
             if params not in self.params:
                 self.params.append(params)
-                count += 1
                 yield params
 
     def __len__(self):
