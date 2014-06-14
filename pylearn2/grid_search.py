@@ -33,10 +33,9 @@ from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
 from pylearn2.utils import serial
 
 
-class UniqueParameterSampler(ParameterSampler):
+class UniqueParameterSampler(object):
     """
-    Subclass of ParameterSampler that never returns the same grid point
-    twice.
+    Attempt to return unique values from ParameterSampler.
 
     Parameters
     ----------
@@ -52,20 +51,24 @@ class UniqueParameterSampler(ParameterSampler):
     def __init__(self, param_distribution, n_iter, n_attempts=None,
                  random_state=None):
         if n_attempts is None:
-            n_attempts = 10 * n_iter
-        super(UniqueParameterSampler, self).__init__(param_distribution,
-                                                     n_attempts, random_state)
+            n_attempts = 100 * n_iter
+        self.sampler = ParameterSampler(param_distribution, n_attempts,
+                                        random_state)
+        self.n_iter = n_iter
         self.params = []
 
     def __iter__(self):
         count = 0
-        for params in super(UniqueParameterSampler, self).__iter__():
+        for params in self.sampler:
             if count >= self.n_iter:
                 break
             if params not in self.params:
                 self.params.append(params)
                 count += 1
                 yield params
+
+    def __len__(self):
+        return self.n_iter
 
 
 def random_seeds(size, random_state=None):
@@ -580,7 +583,7 @@ class RandomGridSearch(GridSearch):
         param_grid : dict
             Parameter grid.
         """
-        return UniqueParameterSampler(param_grid, self.n_iter,
+        return UniqueParameterSampler(param_grid, self.n_iter, None,
                                       self.random_state)
 
 
@@ -695,3 +698,34 @@ class GridSearchCV(GridSearch):
             trainers.append(trainer)
         trainers = batch_train(trainers, time_budget, parallel, client_kwargs)
         return trainers
+
+
+class RandomGridSearchCV(GridSearchCV):
+    """
+    GridSearchCV with random selection of parameter grid points.
+
+    Parameters
+    ----------
+    n_iter : int
+        Number of grid points to sample.
+    random_state : int, optional
+        Random seed.
+    kwargs : dict, optional
+        Keyword arguments for GridSearchCV.
+    """
+    def __init__(self, n_iter, random_state=None, **kwargs):
+        self.n_iter = n_iter
+        self.random_state = random_state
+        super(RandomGridSearchCV, self).__init__(**kwargs)
+
+    def get_param_grid(self, param_grid):
+        """
+        Construct a parameter grid.
+
+        Parameters
+        ----------
+        param_grid : dict
+            Parameter grid.
+        """
+        return UniqueParameterSampler(param_grid, self.n_iter, None,
+                                      self.random_state)
