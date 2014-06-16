@@ -1643,6 +1643,9 @@ class Conv2DSpace(SimplyTypedSpace):
         dtype = self._clean_dtype_arg(dtype)
         broadcastable = [False] * 4
         broadcastable[self.axes.index('c')] = (self.num_channels == 1)
+
+        # TODO: special-casing batch_size == 1 has been removed elsewhere. Can
+        # we remove it here too?
         broadcastable[self.axes.index('b')] = (batch_size == 1)
         broadcastable = tuple(broadcastable)
 
