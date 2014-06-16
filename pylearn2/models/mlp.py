@@ -3664,8 +3664,6 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
         `max_pool_c01b` but GPU-only and considerably faster.
     mean_pool : Mean pooling instead of max pooling
     """
-    if pool_shape == pool_stride:
-        return max_pool_2d(bc01, pool_shape, False)
     mx = None
     r, c = image_shape
     pr, pc = pool_shape
@@ -3707,6 +3705,11 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
     name = bc01.name
     if name is None:
         name = 'anon_bc01'
+
+    if pool_shape == pool_stride:
+        mx = max_pool_2d(bc01, pool_shape, False)
+        mx.name = 'max_pool('+name+')'
+        return mx
 
     bc01 = T.set_subtensor(wide_infinity[:, :, 0:r, 0:c], bc01)
     bc01.name = 'infinite_padded_' + name
