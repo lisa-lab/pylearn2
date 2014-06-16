@@ -41,7 +41,7 @@ def test_grid_search_cv():
 def test_unique_parameter_sampler():
     """Test UniqueParameterSampler."""
     skip_if_no_sklearn()
-    from pylearn2.misc import UniqueParameterSampler
+    from pylearn2.grid_search.misc import UniqueParameterSampler
     grid = {'dim': [2, 4, 8], 'seed': [1, 2, 3]}
     sampler = UniqueParameterSampler(grid, 3, random_state=1)
     samples = list(sampler)

@@ -22,7 +22,10 @@ from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
 
 class UniqueParameterSampler(object):
     """
-    Attempt to return unique values from ParameterSampler.
+    This class is a wrapper for ParameterSampler that attempts to return
+    a unique grid point on each iteration. ParameterSampler will sometimes
+    yield the same parameters multiple times, especially when sampling
+    small grids.
 
     Parameters
     ----------
@@ -47,6 +50,11 @@ class UniqueParameterSampler(object):
         self.params = []
 
     def __iter__(self):
+        """
+        Return the next grid point from ParameterSampler unless we have
+        seen it before. The ParameterSampler will raise StopIteration after
+        n_attempts samples.
+        """
         for params in self.sampler:
             if len(self.params) >= self.n_iter:
                 break
@@ -56,22 +64,6 @@ class UniqueParameterSampler(object):
 
     def __len__(self):
         return self.n_iter
-
-
-def random_seeds(size, random_state=None):
-    """
-    Generate random seeds.
-
-    Parameters
-    ----------
-    size : int
-        Number of seeds to generate.
-    random_state : int or None
-        Seed for random number generator.
-    """
-    rng = np.random.RandomState(random_state)
-    seeds = rng.randint(0, sys.maxint, size)
-    return seeds
 
 
 def get_model(trainer, channel_name=None, higher_is_better=False):
@@ -182,3 +174,20 @@ def batch_train(trainers, time_budget=None, parallel=False,
         if save_trainers:
             trainers = trainers_
     return trainers
+
+
+def random_seeds(size, random_state=None):
+    """
+    Generate random seeds. This function is intended for use in a pylearn2
+    YAML config file.
+
+    Parameters
+    ----------
+    size : int
+        Number of seeds to generate.
+    random_state : int or None
+        Seed for random number generator.
+    """
+    rng = np.random.RandomState(random_state)
+    seeds = rng.randint(0, sys.maxint, size)
+    return seeds
