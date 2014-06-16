@@ -4680,18 +4680,18 @@ class WindowLayer(Layer):
 def apply_dropout(state, include_prob, scale, theano_rng,
                   input_space, mask_value=0, per_example=True):
     """
-    .. todo::
-
-        WRITEME
+    Apply Dropout
 
     Parameters
     ----------
-    state: WRITEME
-    include_prob : WRITEME
-    scale : WRITEME
+    state: Layer input/output to which we want to apply dropout.
+    include_prob : The probability of keeping an unit. Do not apply
+         Dropout if is None or 1.
+    scale : To which scalar the non-dropped units are multiplied.
     theano_rng : WRITEME
     input_space : WRITEME
-    mask_value : WRITEME
+    mask_value : Replaces the values of the dropped units with this
+        value. Defaults to 0.
     per_example : bool, optional
         Sample a different mask value for every example in a batch.
         Defaults to `True`. If `False`, sample one mask per mini-batch.
