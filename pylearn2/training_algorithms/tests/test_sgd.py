@@ -606,7 +606,7 @@ def test_bad_monitoring_input_in_monitor_based_lr():
                     init_momentum=None,
                     set_batch_size=False)
 
-    #testing for bad dataset_name input
+    # testing for bad dataset_name input
     dummy = 'void'
 
     monitor_lr = MonitorBasedLRAdjuster(dataset_name=dummy)
@@ -633,7 +633,7 @@ def test_bad_monitoring_input_in_monitor_based_lr():
         raise AssertionError("MonitorBasedLRAdjuster takes dataset_name that "
                              "is invalid ")
 
-    #testing for bad channel_name input
+    # testing for bad channel_name input
     monitor_lr2 = MonitorBasedLRAdjuster(channel_name=dummy)
 
     model2 = SoftmaxModel(dim)
@@ -1362,6 +1362,149 @@ def test_batch_size_specialization():
                   extensions=None)
 
     train.main_loop()
+
+
+def test_uneven_batch_size():
+    """
+    Testing extensively sgd parametrisations for datasets with a number of
+    examples not divisible by batch size
+
+    The tested settings are:
+    - Model with force_batch_size = True or False
+    - Training dataset with number of examples divisible or not by batch size
+    - Monitoring dataset with number of examples divisible or not by batch size
+    - Even or uneven iterators
+
+    2 tests out of 10 should raise ValueError
+    """
+
+    learning_rate = 1e-3
+    batch_size = 5
+
+    dim = 3
+    m1, m2, m3 = 10, 15, 22
+
+    rng = np.random.RandomState([25, 9, 2012])
+
+    dataset1 = DenseDesignMatrix(X=rng.randn(m1, dim))
+    dataset2 = DenseDesignMatrix(X=rng.randn(m2, dim))
+    dataset3 = DenseDesignMatrix(X=rng.randn(m3, dim))
+
+    def train_with_monitoring_datasets(train_dataset,
+                                       monitoring_datasets,
+                                       model_force_batch_size,
+                                       train_iteration_mode,
+                                       monitor_iteration_mode):
+
+        model = SoftmaxModel(dim)
+        if model_force_batch_size:
+            model.force_batch_size = model_force_batch_size
+
+        cost = DummyCost()
+
+        algorithm = SGD(learning_rate, cost,
+                        batch_size=batch_size,
+                        train_iteration_mode=train_iteration_mode,
+                        monitor_iteration_mode=monitor_iteration_mode,
+                        monitoring_dataset=monitoring_datasets,
+                        termination_criterion=EpochCounter(2))
+
+        train = Train(train_dataset,
+                      model,
+                      algorithm,
+                      save_path=None,
+                      save_freq=0,
+                      extensions=None)
+
+        train.main_loop()
+
+    no_monitoring_datasets = None
+    even_monitoring_datasets = {'valid': dataset2}
+    uneven_monitoring_datasets = {'valid': dataset2, 'test': dataset3}
+
+    # without monitoring datasets
+    train_with_monitoring_datasets(
+        train_dataset=dataset1,
+        monitoring_datasets=no_monitoring_datasets,
+        model_force_batch_size=False,
+        train_iteration_mode='sequential',
+        monitor_iteration_mode='sequential')
+
+    train_with_monitoring_datasets(
+        train_dataset=dataset1,
+        monitoring_datasets=no_monitoring_datasets,
+        model_force_batch_size=batch_size,
+        train_iteration_mode='sequential',
+        monitor_iteration_mode='sequential')
+
+    # with uneven training datasets
+    train_with_monitoring_datasets(
+        train_dataset=dataset3,
+        monitoring_datasets=no_monitoring_datasets,
+        model_force_batch_size=False,
+        train_iteration_mode='sequential',
+        monitor_iteration_mode='sequential')
+
+    try:
+        train_with_monitoring_datasets(
+            train_dataset=dataset3,
+            monitoring_datasets=no_monitoring_datasets,
+            model_force_batch_size=batch_size,
+            train_iteration_mode='sequential',
+            monitor_iteration_mode='sequential')
+
+        assert False
+    except ValueError:
+        pass
+
+    train_with_monitoring_datasets(
+        train_dataset=dataset3,
+        monitoring_datasets=no_monitoring_datasets,
+        model_force_batch_size=batch_size,
+        train_iteration_mode='even_sequential',
+        monitor_iteration_mode='sequential')
+
+    # with even monitoring datasets
+    train_with_monitoring_datasets(
+        train_dataset=dataset1,
+        monitoring_datasets=even_monitoring_datasets,
+        model_force_batch_size=False,
+        train_iteration_mode='sequential',
+        monitor_iteration_mode='sequential')
+
+    train_with_monitoring_datasets(
+        train_dataset=dataset1,
+        monitoring_datasets=even_monitoring_datasets,
+        model_force_batch_size=batch_size,
+        train_iteration_mode='sequential',
+        monitor_iteration_mode='sequential')
+
+    # with uneven monitoring datasets
+    train_with_monitoring_datasets(
+        train_dataset=dataset1,
+        monitoring_datasets=uneven_monitoring_datasets,
+        model_force_batch_size=False,
+        train_iteration_mode='sequential',
+        monitor_iteration_mode='sequential')
+
+    try:
+        train_with_monitoring_datasets(
+            train_dataset=dataset1,
+            monitoring_datasets=uneven_monitoring_datasets,
+            model_force_batch_size=batch_size,
+            train_iteration_mode='sequential',
+            monitor_iteration_mode='sequential')
+
+        assert False
+    except ValueError:
+        pass
+
+    train_with_monitoring_datasets(
+        train_dataset=dataset1,
+        monitoring_datasets=uneven_monitoring_datasets,
+        model_force_batch_size=batch_size,
+        train_iteration_mode='sequential',
+        monitor_iteration_mode='even_sequential')
 
 
 if __name__ == '__main__':

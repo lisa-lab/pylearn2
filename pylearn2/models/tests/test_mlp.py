@@ -4,7 +4,11 @@ import numpy as np
 import theano
 from theano import tensor
 
-from pylearn2.models.mlp import (MLP, Linear, Softmax, Sigmoid,
+from pylearn2.datasets.vector_spaces_dataset import VectorSpacesDataset
+from pylearn2.termination_criteria import EpochCounter
+from pylearn2.training_algorithms.sgd import SGD
+from pylearn2.train import Train
+from pylearn2.models.mlp import (FlattenerLayer, MLP, Linear, Softmax, Sigmoid,
                                  exhaustive_dropout_average,
                                  sampled_dropout_average, CompositeLayer)
 from pylearn2.space import VectorSpace, CompositeSpace
@@ -205,7 +209,9 @@ def test_composite_layer():
         input_space = CompositeSpace([VectorSpace(dim=2),
                                       VectorSpace(dim=2),
                                       VectorSpace(dim=2)])
-        mlp = MLP(input_space=input_space, layers=[composite_layer])
+        input_source = ('features0', 'features1', 'features2')
+        mlp = MLP(input_space=input_space, input_source=input_source,
+                  layers=[composite_layer])
         for i in range(3):
             composite_layer.layers[i].set_weights(
                 np.eye(2, dtype=theano.config.floatX)
@@ -245,3 +251,56 @@ def test_composite_layer():
                                 in composite_layer.layers])
             )
             assert np.allclose(f(), g())
+
+
+def test_multiple_inputs():
+    """
+    Create a VectorSpacesDataset with two inputs (features0 and features1)
+    and train an MLP which takes both inputs for 1 epoch.
+    """
+    mlp = MLP(
+        layers=[
+            FlattenerLayer(
+                CompositeLayer(
+                    'composite',
+                    [Linear(10, 'h0', 0.1),
+                     Linear(10, 'h1', 0.1)],
+                    {
+                        0: [1],
+                        1: [0]
+                    }
+                )
+            ),
+            Softmax(5, 'softmax', 0.1)
+        ],
+        input_space=CompositeSpace([VectorSpace(15), VectorSpace(20)]),
+        input_source=('features0', 'features1')
+    )
+    dataset = VectorSpacesDataset(
+        (np.random.rand(20, 20).astype(theano.config.floatX),
+         np.random.rand(20, 15).astype(theano.config.floatX),
+         np.random.rand(20, 5).astype(theano.config.floatX)),
+        (CompositeSpace([
+            VectorSpace(20),
+            VectorSpace(15),
+            VectorSpace(5)]),
+         ('features1', 'features0', 'targets'))
+    )
+    train = Train(dataset, mlp, SGD(0.1, batch_size=5))
+    train.algorithm.termination_criterion = EpochCounter(1)
+    train.main_loop()
+
+
+def test_nested_mlp():
+    """
+    Constructs a nested MLP and tries to fprop through it
+    """
+    inner_mlp = MLP(layers=[Linear(10, 'h0', 0.1), Linear(10, 'h1', 0.1)],
+                    layer_name='inner_mlp')
+    outer_mlp = MLP(layers=[CompositeLayer(layer_name='composite',
+                                           layers=[inner_mlp,
+                                                   Linear(10, 'h2', 0.1)])],
+                    nvis=10)
+    X = outer_mlp.get_input_space().make_theano_batch()
+    f = theano.function([X], outer_mlp.fprop(X))
+    f(np.random.rand(5, 10).astype(theano.config.floatX))

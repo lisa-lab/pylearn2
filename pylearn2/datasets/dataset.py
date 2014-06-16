@@ -152,7 +152,7 @@ class Dataset(object):
             of numpy values, depending on the value of `include_labels`.
         """
         raise NotImplementedError(str(type(self))+" does not implement "
-                "get_batch_design.")
+                                  "get_batch_design.")
 
     def get_batch_topo(self, batch_size):
         """
@@ -162,5 +162,15 @@ class Dataset(object):
         batch_size. The next indices are the topologically significant
         dimensions of the data, i.e. for images, image rows followed by
         image columns.  The last index is over separate channels.
+        """
+        raise NotImplementedError()
+
+    def get_num_examples(self):
+        """
+        Returns the number of examples in the dataset
+
+        Notes
+        -----
+        Infinite datasets have float('inf') examples.
         """
         raise NotImplementedError()

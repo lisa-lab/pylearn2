@@ -10,3 +10,4 @@ Internal Documentation
 
    dev_start_guide
    data_specs
+   pull_request_checklist

@@ -338,7 +338,7 @@ class Maxout(Layer):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W, = self.transformer.get_params()
-        return coeff * T.abs(W).sum()
+        return coeff * T.abs_(W).sum()
 
     @functools.wraps(Model.get_weights)
     def get_weights(self):
@@ -1381,7 +1381,8 @@ class MaxoutLocalC01B(Layer):
         self.b.name = 'b'
 
         logger.info('Input shape: {0}'.format(self.input_space.shape))
-        logger.info('Detector space: {0}'.format(self.detector_space.shape))
+        logger.info(self.layer_name +
+                    ' detector space: {0}'.format(self.detector_space.shape))
 
         assert self.detector_space.num_channels >= 16
 

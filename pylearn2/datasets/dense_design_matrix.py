@@ -556,20 +556,23 @@ class DenseDesignMatrix(Dataset):
         if train_size != 0:
             size = train_size
         elif train_prop != 0:
-            size = np.round(self.num_examples * train_prop)
+            size = np.round(self.get_num_examples() * train_prop)
         else:
             raise ValueError("Initialize either split ratio and split size to "
                              "non-zero value.")
-        if size < self.num_examples-size:
-            dataset_iter = self.iterator(mode=_mode,
-                                         batch_size=(self.num_examples - size))
+        if size < self.get_num_examples() - size:
+            dataset_iter = self.iterator(
+                mode=_mode,
+                batch_size=(self.get_num_examples() - size))
             valid = dataset_iter.next()
-            train = dataset_iter.next()[:self.num_examples-valid.shape[0]]
+            train = dataset_iter.next()[:(self.get_num_examples()
+                                          - valid.shape[0])]
         else:
             dataset_iter = self.iterator(mode=_mode,
                                          batch_size=size)
             train = dataset_iter.next()
-            valid = dataset_iter.next()[:self.num_examples-train.shape[0]]
+            valid = dataset_iter.next()[:(self.get_num_examples()
+                                          - train.shape[0])]
         return (train, valid)
 
     def split_dataset_nfolds(self, nfolds=0):
@@ -881,7 +884,13 @@ class DenseDesignMatrix(Dataset):
 
             WRITEME
         """
-        return self.X.shape[0]
+
+        warnings.warn("num_examples() is being deprecated, and will be "
+                      "removed around November 7th, 2014. `get_num_examples` "
+                      "should be used instead.",
+                      stacklevel=2)
+
+        return self.get_num_examples()
 
     def get_batch_design(self, batch_size, include_labels=False):
         """
@@ -938,6 +947,10 @@ class DenseDesignMatrix(Dataset):
             return rval, labels
 
         return rval
+
+    @functools.wraps(Dataset.get_num_examples)
+    def get_num_examples(self):
+        return self.X.shape[0]
 
     def view_shape(self):
         """
@@ -1475,9 +1488,18 @@ class DefaultViewConverter(object):
 
 def from_dataset(dataset, num_examples):
     """
-    .. todo::
+    Constructs a random subset of a DenseDesignMatrix
 
-        WRITEME
+    Parameters
+    ----------
+    dataset : DenseDesignMatrix
+    num_examples : int
+
+    Returns
+    -------
+    sub_dataset : DenseDesignMatrix
+        A new dataset containing `num_examples` examples randomly
+        drawn (without replacement) from `dataset`
     """
     try:
 
@@ -1498,7 +1520,7 @@ def from_dataset(dataset, num_examples):
                                      view_converter=dataset.view_converter)
         raise
 
-    rval = DenseDesignMatrix(topo_view=V, y=y)
+    rval = DenseDesignMatrix(topo_view=V, y=y, y_labels=dataset.y_labels)
     rval.adjust_for_viewer = dataset.adjust_for_viewer
 
     return rval

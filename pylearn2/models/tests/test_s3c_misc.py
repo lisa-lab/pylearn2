@@ -33,10 +33,14 @@ class TestS3C_Misc:
         try:
             self.tol = 1e-5
 
-
-            X = np.random.RandomState([1,2,3]).randn(1000,108)
-            m, D = X.shape
-            N = 300
+            if config.mode in ["DebugMode", "DEBUG_MODE"]:
+                X = np.random.RandomState([1, 2, 3]).randn(30, 108)
+                m, D = X.shape
+                N = 10
+            else:
+                X = np.random.RandomState([1, 2, 3]).randn(1000, 108)
+                m, D = X.shape
+                N = 300
 
             self.model = S3C(nvis = D,
                              nhid = N,
