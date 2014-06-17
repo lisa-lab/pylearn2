@@ -11,10 +11,10 @@ def test_multiple_monitoring_datasets():
     # tests that DefaultTrainingAlgorithm can take multiple
     # monitoring datasets.
 
-    BATCH_SIZE = 2
+    BATCH_SIZE = 1
     BATCHES = 3
     NUM_FEATURES = 4
-    dim = 3
+    dim = 4
     m = 10
 
     rng = np.random.RandomState([2014, 02, 25])
