@@ -18,6 +18,7 @@ from theano.compat.python2x import OrderedDict
 from theano.gof.op import get_debug_values
 from theano.printing import Print
 from theano.sandbox.rng_mrg import MRG_RandomStreams
+from theano.tensor.signal.downsample import max_pool_2d
 import theano.tensor as T
 
 from pylearn2.costs.mlp import Default
@@ -3698,6 +3699,15 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
     assert pr <= r
     assert pc <= c
 
+    name = bc01.name
+    if name is None:
+        name = 'anon_bc01'
+
+    if pool_shape == pool_stride:
+        mx = max_pool_2d(bc01, pool_shape, False)
+        mx.name = 'max_pool('+name+')'
+        return mx
+
     # Compute index in pooled space of last needed pool
     # (needed = each input pixel must appear in at least one pool)
     def last_pool(im_shp, p_shp, p_strd):
@@ -3727,10 +3737,6 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
                             bc01.shape[1],
                             required_r,
                             required_c)
-
-    name = bc01.name
-    if name is None:
-        name = 'anon_bc01'
 
     bc01 = T.set_subtensor(wide_infinity[:, :, 0:r, 0:c], bc01)
     bc01.name = 'infinite_padded_' + name
