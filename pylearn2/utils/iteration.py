@@ -783,8 +783,15 @@ class FiniteDatasetIterator(object):
                 # otherwise they would change in the next iteration
                 # of the loop.
                 if fn is None:
-                    fn = (lambda batch, dspace=dspace, sp=sp:
-                          dspace.np_format_as(batch, sp))
+
+                    def fn(batch, dspace=dspace, sp=sp):
+                        try:
+                              return dspace.np_format_as(batch, sp)
+                        except ValueError as e:
+                            msg = str(e) + '\nMake sure that the model and '\
+                                           'dataset have been initialized with '\
+                                           'correct values.'
+                            raise ValueError(msg)
                 else:
                     fn = (lambda batch, dspace=dspace, sp=sp, fn_=fn:
                           dspace.np_format_as(fn_(batch), sp))
