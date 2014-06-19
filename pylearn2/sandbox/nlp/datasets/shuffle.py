@@ -65,9 +65,14 @@ class HDF5Shuffle(DenseDesignMatrix):
                 X[sample, swap], X[sample, swap + 1] = \
                                                   X[sample, swap + 1], X[sample, swap]
             print "Done"
-            super(HDF5Shuffle, self).__init__(
-                X=X, y=y, X_labels=15000
-            )
+
+            if i == 0:
+                super(HDF5Shuffle, self).__init__(
+                    X=X, y=y, X_labels=15000
+                )
+            else:
+                self.X = X
+                self.Y = Y
 
             if shuffle:
                 warnings.warn("Note that the samples are only "
