@@ -68,15 +68,15 @@ class PennTreebank(DenseDesignMatrix):
             )
         else:
             assert permutation == 1, "No support for more than 1 permutation"
-            swaps = np.random.randint(context_len - 1, len(self._data))
+            swaps = np.random.randint(0, context_len - 1, len(self._data))
+            X = np.ascontiguousarray(self._data[:, :-1])
             for sample, swap in enumerate(swaps):
-                self._data[sample, swap], self._data[sample, swap + 1] = \
-                    self._data[sample, swap + 1], self._data[sample, swap]
-            X = self._data[:, :-1]
+                X[sample, swap], X[sample, swap + 1] = \
+                    X[sample, swap + 1], X[sample, swap]
             y = np.zeros((len(X), context_len - 1))
             y[np.arange(len(X)), swaps] = 1
             super(PennTreebank, self).__init__(
-                X=X, y=y, X_labels=10000, y_labels=10000
+                X=X, y=y, X_labels=10000
             )
 
         if shuffle:
