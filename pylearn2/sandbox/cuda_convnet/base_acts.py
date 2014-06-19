@@ -60,7 +60,8 @@ class BaseActs(GpuOp):
         if not isinstance(pad, py_integer_types):
             raise TypeError("pad must be an int")
         if not (pad >= 0):
-            raise ValueError("bad value of pad (must be non-negative): " + str(pad))
+            raise ValueError("bad value of pad (must be non-negative): " +
+                             str(pad))
 
         self.partial_sum = partial_sum
         self.pad = pad
