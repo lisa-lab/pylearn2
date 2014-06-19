@@ -40,6 +40,7 @@ class HDF5Shuffle(DenseDesignMatrix):
 
         cache_size = 100000
         totalInputSize = stop-start
+        # TEST
 
         for i in range(totalInputSize/cache_size):
             s = start+i*cache_size
