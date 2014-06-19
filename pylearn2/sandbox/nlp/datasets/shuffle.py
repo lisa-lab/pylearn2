@@ -36,35 +36,42 @@ class HDF5Shuffle(DenseDesignMatrix):
             head, tail = os.path.split(path)
             root, ext = os.path.splitext(tail)
             node = root
-        with tables.open_file(path) as f:
-            print "Loading n-grams..."
-            node = f.get_node('/' + node)
-            X = node[start:stop]
-            if n is None:
-                n = X.shape[1]
+        assert permutation == 1, "No support for more than 1 permutation"
+
+        cache_size = 100000
+        totalInputSize = stop-start
+
+        for i in range(totalInputSize/cache_size):
+            s = start+i*cache_size
+            e = s+cache_size
+            with tables.open_file(path) as f:
+                print "Loading n-grams..."
+                node = f.get_node('/' + node)
+
+                X = node[s:e]
+                if n is None:
+                    n = X.shape[1]
             print "Loaded %d n-grams" % len(X)
             X = X[X.all(1), :n]
             print "After filtering: %d n-grams" % len(X)
 
-        assert permutation == 1, "No support for more than 1 permutation"
-
-        print "Creating targets"
-        swaps = np.random.randint(0, n - 1, len(X))
-        y = np.zeros((len(X), n - 1))
-        y[np.arange(len(X)), swaps] = 1
-        print "Performing permutations...",
-        for sample, swap in enumerate(swaps):
-            X[sample, swap], X[sample, swap + 1] = \
-                X[sample, swap + 1], X[sample, swap]
-        print "Done"
-        super(HDF5Shuffle, self).__init__(
-            X=X, y=y, X_labels=15000
-        )
-
-        if shuffle:
-            warnings.warn("Note that the samples are only "
-                          "shuffled when the iterator method is used to "
-                          "retrieve them.")
-            self._iter_subset_class = resolve_iterator_class(
-                'shuffled_sequential'
+            print "Creating targets"
+            swaps = np.random.randint(0, n - 1, len(X))
+            y = np.zeros((len(X), n - 1))
+            y[np.arange(len(X)), swaps] = 1
+            print "Performing permutations...",
+            for sample, swap in enumerate(swaps):
+                X[sample, swap], X[sample, swap + 1] = \
+                                                  X[sample, swap + 1], X[sample, swap]
+            print "Done"
+            super(HDF5Shuffle, self).__init__(
+                X=X, y=y, X_labels=15000
             )
+
+            if shuffle:
+                warnings.warn("Note that the samples are only "
+                              "shuffled when the iterator method is used to "
+                              "retrieve them.")
+                self._iter_subset_class = resolve_iterator_class(
+                    'shuffled_sequential'
+                )
