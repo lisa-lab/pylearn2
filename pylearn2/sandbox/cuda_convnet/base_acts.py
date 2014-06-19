@@ -42,14 +42,19 @@ The copyright and licensing notice for this code is reproduced below:
 """
 
 import warnings
+
+import theano
+from theano.compat import get_unbound_function
+from theano import config
 from theano.sandbox.cuda import GpuOp
+
 from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
 from pylearn2.sandbox.cuda_convnet.convnet_compile import convnet_available
 from pylearn2.sandbox.cuda_convnet.convnet_compile import cuda_convnet_loc
 from pylearn2.utils import py_integer_types
 
 import pylearn2.sandbox.cuda_convnet.pthreads
-from theano import config
+
 
 class BaseActs(GpuOp):
     """
@@ -138,6 +143,12 @@ class BaseActs(GpuOp):
 
         return super(BaseActs, self).make_thunk(node, storage_map,
                                                 compute_map, no_recycling)
+
+# This is needed as otherwise DebugMode will consider that
+# BaseActs.make_thunk do something else then the default code, and
+# would duplicate verification.
+theano.compile.debugmode.default_make_thunk.append(
+    get_unbound_function(BaseActs.make_thunk))
 
 
 class UnimplementedError(Exception):
