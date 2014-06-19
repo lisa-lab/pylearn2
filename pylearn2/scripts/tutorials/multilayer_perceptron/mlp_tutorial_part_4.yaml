@@ -12,7 +12,7 @@
                      sparse_init: 15
                  },  !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h1',
-                     dim: %(dim_h0)i,
+                     dim: %(dim_h1)i,
                      sparse_init: %(sparse_init_h1)i
                  }, !obj:pylearn2.models.mlp.Softmax {
                      layer_name: 'y',
