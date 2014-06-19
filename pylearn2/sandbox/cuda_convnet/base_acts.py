@@ -17,8 +17,8 @@ The copyright and licensing notice for this code is reproduced below:
  * Copyright (c) 2011, Alex Krizhevsky (akrizhevsky@gmail.com)
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
  * - Redistributions of source code must retain the above copyright notice,
  *   this list of conditions and the following disclaimer.
@@ -31,10 +31,11 @@ The copyright and licensing notice for this code is reproduced below:
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
@@ -76,7 +77,10 @@ class BaseActs(GpuOp):
         self.dense_connectivity = True
 
     def c_header_dirs(self):
-        return [this_dir, config.pthreads.inc_dir] if config.pthreads.inc_dir else [this_dir]
+        if config.pthreads.inc_dir:
+            return [this_dir, config.pthreads.inc_dir]
+        else:
+            return [this_dir]
 
     def c_headers(self):
         return ['nvmatrix.cuh', 'cudaconv2.cuh']
@@ -87,10 +91,16 @@ class BaseActs(GpuOp):
         return ()
 
     def c_lib_dirs(self):
-        return [cuda_convnet_loc, config.pthreads.lib_dir] if config.pthreads.lib_dir else [cuda_convnet_loc]
+        if config.pthreads.lib_dir:
+            return [cuda_convnet_loc, config.pthreads.lib_dir]
+        else:
+            return [cuda_convnet_loc]
 
     def c_libraries(self):
-        return ['cuda_convnet', config.pthreads.lib] if config.pthreads.lib else ['cuda_convnet']
+        if config.pthreads.lib:
+            return ['cuda_convnet', config.pthreads.lib]
+        else:
+            return ['cuda_convnet']
 
     def _argument_contiguity_check(self, arg_name):
         return """

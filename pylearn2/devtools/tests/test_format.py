@@ -71,7 +71,6 @@ whitelist_pep8 = [
     "sandbox/cuda_convnet/__init__.py",
     "sandbox/cuda_convnet/img_acts.py",
     "sandbox/cuda_convnet/convnet_compile.py",
-    "sandbox/cuda_convnet/base_acts.py",
     "sandbox/cuda_convnet/pthreads.py",
     "sandbox/cuda_convnet/pool.py",
     "sandbox/cuda_convnet/bench.py",
