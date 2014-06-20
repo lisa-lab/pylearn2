@@ -51,7 +51,8 @@ def summarize(path):
         print 'which corresponds to',
         print model.monitor.get_batches_seen(), 'batches'
         print 'Trained for ' + str(float(model.monitor.channels[
-            model.monitor.channels.keys()[0]].time_record[-1])/3600.) + ' hours'
+            model.monitor.channels.keys()[0]].time_record[-1])/3600.) + \
+            ' hours'
         try:
             print model.monitor.get_epochs_seen(), 'epochs'
         except:
