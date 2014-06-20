@@ -27,6 +27,8 @@ mode_with_gpu = copy.copy(mode_with_gpu)
 mode_without_gpu = copy.copy(mode_without_gpu)
 mode_with_gpu.check_py_code = False
 mode_without_gpu.check_py_code = False
+mode_with_gpu.check_isfinite = False
+mode_without_gpu.check_isfinite = False
 
 
 def my_rand(*shape):
