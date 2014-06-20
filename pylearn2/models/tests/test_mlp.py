@@ -88,8 +88,10 @@ def test_dropout_input_mask_value():
     mlp.layers[0].set_biases(np.arange(1, 3, dtype=mlp.get_weights().dtype))
     mlp.layers[0].dropout_input_mask_value = -np.inf
     inp = theano.tensor.matrix()
+    mode = theano.compile.mode.get_default_mode()
+    mode.check_isfinite = False
     f = theano.function([inp], mlp.masked_fprop(inp, 1, default_input_scale=1),
-                        allow_input_downcast=True)
+                        allow_input_downcast=True, mode=mode)
     np.testing.assert_equal(f([[4., 3.]]), [[4., -np.inf]])
 
 
