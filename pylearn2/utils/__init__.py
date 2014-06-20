@@ -47,7 +47,7 @@ def make_name(variable, anon="anonymous_variable"):
     return anon
 
 
-def sharedX(value, name=None, borrow=False):
+def sharedX(value, name=None, borrow=False, dtype=None):
     """
     Transform value into a shared variable of type floatX
 
@@ -56,13 +56,16 @@ def sharedX(value, name=None, borrow=False):
     value : WRITEME
     name : WRITEME
     borrow : WRITEME
+    dtype : WRITEME
 
     Returns
     -------
     WRITEME
     """
 
-    return theano.shared(theano._asarray(value, dtype=theano.config.floatX),
+    if dtype is None:
+        dtype = theano.config.floatX
+    return theano.shared(theano._asarray(value, dtype=dtype),
                          name=name,
                          borrow=borrow)
 
