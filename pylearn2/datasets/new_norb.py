@@ -100,8 +100,6 @@ class NORB(DenseDesignMatrix):
         for index, name in enumerate(self.label_index_to_name):
             self.label_name_to_index[name] = index
 
-        self.label_to_value_funcs = get_label_to_value_funcs()
-
         def get_label_to_value_funcs():
             """
             Returns a tuple of functions that map label values (int32's) to the
@@ -212,11 +210,10 @@ class NORB(DenseDesignMatrix):
 
             return result  # ends get_label_to_value_maps()
 
+        self.label_to_value_funcs = get_label_to_value_funcs()
+
         # The size of one side of the image
         image_length = 96 if which_norb == 'small' else 108
-
-        # Number of data rows
-        num_rows = get_num_rows(which_norb, which_set)
 
         def get_num_rows(which_norb, which_set):
             if which_norb == 'small':
@@ -225,6 +222,9 @@ class NORB(DenseDesignMatrix):
                 num_rows_per_file = 29160
                 num_files = 2 if which_set == 'test' else 10
                 return num_rows_per_file * num_files
+
+        # Number of data rows
+        num_rows = get_num_rows(which_norb, which_set)
 
         def read_norb_files(norb_files, output):
             """
@@ -414,7 +414,6 @@ class NORB(DenseDesignMatrix):
                                 mode='r',
                                 shape=(num_rows, row_size))
 
-        norb_dir = get_norb_dir()
 
         def get_norb_dir(which_norb):
             datasets_dir = os.getenv('PYLEARN2_DATA_PATH')
@@ -430,6 +429,8 @@ class NORB(DenseDesignMatrix):
             return os.path.join(datasets_dir,
                                 'norb' if which_norb == 'big'
                                 else 'small_norb')
+
+        norb_dir = get_norb_dir(which_norb)
 
         def get_memmap_path(which_norb, which_set, suffix):
             memmap_dir = os.path.join(norb_dir, 'memmaps_of_original')
@@ -469,10 +470,10 @@ class NORB(DenseDesignMatrix):
 
         def make_view_converter(which_norb, which_set):
             image_length = 96 if which_norb == 'small' else 108
-            datum_shape = which_norb == (2,  # number of images per stereo pair
-                                         image_length,  # image height
-                                         image_length,  # image width
-                                         1)  # number of channels
+            datum_shape = (2,  # number of images per stereo pair
+                           image_length,  # image height
+                           image_length,  # image width
+                           1)  # number of channels
             axes = ('b', 's', 0, 1, 'c')
             return StereoViewConverter(datum_shape, axes)
 

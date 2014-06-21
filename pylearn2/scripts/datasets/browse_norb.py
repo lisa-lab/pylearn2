@@ -3,7 +3,7 @@
 import sys, argparse
 import numpy
 from matplotlib import pyplot
-from pylearn2.datasets.norb import Norb
+from pylearn2.datasets.new_norb import NORB
 from pylearn2.utils import safe_zip
 
 
@@ -12,31 +12,37 @@ def main():
         parser = argparse.ArgumentParser(
             description="Browser for NORB dataset.")
 
+        parser.add_argument('--which_norb',
+                            type=str,
+                            required=True,
+                            choices=('big', 'small'),
+                            help="'Selects the (big) NORB, or the Small NORB.")
+
         parser.add_argument('--which_set',
                             type=str,
-                            default="train",
+                            required=True,
+                            choices=('train', 'test'),  # TODO: add 'both'
                             help="'train', or 'test'")
 
         result = parser.parse_args()
-
-        if not (result.which_set in ('train', 'test')):
-            print "type of which_set: ", type(result.which_set)
-            print ("--which_set must be one of 'train' or 'test'. "
-                   "(Was '%s')." % result.which_set)
-            sys.exit(1)
 
         return result
 
     args = parse_args()
 
     print "loading %s set..." % args.which_set
-    dataset = Norb(args.which_set, True)
+    dataset = NORB(args.which_norb, args.which_set)
     print "...loaded"
 
     # Indexes into the first 5 labels, which live on a 5-D grid.
     grid_indices = [0, ] * 5
 
     def make_grid_to_short_label():
+        """
+        Returns an array x such that x[a][b] gives label index a's b'th unique
+        value. In other words, it maps label grid indices a, b to the
+        corresponding label value.
+        """
         unique_values = [sorted(list(frozenset(column)))
                          for column
                          in dataset.y[:, :5].transpose()]
@@ -51,7 +57,20 @@ def main():
 
     grid_to_short_label = make_grid_to_short_label()
 
+    # maps 5-D label vector to a list of row indices for dataset.X, dataset.y
+    # that have those labels.
+    label_to_row_indices = make_label_to_row_indices()
+
     def make_label_to_row_indices():
+        """
+        Returns a map from short labels (the first 5 elements of the label
+        vector) to the list of row indices of rows in the dense design matrix
+        with that label.
+
+        For Small NORB, all unique short labels have exactly one row index.
+
+        For big NORB, a short label can have 0-N row indices.
+        """
         result = {}
 
         # print dataset.y
@@ -65,19 +84,60 @@ def main():
 
         return result
 
-    # maps 5-D label vector to a list of row indices for dataset.X, dataset.y
-    # that have those labels.
-    label_to_row_indices = make_label_to_row_indices()
-
     # indexes into the row index lists returned by label_to_row_indices
     object_image_index = [0, ]
     blank_image_index = [0, ]
 
-    def get_short_label(grid_indices):
-        category = grid_to_short_label[0][grid_indices[0]]
+    blank_label = get_blank_label(dataset)
 
-        if category == 5:  # category == 'blank'
-            return tuple(dataset.blank_label[:5])
+    def get_blank_label(dataset):
+        """
+        Returns the label vector associated with blank images.
+
+        If dataset is a Small NORB (i.e. it has no blank images), this returns
+        None.
+        """
+
+        ci = dataset.label_name_to_index['category']  # category index
+        category_to_name = dataset.label_to_value_funcs[ci]
+        blank_label = 6
+
+        try:
+            blank_name = category_to_name(blank_label)
+        except ValueError:
+            return None
+
+        assert blank_name == 'blank'
+
+        blank_rowmask = dataset.y[:, ci] == blank_label
+        blank_labels = dataset.y[blank_rowmask, :]
+
+        if not numpy.all(blank_labels[0, :] == blank_labels[1:, :]):
+            raise ValueError("Expected all labels of category 'blank' to have "
+                             "the same value, but they differed.")
+
+        return blank_labels[0, :].copy()
+
+    def is_blank(grid_indices):
+        assert len(grid_indices) == 5
+        assert all(x >= 0 for x in grid_indices)
+
+        ci = dataset.label_name_to_index['category']  # category index
+        category = grid_to_short_label[ci][grid_indices[ci]]
+        category_name = dataset.label_to_value_funcs[ci](category)
+        return category_name == 'blank'
+
+    def get_short_label(grid_indices):
+        """
+        Returns the first 5 elements of the label vector pointed to by
+        grid_indices. We use the first 5, since they're the labels used by
+        both the 'big' and Small NORB datasets.
+        """
+
+        # Need to special-case the 'blank' category, since it lies outside of
+        # the grid.
+        if is_blank(grid_indices):   # will never happen with SmallNORB
+            return tuple(blank_label[:5])
         else:
             return tuple(grid_to_short_label[i][g]
                          for i, g in enumerate(grid_indices))
@@ -109,12 +169,13 @@ def main():
     text_axes.set_frame_on(False)  # Hides background of text_axes
 
     # Makes an array of label type names
-    label_types = [None, ] * len(Norb.label_type_to_index)
+    label_types = [None, ] * len(dataset.label_type_to_index)
     for label_type, index in dataset.label_type_to_index.items():
         label_types[index] = label_type
 
     def redraw(redraw_text, redraw_images):
-        category = grid_to_short_label[0][grid_indices[0]]
+        # ci = dataset.label_name_to_index['category']  # category index
+        # category = grid_to_short_label[ci][grid_indices[ci]]
         row_indices = get_row_indices(grid_indices)
 
         if row_indices is None:
@@ -123,15 +184,16 @@ def main():
             num_images = 0
         else:
             image_index = (blank_image_index
-                           if category == 5  # i.e. category == 'blank'
+                           if is_blank(grid_indices)
                            else object_image_index)[0]
             row_index = row_indices[image_index]
             num_images = len(row_indices)
 
         def draw_text():
             if row_indices is None:
+                padding_length = dataset.y.shape[1] - len(grid_indices)
                 current_label = (tuple(get_short_label(grid_indices)) +
-                                 (0, ) * 6)
+                                 (0, ) * padding_length)
             else:
                 current_label = dataset.y[row_index, :]
 
@@ -143,12 +205,13 @@ def main():
                      for t, v
                      in safe_zip(label_types, label_values)]
 
-            # Inserts image number & blank line between editable and
-            # fixed labels.
-            lines = (lines[:5] +
-                     ['image: %d of %d' % (image_index, num_images),
-                      '\n'] +
-                     lines[5:])
+            if dataset.y.shape[1] > 5:
+                # Inserts image number & blank line between editable and
+                # fixed labels.
+                lines = (lines[:5] +
+                         ['image: %d of %d' % (image_index, num_images),
+                          '\n'] +
+                         lines[5:])
 
             # prepends the current index's line with an arrow.
             lines[grid_dimension[0]] = '==> ' + lines[grid_dimension[0]]
@@ -198,7 +261,7 @@ def main():
             assert step in (0, -1, 1), ("Step was %d" % step)
 
             image_index = (blank_image_index
-                           if grid_indices[0] == 5  # category == 'blank'
+                           if is_blank(grid_indices)
                            else object_image_index)
 
             if grid_dimension[0] == 5:  # i.e. the image index
@@ -227,7 +290,7 @@ def main():
         # Disables left/right key if we're currently showing a blank,
         # and the current index type is neither 'category' (0) nor
         # 'image number' (5)
-        disable_left_right = ((grid_indices[0] == 5) and  # category == 'blank'
+        disable_left_right = (is_blank(grid_indices) and
                               not (grid_dimension[0] in (0, 5)))
 
         if event.key == 'up':
