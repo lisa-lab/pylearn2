@@ -65,8 +65,10 @@ class NORB(DenseDesignMatrix):
             dataset'.
 
         which_set: str
-            Valid values: 'test', or 'train'.
-            Chooses between the testing set or the training set.
+            Valid values: 'test', 'train', or 'both'.
+            Chooses between the testing set or the training set. If 'both',
+            the two datasets will be stacked together (testing data in the
+            first N rows, then training data).
         """
 
         if not which_norb in ('big', 'small'):
@@ -360,13 +362,21 @@ class NORB(DenseDesignMatrix):
 
             assert end_row == output.shape[0]  # end of read_norb_files
 
+        if which_norb == 'small':
+            training_set_size = 24300
+            testing_set_size = 24300
+        else:
+            assert which_norb == 'big':
+            training_set_size = 291600
+            testing_set_size = 58320
+
         def load_images(which_norb, which_set):
             """
             Reads image data from memmap disk cache, if available. If not, then
             first builds the memmap file from the NORB files.
             """
 
-            memmap_path = get_memmap_path(which_norb, which_set, 'images')
+            memmap_path = get_memmap_path(which_norb, 'images')
             dtype = numpy.dtype('uint8')
             row_size = 2 * (image_length ** 2)
 
@@ -378,10 +388,11 @@ class NORB(DenseDesignMatrix):
                     os.mkdir(memmap_dir)
 
                 print "Allocating memmap file %s" % memmap_path
+                shape = (training_set_size + testing_set_size, row_size)
                 writeable_memmap = numpy.memmap(filename=memmap_path,
                                                 dtype=dtype,
                                                 mode='w+',
-                                                shape=(num_rows, row_size))
+                                                shape=shape)
 
                 read_norb_files(dat_files, writeable_memmap)
 
@@ -390,10 +401,16 @@ class NORB(DenseDesignMatrix):
                        "will only be done once.")
                 make_memmap()
 
-            return numpy.memmap(filename=memmap_path,
-                                dtype=dtype,
-                                mode='r',
-                                shape=(num_rows, row_size))
+            images = numpy.memmap(filename=memmap_path,
+                                  dtype=dtype,
+                                  mode='r',
+                                  shape=(num_rows, row_size))
+            if which_set == 'train':
+                images = images[:training_set_size, :]
+            elif which_set == 'test':
+                images = images[training_set_size:, :]
+
+            return images
 
         def load_labels(which_norb, which_set):
             """
@@ -401,7 +418,7 @@ class NORB(DenseDesignMatrix):
             cache, if available. If not, then first builds the memmap file from
             the NORB files.
             """
-            memmap_path = get_memmap_path(which_norb, which_set, 'labels')
+            memmap_path = get_memmap_path(which_norb, 'labels')
             dtype = numpy.dtype('int32')
             row_size = 5 if which_norb == 'small' else 11
 
@@ -416,10 +433,11 @@ class NORB(DenseDesignMatrix):
                     os.mkdir(memmap_dir)
 
                 print "allocating labels' memmap..."
+                shape = (training_set_size + testing_set_size, row_size)
                 writeable_memmap = numpy.memmap(filename=memmap_path,
                                                 dtype=dtype,
                                                 mode='w+',
-                                                shape=(num_rows, row_size))
+                                                shape=shape)
                 print "... done."
 
                 cat_memmap = writeable_memmap[:, :1]   # 1st column
@@ -434,10 +452,17 @@ class NORB(DenseDesignMatrix):
                        "This will only be done once." % memmap_path)
                 make_memmap()
 
-            return numpy.memmap(filename=memmap_path,
-                                dtype=dtype,
-                                mode='r',
-                                shape=(num_rows, row_size))
+            labels = numpy.memmap(filename=memmap_path,
+                                  dtype=dtype,
+                                  mode='r',
+                                  shape=(num_rows, row_size))
+
+            if which_set == 'train':
+                labels = labels[:training_set_size, :]
+            elif which_set == 'test':
+                labels = labels[training_set_size:, :]
+
+            return labels
 
         def get_norb_dir(which_norb):
             datasets_dir = os.getenv('PYLEARN2_DATA_PATH')
@@ -456,10 +481,12 @@ class NORB(DenseDesignMatrix):
 
         norb_dir = get_norb_dir(which_norb)
 
-        def get_memmap_path(which_norb, which_set, suffix):
+        def get_memmap_path(which_norb, images_or_labels):
+            assert which_norb in ('big', 'small')
+            assert images_or_labels in ('images', 'labels')
             memmap_dir = os.path.join(norb_dir, 'memmaps_of_original')
-            template = os.path.join(memmap_dir, which_set + "_%s.npy")
-            return template % suffix
+            template = os.path.join(memmap_dir, "%s.npy")
+            return template % images_or_labels
 
         def get_norb_file_paths(which_norb, which_set, norb_file_type):
             """
@@ -472,6 +499,16 @@ class NORB(DenseDesignMatrix):
             Will return the category label files ('cat') for the big NORB
             dataset's test set.
             """
+
+            assert which_set in ('train', 'test', 'both')
+
+            if which_set == 'both':
+                return (get_norb_file_paths(which_norb,
+                                            'train',
+                                            norb_file_type) +
+                        get_norb_file_paths(which_norb,
+                                            'test',
+                                            norb_file_type))
 
             norb_file_types = ('cat', 'dat', 'info')
             if not norb_file_type in norb_file_types:
