@@ -253,6 +253,11 @@ class NORB(DenseDesignMatrix):
                                      "either '.mat' or '.mat.gz'. Instead "
                                      "got '%s'" % norb_file_path)
 
+                if not os.path.isfile(norb_file_path):
+                    raise IOError("Could not find NORB file '%s' in expected "
+                                  "directory '%s'." %
+                                  reversed(os.path.split(norb_file_path)))
+
                 file_handle = (gzip.open(norb_file_path)
                                if norb_file_path.endswith('.mat.gz')
                                else open(norb_file_path))
@@ -341,6 +346,7 @@ class NORB(DenseDesignMatrix):
 
             row_index = 0
             for norb_file in norb_files:
+                print "copying NORB file %s" % os.path.split(norb_file)[1]
                 norb_data = read_norb_file(norb_file)
                 assert norb_data.dtype == output.dtype
                 norb_data = norb_data.reshape(-1, output.shape[1])
@@ -363,6 +369,11 @@ class NORB(DenseDesignMatrix):
             def make_memmap():
                 dat_files = get_norb_file_paths(which_norb, which_set, 'dat')
 
+                memmap_dir = os.path.split(memmap_path)[0]
+                if not os.path.isdir(memmap_dir):
+                    os.mkdir(memmap_dir)
+
+                print "Allocating memmap file %s" % memmap_path
                 writeable_memmap = numpy.memmap(filename=memmap_path,
                                                 dtype=dtype,
                                                 mode='w+',
@@ -371,6 +382,8 @@ class NORB(DenseDesignMatrix):
                 read_norb_files(dat_files, writeable_memmap)
 
             if not os.path.isfile(memmap_path):
+                print ("Caching images to memmap file. This "
+                       "will only be done once.")
                 make_memmap()
 
             return numpy.memmap(filename=memmap_path,
@@ -386,7 +399,7 @@ class NORB(DenseDesignMatrix):
             """
             memmap_path = get_memmap_path(which_norb, which_set, 'labels')
             dtype = numpy.dtype('int32')
-            row_size = 5 if which_norb == 'small' else 10
+            row_size = 5 if which_norb == 'small' else 11
 
             def make_memmap():
                 cat_files, info_files = [get_norb_file_paths(which_norb,
@@ -394,12 +407,18 @@ class NORB(DenseDesignMatrix):
                                                              x)
                                          for x in ('cat', 'info')]
 
+                memmap_dir = os.path.split(memmap_path)[0]
+                if not os.path.isdir(memmap_dir):
+                    os.mkdir(memmap_dir)
+
+                print "allocating labels' memmap..."
                 writeable_memmap = numpy.memmap(filename=memmap_path,
                                                 dtype=dtype,
                                                 mode='w+',
                                                 shape=(num_rows, row_size))
+                print "... done."
 
-                cat_memmap = writeable_memmap[:, :2]   # 1st column
+                cat_memmap = writeable_memmap[:, :1]   # 1st column
                 info_memmap = writeable_memmap[:, 1:]  # remaining columns
 
                 for norb_files, memmap in safe_zip((cat_files, info_files),
@@ -407,13 +426,14 @@ class NORB(DenseDesignMatrix):
                     read_norb_files(norb_files, memmap)
 
             if not os.path.isfile(memmap_path):
+                print ("Caching images to memmap file %s.\n"
+                       "This will only be done once." % memmap_path)
                 make_memmap()
 
             return numpy.memmap(filename=memmap_path,
                                 dtype=dtype,
                                 mode='r',
                                 shape=(num_rows, row_size))
-
 
         def get_norb_dir(which_norb):
             datasets_dir = os.getenv('PYLEARN2_DATA_PATH')
@@ -465,7 +485,8 @@ class NORB(DenseDesignMatrix):
                 templates = ['norb-5x%sx9x18x6x2x108x108-%sing-%02d-%%s.mat' %
                              (instance_list, which_set, n) for n in numbers]
 
-            return [os.path.join(norb_dir, t % norb_file_type)
+            original_files_dir = os.path.join(norb_dir, 'original')
+            return [os.path.join(original_files_dir, t % norb_file_type)
                     for t in templates]
 
         def make_view_converter(which_norb, which_set):
@@ -597,6 +618,3 @@ class StereoViewConverter(object):
             self.shape = new_shape
 
         self.axes = axes
-
-
-
