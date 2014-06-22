@@ -45,11 +45,16 @@ def main():
                          for column
                          in dataset.y[:, :5].transpose()]
 
-        # Removes the '-1' labels corresponding to blank images, since they
-        # aren't contained in the label grid.
-        for d in range(1, len(unique_values)):
-            assert unique_values[d][0] == -1, "unique_values: %s" % str(unique_values)
-            unique_values[d] = unique_values[d][1:]
+        # If dataset contains blank images, removes the '-1' labels
+        # corresponding to blank images, since they aren't contained in the
+        # label grid.
+        ci = dataset.label_name_to_index['category']
+        if any(dataset.label_to_value_funcs[ci](v) == 'blank'
+               for v in unique_values[ci]):
+            for d in range(1, len(unique_values)):
+                assert unique_values[d][0] == -1, ("unique_values: %s" %
+                                                   str(unique_values))
+                unique_values[d] = unique_values[d][1:]
 
         return unique_values
 
@@ -96,7 +101,7 @@ def main():
 
         ci = dataset.label_name_to_index['category']  # category index
         category_to_name = dataset.label_to_value_funcs[ci]
-        blank_label = 6
+        blank_label = 5
 
         try:
             blank_name = category_to_name(blank_label)
@@ -107,7 +112,7 @@ def main():
 
         blank_rowmask = dataset.y[:, ci] == blank_label
         blank_labels = dataset.y[blank_rowmask, :]
-
+        assert(blank_rowmask.any())
         if not numpy.all(blank_labels[0, :] == blank_labels[1:, :]):
             raise ValueError("Expected all labels of category 'blank' to have "
                              "the same value, but they differed.")
@@ -204,7 +209,9 @@ def main():
                 # Inserts image number & blank line between editable and
                 # fixed labels.
                 lines = (lines[:5] +
-                         ['image: %d of %d' % (image_index, num_images),
+                         ['No such image' if num_images == 0
+                          else 'image: %d of %d' % (image_index + 1,
+                                                    num_images),
                           '\n'] +
                          lines[5:])
 
@@ -247,10 +254,14 @@ def main():
             return (arg + size + step) % size
 
         def incr_index_type(step):
+            num_dimensions = len(grid_indices)
+            if dataset.y.shape[1] > 5:
+                # If dataset is big NORB, add one for the image index
+                num_dimensions += 1
+
             grid_dimension[0] = add_mod(grid_dimension[0],
                                         step,
-                                        # +1 for the image number:
-                                        len(grid_indices) + 1)
+                                        num_dimensions)
 
         def incr_index(step):
             assert step in (0, -1, 1), ("Step was %d" % step)
@@ -307,7 +318,6 @@ def main():
     figure.canvas.mpl_connect('key_press_event', on_key_press)
     redraw(True, True)
 
-    print "displaying"
     pyplot.show()
 
 
