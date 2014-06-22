@@ -30,9 +30,7 @@ def main():
 
     args = parse_args()
 
-    print "loading %s set..." % args.which_set
     dataset = NORB(args.which_norb, args.which_set)
-    print "...loaded"
 
     # Indexes into the first 5 labels, which live on a 5-D grid.
     grid_indices = [0, ] * 5
@@ -50,16 +48,12 @@ def main():
         # Removes the '-1' labels corresponding to blank images, since they
         # aren't contained in the label grid.
         for d in range(1, len(unique_values)):
-            assert unique_values[d][0] == -1
+            assert unique_values[d][0] == -1, "unique_values: %s" % str(unique_values)
             unique_values[d] = unique_values[d][1:]
 
         return unique_values
 
     grid_to_short_label = make_grid_to_short_label()
-
-    # maps 5-D label vector to a list of row indices for dataset.X, dataset.y
-    # that have those labels.
-    label_to_row_indices = make_label_to_row_indices()
 
     def make_label_to_row_indices():
         """
@@ -84,11 +78,13 @@ def main():
 
         return result
 
+    # maps 5-D label vector to a list of row indices for dataset.X, dataset.y
+    # that have those labels.
+    label_to_row_indices = make_label_to_row_indices()
+
     # indexes into the row index lists returned by label_to_row_indices
     object_image_index = [0, ]
     blank_image_index = [0, ]
-
-    blank_label = get_blank_label(dataset)
 
     def get_blank_label(dataset):
         """
@@ -117,6 +113,8 @@ def main():
                              "the same value, but they differed.")
 
         return blank_labels[0, :].copy()
+
+    blank_label = get_blank_label(dataset)
 
     def is_blank(grid_indices):
         assert len(grid_indices) == 5
@@ -168,11 +166,6 @@ def main():
 
     text_axes.set_frame_on(False)  # Hides background of text_axes
 
-    # Makes an array of label type names
-    label_types = [None, ] * len(dataset.label_type_to_index)
-    for label_type, index in dataset.label_type_to_index.items():
-        label_types[index] = label_type
-
     def redraw(redraw_text, redraw_images):
         # ci = dataset.label_name_to_index['category']  # category index
         # category = grid_to_short_label[ci][grid_indices[ci]]
@@ -197,13 +190,15 @@ def main():
             else:
                 current_label = dataset.y[row_index, :]
 
-            label_values = [v[i] for v, i
-                            in safe_zip(dataset.label_to_value_maps,
+            label_names = dataset.label_index_to_name
+
+            label_values = [label_to_value(label) for label_to_value, label
+                            in safe_zip(dataset.label_to_value_funcs,
                                         current_label)]
 
             lines = ['%s: %s' % (t, v)
                      for t, v
-                     in safe_zip(label_types, label_values)]
+                     in safe_zip(label_names, label_values)]
 
             if dataset.y.shape[1] > 5:
                 # Inserts image number & blank line between editable and
