@@ -183,6 +183,10 @@ class NORB(DenseDesignMatrix):
                 category_names.append('blank')
 
             result = (make_array_func('category', category_names),
+                      make_identity_func('instance',
+                                         min_label=-1,
+                                         max_label=9,
+                                         none_label=-1),
                       get_elevation,
                       get_azimuth,
                       make_identity_func('lighting',
@@ -448,7 +452,7 @@ class NORB(DenseDesignMatrix):
 
             return os.path.join(datasets_dir,
                                 'norb' if which_norb == 'big'
-                                else 'small_norb')
+                                else 'norb_small')
 
         norb_dir = get_norb_dir(which_norb)
 
@@ -502,6 +506,33 @@ class NORB(DenseDesignMatrix):
             X=load_images(which_norb, which_set),
             y=load_labels(which_norb, which_set),
             view_converter=make_view_converter(which_norb, which_set))
+
+    @functools.wraps(DenseDesignMatrix.get_topological_view)
+    def get_topological_view(self, mat=None, single_tensor=True):
+        result = super(NORB, self).get_topological_view(mat)
+
+        if single_tensor:
+            warnings.warn("The single_tensor argument is True by default to "
+                          "maintain backwards compatibility. This argument "
+                          "will be removed, and the behavior will become that "
+                          "of single_tensor=False, as of August 2014.")
+            axes = list(self.view_converter.axes)
+            s_index = axes.index('s')
+            assert axes.index('b') == 0
+            num_image_pairs = result[0].shape[0]
+            shape = (num_image_pairs, ) + self.view_converter.shape
+
+            # inserts a singleton dimension where the 's' dimesion will be
+            mono_shape = shape[:s_index] + (1, ) + shape[(s_index + 1):]
+
+            result = tuple(t.reshape(mono_shape) for t in result)
+            result = numpy.concatenate(result, axis=s_index)
+        else:
+            warnings.warn("The single_tensor argument will be removed on "
+                          "August 2014. The behavior will be the same as "
+                          "single_tensor=False.")
+
+        return result
 
 
 class StereoViewConverter(object):
