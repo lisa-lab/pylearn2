@@ -21,7 +21,7 @@ def main():
         parser.add_argument('--which_set',
                             type=str,
                             required=True,
-                            choices=('train', 'test'),  # TODO: add 'both'
+                            choices=('train', 'test', 'both'),
                             help="'train', or 'test'")
 
         result = parser.parse_args()
@@ -31,7 +31,6 @@ def main():
     args = parse_args()
 
     dataset = NORB(args.which_norb, args.which_set)
-
     # Indexes into the first 5 labels, which live on a 5-D grid.
     grid_indices = [0, ] * 5
 
