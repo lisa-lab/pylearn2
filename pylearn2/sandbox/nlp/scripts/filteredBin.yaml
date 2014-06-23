@@ -4,11 +4,12 @@
     node: '/filtered_binarized_corpus',
     which_set: 'train',
     frame_length: &n 7,
-    stop: 1000000
+    stop: 1000000,
+    X_labels: 15000
   },
   model: !obj:pylearn2.models.mlp.MLP {
     input_space: !obj:pylearn2.space.IndexSpace {
-      dim: *n,
+      dim: 7,
       max_labels: 15000,
     },
     layers: [

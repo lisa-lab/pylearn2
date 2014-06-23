@@ -1,31 +1,31 @@
 """
-Pylearn2 wrapper for the TIMIT dataset
+Pylearn2 wrapper for h5-format datasets of sentences
 """
-__authors__ = ["Vincent Dumoulin"]
+__authors__ = ["Coline Devin"]
 __copyright__ = "Copyright 2014, Universite de Montreal"
-__credits__ = ["Laurent Dinh", "Vincent Dumoulin"]
+__credits__ = ["Coline Devin", "Vincent Dumoulin"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Vincent Dumoulin"
-__email__ = "dumouliv@iro"
+__maintainer__ = "Coline Devin"
+__email__ = "devincol@iro"
 
 
 import os.path
 import functools
 import numpy
+import tables
 from pylearn2.utils.iteration import resolve_iterator_class
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.space import CompositeSpace, VectorSpace, IndexSpace, Conv2DSpace
-from research.code.pylearn2.space import (
-    VectorSequenceSpace,
-    IndexSequenceSpace,
-)
+# from research.code.pylearn2.space import (
+#     VectorSequenceSpace,
+#     IndexSequenceSpace,
+# )
 from pylearn2.utils import serial
 from pylearn2.utils import safe_zip
-from research.code.scripts.segmentaxis import segment_axis
-from research.code.pylearn2.utils.iteration import FiniteDatasetIterator
-import scipy.stats
-
+# from research.code.scripts.segmentaxis import segment_axis
+from pylearn2.utils.iteration import FiniteDatasetIterator
+# import scipy.stats
 
 def index_from_one_hot(one_hot):
     return numpy.where(one_hot == 1.0)[0][0]
@@ -37,7 +37,7 @@ class H5Shuffle(Dataset):
     _default_seed = (17, 2, 946)
 
     def __init__(self, path, node, which_set, frame_length, overlap=0,
-                 start=0, stop=None,
+                 start=0, stop=None, X_labels=None,# y_labels
                  rng=_default_seed):
         """
         Parameters
@@ -63,11 +63,12 @@ class H5Shuffle(Dataset):
             design matrix when choosing minibatches.
         """
         self.base_path = path
+        self.node_name = node
         self.frame_length = frame_length
         self.overlap = overlap
-        self.frames_per_example = frames_per_example
         self.offset = self.frame_length - self.overlap
-
+        self.X_labels = X_labels
+        #self.y_labels = y_labels
 
         # RNG initialization
         if hasattr(rng, 'random_integers'):
@@ -77,7 +78,8 @@ class H5Shuffle(Dataset):
 
         # Load data from disk
         self._load_data(which_set, start, stop)
-        self.samples_sequences = self.raw_data
+        self.samples_sequences = numpy.asarray(self.raw_data)
+        self.num_examples = len(self.samples_sequences)
         #examples_per_sequence = [0]
 
         # for sequence_id, samples_sequence in enumerate(self.raw_wav):
@@ -104,8 +106,9 @@ class H5Shuffle(Dataset):
         # self.num_examples = self.cumulative_example_indexes[-1]
 
         # DataSpecs
-        features_space = VectorSpace(
-            dim=self.frame_length
+        features_space = IndexSpace(
+            dim=self.frame_length,
+            max_labels=self.X_labels
         )
         features_source = 'features'
 
@@ -117,7 +120,7 @@ class H5Shuffle(Dataset):
         #             + self.frames_per_example].ravel())
         #     return rval
 
-        targets_space = VectorSpace(dim=self.frame_length)
+        targets_space = VectorSpace(dim=self.frame_length-1)
         targets_source = 'targets'
         # def targets_map_fn(indexes):
         #     rval = []
@@ -149,28 +152,35 @@ class H5Shuffle(Dataset):
                 Write me
             """
             sequences = self.samples_sequences[indexes]
-            wis = [numpy.random.randint(0, len(s)-1, 1) for s in sequences]
+            shorts = []
+            for i in range(len(sequences)):
+                if len(sequences[i]) < self.frame_length:
+                    shorts.append(i)
+
+            sequences = numpy.delete(sequences, shorts)
+            wis = [numpy.random.randint(0, len(s)-self.frame_length+1, 1)[0] for s in sequences]
             # end = min(len(s), self.frame_length+wi)
             # diff = max(self.frame_length +wi - len(s), 0)
             # x = s[wi:end] + [0]*diff
-            X = [s[wi:(min(len(s), self.frame_length+wi))] + 
-                 [0]*(max(self.frame_length +wi - len(s), 0)) for s, wi in
-                 zip(sequences, wis)]
 
-            swaps = np.random.randint(0, self.ngramLen - 1, len(X))
-            y = np.zeros((len(X), self.ngramLen - 1))
-            y[np.arange(len(X)), swaps] = 1
+            # X = numpy.asarray([numpy.concatenate((s[wi:(min(len(s), self.frame_length+wi))],
+            #      [0]*(max(self.frame_length +wi - len(s), 0)))) for s, wi in 
+            #      zip(sequences, wis)])
+            X = numpy.asarray([s[wi:self.frame_length+wi] for s, wi in zip(sequences, wis)])
+            X[X>=self.X_labels] = 1
+
+            swaps = numpy.random.randint(0, self.frame_length - 1, len(X))
+            y = numpy.zeros((len(X), self.frame_length - 1))
+            y[numpy.arange(len(X)), swaps] = 1
             print "Performing permutations...",
             for sample, swap in enumerate(swaps):
                 X[sample, swap], X[sample, swap + 1] = \
                                                   X[sample, swap + 1], X[sample, swap]
-                
-                
             self.lastY = (y, indexes)
             return X
 
         def getTarget(indexes):
-            if indexes == self.lastY[1]:
+            if numpy.array_equal(indexes, self.lastY[1]):
                 return self.lastY[0]
             else:
                 print "You can only ask for targets immediately after asking for those features"
@@ -200,9 +210,9 @@ class H5Shuffle(Dataset):
         #                     "Valid values are ['train', 'valid', 'test'].")
             
         # Load Data
-        with tables.open_file(path) as f:
+        with tables.open_file(self.base_path) as f:
             print "Loading n-grams..."
-            node = f.get_node('/' + node)
+            node = f.get_node(self.node_name)
             if stop is not None:
                 self.raw_data = node[start:stop]
             else:
@@ -236,7 +246,7 @@ class H5Shuffle(Dataset):
         .. note::
 
             Once again, this is very hacky, as the data is not stored that way
-            internally. However, the data that's returned by `TIMIT.get()`
+            internally. However, the data that's returned by `.get()`
             _does_ respect those data specs.
         """
         return self.data_specs
@@ -255,6 +265,9 @@ class H5Shuffle(Dataset):
             batch = self.sourceFNs[so](indexes)
             rval.append(batch)
         return tuple(rval)
+
+    def get_num_examples(self):
+        return self.num_examples
 
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
