@@ -13,6 +13,7 @@ import numpy as np
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
 
+
 class STL10(dense_design_matrix.DenseDesignMatrix):
     """
     The STL-10 dataset
@@ -78,7 +79,7 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
             y = train['y'][:,0]
             assert y.shape == (5000,)
         elif which_set == 'test':
-            test = load('${PYLEARN2_DATA_PATH}/stl10_matlab/test.mat')
+            test = load('${PYLEARN2_DATA_PATH}/stl10/stl10_matlab/test.mat')
 
             #Load the class names
             self.class_names = [array[0].encode('utf-8') for array in test['class_names'][0] ]
@@ -98,7 +99,7 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
             assert y.shape == (8000,)
 
         elif which_set == 'unlabeled':
-            unlabeled = load('${PYLEARN2_DATA_PATH}/stl10_matlab/unlabeled.mat')
+            unlabeled = load('${PYLEARN2_DATA_PATH}/stl10/stl10_matlab/unlabeled.mat')
 
             X =  unlabeled['X']
 
@@ -115,6 +116,7 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
             unlabeled.close()
 
             y = None
+
         else:
             raise ValueError('"'+which_set+'" is not an STL10 dataset. '
                     'Recognized values are "train", "test", and "unlabeled".')
@@ -139,7 +141,11 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
 
 
 def restrict(dataset, fold):
-    """Restricts the dataset to use the specified fold."""
+    """
+    Restricts the dataset to use the specified fold (1 to 10).
+    dataset should be the training set.
+    """
+
     fold_indices = dataset.fold_indices
     assert fold_indices.shape == (10, 1000)
 
