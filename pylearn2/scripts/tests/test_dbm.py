@@ -19,9 +19,9 @@ from pylearn2.utils import serial
 
 def setup():
     """Create pickle file with a simple model."""
-    control.push_load_data(True)
+    control.push_load_data(False)
     with open('dbm.pkl', 'wb') as f:
-        dataset = MNIST(which_set='train', start=0, stop=100)
+        dataset = MNIST(which_set='train', start=0, stop=100, binarize=True)
         vis_layer = BinaryVector(nvis=784, bias_from_marginals=dataset)
         hid_layer1 = BinaryVectorMaxPool(layer_name='h1', pool_size=1,
                                          irange=.05, init_bias=-2.,
@@ -48,6 +48,7 @@ def teardown():
     """Delete the pickle file created for the tests"""
     if os.path.isfile('dbm.pkl'):
         os.remove('dbm.pkl')
+    control.pop_load_data()
 
 
 @with_setup(setup, teardown)
