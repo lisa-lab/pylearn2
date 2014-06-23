@@ -89,9 +89,12 @@ def show_negative_chains(model_path):
         The path to the model pickle file
     """
     model = serial.load(model_path)
-    control.push_load_data(False)
 
-    dataset = yaml_parse.load(model.dataset_yaml_src)
+    control.push_load_data(False)
+    try:
+        dataset = yaml_parse.load(model.dataset_yaml_src)
+    finally:
+        control.pop_load_data()
 
     try:
         layer_to_chains = model.layer_to_chains
