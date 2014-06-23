@@ -24,6 +24,11 @@ def main():
                             choices=('train', 'test', 'both'),
                             help="'train', or 'test'")
 
+        parser.add_argument('--stereo_viewer',
+                            action='store_true',
+                            help="Swaps left and right stereo images, so you "
+                            "can see them in 3D by crossing your eyes.")
+
         result = parser.parse_args()
 
         return result
@@ -167,12 +172,17 @@ def main():
         axes.get_yaxis().set_visible(False)
 
     text_axes, image_axes = (all_axes[0], all_axes[1:])
+    image_captions = ('left', 'right')
+
+    if args.stereo_viewer:
+        image_captions = tuple(reversed(image_captions))
+
+    for image_ax, caption in safe_zip(image_axes, image_captions):
+        image_ax.set_title(caption)
 
     text_axes.set_frame_on(False)  # Hides background of text_axes
 
     def redraw(redraw_text, redraw_images):
-        # ci = dataset.label_name_to_index['category']  # category index
-        # category = grid_to_short_label[ci][grid_indices[ci]]
         row_indices = get_row_indices(grid_indices)
 
         if row_indices is None:
@@ -220,8 +230,9 @@ def main():
             text_axes.clear()
 
             # "transAxes": 0, 0 = bottom-left, 1, 1 at upper-right.
-            text_axes.text(0, 0,  # coords
+            text_axes.text(0, 0.5,  # coords
                            '\n'.join(lines),
+                           verticalalignment='center',
                            transform=text_axes.transAxes)
 
         def draw_images():
@@ -234,7 +245,10 @@ def main():
                                                           single_tensor=True)
 
                 # Shaves off the singleton dimensions (batch # and channel #).
-                image_pair = image_pair[0, :, :, :, 0]
+                image_pair = tuple(image_pair[0, :, :, :, 0])
+
+                if args.stereo_viewer:
+                    image_pair = tuple(reversed(image_pair))
 
                 for axis, image in safe_zip(image_axes, image_pair):
                     axis.imshow(image, cmap='gray')
