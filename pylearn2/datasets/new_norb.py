@@ -75,7 +75,7 @@ class NORB(DenseDesignMatrix):
             raise ValueError("Expected which_norb argument to be either 'big' "
                              "or 'small', not '%s'" % str(which_norb))
 
-        if not which_set in ('test', 'train'):
+        if not which_set in ('test', 'train', 'both'):
             raise ValueError("Expected which_set argument to be either 'test' "
                              "or 'train', not '%s'." % str(which_set))
 
@@ -366,7 +366,7 @@ class NORB(DenseDesignMatrix):
             training_set_size = 24300
             testing_set_size = 24300
         else:
-            assert which_norb == 'big':
+            assert which_norb == 'big'
             training_set_size = 291600
             testing_set_size = 58320
 
@@ -379,16 +379,16 @@ class NORB(DenseDesignMatrix):
             memmap_path = get_memmap_path(which_norb, 'images')
             dtype = numpy.dtype('uint8')
             row_size = 2 * (image_length ** 2)
+            shape = (training_set_size + testing_set_size, row_size)
 
             def make_memmap():
-                dat_files = get_norb_file_paths(which_norb, which_set, 'dat')
+                dat_files = get_norb_file_paths(which_norb, 'both', 'dat')
 
                 memmap_dir = os.path.split(memmap_path)[0]
                 if not os.path.isdir(memmap_dir):
                     os.mkdir(memmap_dir)
 
                 print "Allocating memmap file %s" % memmap_path
-                shape = (training_set_size + testing_set_size, row_size)
                 writeable_memmap = numpy.memmap(filename=memmap_path,
                                                 dtype=dtype,
                                                 mode='w+',
@@ -404,7 +404,7 @@ class NORB(DenseDesignMatrix):
             images = numpy.memmap(filename=memmap_path,
                                   dtype=dtype,
                                   mode='r',
-                                  shape=(num_rows, row_size))
+                                  shape=shape)
             if which_set == 'train':
                 images = images[:training_set_size, :]
             elif which_set == 'test':
@@ -421,10 +421,11 @@ class NORB(DenseDesignMatrix):
             memmap_path = get_memmap_path(which_norb, 'labels')
             dtype = numpy.dtype('int32')
             row_size = 5 if which_norb == 'small' else 11
+            shape = (training_set_size + testing_set_size, row_size)
 
             def make_memmap():
                 cat_files, info_files = [get_norb_file_paths(which_norb,
-                                                             which_set,
+                                                             'both',
                                                              x)
                                          for x in ('cat', 'info')]
 
@@ -433,7 +434,6 @@ class NORB(DenseDesignMatrix):
                     os.mkdir(memmap_dir)
 
                 print "allocating labels' memmap..."
-                shape = (training_set_size + testing_set_size, row_size)
                 writeable_memmap = numpy.memmap(filename=memmap_path,
                                                 dtype=dtype,
                                                 mode='w+',
@@ -455,7 +455,7 @@ class NORB(DenseDesignMatrix):
             labels = numpy.memmap(filename=memmap_path,
                                   dtype=dtype,
                                   mode='r',
-                                  shape=(num_rows, row_size))
+                                  shape=shape)
 
             if which_set == 'train':
                 labels = labels[:training_set_size, :]
