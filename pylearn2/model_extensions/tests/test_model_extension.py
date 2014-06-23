@@ -1,11 +1,15 @@
+"""
+Tests for model_extensions.
+"""
+
 from pylearn2.models import Model
 from pylearn2.model_extensions.model_extension import ModelExtension
 
 
 def test_model_extension():
     """
-    Test that the base class Model loads and passes tests for a list of
-    extensions.
+    Test that the base class Model passes tests when given a list of
+    ModelExtension instances.
     """
     class DummyModelExtension(ModelExtension):
         """Simplest instance of ModelExtension"""
