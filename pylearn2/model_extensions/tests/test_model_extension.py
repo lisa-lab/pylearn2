@@ -1,10 +1,11 @@
 from pylearn2.models import Model
 from pylearn2.model_extensions.model_extension import ModelExtension
 
+
 def test_model_extension():
     """
-    Test that the base class Model loads and passes tests for a list of 
-    extensions. 
+    Test that the base class Model loads and passes tests for a list of
+    extensions.
     """
     class DummyModelExtension(ModelExtension):
         """Simplest instance of ModelExtension"""
@@ -14,13 +15,13 @@ def test_model_extension():
     extensions = (DummyModelExtension())
     try:
         """
-        This should cause an assertion error for passing a tuple instead of 
+        This should cause an assertion error for passing a tuple instead of
         a list
         """
         model = DummyModel(extensions=extensions)
     except AssertionError:
         pass
-    
+
     extensions = [DummyModelExtension(), None]
     try:
         """
