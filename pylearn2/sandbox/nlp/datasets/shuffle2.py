@@ -69,18 +69,20 @@ class H5Shuffle(Dataset):
 
         # Load data from disk
         self._load_data(which_set, start, stop)
-        self.samples_sequences = numpy.asarray(self.raw_data)
         print "removing short sentences"
         shorts = []
         for i in range(len(self.samples_sequences)):
             if len(self.samples_sequences[i]) < self.frame_length:
                 shorts.append(i)
 
-        self.samples_sequences = numpy.delete(self.samples_sequences, shorts)
+        # Supposedly in place
+        for i in shorts:
+            del self.samples_sequences[i]
+
         print "finished removing short sentences"
         self.num_examples = len(self.samples_sequences)
   
-        self.cumulative_sequence_indexes = numpy.cumsum(len(s) for s in self.raw_data)
+        # self.cumulative_sequence_indexes = numpy.cumsum(len(s) for s in self.raw_data)
   
         # DataSpecs
         features_space = IndexSpace(
@@ -176,9 +178,9 @@ class H5Shuffle(Dataset):
             print "Loading n-grams..."
             node = f.get_node(self.node_name)
             if stop is not None:
-                self.raw_data = node[start:stop]
+                self.samples_sequences = node[start:stop]
             else:
-                self.raw_data = node[start:]
+                self.samples_sequences = node[start:]
  
     def _validate_source(self, source):
         """
