@@ -37,7 +37,7 @@ from pylearn2.datasets.new_norb import StereoViewConverter
 
 logger = logging.getLogger(__name__)
 
-warnings.warn("Using deprecated module pylearn2.datasets.old_norb. "
+warnings.warn("Using deprecated module pylearn2.datasets.norb. "
               "This will be replaced with pylearn2.datasets.new_norb in "
               "December 2014. Users are encouraged to switch to that "
               "module now.", exceptions.DeprecationWarning)
@@ -157,8 +157,6 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
         self.which_set = which_set
 
         subtensor = None
-        if stop:
-            subtensor = slice(0, stop)
 
         X = SmallNORB.load(which_set, 'dat', subtensor=subtensor)
 
@@ -175,7 +173,7 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
         # This is uint8
         y = SmallNORB.load(which_set, 'cat', subtensor=subtensor)
         if multi_target:
-            y_extra = SmallNORB.load(which_set, 'info')
+            y_extra = SmallNORB.load(which_set, 'info', subtensor=subtensor)
             y = numpy.hstack((y[:, numpy.newaxis], y_extra))
 
         datum_shape = ((2, ) +  # two stereo images

@@ -18,8 +18,13 @@ __maintainer__ = "Matthew Koichi Grimes"
 __email__ = "mkg alum mit edu (@..)"
 
 
-import os, gzip, bz2, warnings, functools
-import numpy, theano
+import os
+import gzip
+import bz2
+import warnings
+import functools
+import numpy
+import theano
 from pylearn2.utils import safe_zip
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.space import VectorSpace, Conv2DSpace, CompositeSpace

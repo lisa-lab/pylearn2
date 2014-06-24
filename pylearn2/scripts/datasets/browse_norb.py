@@ -7,7 +7,8 @@ only set the first 5 label dimensions. You can then cycle through the 3-12
 images that fit those labels.
 """
 
-import sys, argparse
+import sys
+import argparse
 import numpy
 from matplotlib import pyplot
 from pylearn2.datasets.new_norb import NORB
