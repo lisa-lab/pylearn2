@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 
+"""
+A browser for the NORB and small NORB datasets. Navigate the images by choosing
+the values for the label vector. Note that for the 'big' NORB dataset, you can
+only set the first 5 label dimensions. You can then cycle through the 3-12
+images that fit those labels.
+"""
+
 import sys, argparse
 import numpy
 from matplotlib import pyplot
@@ -52,9 +59,11 @@ def main():
         # If dataset contains blank images, removes the '-1' labels
         # corresponding to blank images, since they aren't contained in the
         # label grid.
-        ci = dataset.label_name_to_index['category']
-        if any(dataset.label_to_value_funcs[ci](v) == 'blank'
-               for v in unique_values[ci]):
+        category_index = dataset.label_name_to_index['category']
+        unique_categories = unique_values[category_index]
+        category_to_name = dataset.label_to_value_funcs[category_index]
+        if any(category_to_name(category) == 'blank'
+               for category in unique_categories):
             for d in range(1, len(unique_values)):
                 assert unique_values[d][0] == -1, ("unique_values: %s" %
                                                    str(unique_values))
@@ -76,7 +85,6 @@ def main():
         """
         result = {}
 
-        # print dataset.y
         for row_index, label in enumerate(dataset.y):
 
             short_label = tuple(label[:5])
@@ -87,11 +95,11 @@ def main():
 
         return result
 
-    # maps 5-D label vector to a list of row indices for dataset.X, dataset.y
+    # Maps 5-D label vector to a list of row indices for dataset.X, dataset.y
     # that have those labels.
     label_to_row_indices = make_label_to_row_indices()
 
-    # indexes into the row index lists returned by label_to_row_indices
+    # Indexes into the row index lists returned by label_to_row_indices.
     object_image_index = [0, ]
     blank_image_index = [0, ]
 
@@ -103,18 +111,20 @@ def main():
         None.
         """
 
-        ci = dataset.label_name_to_index['category']  # category index
-        category_to_name = dataset.label_to_value_funcs[ci]
+        category_index = dataset.label_name_to_index['category']
+        category_to_name = dataset.label_to_value_funcs[category_index]
         blank_label = 5
 
         try:
             blank_name = category_to_name(blank_label)
         except ValueError:
+            # Returns None if there is no 'blank' category (e.g. if we're using
+            # the small NORB dataset.
             return None
 
         assert blank_name == 'blank'
 
-        blank_rowmask = dataset.y[:, ci] == blank_label
+        blank_rowmask = dataset.y[:, category_index] == blank_label
         blank_labels = dataset.y[blank_rowmask, :]
         assert(blank_rowmask.any())
         if not numpy.all(blank_labels[0, :] == blank_labels[1:, :]):
