@@ -19,6 +19,7 @@ from __future__ import division
 import functools
 import inspect
 import numpy as np
+import warnings
 
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_izip, wraps
@@ -711,6 +712,11 @@ class FiniteDatasetIterator(object):
     -----
     See the documentation for :py:class:`SubsetIterator` for
     attribute documentation.
+
+    The dataset should provide a `get` method which accepts a tuple of source
+    identifiers and a list or slice of indexes and returns a tuple of batches
+    of examples, one for each source. The old interface using `get_data` is
+    deprecated and will become unsupported as of October 28, 2014.
     """
 
     def __init__(self, dataset, subset_iterator, data_specs=None,
@@ -740,10 +746,6 @@ class FiniteDatasetIterator(object):
             dataset_sub_spaces = dataset_space.components
         assert len(dataset_source) == len(dataset_sub_spaces)
 
-        all_data = self._dataset.get_data()
-        if not isinstance(all_data, tuple):
-            all_data = (all_data,)
-
         space, source = data_specs
         if not isinstance(source, tuple):
             source = (source,)
@@ -753,8 +755,20 @@ class FiniteDatasetIterator(object):
             sub_spaces = space.components
         assert len(source) == len(sub_spaces)
 
-        self._raw_data = tuple(all_data[dataset_source.index(s)]
-                               for s in source)
+        # If `dataset` is incompatible with the new interface, fall back to the
+        # old interface
+        if not hasattr(self._dataset, 'get'):
+            warnings.warn("dataset is using the old iterator interface which "
+                          "is deprecated and will become officially "
+                          "unsupported as of October 28, 2014. The dataset "
+                          "should implement a `get` method respecting the new "
+                          "interface.")
+            all_data = self._dataset.get_data()
+            if not isinstance(all_data, tuple):
+                all_data = (all_data,)
+            self._raw_data = tuple(all_data[dataset_source.index(s)]
+                                   for s in source)
+
         self._source = source
 
         if convert is None:
@@ -763,9 +777,7 @@ class FiniteDatasetIterator(object):
             assert len(convert) == len(source)
             self._convert = convert
 
-        for i, (so, sp, dt) in enumerate(safe_izip(source,
-                                                   sub_spaces,
-                                                   self._raw_data)):
+        for i, (so, sp) in enumerate(safe_izip(source, sub_spaces)):
             idx = dataset_source.index(so)
             dspace = dataset_sub_spaces[idx]
 
@@ -821,15 +833,32 @@ class FiniteDatasetIterator(object):
             When there are no more batches to return.
         """
         next_index = self._subset_iterator.next()
-        # TODO: handle fancy-index copies by allocating a buffer and
-        # using np.take()
 
-        rval = tuple(
-            fn(data[next_index]) if fn else data[next_index]
-            for data, fn in safe_izip(self._raw_data, self._convert))
+        # If the dataset is incompatible with the new interface, fall back to
+        # the old one
+        if hasattr(self._dataset, 'get'):
+            rval = self._next(next_index)
+        else:
+            rval = self._fallback_next(next_index)
+
         if not self._return_tuple and len(rval) == 1:
             rval, = rval
         return rval
+
+    def _next(self, next_index):
+        return tuple(
+            fn(batch) if fn else batch for batch, fn in
+            safe_izip(self._dataset.get(self._source, next_index),
+                      self._convert)
+        )
+
+    def _fallback_next(self, next_index):
+        # TODO: handle fancy-index copies by allocating a buffer and
+        # using np.take()
+        return tuple(
+            fn(data[next_index]) if fn else data[next_index]
+            for data, fn in safe_izip(self._raw_data, self._convert)
+        )
 
     @property
     @wraps(SubsetIterator.batch_size, assigned=(), updated=())

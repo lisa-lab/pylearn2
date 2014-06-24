@@ -1,0 +1,51 @@
+!obj:pylearn2.train.Train {
+  dataset: !obj:pylearn2.sandbox.nlp.datasets.shuffle.HDF5Shuffle {
+    path: '/data/lisatmp/vanmerb/joint_paper_hs/bitexts.selected/bow_train.hdf',
+    n: &n 7,
+    permutation: 1,
+    start: 0,
+    stop: 200000000,
+  },
+  model: !obj:pylearn2.models.mlp.MLP {
+    input_space: !obj:pylearn2.space.IndexSpace {
+      dim: *n,
+      max_labels: 15000,
+    },
+    layers: [
+      !obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
+        layer_name: 'projection',
+        dim: 256,
+        irange: 0.01
+      },
+      !obj:pylearn2.models.mlp.RectifiedLinear {
+        layer_name: 'h0',
+        dim: 512,
+        irange: 0.01
+      },
+      !obj:pylearn2.models.mlp.RectifiedLinear {
+        layer_name: 'h1',
+        dim: 256,
+        irange: 0.01
+      },
+      !obj:pylearn2.models.mlp.Sigmoid {
+        layer_name: 'output',
+        dim: 6, # n - 1
+        irange: 0.01
+      },
+    ],
+  },
+  algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+    batch_size: 256,
+    learning_rate: .000001,
+    learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {},
+    monitoring_dataset: {
+      'valid': !obj:pylearn2.sandbox.nlp.datasets.shuffle.HDF5Shuffle {
+        path: '/data/lisatmp/vanmerb/joint_paper_hs/bitexts.selected/bow_valid.hdf',
+        permutation: 1,
+        start: 0,
+        stop: 2000000
+      },
+    },
+  },
+  save_freq: 1,
+}
