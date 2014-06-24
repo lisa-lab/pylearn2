@@ -1,5 +1,7 @@
 """
-Pylearn2 wrapper for h5-format datasets of sentences
+Pylearn2 wrapper for h5-format datasets of sentences. Dataset generates
+ngrams and swaps 2 adjacent words. Targets are n-1 vectors indicating where 
+swap happened. 
 """
 __authors__ = ["Coline Devin"]
 __copyright__ = "Copyright 2014, Universite de Montreal"
@@ -68,6 +70,12 @@ class H5Shuffle(Dataset):
         # Load data from disk
         self._load_data(which_set, start, stop)
         self.samples_sequences = numpy.asarray(self.raw_data)
+        shorts = []
+        for i in range(len(self.samples_sequences)):
+            if len(self.samples_sequences[i]) < self.frame_length:
+                shorts.append(i)
+
+        self.samples_sequences = numpy.delete(self.samples_sequences, shorts)
         self.num_examples = len(self.samples_sequences)
   
         self.cumulative_sequence_indexes = numpy.cumsum(len(s) for s in self.raw_data)
@@ -82,6 +90,9 @@ class H5Shuffle(Dataset):
         targets_space = VectorSpace(dim=self.frame_length-1)
         targets_source = 'targets'
         # def targets_map_fn(indexes):
+
+        space = CompositeSpace([features_space, targets_space])
+        source = (features_source, targets_source)
 
         self.data_specs = (space, source)
 
@@ -124,7 +135,7 @@ class H5Shuffle(Dataset):
             swaps = numpy.random.randint(0, self.frame_length - 1, len(X))
             y = numpy.zeros((len(X), self.frame_length - 1))
             y[numpy.arange(len(X)), swaps] = 1
-            print "Performing permutations...",
+            # print "Performing permutations...",
             for sample, swap in enumerate(swaps):
                 X[sample, swap], X[sample, swap + 1] = \
                                                   X[sample, swap + 1], X[sample, swap]

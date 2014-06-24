@@ -1,15 +1,16 @@
+
 !obj:pylearn2.train.Train {
   dataset: !obj:pylearn2.sandbox.nlp.datasets.shuffle2.H5Shuffle {
-    path: '/data/lisatmp3/pougetj/filtered_binarized_corpus.h5',
-    node: '/filtered_binarized_corpus',
+    path: '/data/lisatmp3/pougetj/filtered_binarized_corpus_train.h5',
+    node: '/filtered_binarized_corpus_train',
     which_set: 'train',
     frame_length: &n 7,
-    stop: 1000000,
+    stop: 1000,
     X_labels: 15000
   },
   model: !obj:pylearn2.models.mlp.MLP {
     input_space: !obj:pylearn2.space.IndexSpace {
-      dim: 7,
+      dim: *n,
       max_labels: 15000,
     },
     layers: [
@@ -39,14 +40,16 @@
     batch_size: 256,
     learning_rate: .000001,
     learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {},
-    #monitoring_dataset: {
-    #  'valid': !obj:pylearn2.sandbox.nlp.datasets.shuffle.HDF5Shuffle {
-    #    path: '/data/lisatmp/vanmerb/joint_paper_hs/bitexts.selected/bow_valid.hdf',
-    #    permutation: 1,
-    #    start: 0,
-    #    stop: 2000000
-    #  },
-    #},
+    monitoring_dataset: {
+      'valid': !obj:pylearn2.sandbox.nlp.datasets.shuffle2.H5Shuffle {
+        path: '/data/lisatmp3/pougetj/filtered_binarized_corpus_valid.h5',
+        node: '/filtered_binarized_corpus_valid',
+        which_set: 'valid',
+        frame_length: *n,
+        stop: 1000,
+        X_labels: 15000
+      },
+    },
   },
   save_freq: 1,
 }
