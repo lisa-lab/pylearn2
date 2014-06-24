@@ -5,13 +5,13 @@
     node: '/filtered_binarized_corpus_train',
     which_set: 'train',
     frame_length: &n 7,
-    stop: 1000,
-    X_labels: 15000
+    stop: 10000000,
+    X_labels: &l 150000
   },
   model: !obj:pylearn2.models.mlp.MLP {
     input_space: !obj:pylearn2.space.IndexSpace {
       dim: *n,
-      max_labels: 15000,
+      max_labels: *l
     },
     layers: [
       !obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
@@ -46,8 +46,7 @@
         node: '/filtered_binarized_corpus_valid',
         which_set: 'valid',
         frame_length: *n,
-        stop: 1000,
-        X_labels: 15000
+        X_labels: *l
       },
     },
   },
