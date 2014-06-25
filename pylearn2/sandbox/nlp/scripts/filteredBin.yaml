@@ -47,6 +47,7 @@
         node: '/filtered_binarized_corpus_valid',
         which_set: 'valid',
         frame_length: *n,
+	stop: 1000000
         X_labels: *l
       },
     },
