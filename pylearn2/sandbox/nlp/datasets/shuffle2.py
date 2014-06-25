@@ -34,6 +34,7 @@ class H5Shuffle(Dataset):
 
     def __init__(self, path, node, which_set, frame_length,
                  start=0, stop=None, X_labels=None,
+		 _iter_num_batches=None,
                  rng=_default_seed):
         """
         Parameters
@@ -54,12 +55,17 @@ class H5Shuffle(Dataset):
         rng : object, optional
             A random number generator used for picking random indices into the
             design matrix when choosing minibatches.
+	_iter_num_batches : int, optional
+	    Determines number of batches to cycle through in one epoch. Used to
+	    calculate the validation score without having to cycle through the
+	    entire dataset
         """
         self.base_path = path
         self.node_name = node
         self.which_set = which_set
         self.frame_length = frame_length
         self.X_labels = X_labels
+	self._iter_num_batches
         #self.y_labels = y_labels
 
 
@@ -305,9 +311,10 @@ class H5Shuffle(Dataset):
 
         if batch_size is None:
             batch_size = getattr(self, '_iter_batch_size', None)
-        if num_batches is None:
-            num_batches = getattr(self, '_iter_num_batches', None)
-        if rng is None and mode.stochastic:
+        #if num_batches is None:
+        #    num_batches = getattr(self, '_iter_num_batches', None)
+        num_batches = self._iter_num_batches 
+	if rng is None and mode.stochastic:
             rng = self.rng
         return FiniteDatasetIterator(self,
                                      mode(self.num_examples, batch_size,
