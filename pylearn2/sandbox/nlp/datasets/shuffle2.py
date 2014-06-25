@@ -61,26 +61,34 @@ class H5Shuffle(Dataset):
         self.X_labels = X_labels
         #self.y_labels = y_labels
 
+
         # RNG initialization
         if hasattr(rng, 'random_integers'):
             self.rng = rng
         else:
             self.rng = numpy.random.RandomState(rng)
 
+
+        #if stop != None:
+        #    self.cache_indices = 
+
         # Load data from disk
         self._load_data(which_set, start, stop)
-        self.samples_sequences = numpy.asarray(self.raw_data)
         print "removing short sentences"
         shorts = []
         for i in range(len(self.samples_sequences)):
             if len(self.samples_sequences[i]) < self.frame_length:
                 shorts.append(i)
 
-        self.samples_sequences = numpy.delete(self.samples_sequences, shorts)
+        # Supposedly in place
+        for i in range(len(shorts)):
+            j = shorts[i]- i
+            del self.samples_sequences[j]
+
         print "finished removing short sentences"
         self.num_examples = len(self.samples_sequences)
-  
-        self.cumulative_sequence_indexes = numpy.cumsum(len(s) for s in self.raw_data)
+        self.samples_sequences = numpy.asarray(self.samples_sequences)
+        # self.cumulative_sequence_indexes = numpy.cumsum(len(s) for s in self.raw_data)
   
         # DataSpecs
         features_space = IndexSpace(
@@ -112,12 +120,12 @@ class H5Shuffle(Dataset):
             sequences = self.samples_sequences[indexes]
 
             # Remove sequences that are shorter than frame length to avoid padding
-            shorts = []
-            for i in range(len(sequences)):
-                if len(sequences[i]) < self.frame_length:
-                    shorts.append(i)
+            # shorts = []
+            # for i in range(len(sequences)):
+            #     if len(sequences[i]) < self.frame_length:
+            #         shorts.append(i)
 
-            sequences = numpy.delete(sequences, shorts)
+            # sequences = numpy.delete(sequences, shorts)
 
             # Get random start point for ngram
             wis = [numpy.random.randint(0, len(s)-self.frame_length+1, 1)[0] for s in sequences]
@@ -176,9 +184,9 @@ class H5Shuffle(Dataset):
             print "Loading n-grams..."
             node = f.get_node(self.node_name)
             if stop is not None:
-                self.raw_data = node[start:stop]
+                self.samples_sequences = node[start:stop]
             else:
-                self.raw_data = node[start:]
+                self.samples_sequences = node[start:]
  
     def _validate_source(self, source):
         """
