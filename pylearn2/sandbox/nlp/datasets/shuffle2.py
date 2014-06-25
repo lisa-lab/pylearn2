@@ -68,6 +68,7 @@ class H5Shuffle(Dataset):
 	self._iter_num_batches = _iter_num_batches
         #self.y_labels = y_labels
 
+        self.USE_CACHE = False
 
         # RNG initialization
         if hasattr(rng, 'random_integers'):
@@ -76,26 +77,29 @@ class H5Shuffle(Dataset):
             self.rng = numpy.random.RandomState(rng)
 
         cache_size = 1000000
+        print which_set
+        print "Start is", start, "stop is", stop
         
         # Not sure what to do if stop is not specified
-        if stop != None:
-            self.cache_indices = []
-            laststart = start
-            while laststart + cache_size < stop:
-                self.cache_indices.append((laststart, laststart+ cache_size))
-                laststart += cache_size
-            if laststart < stop:
-                self.cache_indices.append((laststart, stop))
-            if laststart > stop:
-                print "Something went terribly wrong. laststart is", laststart, "and stop is", stop
-        else:
-            self.cache_indices = [(start, None)]
+        if self.USE_CACHE:
+            if stop != None:
+                self.cache_indices = []
+                laststart = start
+                while laststart + cache_size < stop:
+                    self.cache_indices.append((laststart, laststart+ cache_size))
+                    laststart += cache_size
+                if laststart < stop:
+                    self.cache_indices.append((laststart, stop))
+                if laststart > stop:
+                    print "Something went terribly wrong. laststart is", laststart, "and stop is", stop
+            else:
+                self.cache_indices = [(start, None)]
 
-        self.curr_cache_index = 0
-        self.num_samples_seen = 0
+            self.curr_cache_index = 0
+            self.num_samples_seen = 0
 
         # Load data from disk
-        self._load_data(which_set, start, stop)
+        self._load_data(which_set, (start, stop))
         
         # self.cumulative_sequence_indexes = numpy.cumsum(len(s) for s in self.raw_data)
   
@@ -126,9 +130,6 @@ class H5Shuffle(Dataset):
             .. todo::
                 Write me
             """
-           
-                
-
             sequences = self.samples_sequences[indexes]
 
             # Remove sequences that are shorter than frame length to avoid padding
@@ -192,6 +193,7 @@ class H5Shuffle(Dataset):
         #                     "Valid values are ['train', 'valid', 'test'].")
             
         # Load Data
+        print startstop
         (start, stop) = startstop
         with tables.open_file(self.base_path) as f:
             print "Loading n-grams..."
@@ -214,6 +216,7 @@ class H5Shuffle(Dataset):
 
         print "finished removing short sentences"
         self.num_examples = len(self.samples_sequences)
+        print "Got", self.num_examples, "sentences"
         self.samples_sequences = numpy.asarray(self.samples_sequences)
  
     def _validate_source(self, source):
@@ -262,13 +265,13 @@ class H5Shuffle(Dataset):
         for so in source:
             batch = self.sourceFNs[so](indexes)
             rval.append(batch)
-        
-        self.num_samples_seen += len(indexes)
-        if self.num_samples_seen > self.cache_indices[self.curr_cache_index]:
-            self.curr_cache_index += 1
-            self._load_data(which_set, self.cache_indices[self.curr_cache_index])
+        if self.USE_CACHE:
+            self.num_samples_seen += len(indexes)
+            if self.num_samples_seen > self.cache_indices[self.curr_cache_index]:
+                self.curr_cache_index += 1
+                self._load_data(which_set, self.cache_indices[self.curr_cache_index])
 
-        return tuple(rval)
+            return tuple(rval)
 
     def get_num_examples(self):
         return self.num_examples
