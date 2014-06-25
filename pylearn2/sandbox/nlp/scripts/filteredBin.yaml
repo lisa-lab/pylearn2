@@ -1,8 +1,8 @@
 
 !obj:pylearn2.train.Train {
   dataset: !obj:pylearn2.sandbox.nlp.datasets.shuffle2.H5Shuffle {
-    path: '/data/lisatmp3/pougetj/filtered_binarized_corpus_train.h5',
-    node: '/filtered_binarized_corpus_train',
+    path: '/data/lisatmp3/pougetj/double_filtered_binarized_corpus_train.h5',
+    node: '/double_filtered_binarized_corpus_train',
     which_set: 'train',
     frame_length: &n 7,
     stop: 5000000,
@@ -43,11 +43,11 @@
     learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {},
     monitoring_dataset: {
       'valid': !obj:pylearn2.sandbox.nlp.datasets.shuffle2.H5Shuffle {
-        path: '/data/lisatmp3/pougetj/filtered_binarized_corpus_valid.h5',
-        node: '/filtered_binarized_corpus_valid',
+        path: '/data/lisatmp3/pougetj/double_filtered_binarized_corpus_valid.h5',
+        node: '/double_filtered_binarized_corpus_valid',
         which_set: 'valid',
-        frame_length: *n,
-	stop: 1000000
+        frame_length: *n ,
+        stop: 1000000,
         X_labels: *l
       },
     },

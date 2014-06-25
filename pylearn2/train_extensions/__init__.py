@@ -131,18 +131,21 @@ class WordRelationship(TrainExtension):
                                             for word in words])
         self.categories = categories
         self.questions = np.array(binarized_questions, dtype='int32')
-
+        self.questions = np.clip(self.questions, 0, 149999)
+	
     @functools.wraps(TrainExtension.setup)
     def setup(self, model, dataset, algorithm):
         # Create a Theano function that takes 3 words and returns
         # the word index with the largest cosine similarity
         word_indices = tensor.ivector('words')
-        embedding_matrix = model.layers[0].transformer.W
-        word_embeddings = embedding_matrix[word_indices]
+        #embedding_matrix = model.layers[0].transformer.W
+        embedding_matrix, = model.layers[0].transformer.get_params()
+	word_embeddings = embedding_matrix[word_indices]
         target = word_embeddings[1] - word_embeddings[0] + word_embeddings[2]
         dot_products = tensor.dot(embedding_matrix, target)
-        norms = tensor.norm(target) * tensor.norm(embedding_matrix, axis=0)
-        similarities = dot_products / norms
+        #norms = tensor.norm(target) * tensor.norm(embedding_matrix, axis=0)
+        norms = target.norm(2) * embedding_matrix.norm(2, axis=1)
+	similarities = dot_products / norms
         most_similar = tensor.argmax(similarities)
 
         self.most_similar = function([word_indices], most_similar)

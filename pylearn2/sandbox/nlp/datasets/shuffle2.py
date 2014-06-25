@@ -34,7 +34,7 @@ class H5Shuffle(Dataset):
 
     def __init__(self, path, node, which_set, frame_length,
                  start=0, stop=None, X_labels=None,
-		 _iter_num_batches=10000,
+		 _iter_num_batches=None,
                  rng=_default_seed):
         """
         Parameters
@@ -65,7 +65,10 @@ class H5Shuffle(Dataset):
         self.which_set = which_set
         self.frame_length = frame_length
         self.X_labels = X_labels
-	self._iter_num_batches = _iter_num_batches
+	if _iter_num_batches is None:
+		self._iter_num_batches = 10000
+	else:
+		self._iter_num_batches = _iter_num_batches
         #self.y_labels = y_labels
 
         self.USE_CACHE = False
@@ -203,18 +206,18 @@ class H5Shuffle(Dataset):
             else:
                 self.samples_sequences = node[start:]
 
-        print "removing short sentences"
-        shorts = []
-        for i in range(len(self.samples_sequences)):
-            if len(self.samples_sequences[i]) < self.frame_length:
-                shorts.append(i)
+        #print "removing short sentences"
+        #shorts = []
+        #for i in range(len(self.samples_sequences)):
+        #    if len(self.samples_sequences[i]) < self.frame_length:
+        #        shorts.append(i)
 
         # Supposedly in place
-        for i in range(len(shorts)):
-            j = shorts[i]- i
-            del self.samples_sequences[j]
+        #for i in range(len(shorts)):
+         #   j = shorts[i]- i
+         #   del self.samples_sequences[j]
 
-        print "finished removing short sentences"
+        #print "finished removing short sentences"
         self.num_examples = len(self.samples_sequences)
         print "Got", self.num_examples, "sentences"
         self.samples_sequences = numpy.asarray(self.samples_sequences)
