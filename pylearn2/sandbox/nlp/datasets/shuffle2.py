@@ -271,7 +271,7 @@ class H5Shuffle(Dataset):
                 self.curr_cache_index += 1
                 self._load_data(which_set, self.cache_indices[self.curr_cache_index])
 
-            return tuple(rval)
+        return tuple(rval)
 
     def get_num_examples(self):
         return self.num_examples
