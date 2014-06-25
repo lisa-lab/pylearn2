@@ -1,7 +1,7 @@
 """An interface to the NORB and Small NORB datasets.
 
-Unlike ./norb_small.py, this reads the original NORB file format, not the LISA
-lab's .npy version.
+Unlike ./norb_small.py, this reads the original NORB file format, not the
+LISA lab's .npy version.
 
 Download the datasets from:
 Small NORB: http://www.cs.nyu.edu/~ylclab/data/norb-v1.0-small/
@@ -37,7 +37,8 @@ class NORB(DenseDesignMatrix):
     Keeps the data on memmap files on disk, to avoid taking up memory. This
     also speeds up instantiation time.
 
-    Important fields and methods:
+    Parameters
+    ----------
 
     X: design matrix of uint8s. Each row contains the pixels of a
        stereo image pair (grayscale).
@@ -582,6 +583,11 @@ class StereoViewConverter(object):
     Converts stereo image data between two formats:
       A) A dense design matrix, one stereo pair per row (VectorSpace)
       B) An image pair (CompositeSpace of two Conv2DSpaces)
+
+    Parameters
+    ----------
+    shape: tuple
+    See doc for __init__'s <shape> parameter.
     """
 
     def __init__(self, shape, axes=None):
@@ -651,7 +657,6 @@ class StereoViewConverter(object):
 
         space: a pylearn2.space.Space
         The target space to format to.
-
         """
         return self.storage_space.np_format_as(batch, space)
 
@@ -689,12 +694,27 @@ class StereoViewConverter(object):
         return self.topo_space.np_format_as(topo_batch, self.storage_space)
 
     def view_shape(self):
+        """
+        TODO: write documentation.
+        """
         return self.shape
 
     def weights_view_shape(self):
+        """
+        TODO: write documentation.
+        """
         return self.view_shape()
 
     def set_axes(self, axes):
+        """
+        Change the order of the axes.
+
+        Parameters
+        ----------
+
+        axes: tuple
+        Must have length 5, must contain 'b', 's', 0, 1, 'c'.
+        """
         axes = tuple(axes)
 
         if len(axes) != 5:

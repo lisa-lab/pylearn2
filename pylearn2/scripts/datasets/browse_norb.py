@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 """
-A browser for the NORB and small NORB datasets. Navigate the images by choosing
-the values for the label vector. Note that for the 'big' NORB dataset, you can
-only set the first 5 label dimensions. You can then cycle through the 3-12
-images that fit those labels.
+A browser for the NORB and small NORB datasets. Navigate the images by
+choosing the values for the label vector. Note that for the 'big' NORB
+dataset, you can only set the first 5 label dimensions. You can then cycle
+through the 3-12 images that fit those labels.
 """
 
 import sys
@@ -16,6 +16,8 @@ from pylearn2.utils import safe_zip
 
 
 def main():
+    """Top-level function."""
+
     def parse_args():
         parser = argparse.ArgumentParser(
             description="Browser for NORB dataset.")
