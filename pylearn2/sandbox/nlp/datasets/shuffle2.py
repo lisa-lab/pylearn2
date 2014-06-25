@@ -34,7 +34,7 @@ class H5Shuffle(Dataset):
 
     def __init__(self, path, node, which_set, frame_length,
                  start=0, stop=None, X_labels=None,
-		 _iter_num_batches=None,
+		 _iter_num_batches=10000,
                  rng=_default_seed):
         """
         Parameters
@@ -65,7 +65,7 @@ class H5Shuffle(Dataset):
         self.which_set = which_set
         self.frame_length = frame_length
         self.X_labels = X_labels
-	self._iter_num_batches
+	self._iter_num_batches = _iter_num_batches
         #self.y_labels = y_labels
 
 

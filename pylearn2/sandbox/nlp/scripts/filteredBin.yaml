@@ -5,7 +5,8 @@
     node: '/filtered_binarized_corpus_train',
     which_set: 'train',
     frame_length: &n 7,
-    stop: 10000,
+    stop: 10000000,
+    _iter_num_batches: 10000
     X_labels: &l 150000
   },
   model: !obj:pylearn2.models.mlp.MLP {
