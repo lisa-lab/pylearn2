@@ -56,7 +56,8 @@ def sharedX(value, name=None, borrow=False, dtype=None):
     value : WRITEME
     name : WRITEME
     borrow : WRITEME
-    dtype : WRITEME
+    dtype : str, optional
+        data type. Default value is theano.config.floatX
 
     Returns
     -------
