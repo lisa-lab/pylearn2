@@ -34,7 +34,7 @@ class H5Skipgram(H5Shuffle):
     _default_seed = (17, 2, 946)
 
     def __init__(self, path, node, which_set, frame_length,
-                 start=0, stop=None, X_labels=None,
+                 start=0, stop=None, X_labels=None, _iter_num_batches=10000,
                  rng=_default_seed):
         """
         Parameters
@@ -57,7 +57,8 @@ class H5Skipgram(H5Shuffle):
             design matrix when choosing minibatches.
         """
         super(H5Skipgram, self).__init__(path, node, which_set, frame_length, start=start,
-                                         stop=stop, X_labels=X_labels, rng=rng)
+                                         stop=stop, X_labels=X_labels, 
+                                         _iter_num_batches=_iter_num_batches, rng=rng)
         def getFeatures(indexes):
             """
             .. todo::

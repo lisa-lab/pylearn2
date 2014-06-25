@@ -1,0 +1,81 @@
+
+!obj:pylearn2.train.Train {
+  dataset: !obj:pylearn2.sandbox.nlp.datasets.skipgram.H5Skipgram {
+    path: '/data/lisatmp3/pougetj/filtered_binarized_corpus_train.h5',
+    node: '/filtered_binarized_corpus_train',
+    which_set: 'train',
+    frame_length: &n 7,
+    stop: 10000,
+    _iter_num_batches: 100,
+    X_labels: &l 15000
+  },
+  model: !obj:pylearn2.models.mlp.MLP {
+    input_space: !obj:pylearn2.space.IndexSpace {
+      dim: *n,
+      max_labels: *l
+    },
+    layers: [
+      !obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
+        layer_name: 'projection',
+        dim: 256,
+        irange: 0.01
+      },
+      !obj:pylearn2.models.mlp.CompositeLayer {
+        layer_name: 'composite_layer',
+        layers: [!obj:pylearn2.models.mlp.Linear {
+            dim: &d 256,
+            layer_name: 'h0',
+            irange: 0.01
+          },
+          !obj:pylearn2.models.mlp.Linear {
+            dim: *d,
+            layer_name: 'h1',
+            irange: 0.01
+          },
+          !obj:pylearn2.models.mlp.Linear {
+            dim: *d,
+            layer_name: 'h2',
+            irange: 0.01
+          },
+          !obj:pylearn2.models.mlp.Linear {
+            dim: *d,
+            layer_name: 'h3',
+            irange: 0.01
+          },
+          !obj:pylearn2.models.mlp.Linear {
+            dim: *d,
+            layer_name: 'h4',
+            irange: 0.01
+          },
+          !obj:pylearn2.models.mlp.Linear {
+            dim: *d,
+            layer_name: 'h5',
+            irange: 0.01
+          }
+        ]
+      },
+      !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
+        layer_name: 'output',
+        n_classes: *l,
+        irange: 0.01
+      },
+    ],
+  },
+  algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+    batch_size: 256,
+    learning_rate: .000001,
+    learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {},
+    monitoring_dataset: {
+      'valid': !obj:pylearn2.sandbox.nlp.datasets.skipgram.H5Skipgram {
+        path: '/data/lisatmp3/pougetj/filtered_binarized_corpus_valid.h5',
+        node: '/filtered_binarized_corpus_valid',
+        which_set: 'valid',
+        frame_length: *n,
+        stop: 10000,
+        _iter_num_batches: 10,
+        X_labels: *l
+      },
+    },
+  },
+  save_freq: 1,
+}
