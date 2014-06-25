@@ -76,11 +76,11 @@ class NORB(DenseDesignMatrix):
             first N rows, then training data).
         """
 
-        if not which_norb in ('big', 'small'):
+        if which_norb not in ('big', 'small'):
             raise ValueError("Expected which_norb argument to be either 'big' "
                              "or 'small', not '%s'" % str(which_norb))
 
-        if not which_set in ('test', 'train', 'both'):
+        if which_set not in ('test', 'train', 'both'):
             raise ValueError("Expected which_set argument to be either 'test' "
                              "or 'train', not '%s'." % str(which_set))
 
@@ -299,7 +299,7 @@ class NORB(DenseDesignMatrix):
 
                     if from_gzip is None:
                         from_gzip = isinstance(file_handle,
-                                              (gzip.GzipFile, bz2.BZ2File))
+                                               (gzip.GzipFile, bz2.BZ2File))
 
                     key_to_type = {0x1E3D4C51: ('float32', 4),
                                    # what is a packed matrix?
@@ -516,7 +516,7 @@ class NORB(DenseDesignMatrix):
                                             norb_file_type))
 
             norb_file_types = ('cat', 'dat', 'info')
-            if not norb_file_type in norb_file_types:
+            if norb_file_type not in norb_file_types:
                 raise ValueError("Expected norb_file_type to be one of %s, "
                                  "but it was '%s'" % (str(norb_file_types),
                                                       norb_file_type))
@@ -583,9 +583,13 @@ class StereoViewConverter(object):
       A) A dense design matrix, one stereo pair per row (VectorSpace)
       B) An image pair (CompositeSpace of two Conv2DSpaces)
     """
+
     def __init__(self, shape, axes=None):
         """
         The arguments describe how the data is laid out in the design matrix.
+
+        Parameters
+        ----------
 
         shape : tuple
           A tuple of 4 ints, describing the shape of each datum.
@@ -636,23 +640,51 @@ class StereoViewConverter(object):
         self.storage_space = VectorSpace(dim=numpy.prod(shape))
 
     def get_formatted_batch(self, batch, space):
+        """
+        Returns a batch formatted to a space.
+
+        Parameters
+        ----------
+
+        batch: ndarray
+        The batch to format
+
+        space: a pylearn2.space.Space
+        The target space to format to.
+
+        """
         return self.storage_space.np_format_as(batch, space)
 
     def design_mat_to_topo_view(self, design_mat):
         """
         Called by DenseDesignMatrix.get_formatted_view(), get_batch_topo()
+
+        Parameters
+        ----------
+
+        design_mat: ndarray
         """
         return self.storage_space.np_format_as(design_mat, self.topo_space)
 
     def design_mat_to_weights_view(self, design_mat):
         """
         Called by DenseDesignMatrix.get_weights_view()
+
+        Parameters
+        ----------
+
+        design_mat: ndarray
         """
         return self.design_mat_to_topo_view(design_mat)
 
     def topo_view_to_design_mat(self, topo_batch):
         """
         Used by DenseDesignMatrix.set_topological_view(), .get_design_mat()
+
+        Parameters
+        ----------
+
+        topo_batch: ndarray
         """
         return self.topo_space.np_format_as(topo_batch, self.storage_space)
 
