@@ -57,6 +57,7 @@ class H5Shuffle(Dataset):
         """
         self.base_path = path
         self.node_name = node
+        self.which_set = which_set
         self.frame_length = frame_length
         self.X_labels = X_labels
         #self.y_labels = y_labels
@@ -68,26 +69,28 @@ class H5Shuffle(Dataset):
         else:
             self.rng = numpy.random.RandomState(rng)
 
+        cache_size = 1000000
+        
+        # Not sure what to do if stop is not specified
+        if stop != None:
+            self.cache_indices = []
+            laststart = start
+            while laststart + cache_size < stop:
+                self.cache_indices.append((laststart, laststart+ cache_size))
+                laststart += cache_size
+            if laststart < stop:
+                self.cache_indices.append((laststart, stop))
+            if laststart > stop:
+                print "Something went terribly wrong. laststart is", laststart, "and stop is", stop
+        else:
+            self.cache_indices = [(start, None)]
 
-        #if stop != None:
-        #    self.cache_indices = 
+        self.curr_cache_index = 0
+        self.num_samples_seen = 0
 
         # Load data from disk
         self._load_data(which_set, start, stop)
-        print "removing short sentences"
-        shorts = []
-        for i in range(len(self.samples_sequences)):
-            if len(self.samples_sequences[i]) < self.frame_length:
-                shorts.append(i)
-
-        # Supposedly in place
-        for i in range(len(shorts)):
-            j = shorts[i]- i
-            del self.samples_sequences[j]
-
-        print "finished removing short sentences"
-        self.num_examples = len(self.samples_sequences)
-        self.samples_sequences = numpy.asarray(self.samples_sequences)
+        
         # self.cumulative_sequence_indexes = numpy.cumsum(len(s) for s in self.raw_data)
   
         # DataSpecs
@@ -117,6 +120,9 @@ class H5Shuffle(Dataset):
             .. todo::
                 Write me
             """
+           
+                
+
             sequences = self.samples_sequences[indexes]
 
             # Remove sequences that are shorter than frame length to avoid padding
@@ -163,7 +169,7 @@ class H5Shuffle(Dataset):
 
         self.sourceFNs = {'features': getFeatures, 'targets': getTarget}
 
-    def _load_data(self, which_set, start, stop):
+    def _load_data(self, which_set, startstop):
         """
         Load the WMT14 data from disk.
 
@@ -180,6 +186,7 @@ class H5Shuffle(Dataset):
         #                     "Valid values are ['train', 'valid', 'test'].")
             
         # Load Data
+        (start, stop) = startstop
         with tables.open_file(self.base_path) as f:
             print "Loading n-grams..."
             node = f.get_node(self.node_name)
@@ -187,6 +194,21 @@ class H5Shuffle(Dataset):
                 self.samples_sequences = node[start:stop]
             else:
                 self.samples_sequences = node[start:]
+
+        print "removing short sentences"
+        shorts = []
+        for i in range(len(self.samples_sequences)):
+            if len(self.samples_sequences[i]) < self.frame_length:
+                shorts.append(i)
+
+        # Supposedly in place
+        for i in range(len(shorts)):
+            j = shorts[i]- i
+            del self.samples_sequences[j]
+
+        print "finished removing short sentences"
+        self.num_examples = len(self.samples_sequences)
+        self.samples_sequences = numpy.asarray(self.samples_sequences)
  
     def _validate_source(self, source):
         """
@@ -234,6 +256,12 @@ class H5Shuffle(Dataset):
         for so in source:
             batch = self.sourceFNs[so](indexes)
             rval.append(batch)
+        
+        self.num_samples_seen += len(indexes)
+        if self.num_samples_seen > self.cache_indices[self.curr_cache_index]:
+            self.curr_cache_index += 1
+            self._load_data(which_set, self.cache_indices[self.curr_cache_index])
+
         return tuple(rval)
 
     def get_num_examples(self):
