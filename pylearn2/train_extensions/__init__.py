@@ -132,11 +132,11 @@ class WordRelationship(TrainExtension):
 	self.n_batches = n_batches
         self.categories = categories
         self.questions = np.array(binarized_questions, dtype='int32')
-	self.questions = np.clip(self.questions, 0, vocab_size-1)
+	self.questions[self.questions >= vocab_size] = UNK
 	self.orig_n_questions = len(self.questions)
 	self.questions = self.questions[self.questions[:, 3] != UNK]
-        #self.questions = np.array([question for question in self.questions if question[3] != UNK]) 	
         self.n_questions = len(self.questions)
+	import pdb; pdb.set_trace()
 	print self.orig_n_questions - self.n_questions, "question(s) removed due to clipped vocabulary"
 	
     @functools.wraps(TrainExtension.setup)
