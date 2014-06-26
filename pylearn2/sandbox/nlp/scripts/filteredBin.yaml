@@ -57,7 +57,8 @@
          vocab: "/data/lisatmp3/pougetj/vocab.pkl",
          questions: "/data/lisatmp3/pougetj/questions-words.txt",
          vocab_size: *l,
-         UNK: 1, 
+         UNK: 1,
+         n_batches: 4, 
        }
   ],
   save_freq: 1,
