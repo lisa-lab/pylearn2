@@ -112,10 +112,14 @@ class H5Shuffle(Dataset):
             .. todo::
                 Write me
             """
-            sequences = self.samples_sequences[indexes]
+	    sequences = [self.node[i] for i in indexes]
+	    #for i in indexes:
+		#sequences.append(self.nodep[i])
+	    #sequences = self.node[indexes]
+            # sequences = self.samples_sequences[indexes]
 
             # Get random start point for ngram
-            wis = [numpy.random.randint(0, len(s)-self.frame_length+1, 1)[0] for s in sequences]
+            wis = [numpy.random.randint(0, len(s)-self.frame_length+1) for s in sequences]
             X = numpy.asarray([s[wi:self.frame_length+wi] for s, wi in zip(sequences, wis)])
 
             # Words mapped to integers greater than input max are set to 1 (unknown)
@@ -161,17 +165,21 @@ class H5Shuffle(Dataset):
         # Load Data
         print startstop
         (start, stop) = startstop
-        with tables.open_file(self.base_path) as f:
-            print "Loading n-grams..."
-            node = f.get_node(self.node_name)
-            if stop is not None:
-                self.samples_sequences = node[start:stop]
-            else:
-                self.samples_sequences = node[start:]
-           
-        self.num_examples = len(self.samples_sequences)
+	f = tables.open_file(self.base_path)
+	self.node = f.get_node(self.node_name)
+        # with tables.open_file(self.base_path) as f:
+        #     print "Loading n-grams..."
+        #     node = f.get_node(self.node_name)
+        #     if stop is not None:
+        #         self.samples_sequences = node[start:stop]
+        #     else:
+        #         self.samples_sequences = node[start:]
+        if stop is None:
+		self.num_examples = self.node.nrows
+	else:   
+        	self.num_examples = stop - start #self.node.nrows # len(self.samples_sequences)
         print "Got", self.num_examples, "sentences"
-        self.samples_sequences = numpy.asarray(self.samples_sequences)
+        #self.samples_sequences = numpy.asarray(self.samples_sequences)
  
     def _validate_source(self, source):
         """
