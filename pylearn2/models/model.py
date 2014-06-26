@@ -437,10 +437,13 @@ class Model(object):
 
     def get_target_source(self):
         """
-        Returns a string, stating the source for the output. By default the
-        output source (when is the only one) is called 'targets'.
+        Returns a string, stating the source for the target. By default the
+        model expects only one target source, which is called 'targets'.
         """
-        return 'targets'
+        if hasattr(self, 'target_source'):
+            return self.target_source
+        else:
+            return 'targets'
 
     def free_energy(self, V):
         """
