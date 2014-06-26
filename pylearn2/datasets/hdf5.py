@@ -12,6 +12,7 @@ try:
 except ImportError:
     h5py = None
 import numpy as np
+import warnings
 
 from pylearn2.datasets.dense_design_matrix import (DenseDesignMatrix,
                                                    DefaultViewConverter)
@@ -41,28 +42,47 @@ class HDF5Dataset(DenseDesignMatrix):
     """
     def __init__(self, filename, X=None, topo_view=None, y=None,
                  load_all=False, **kwargs):
+        self.load_all = load_all
         if h5py is None:
             raise RuntimeError("Could not import h5py.")
         self._file = h5py.File(filename)
         if X is not None:
-            X = self._get_dataset(X, load_all)
+            X = self.get_dataset(X, load_all)
         if topo_view is not None:
-            topo_view = self._get_dataset(topo_view, load_all)
+            topo_view = self.get_dataset(topo_view, load_all)
         if y is not None:
-            y = self._get_dataset(y, load_all)
-
-        # The np.all test used for X_labels and y_labels does not work with
-        # HDF5 datasets. If X_labels or y_labels is provided, load the
-        # corresponding data into memory.
-        if 'X_labels' in kwargs:
-            X = X[:]
-        if 'y_labels' in kwargs:
-            y = y[:]
+            y = self.get_dataset(y, load_all)
 
         super(HDF5Dataset, self).__init__(X=X, topo_view=topo_view, y=y,
                                           **kwargs)
 
-    def _get_dataset(self, dataset, load_all=False):
+    def _check_labels(self):
+        """
+        Sanity checks for X_labels and y_labels.
+
+        Since the np.all test used for these labels does not work with HDF5
+        datasets, we issue a warning that those values are not checked.
+        """
+        if self.X_labels is not None:
+            assert self.X is not None
+            assert self.view_converter is None
+            assert self.X.ndim <= 2
+            if self.load_all:
+                assert np.all(self.X < self.X_labels)
+            else:
+                warnings.warn("HDF5Dataset cannot perform test np.all(X < " +
+                              "X_labels). Use X_labels at your own risk.")
+
+        if self.y_labels is not None:
+            assert self.y is not None
+            assert self.y.ndim <= 2
+            if self.load_all:
+                assert np.all(self.y < self.y_labels)
+            else:
+                warnings.warn("HDF5Dataset cannot perform test np.all(y < " +
+                              "y_labels). Use y_labels at your own risk.")
+
+    def get_dataset(self, dataset, load_all=False):
         """
         Get a handle for an HDF5 dataset, or load the entire dataset into
         memory.
