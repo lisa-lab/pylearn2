@@ -172,6 +172,7 @@ class DenseDesignMatrix(Dataset):
                  max_labels=None, X_labels=None, y_labels=None):
         self.X = X
         self.y = y
+        self.view_converter = view_converter
         self.X_labels = X_labels
         self.y_labels = y_labels
 
@@ -183,16 +184,7 @@ class DenseDesignMatrix(Dataset):
             assert y_labels is None
             self.y_labels = max_labels
 
-        if X_labels is not None:
-            assert X is not None
-            assert view_converter is None
-            assert X.ndim <= 2
-            assert np.all(X < X_labels)
-
-        if y_labels is not None:
-            assert y is not None
-            assert y.ndim <= 2
-            assert np.all(y < y_labels)
+        self._check_labels()
 
         if topo_view is not None:
             assert view_converter is None
@@ -201,7 +193,6 @@ class DenseDesignMatrix(Dataset):
             assert X is not None, ("DenseDesignMatrix needs to be provided "
                                    "with either topo_view, or X")
             if view_converter is not None:
-                self.view_converter = view_converter
 
                 # Get the topo_space (usually Conv2DSpace) from the
                 # view_converter
@@ -258,6 +249,19 @@ class DenseDesignMatrix(Dataset):
         if preprocessor:
             preprocessor.apply(self, can_fit=fit_preprocessor)
         self.preprocessor = preprocessor
+
+    def _check_labels(self):
+        """Sanity checks for X_labels and y_labels."""
+        if self.X_labels is not None:
+            assert self.X is not None
+            assert self.view_converter is None
+            assert self.X.ndim <= 2
+            assert np.all(self.X < self.X_labels)
+
+        if self.y_labels is not None:
+            assert self.y is not None
+            assert self.y.ndim <= 2
+            assert np.all(self.y < self.y_labels)
 
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
