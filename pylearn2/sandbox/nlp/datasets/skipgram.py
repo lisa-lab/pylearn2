@@ -35,7 +35,7 @@ class H5Skipgram(H5Shuffle):
 
     def __init__(self, path, node, which_set, frame_length,
                  start=0, stop=None, X_labels=None, _iter_num_batches=10000,
-                 rng=_default_seed):
+                 rng=_default_seed, load_to_memory=False):
         """
         Parameters
         ----------
@@ -58,7 +58,8 @@ class H5Skipgram(H5Shuffle):
         """
         super(H5Skipgram, self).__init__(path, node, which_set, frame_length, start=start,
                                          stop=stop, X_labels=X_labels, 
-                                         _iter_num_batches=_iter_num_batches, rng=rng)
+                                         _iter_num_batches=_iter_num_batches, rng=rng,
+                                         load_to_memory=load_to_memory)
 
         features_space = IndexSpace(
             dim=1,
@@ -85,7 +86,7 @@ class H5Skipgram(H5Shuffle):
             .. todo::
                 Write me
             """
-            sequences = self.samples_sequences[indexes]
+            sequences = [self.node[i] for i in indexes]
 
             # Get random start point for ngram
             wis = [numpy.random.randint(0, len(s)-self.frame_length+1, 1)[0] for s in sequences]

@@ -35,7 +35,7 @@ class H5Shuffle(Dataset):
     def __init__(self, path, node, which_set, frame_length,
                  start=0, stop=None, X_labels=None,
 		 _iter_num_batches=None,
-                 rng=_default_seed):
+                 rng=_default_seed, load_to_memory=False):
         """
         Parameters
         ----------
@@ -59,6 +59,9 @@ class H5Shuffle(Dataset):
 	    Determines number of batches to cycle through in one epoch. Used to
 	    calculate the validation score without having to cycle through the
 	    entire dataset
+        load_to_memory : bool, optional
+            If True, will load all requested data into memory. This allows the
+            iterations to go faster, but requires significantly more memory.
         """
         self.base_path = path
         self.node_name = node
@@ -69,6 +72,7 @@ class H5Shuffle(Dataset):
 		self._iter_num_batches = 1000
 	else:
 		self._iter_num_batches = _iter_num_batches
+        self._load_to_memory = load_to_memory
         #self.y_labels = y_labels
 
         # RNG initialization
@@ -112,7 +116,10 @@ class H5Shuffle(Dataset):
             .. todo::
                 Write me
             """
-	    sequences = [self.node[i] for i in indexes]
+            if self._load_to_memory:
+                sequences = self.samples_sequences[indexes]
+            else:
+                sequences = [self.node[i] for i in indexes]
 	    #for i in indexes:
 		#sequences.append(self.nodep[i])
 	    #sequences = self.node[indexes]
@@ -170,14 +177,17 @@ class H5Shuffle(Dataset):
         # with tables.open_file(self.base_path) as f:
         #     print "Loading n-grams..."
         #     node = f.get_node(self.node_name)
-        #     if stop is not None:
-        #         self.samples_sequences = node[start:stop]
-        #     else:
-        #         self.samples_sequences = node[start:]
-        if stop is None:
-		self.num_examples = self.node.nrows
-	else:   
-        	self.num_examples = stop - start #self.node.nrows # len(self.samples_sequences)
+        if self._load_to_memory:
+            if stop is not None:
+                self.samples_sequences = self.node[start:stop]
+            else:
+                self.samples_sequences = self.node[start:]
+            self.num_examples = len(self.samples_sequences)
+        else:
+            if stop is None:
+                self.num_examples = self.node.nrows
+            else:   
+                self.num_examples = stop - start #self.node.nrows # len(self.samples_sequences)
         print "Got", self.num_examples, "sentences"
         #self.samples_sequences = numpy.asarray(self.samples_sequences)
  
