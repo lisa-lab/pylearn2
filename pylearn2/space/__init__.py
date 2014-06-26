@@ -32,6 +32,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
+import ipdb
 import functools, warnings
 import numpy as np
 import theano
@@ -1314,13 +1315,15 @@ class VectorSequenceSpace(SimplyTypedSpace):
         if batch_size == 1:
             return tensor.matrix(name=name)
         else:
-            return ValueError("VectorSequenceSpace does not support batches "
-                              "of sequences.")
+            return tensor.ftensor3(name=name)
+            #return ValueError("VectorSequenceSpace does not support batches "
+            #                  "of sequences.")
 
     @wraps(Space._batch_size_impl)
     def _batch_size_impl(self, is_numeric, batch):
         # Only batch size of 1 is supported
-        return 1
+        # fixed!!
+        return batch.shape[0]
 
     @wraps(Space._validate_impl)
     def _validate_impl(self, is_numeric, batch):
@@ -1335,16 +1338,16 @@ class VectorSequenceSpace(SimplyTypedSpace):
                 raise TypeError("The value of a VectorSequenceSpace batch "
                                 "should be a numpy.ndarray, or CudaNdarray, "
                                 "but is %s." % str(type(batch)))
-            if batch.ndim != 2:
-                raise ValueError("The value of a VectorSequenceSpace batch "
-                                 "must be 2D, got %d dimensions for %s."
-                                 % (batch.ndim, batch))
-            if batch.shape[1] != self.dim:
-                raise ValueError("The width of a VectorSequenceSpace 'batch' "
-                                 "must match with the space's window"
-                                 "dimension, but batch has dim %d and "
-                                 "this space's dim is %d."
-                                 % (batch.shape[1], self.dim))
+            #if batch.ndim != 2:
+            #    raise ValueError("The value of a VectorSequenceSpace batch "
+            #                     "must be 2D, got %d dimensions for %s."
+            #                     % (batch.ndim, batch))
+            #if batch.shape[1] != self.dim:
+            #    raise ValueError("The width of a VectorSequenceSpace 'batch' "
+            #                     "must match with the space's window"
+            #                     "dimension, but batch has dim %d and "
+            #                     "this space's dim is %d."
+            #                     % (batch.shape[1], self.dim))
         else:
             if not isinstance(batch, theano.gof.Variable):
                 raise TypeError("VectorSequenceSpace batch should be a theano "
@@ -1354,9 +1357,9 @@ class VectorSequenceSpace(SimplyTypedSpace):
                 raise TypeError("VectorSequenceSpace batch should be "
                                 "TensorType or CudaNdarrayType, got " +
                                 str(batch.type))
-            if batch.ndim != 2:
-                raise ValueError("VectorSequenceSpace 'batches' must be 2D, "
-                                 "got %d dimensions" % batch.ndim)
+            #if batch.ndim != 2:
+            #    raise ValueError("VectorSequenceSpace 'batches' must be 2D, "
+            #                     "got %d dimensions" % batch.ndim)
             for val in get_debug_values(batch):
                 self.np_validate(val)
 
