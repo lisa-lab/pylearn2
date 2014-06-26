@@ -40,7 +40,7 @@ class HDF5Dataset(DenseDesignMatrix):
         Keyword arguments passed to `DenseDesignMatrix`.
     """
     def __init__(self, filename, X=None, topo_view=None, y=None,
-                 load_all=False, one_hot=False, **kwargs):
+                 load_all=False, **kwargs):
         if h5py is None:
             raise RuntimeError("Could not import h5py.")
         self._file = h5py.File(filename)
