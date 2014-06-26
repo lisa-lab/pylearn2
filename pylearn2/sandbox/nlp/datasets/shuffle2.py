@@ -66,12 +66,10 @@ class H5Shuffle(Dataset):
         self.frame_length = frame_length
         self.X_labels = X_labels
 	if _iter_num_batches is None:
-		self._iter_num_batches = 10000
+		self._iter_num_batches = 1000
 	else:
 		self._iter_num_batches = _iter_num_batches
         #self.y_labels = y_labels
-
-        self.USE_CACHE = False
 
         # RNG initialization
         if hasattr(rng, 'random_integers'):
@@ -79,28 +77,9 @@ class H5Shuffle(Dataset):
         else:
             self.rng = numpy.random.RandomState(rng)
 
-        cache_size = 1000000
         print which_set
         print "Start is", start, "stop is", stop
         
-        # Not sure what to do if stop is not specified
-        if self.USE_CACHE:
-            if stop != None:
-                self.cache_indices = []
-                laststart = start
-                while laststart + cache_size < stop:
-                    self.cache_indices.append((laststart, laststart+ cache_size))
-                    laststart += cache_size
-                if laststart < stop:
-                    self.cache_indices.append((laststart, stop))
-                if laststart > stop:
-                    print "Something went terribly wrong. laststart is", laststart, "and stop is", stop
-            else:
-                self.cache_indices = [(start, None)]
-
-            self.curr_cache_index = 0
-            self.num_samples_seen = 0
-
         # Load data from disk
         self._load_data(which_set, (start, stop))
         
@@ -135,24 +114,8 @@ class H5Shuffle(Dataset):
             """
             sequences = self.samples_sequences[indexes]
 
-            # Remove sequences that are shorter than frame length to avoid padding
-            # shorts = []
-            # for i in range(len(sequences)):
-            #     if len(sequences[i]) < self.frame_length:
-            #         shorts.append(i)
-
-            # sequences = numpy.delete(sequences, shorts)
-
             # Get random start point for ngram
             wis = [numpy.random.randint(0, len(s)-self.frame_length+1, 1)[0] for s in sequences]
-            # end = min(len(s), self.frame_length+wi)
-            # diff = max(self.frame_length +wi - len(s), 0)
-            # x = s[wi:end] + [0]*diff
-
-            # X = numpy.asarray([numpy.concatenate((s[wi:(min(len(s), self.frame_length+wi))],
-            #      [0]*(max(self.frame_length +wi - len(s), 0)))) for s, wi in 
-            #      zip(sequences, wis)])
-
             X = numpy.asarray([s[wi:self.frame_length+wi] for s, wi in zip(sequences, wis)])
 
             # Words mapped to integers greater than input max are set to 1 (unknown)
@@ -205,19 +168,7 @@ class H5Shuffle(Dataset):
                 self.samples_sequences = node[start:stop]
             else:
                 self.samples_sequences = node[start:]
-
-        #print "removing short sentences"
-        #shorts = []
-        #for i in range(len(self.samples_sequences)):
-        #    if len(self.samples_sequences[i]) < self.frame_length:
-        #        shorts.append(i)
-
-        # Supposedly in place
-        #for i in range(len(shorts)):
-         #   j = shorts[i]- i
-         #   del self.samples_sequences[j]
-
-        #print "finished removing short sentences"
+           
         self.num_examples = len(self.samples_sequences)
         print "Got", self.num_examples, "sentences"
         self.samples_sequences = numpy.asarray(self.samples_sequences)
@@ -268,12 +219,6 @@ class H5Shuffle(Dataset):
         for so in source:
             batch = self.sourceFNs[so](indexes)
             rval.append(batch)
-        if self.USE_CACHE:
-            self.num_samples_seen += len(indexes)
-            if self.num_samples_seen > self.cache_indices[self.curr_cache_index]:
-                self.curr_cache_index += 1
-                self._load_data(which_set, self.cache_indices[self.curr_cache_index])
-
         return tuple(rval)
 
     def get_num_examples(self):

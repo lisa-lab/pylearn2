@@ -115,7 +115,7 @@ class WordRelationship(TrainExtension):
     2 - 1 + 3 and 4
     """
     
-    def __init__(self, vocab, questions, UNK=0):
+    def __init__(self, vocab, questions, vocab_size, UNK=0):
         # Load the vocabulary and binarize the questions
         with open(vocab) as f:
             vocab = cPickle.load(f)
@@ -131,7 +131,7 @@ class WordRelationship(TrainExtension):
                                             for word in words])
         self.categories = categories
         self.questions = np.array(binarized_questions, dtype='int32')
-        self.questions = np.clip(self.questions, 0, 149999)
+        self.questions = np.clip(self.questions, 0, vocab_size-1)
 	
     @functools.wraps(TrainExtension.setup)
     def setup(self, model, dataset, algorithm):
@@ -160,9 +160,15 @@ class WordRelationship(TrainExtension):
     def on_monitor(self, model, dataset, algorithm):
         num_correct = 0.
         sum_similarity = 0.
-        for question in self.questions:
+        #import time
+	#t0 = time.time()
+	for question in self.questions:
             num_correct += (self.most_similar(question[:3]) == question[-1])
             sum_similarity += self.similarity(question)
+        #t1 = time.time()
+	#print total
+	#import pdb
+        #$pdb.set_trace()
         print "Avg. cos similarity: %s" % (sum_similarity /
                                            len(self.questions))
         print "Accuracy: %s%%" % (num_correct * 100. / len(self.questions))
