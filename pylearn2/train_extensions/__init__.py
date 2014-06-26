@@ -136,7 +136,6 @@ class WordRelationship(TrainExtension):
 	self.orig_n_questions = len(self.questions)
 	self.questions = self.questions[self.questions[:, 3] != UNK]
         self.n_questions = len(self.questions)
-	import pdb; pdb.set_trace()
 	print self.orig_n_questions - self.n_questions, "question(s) removed due to clipped vocabulary"
 	
     @functools.wraps(TrainExtension.setup)
