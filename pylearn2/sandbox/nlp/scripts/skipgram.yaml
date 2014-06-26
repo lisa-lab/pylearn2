@@ -1,19 +1,20 @@
 
 !obj:pylearn2.train.Train {
   dataset: !obj:pylearn2.sandbox.nlp.datasets.skipgram.H5Skipgram {
-    path: '/data/lisatmp3/pougetj/filtered_binarized_corpus_train.h5',
-    node: '/filtered_binarized_corpus_train',
+    path: '/data/lisatmp3/pougetj/double_filtered_binarized_corpus_train.h5',
+    node: '/double_filtered_binarized_corpus_train',
     which_set: 'train',
     frame_length: &n 7,
-    stop: 10000,
-    _iter_num_batches: 100,
-    X_labels: &l 15000
+    stop: 10000000,
+    _iter_num_batches: 1000,
+    X_labels: &l 30000
   },
   model: !obj:pylearn2.models.mlp.MLP {
     input_space: !obj:pylearn2.space.IndexSpace {
-      dim: *n,
-      max_labels: *l
+      dim: 1,
+      max_labels: *l  
     },
+    target_source: ['target0', 'target1', 'target2', 'target3', 'target4', 'target5'],
     layers: [
       !obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
         layer_name: 'projection',
@@ -25,41 +26,39 @@
         dim: 256,
         irange: 0.01
       },
-      !obj:pylearn2.models.mlp.FlattenerLayer {
-        raw_layer: !obj:pylearn2.models.mlp.CompositeLayer {
-          layer_name: 'composite_layer',
-          layers: [!obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
-              n_classes: *l,
-              layer_name: 'h0',
-              irange: 0.01
-            },
-            !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
-              n_classes: *l,
-              layer_name: 'h1',
-              irange: 0.01
-            },
-            !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
-              n_classes: *l,
-              layer_name: 'h2',
-              irange: 0.01
-            },
-            !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
-              n_classes: *l,
-              layer_name: 'h3',
-              irange: 0.01
-            },
-            !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
-              n_classes: *l,
-              layer_name: 'h4',
-              irange: 0.01
-            },
-            !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
-              n_classes: *l,
-              layer_name: 'h5',
-              irange: 0.01
-            }
-          ]
-        }
+      !obj:pylearn2.models.mlp.CompositeLayer {
+        layer_name: 'composite_layer',
+        layers: [!obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
+            n_classes: *l,
+            layer_name: 'h0',
+            irange: 0.01
+          },
+          !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
+            n_classes: *l,
+            layer_name: 'h1',
+            irange: 0.01
+          },
+          !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
+            n_classes: *l,
+            layer_name: 'h2',
+            irange: 0.01
+          },
+          !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
+            n_classes: *l,
+            layer_name: 'h3',
+            irange: 0.01
+          },
+          !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
+            n_classes: *l,
+            layer_name: 'h4',
+            irange: 0.01
+          },
+          !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
+            n_classes: *l,
+            layer_name: 'h5',
+            irange: 0.01
+          }
+        ]
       }
     ],
   },
@@ -69,12 +68,12 @@
     learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {},
     monitoring_dataset: {
       'valid': !obj:pylearn2.sandbox.nlp.datasets.skipgram.H5Skipgram {
-        path: '/data/lisatmp3/pougetj/filtered_binarized_corpus_valid.h5',
-        node: '/filtered_binarized_corpus_valid',
+        path: '/data/lisatmp3/pougetj/double_filtered_binarized_corpus_valid.h5',
+        node: '/double_filtered_binarized_corpus_valid',
         which_set: 'valid',
         frame_length: *n,
-        stop: 10000,
-        _iter_num_batches: 10,
+        stop: 100000,
+        _iter_num_batches: 100,
         X_labels: *l
       },
     },
