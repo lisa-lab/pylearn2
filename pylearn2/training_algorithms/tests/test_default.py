@@ -11,10 +11,9 @@ def test_multiple_monitoring_datasets():
     # tests that DefaultTrainingAlgorithm can take multiple
     # monitoring datasets.
 
-    BATCH_SIZE = 2
+    BATCH_SIZE = 1
     BATCHES = 3
-    NUM_FEATURES = 4
-    dim = 3
+    dim = 4
     m = 10
 
     rng = np.random.RandomState([2014, 02, 25])
@@ -29,7 +28,7 @@ def test_multiple_monitoring_datasets():
         batches_per_iter=BATCHES,
         monitoring_dataset={'train': train, 'test': test})
 
-    model = S3C(nvis=NUM_FEATURES, nhid=1,
+    model = S3C(nvis=dim, nhid=1,
                 irange=.01, init_bias_hid=0., init_B=1.,
                 min_B=1., max_B=1., init_alpha=1.,
                 min_alpha=1., max_alpha=1., init_mu=0.,

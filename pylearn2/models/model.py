@@ -39,7 +39,7 @@ class Model(object):
             extensions = []
         else:
             assert isinstance(extensions, list)
-            assert all(isinstance(extensions, ModelExtension) for extension in
+            assert all(isinstance(extension, ModelExtension) for extension in
                        extensions)
 
         self.__dict__.update(locals())

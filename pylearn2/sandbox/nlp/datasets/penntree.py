@@ -36,6 +36,10 @@ class PennTreebank(DenseDesignMatrix):
         """
         Loads the data and turns it into n-grams
         """
+
+        self.__dict__.update(locals())
+        del self.self
+
         path = ("${PYLEARN2_DATA_PATH}/PennTreebankCorpus/" +
                 "penntree_char_and_word.npz")
         npz_data = serial.load(path)

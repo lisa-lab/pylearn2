@@ -1,0 +1,5 @@
+This is a demo of the model described in "Multi-Prediction Deep Boltzmann
+Machines," Ian J. Goodfellow, Mehdi Mirza, Aaron Courville, and Yoshua
+Bengio, NIPS 2013
+
+Please cite that paper if you use this code in your research work.

@@ -33,6 +33,8 @@ class TestHDF5Dataset(unittest.TestCase):
         os.remove("train.h5")
 
 # trainer is a modified version of scripts/papers/maxout/mnist_pi.yaml
+# The MNIST dataset is used, however, only the first 100 examples are
+# manipulated and only 1 class is contained.
 trainer_yaml = """
 !obj:pylearn2.train.Train {
     dataset: &train !obj:pylearn2.datasets.hdf5.HDF5Dataset {
@@ -52,7 +54,7 @@ trainer_yaml = """
                  !obj:pylearn2.models.mlp.Softmax {
                      max_col_norm: 1.9365,
                      layer_name: 'y',
-                     n_classes: 10,
+                     n_classes: 1,
                      irange: .005
                  }
                 ],

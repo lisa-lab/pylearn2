@@ -205,6 +205,7 @@ def test_parse_null_as_none():
 
              }
     }"""
+    loaded = load(yamlfile)
 
 if __name__ == "__main__":
     test_multi_constructor_obj()
