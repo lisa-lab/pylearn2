@@ -426,7 +426,7 @@ class MLP(Layer):
     """
 
     def __init__(self, layers, batch_size=None, input_space=None,
-                 input_source='features', target_source='target', nvis=None, seed=None,
+                 input_source='features', target_source='targets', nvis=None, seed=None,
                  layer_name=None, **kwargs):
         super(MLP, self).__init__(**kwargs)
 

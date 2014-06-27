@@ -5,7 +5,8 @@
     node: '/double_filtered_binarized_corpus_train',
     which_set: 'train',
     frame_length: &n 7,
-    #stop: 5000000,
+    stop: 50000000,
+    load_to_memory: True,
     _iter_num_batches: 5000,
     X_labels: &l 20000
   },
