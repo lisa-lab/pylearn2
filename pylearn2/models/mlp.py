@@ -1176,7 +1176,10 @@ class Softmax(Layer):
         assert isinstance(n_classes, py_integer_types)
 
         if binary_target:
+            self._has_binary_target = True
             self._target_space= IndexSpace(dim=target_dim, max_labels=n_classes)
+        else:
+            self._has_binary_target = False
     
         self.output_space = VectorSpace(n_classes)
         if not no_affine:
@@ -1464,7 +1467,12 @@ class Softmax(Layer):
         z = z - z.max(axis=1).dimshuffle(0, 'x')
         log_prob = z - T.log(T.exp(z).sum(axis=1).dimshuffle(0, 'x'))
         # we use sum and not mean because this is really one variable per row
-        log_prob_of = (Y * log_prob).sum(axis=1)
+        
+        if _has_binary_target:
+            log_prob_of = (log_prob[Y]).sum(axis=1)
+        else:
+            log_prob_of = (Y * log_prob).sum(axis=1)
+        
         assert log_prob_of.ndim == 1
 
         rval = log_prob_of.mean()
