@@ -19,12 +19,7 @@
     layers: [
       !obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
         layer_name: 'projection',
-        dim: 256,
-        irange: 0.01
-      },
-      !obj:pylearn2.models.mlp.Linear {
-        layer_name: 'linear',
-        dim: 256,
+        dim: 640,
         irange: 0.01
       },
       !obj:pylearn2.models.mlp.CompositeLayer {
