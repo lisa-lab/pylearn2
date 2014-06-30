@@ -47,7 +47,11 @@ class StanfordSentimentTreebank(TextDataset):
     """ Load Stanford Sentiment Treebank """
 
     def __init__(self, which_set):
-        sents, scores = _StanfordSentimentTreebankFactory.get(which_set)
+        X, y = _StanfordSentimentTreebankFactory.get(which_set)
+        super(StanfordSentimentTreebank, self).__init__(
+            from_scipy_sparse_dataset=X
+        )
+        self.y = y
 
     @property
     def vocabulary(self):
