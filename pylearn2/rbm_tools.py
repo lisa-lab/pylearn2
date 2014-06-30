@@ -401,11 +401,11 @@ class AIS(object):
 
 
     # default configuration for interpolating distributions
-    dflt_beta = numpy.hstack((numpy.asarray(numpy.linspace(0, 0.5, 1e3),
+    dflt_beta = numpy.hstack((numpy.asarray(numpy.linspace(0, 0.5, 10),
                                             dtype=config.floatX),
-                              numpy.asarray(numpy.linspace(0.5, 0.9, 1e4),
+                              numpy.asarray(numpy.linspace(0.5, 0.9, 100),
                                             dtype=config.floatX),
-                              numpy.asarray(numpy.linspace(0.9, 1.0, 1e4),
+                              numpy.asarray(numpy.linspace(0.9, 1.0, 100),
                                             dtype=config.floatX)))
 
     def __init__(self, sample_fn, free_energy_fn, v_sample0, n_runs,
