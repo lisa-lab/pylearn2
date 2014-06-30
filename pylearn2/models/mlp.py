@@ -1478,7 +1478,7 @@ class Softmax(Layer):
         log_prob = z - T.log(T.exp(z).sum(axis=1).dimshuffle(0, 'x'))
         # we use sum and not mean because this is really one variable per row
         
-        if _has_binary_target:
+        if self._has_binary_target:
             log_prob_of = (log_prob[Y]).sum(axis=1)
         else:
             log_prob_of = (Y * log_prob).sum(axis=1)
