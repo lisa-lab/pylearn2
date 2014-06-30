@@ -695,7 +695,7 @@ class MLP(Layer):
             The data specifications for both inputs and targets.
         """
         space = CompositeSpace((self.get_input_space(),
-                                self.get_output_space()))
+                                self.get_target_space()))
         source = (self.get_input_source(), self.get_target_source())
         return (space, source)
 
@@ -1484,7 +1484,14 @@ class Softmax(Layer):
         # we use sum and not mean because this is really one variable per row
         
         if self._has_binary_target:
-            log_prob_of = (log_prob[Y]).sum(axis=1)
+            #log_prob_of = (log_prob[T.arange(Y.shape[0]), Y])
+            flat_Y = Y.flatten()
+            flat_log_prob = log_prob.flatten()
+            Y_row = Y.shape[0]
+            Y_col = Y.shape[1]
+            L_col = log_prob.shape[1]
+            flat_indices = flat_Y + T.extra_ops.repeat(T.arange(Y_row)*L_col, Y_col)
+            log_prob_of = flat_log_prob[flat_indices]
         else:
             log_prob_of = (Y * log_prob).sum(axis=1)
         
