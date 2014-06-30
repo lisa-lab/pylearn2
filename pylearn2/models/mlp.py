@@ -1162,7 +1162,7 @@ class Softmax(Layer):
                  b_lr_scale=None, max_row_norm=None,
                  no_affine=False,
                  max_col_norm=None, init_bias_target_marginals=None,
-                 binary_target=False,):
+                 binary_target=False, target_dim=None):
 
         super(Softmax, self).__init__()
 
