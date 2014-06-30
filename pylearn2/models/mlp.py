@@ -1491,7 +1491,8 @@ class Softmax(Layer):
             Y_col = Y.shape[1]
             L_col = log_prob.shape[1]
             flat_indices = flat_Y + T.extra_ops.repeat(T.arange(Y_row)*L_col, Y_col)
-            log_prob_of = flat_log_prob[flat_indices]
+            log_prob_of = T.reshape(flat_log_prob[flat_indices], (Y_row, Y_col)).sum(axis=1)
+            
         else:
             log_prob_of = (Y * log_prob).sum(axis=1)
         
