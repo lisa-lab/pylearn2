@@ -513,6 +513,11 @@ class MLP(Layer):
 
         return self.layers[-1].get_output_space()
 
+    @wraps(Layer.get_target_space)
+    def get_target_space(self):
+        
+        return self.layers[-1].get_target_space()
+
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
 
@@ -4404,6 +4409,8 @@ class CompositeLayer(Layer):
         self.input_space = space
         self.output_space = CompositeSpace(tuple(layer.get_output_space()
                                                  for layer in self.layers))
+        self._target_space = CompositeSpace(tuple(layer.get_target_space()
+                                                  for layer in self.layers))
 
     @wraps(Layer.get_params)
     def get_params(self):
