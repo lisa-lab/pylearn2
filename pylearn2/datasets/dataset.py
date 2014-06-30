@@ -169,8 +169,7 @@ class Dataset(object):
         """
         Returns the number of examples in the dataset
 
-        Notes
-        -----
+
         Infinite datasets have float('inf') examples.
         """
         raise NotImplementedError()
