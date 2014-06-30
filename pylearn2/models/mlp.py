@@ -31,7 +31,7 @@ from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
 from pylearn2.space import CompositeSpace
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
-from pylearn2.space import VectorSpace
+from pylearn2.space import VectorSpace, IndexSpace
 from pylearn2.utils import function
 from pylearn2.utils import is_iterable
 from pylearn2.utils import py_float_types
