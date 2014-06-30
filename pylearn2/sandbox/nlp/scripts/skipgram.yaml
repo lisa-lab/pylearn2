@@ -27,32 +27,44 @@
         layers: [!obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
             n_classes: *l,
             layer_name: 'h0',
-            irange: 0.01
+            irange: 0.01,
+            binary_target: True,
+            target_dim: 1
           },
           !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
             n_classes: *l,
             layer_name: 'h1',
-            irange: 0.01
+            irange: 0.01,
+            binary_target: True,
+            target_dim: 1
           },
           !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
             n_classes: *l,
             layer_name: 'h2',
-            irange: 0.01
+            irange: 0.01,
+            binary_target: True,
+            target_dim: 1
           },
           !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
             n_classes: *l,
             layer_name: 'h3',
-            irange: 0.01
+            irange: 0.01,
+            binary_target: True,
+           target_dim: 1
           },
           !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
             n_classes: *l,
             layer_name: 'h4',
-            irange: 0.01
+            irange: 0.01,
+            binary_target: True,
+            target_dim: 1
           },
           !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
             n_classes: *l,
             layer_name: 'h5',
-            irange: 0.01
+            irange: 0.01,
+            binary_target: True,
+            target_dim: 1
           }
         ]
       }
