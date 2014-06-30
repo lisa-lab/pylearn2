@@ -909,10 +909,15 @@ class IndexSpace(SimplyTypedSpace):
     @functools.wraps(Space._format_as_impl)
     def _format_as_impl(self, is_numeric, batch, space):
         if isinstance(space, VectorSpace):
-            if self.max_labels == space.dim:
-                mode = 'merge'
-            elif self.dim * self.max_labels == space.dim:
+            if self.dim * self.max_labels == space.dim:
                 mode = 'concatenate'
+            elif self.max_labels == space.dim:
+                mode = 'merge'
+            
+            # if self.max_labels == space.dim:
+            #     mode = 'merge'
+            # elif self.dim * self.max_labels == space.dim:
+            #     mode = 'concatenate'
             else:
                 raise ValueError("There is a bug. Couldn't format to a "
                                  "VectorSpace because it had an incorrect "

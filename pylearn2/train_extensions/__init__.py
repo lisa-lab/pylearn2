@@ -6,9 +6,12 @@ __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
+import cPickle
 import functools
 import logging
 import numpy as np
+
+from theano import tensor, function
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +80,147 @@ class TrainExtension(object):
             The object representing the training algorithm being
             used to train the model.
         """
+
+class WordRelationship(TrainExtension):
+    """
+    Calculates the accuracy on Google's Semantic-Syntactic Word
+    Relationship test set.
+
+    Parameters
+    ----------
+    vocab : str
+    A pickled file that contains a dictionary from words
+    (strings) to word indices (integers)
+    questions : str
+    The path to the questions, which should be in the form
+    `A B C D` where we will check if B - A + C = D.
+    Each question category starts with `: category`
+    UNK : int
+    What integer to use for words that are not in the
+    dictionary, defaults to 0
+
+    Attributes
+    ----------
+    questions : list of lists of ints
+    Contains the word indices of the questions
+    categories : list of tuples
+    Each tuple is of the form (int, string) where
+    string is the name of the category and int is the
+    index of the first question in that category
+    most_similar : theano function
+    Takes a vector of 3 integers (int32) and returns
+    the index of the nearest vector by cosine similarity.
+    similarity : theano function
+    Takes 4 integers and returns the similarity between
+    2 - 1 + 3 and 4
+    """
+    
+    def __init__(self, vocab, questions, vocab_size, UNK=1, n_batches=4):
+        # Load the vocabulary and binarize the questions
+        with open(vocab) as f:
+            vocab = cPickle.load(f)
+        binarized_questions = []
+        categories = []
+        with open(questions) as f:
+            for i, line in enumerate(f):
+                words = line.strip().lower().split()
+                if words[0] == ':':
+                    categories.append((i, words[1]))
+                    continue
+                binarized_questions.append([vocab.get(word, UNK)
+                                            for word in words])
+	self.n_batches = n_batches
+        self.categories = categories
+        self.questions = np.array(binarized_questions, dtype='int32')
+	self.questions[self.questions >= vocab_size] = UNK
+	self.orig_n_questions = len(self.questions)
+	self.questions = self.questions[self.questions[:, 3] != UNK]
+        self.n_questions = len(self.questions)
+	print self.orig_n_questions - self.n_questions, "question(s) removed due to clipped vocabulary"
+	
+    @functools.wraps(TrainExtension.setup)
+    def setup2(self, model, dataset, algorithm):
+        # Create a Theano function that takes 3 words and returns
+        # the word index with the largest cosine similarity
+        word_indices = tensor.ivector('words')
+        embedding_matrix, = model.layers[0].transformer.get_params()
+	word_embeddings = embedding_matrix[word_indices]
+        target = word_embeddings[1] - word_embeddings[0] + word_embeddings[2]
+        dot_products = tensor.dot(embedding_matrix, target)
+        norms = target.norm(2) * embedding_matrix.norm(2, axis=1)
+	similarities = dot_products / norms
+        most_similar = tensor.argmax(similarities)
+
+        self.most_similar = function([word_indices], most_similar)
+
+        # Create a Theano function that takes 4 words and calculates
+        # the similarity between B - A + C and D
+
+        self.similarity = function([word_indices],
+                                   similarities[word_indices[3]])
+
+    @functools.wraps(TrainExtension.on_monitor)
+    def on_monitor2(self, model, dataset, algorithm):
+        num_correct = 0.
+        sum_similarity = 0.
+        #import time
+	#t0 = time.time()
+	for question in self.questions:
+            num_correct += (self.most_similar(question[:3]) == question[-1])
+            sum_similarity += self.similarity(question)
+        #t1 = time.time()
+	#print total
+        print "Avg. cos similarity: %s" % (sum_similarity /
+                                           len(self.questions))
+        print "Accuracy: %s%%" % (num_correct * 100. / len(self.questions))
+
+#/////////////////////////////////////////////////
+
+    def setup(self, model, dataset, algorithm):
+        # Create a Theano function that takes 3 words and returns
+        # the word index with the largest cosine similarity
+        word_indices = tensor.imatrix('words')
+        embedding_matrix, = model.layers[0].transformer.get_params()
+	word_embeddings = embedding_matrix[word_indices.flatten()].reshape((word_indices.shape[0], word_indices.shape[1],
+				embedding_matrix.shape[1])) 
+        target = word_embeddings[:,1,:] - word_embeddings[:,0,:] + word_embeddings[:,2,:]
+        dot_products = tensor.dot(target, embedding_matrix.T) #dim 0: n_questions, dim1: vocab_size
+        norms = target.norm(2, axis=1)[:, None] * embedding_matrix.norm(2, axis=1).T[None, :] #dim:
+	similarities = dot_products / norms
+        most_similar = tensor.argmax(similarities, axis=1) #dim =n_questions
+
+        self.most_similar = function([word_indices],
+                                     [most_similar,
+                                      similarities[tensor.arange(word_indices.shape[0]),
+                                                   word_indices[:, 3]]])
+
+        # Create a Theano function that takes 4 words and calculates
+        # the similarity between B - A + C and D
+
+        #self.similarity = function([word_indices],
+        #                           similarities[word_indices[3]])
+
+    @functools.wraps(TrainExtension.on_monitor)
+    def on_monitor(self, model, dataset, algorithm):
+        num_correct = 0.
+        sum_similarity = 0.
+       	batches = np.asarray([i * np.floor(self.n_questions / self.n_batches) for i in np.arange(self.n_batches)]
+				+[self.n_questions])
+	#import time
+	#t0 = time.time()
+	for i in xrange(self.n_batches):
+	    most_similar, similarity = self.most_similar(self.questions[batches[i]:batches[i+1]])
+            num_correct += np.sum([most_similar == self.questions[batches[i]:batches[i+1],-1]])
+            sum_similarity += np.sum(similarity) #np.sum(self.similarity(self.questions[batches[i]:batches[i+1]]))
+        #t1 = time.time()
+	#print total
+	
+        #num_correct = sum([self.most_similar(self.questions[:,:3]) == self.questions[:,-1]])
+	#sum_similarity = sum(self.similarity(self.questions))
+	print "Avg. cos similarity: %s" % (sum_similarity /
+                                           len(self.questions))
+        print "Accuracy: %s%%" % (num_correct * 100. / len(self.questions))
+
 
 class SharedSetter(TrainExtension):
     """
