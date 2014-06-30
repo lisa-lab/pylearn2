@@ -1159,6 +1159,11 @@ class Softmax(Layer):
     no_affine : WRITEME
     max_col_norm : WRITEME
     init_bias_target_marginals : WRITEME
+    binary_target : A boolean value. If true, softmax will expect that target
+                    is an IndexSpace. If false, will expect a VectorSpace.
+                    Defaults to False.
+    target_dim : Ignored unless binary_target is True. The dimension of the
+                 target IndexSpace.
     """
 
     def __init__(self, n_classes, layer_name, irange=None,
@@ -1166,7 +1171,8 @@ class Softmax(Layer):
                  sparse_init=None, W_lr_scale=None,
                  b_lr_scale=None, max_row_norm=None,
                  no_affine=False,
-                 max_col_norm=None, init_bias_target_marginals=None):
+                 max_col_norm=None, init_bias_target_marginals=None,
+                 binary_target=False,):
 
         super(Softmax, self).__init__()
 
@@ -1179,6 +1185,12 @@ class Softmax(Layer):
 
         assert isinstance(n_classes, py_integer_types)
 
+        if binary_target:
+            self._has_binary_target = True
+            self._target_space= IndexSpace(dim=target_dim, max_labels=n_classes)
+        else:
+            self._has_binary_target = False
+    
         self.output_space = VectorSpace(n_classes)
         if not no_affine:
             self.b = sharedX(np.zeros((n_classes,)), name='softmax_b')
@@ -1465,7 +1477,12 @@ class Softmax(Layer):
         z = z - z.max(axis=1).dimshuffle(0, 'x')
         log_prob = z - T.log(T.exp(z).sum(axis=1).dimshuffle(0, 'x'))
         # we use sum and not mean because this is really one variable per row
-        log_prob_of = (Y * log_prob).sum(axis=1)
+        
+        if _has_binary_target:
+            log_prob_of = (log_prob[Y]).sum(axis=1)
+        else:
+            log_prob_of = (Y * log_prob).sum(axis=1)
+        
         assert log_prob_of.ndim == 1
 
         rval = log_prob_of.mean()
