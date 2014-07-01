@@ -40,21 +40,25 @@ class NORB(DenseDesignMatrix):
     Parameters
     ----------
 
-    X: design matrix of uint8s. Each row contains the pixels of a
-       stereo image pair (grayscale).
+    X : ndarray
+    Design matrix. Each row contains the pixels of a grayscale stereo image
+    pair.
 
-    y: design matrix of int32s. Each row contains the labels for the
-       corresponding row in X.
+    y : ndarray
+    Design matrix of int32s. Each row contains the labels for the
+    corresponding row in X.
 
-    label_index_to_name: Maps column indices of y to the name of that
-                         label (e.g. 'category', 'instance', etc).
+    label_index_to_name : tuple
+    Maps column indices of y to the name of that label (e.g. 'category',
+    'instance', etc).
 
-    label_name_to_index: maps label names (e.g. 'category') to the
-                         corresponding column index in label.y.
+    label_name_to_index : dict
+    Maps label names (e.g. 'category') to the corresponding column index in
+    label.y.
 
-    label_to_value_funcs: a tuple of functions that map label values
-                          to the physical values they represent (for example,
-                          elevation angle in degrees).
+    label_to_value_funcs : tuple
+    A tuple of functions that map label values to the physical values they
+    represent (for example, elevation angle in degrees).
     """
 
     def __init__(self, which_norb, which_set, image_dtype='uint8'):
@@ -65,18 +69,18 @@ class NORB(DenseDesignMatrix):
         Parameters
         ----------
 
-        which_norb: str
+        which_norb : str
             Valid values: 'big' or 'small'.
             Chooses between the (big) 'NORB dataset', and the 'Small NORB
             dataset'.
 
-        which_set: str
+        which_set : str
             Valid values: 'test', 'train', or 'both'.
             Chooses between the testing set or the training set. If 'both',
             the two datasets will be stacked together (testing data in the
             first N rows, then training data).
 
-        image_dtype: str, or numpy.dtype
+        image_dtype : str, or numpy.dtype
             The dtype to store image data as in the memmap cache.
             Default is uint8, which is what the original NORB files use.
         """
@@ -258,11 +262,11 @@ class NORB(DenseDesignMatrix):
                 Parameters
                 ----------
 
-                norb_file_path: str
+                norb_file_path : str
                   A NORB file from which to read.
                   Can be uncompressed (*.mat) or compressed (*.mat.gz).
 
-                debug: bool
+                debug : bool
                   Set to True if you want debug printfs.
                 """
 
@@ -389,13 +393,13 @@ class NORB(DenseDesignMatrix):
 
             Parameters
             ----------
-            which_norb: str
+            which_norb : str
             'big' or 'small'.
 
-            which_set: str
+            which_set : str
             'test', 'train', or 'both'.
 
-            dtype: numpy.dtype
+            dtype : numpy.dtype
             The dtype of the image memmap cache file. If a
             cache of this dtype doesn't exist, it will be created.
             """
@@ -606,7 +610,7 @@ class StereoViewConverter(object):
 
     Parameters
     ----------
-    shape: tuple
+    shape : tuple
     See doc for __init__'s <shape> parameter.
     """
 
@@ -673,10 +677,10 @@ class StereoViewConverter(object):
         Parameters
         ----------
 
-        batch: ndarray
+        batch : ndarray
         The batch to format
 
-        space: a pylearn2.space.Space
+        space : a pylearn2.space.Space
         The target space to format to.
         """
         return self.storage_space.np_format_as(batch, space)
@@ -688,7 +692,7 @@ class StereoViewConverter(object):
         Parameters
         ----------
 
-        design_mat: ndarray
+        design_mat : ndarray
         """
         return self.storage_space.np_format_as(design_mat, self.topo_space)
 
@@ -699,7 +703,7 @@ class StereoViewConverter(object):
         Parameters
         ----------
 
-        design_mat: ndarray
+        design_mat : ndarray
         """
         return self.design_mat_to_topo_view(design_mat)
 
@@ -710,7 +714,7 @@ class StereoViewConverter(object):
         Parameters
         ----------
 
-        topo_batch: ndarray
+        topo_batch : ndarray
         """
         return self.topo_space.np_format_as(topo_batch, self.storage_space)
 
@@ -733,7 +737,7 @@ class StereoViewConverter(object):
         Parameters
         ----------
 
-        axes: tuple
+        axes : tuple
         Must have length 5, must contain 'b', 's', 0, 1, 'c'.
         """
         axes = tuple(axes)
