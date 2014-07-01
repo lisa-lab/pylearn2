@@ -11,12 +11,6 @@ from pylearn2.config.yaml_parse import load, load_path, initialize
 from os import environ
 from decimal import Decimal
 import yaml
-from pylearn2.models.mlp import MLP, Sigmoid
-
-from pylearn2.models.rbm import GaussianBinaryRBM
-from pylearn2.space import Conv2DSpace
-from pylearn2.linear.conv2d import make_random_conv2D
-from pylearn2.energy_functions.rbm_energy import grbm_type_1
 
 
 def test_load_path():
@@ -115,7 +109,7 @@ def test_multi_constructor_obj():
     the keys in mapping are None.
     """
     try:
-        loaded = load("a: !obj:decimal.Decimal { 1 }")
+        load("a: !obj:decimal.Decimal { 1 }")
     except TypeError as e:
         assert str(e) == "Received non string object (1) as key in mapping."
         pass
@@ -143,7 +137,7 @@ def test_duplicate_keywords():
     }"""
 
     try:
-        loaded = load(yamlfile)
+        load(yamlfile)
     except yaml.constructor.ConstructorError, e:
         message = str(e)
         assert message.endswith("found duplicate key (nvis)")
@@ -188,12 +182,13 @@ def test_duplicate_keywords_2():
              }
     }"""
 
-    loaded = load(yamlfile)
+    load(yamlfile)
+
 
 def test_parse_null_as_none():
     """
     Tests whether None may be passed via yaml kwarg null.
-    """ 
+    """
     initialize()
     yamlfile = """{
              "model": !obj:pylearn2.models.autoencoder.Autoencoder {
@@ -205,7 +200,7 @@ def test_parse_null_as_none():
 
              }
     }"""
-    loaded = load(yamlfile)
+    load(yamlfile)
 
 if __name__ == "__main__":
     test_multi_constructor_obj()
