@@ -62,6 +62,118 @@ class Proxy(BaseProxy):
         return hash(id(self))
 
 
+class ObjectProxy(Proxy):
+    """
+    API compatibility wrapper for deprecated `ObjectProxy` class.
+
+    Parameters
+    ----------
+    cls : callable
+       See `callable` in `Proxy` docstring.
+    kwds : dict
+       See `keywords` in `Proxy` docstring.
+    yaml_src : str
+       See `yaml_src` in `Proxy` docstring.
+
+    .. warning::
+
+        Deprecated, to be removed as of January 1, 2015.
+    """
+    def __init__(self, cls, kwds, yaml_src):
+        self._warn()
+        super(ObjectProxy, self).__init__(callable=cls, positionals=(),
+                                          keywords=kwds, yaml_src=yaml_src)
+
+    def _warn(self, s):
+        """
+        Issue a templated warning message about deprecation of this interface.
+
+        Parameters
+        ----------
+        s : str
+            Prefix string for the warning message.
+        """
+        warnings.warn("%s is deprecated. Switch to `Proxy`. "
+                      "`ObjectProxy` will be removed on or after "
+                      "January 10, 2015." % s, stacklevel=2)
+
+    def __getitem__(self, key):
+        """
+        .. warning::
+
+            Deprecated, to be removed as of January 1, 2015.
+        """
+        self._warn("ObjectProxy.__getitem__")
+        return self.kwds[key]
+
+    def __setitem__(self, key, value):
+        """
+        .. warning::
+
+            Deprecated, to be removed as of January 1, 2015.
+        """
+        self._warn("ObjectProxy.__setitem__")
+        self.kwds[key] = value
+
+    def __iter__(self):
+        """
+
+        .. warning::
+
+            Deprecated, to be removed as of January 1, 2015.
+        """
+        self._warn("ObjectProxy.__iter__")
+        return self.kwds.__iter__()
+
+    def keys(self):
+        """
+
+        .. warning::
+
+            Deprecated, to be removed as of January 1, 2015.
+        """
+        self._warn("ObjectProxy.keys")
+        return list(self.kwds)
+
+    @property
+    def kwds(self):
+        """
+        .. warning::
+
+            Deprecated, to be removed as of January 1, 2015.
+        """
+        self._warn("ObjectProxy.kwds")
+        return self.keywords
+
+    @property
+    def cls(self):
+        """
+        .. warning::
+
+            Deprecated, to be removed as of January 1, 2015.
+        """
+        self._warn("ObjectProxy.cls")
+        return self.callable
+
+    def instantiate(self):
+        """
+        .. warning::
+
+            Deprecated, to be removed as of January 1, 2015.
+
+        Instantiate this object with the supplied parameters in `self.kwds`,
+        or if already instantiated, return the cached instance.
+        """
+        self._warn("ObjectProxy.instantiate")
+        if self.instance is None:
+            self.instance = checked_call(self.cls, self.kwds)
+        try:
+            self.instance.yaml_src = self.yaml_src
+        except AttributeError:
+            pass
+        return self.instance
+
+
 def do_not_recurse(value):
     """
     Function symbol used for wrapping an unpickled object (which should
@@ -120,6 +232,22 @@ def _instantiate_proxy_tuple(proxy, bindings=None):
         except AttributeError:  # Some classes won't allow this.
             pass
         return obj
+
+
+def instantiate_all(graph):
+    """
+    .. warning::
+
+        Deprecated, to be removed as of January 1, 2015.
+
+    API compatibility wrapper for deprecated `instantiate_all`.
+
+    Parameters
+    ----------
+    graph : object
+        A `Proxy` object or list/dict/literal. Strings are run through
+        `preprocess`.
+    """
 
 
 def _instantiate(proxy, bindings=None):
