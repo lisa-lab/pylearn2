@@ -1,0 +1,104 @@
+# Last tested 2014-06-20
+# Using pylearn2 commit 190a7d1e12093b2bfa
+# theano commit 95b4fec5539cc059d46
+# run on an nvidia titan black
+# Obtained raw_valid_err of 0.085
+# When originally run in 2013, obtained raw_valid_err of 0.076
+!obj:pylearn2.train.Train {
+    dataset: &train !obj:pylearn2.datasets.binarizer.Binarizer {
+      raw: &raw_train !obj:pylearn2.datasets.mnist.MNIST {
+        which_set: "train",
+        shuffle: 0,
+        one_hot: 1,
+        start: 0,
+        stop: 50000
+    }},
+    model: !obj:pylearn2.models.dbm.DBM {
+        inference_procedure: !obj:pylearn2.models.dbm.SuperWeightDoubling {},
+              batch_size : 100,
+              niter: 14,
+              visible_layer: !obj:pylearn2.models.dbm.BinaryVector {
+                nvis: 784,
+                bias_from_marginals: *raw_train,
+                center: 0,
+              },
+              hidden_layers: [
+                !obj:pylearn2.models.dbm.BinaryVectorMaxPool {
+                    center: 0,
+                        max_col_norm: 1.809978,
+                        detector_layer_dim: 2087,
+                        pool_size: 1,
+                        sparse_init: 15,
+                        layer_name: 'h0',
+                        init_bias: -0.710467
+               },
+                !obj:pylearn2.models.dbm.BinaryVectorMaxPool {
+                    center: 0,
+                        max_col_norm: 2.666304,
+                        detector_layer_dim: 3200,
+                        pool_size: 1,
+                        irange: 0.00638830865761,
+                        layer_name: 'h1',
+                        init_bias: -0.393587
+               },
+               !obj:pylearn2.models.dbm.Softmax {
+                    center: 0,
+                        max_col_norm: 5.175683,
+                        sparse_init: 23,
+                        layer_name: 'c',
+                        n_classes: 10
+               }
+              ]
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        monitoring_dataset : {
+            raw_valid: !obj:pylearn2.datasets.mnist.MNIST {
+                                which_set: "train",
+                                shuffle: 0,
+                                one_hot: 1,
+                                start: 50000,
+                                stop: 60000
+                            },
+               },
+         learning_rate: 15.146493,
+        init_momentum: .5,
+               cost: !obj:pylearn2.costs.cost.SumOfCosts {
+                   costs :[
+                      !obj:pylearn2.costs.dbm.MultiPrediction {
+                          
+                          both_directions: 0,
+                          noise: 0,
+                           supervised: 1,
+                           mask_gen: !obj:pylearn2.costs.dbm.MaskGen {
+                               drop_prob: 0.5,
+                               balance: 0,
+                               sync_channels: 0
+                            }
+                       }
+                       ]
+               },
+               termination_criterion: !obj:pylearn2.termination_criteria.MonitorBased
+               {
+                        channel_name: "raw_valid_err",
+                        N: 100,
+                        prop_decrease: 0.
+               }
+        },
+    extensions: [
+                !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
+                        channel_name: "raw_valid_err",
+                        save_path: "mpdbm.pkl"
+                },
+                !obj:pylearn2.training_algorithms.sgd.MomentumAdjustor {
+                    start: 1,
+                    saturate: 2,
+                    final_momentum: 0.732716
+                },
+                !obj:pylearn2.training_algorithms.sgd.LinearDecayOverEpoch {
+                    start: 1,
+                    saturate: 868,
+                    decay_factor: 0.020379
+                }
+        ],
+}
+    

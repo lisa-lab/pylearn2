@@ -1719,7 +1719,7 @@ def lecun_lcn(input, img_shape, kernel_shape, threshold=1e-4):
     kernel_shape : WRITEME
     threshold : WRITEME
     """
-    input = input.reshape(input.shape[0], input.shape[1], input.shape[2], 1)
+    input = input.reshape((input.shape[0], input.shape[1], input.shape[2], 1))
     X = tensor.matrix(dtype=input.dtype)
     X = X.reshape((len(input), img_shape[0], img_shape[1], 1))
 

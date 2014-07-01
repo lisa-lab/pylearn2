@@ -13,11 +13,14 @@ __email__ = "pylearn-dev@googlegroups"
 
 def print_monitor(args):
     from pylearn2.utils import serial
+    import gc
     for model_path in args:
         if len(args) > 1:
             print model_path
         model = serial.load(model_path)
         monitor = model.monitor
+        del model
+        gc.collect()
         channels = monitor.channels
         if not hasattr(monitor, '_epochs_seen'):
             print 'old file, not all fields parsed correctly'

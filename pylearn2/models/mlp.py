@@ -724,8 +724,9 @@ class MLP(Layer):
         for layer, coeff in safe_izip(self.layers, coeffs):
             if coeff != 0.:
                 layer_costs += [layer.get_weight_decay(coeff)]
-            else:
-                layer_costs += [0.]
+
+        if len(layer_costs) == 0:
+            return T.constant(0, dtype=config.floatX)
 
         total_cost = reduce(lambda x, y: x + y, layer_costs)
 
@@ -742,8 +743,9 @@ class MLP(Layer):
         for layer, coeff in safe_izip(self.layers, coeffs):
             if coeff != 0.:
                 layer_costs += [layer.get_l1_weight_decay(coeff)]
-            else:
-                layer_costs += [0.]
+
+        if len(layer_costs) == 0:
+            return T.constant(0, dtype=config.floatX)
 
         total_cost = reduce(lambda x, y: x + y, layer_costs)
 
@@ -4452,7 +4454,7 @@ class CompositeLayer(Layer):
             assert all(layer_coeff >= 0 for layer_coeff in coeff)
             return T.sum([getattr(layer, method_name)(layer_coeff) for
                           layer, layer_coeff in safe_zip(self.layers, coeff)
-                          if layer_coeff > 0])
+                          if layer_coeff > 0], dtype=config.floatX)
         else:
             raise TypeError("CompositeLayer's " + method_name + " received "
                             "coefficients of type " + str(type(coeff)) + " "

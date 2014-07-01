@@ -123,7 +123,7 @@ def load(filepath, recurse_depth=0, retry=True):
                 if hdf_reader is None:
                     import h5py
                     hdf_reader = h5py
-                return hdf_reader.File(filepath)
+                return hdf_reader.File(filepath, 'r')
             else:
                 raise
         #this code should never be reached
