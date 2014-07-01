@@ -428,8 +428,9 @@ class Model(object):
     def get_target_space(self):
         """
         Returns an instance of pylearn2.space.Space describing the format of 
-        the vector space that the model outputs. Defaults to get_output_space()
-        unless the model has the _targe_space data member.
+        the vector space that the targets should be in, which may be different
+        from the output space. Defaults to get_output_space() unless the model 
+        has the _target_space data member.
         """
         if hasattr(self, '_target_space'):
             return self._target_space
