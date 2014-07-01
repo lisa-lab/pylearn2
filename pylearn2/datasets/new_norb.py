@@ -57,7 +57,7 @@ class NORB(DenseDesignMatrix):
                           elevation angle in degrees).
     """
 
-    def __init__(self, which_norb, which_set):
+    def __init__(self, which_norb, which_set, image_dtype='uint8'):
         """
         Reads the specified NORB dataset from a memmap cache.
         Creates this cache first, if necessary.
@@ -75,6 +75,10 @@ class NORB(DenseDesignMatrix):
             Chooses between the testing set or the training set. If 'both',
             the two datasets will be stacked together (testing data in the
             first N rows, then training data).
+
+        image_dtype: str, or numpy.dtype
+            The dtype to store image data as in the memmap cache.
+            Default is uint8, which is what the original NORB files use.
         """
 
         if which_norb not in ('big', 'small'):
@@ -84,6 +88,9 @@ class NORB(DenseDesignMatrix):
         if which_set not in ('test', 'train', 'both'):
             raise ValueError("Expected which_set argument to be either 'test' "
                              "or 'train', not '%s'." % str(which_set))
+
+        # This will check that dtype is a legitimate dtype string.
+        image_dtype = numpy.dtype(image_dtype)
 
         # Maps column indices of self.y to the label type it contains.
         # Names taken from http://www.cs.nyu.edu/~ylclab/data/norb-v1.0/
@@ -220,7 +227,7 @@ class NORB(DenseDesignMatrix):
                                                       min_label=-4,
                                                       max_label=4))
 
-            return result  # ends get_label_to_value_maps()
+            return result  # ends get_label_to_value_funcs()
 
         self.label_to_value_funcs = get_label_to_value_funcs()
 
@@ -360,7 +367,6 @@ class NORB(DenseDesignMatrix):
             for norb_file in norb_files:
                 print "copying NORB file %s" % os.path.split(norb_file)[1]
                 norb_data = read_norb_file(norb_file)
-                assert norb_data.dtype == output.dtype
                 norb_data = norb_data.reshape(-1, output.shape[1])
                 end_row = row_index + norb_data.shape[0]
                 output[row_index:end_row, :] = norb_data
@@ -376,14 +382,27 @@ class NORB(DenseDesignMatrix):
             training_set_size = 291600
             testing_set_size = 58320
 
-        def load_images(which_norb, which_set):
+        def load_images(which_norb, which_set, dtype):
             """
             Reads image data from memmap disk cache, if available. If not, then
             first builds the memmap file from the NORB files.
+
+            Parameters
+            ----------
+            which_norb: str
+            'big' or 'small'.
+
+            which_set: str
+            'test', 'train', or 'both'.
+
+            dtype: numpy.dtype
+            The dtype of the image memmap cache file. If a
+            cache of this dtype doesn't exist, it will be created.
             """
 
-            memmap_path = get_memmap_path(which_norb, 'images')
-            dtype = numpy.dtype('uint8')
+            assert type(dtype) == numpy.dtype
+
+            memmap_path = get_memmap_path(which_norb, 'images_%s' % str(dtype))
             row_size = 2 * (image_length ** 2)
             shape = (training_set_size + testing_set_size, row_size)
 
@@ -487,12 +506,13 @@ class NORB(DenseDesignMatrix):
 
         norb_dir = get_norb_dir(which_norb)
 
-        def get_memmap_path(which_norb, images_or_labels):
+        def get_memmap_path(which_norb, file_basename):
             assert which_norb in ('big', 'small')
-            assert images_or_labels in ('images', 'labels')
+            assert (file_basename == 'labels' or
+                    file_basename.startswith('images')), file_basename
+
             memmap_dir = os.path.join(norb_dir, 'memmaps_of_original')
-            template = os.path.join(memmap_dir, "%s.npy")
-            return template % images_or_labels
+            return os.path.join(memmap_dir, "%s.npy" % file_basename)
 
         def get_norb_file_paths(which_norb, which_set, norb_file_type):
             """
@@ -546,7 +566,7 @@ class NORB(DenseDesignMatrix):
             return StereoViewConverter(datum_shape, axes)
 
         super(NORB, self).__init__(
-            X=load_images(which_norb, which_set),
+            X=load_images(which_norb, which_set, image_dtype),
             y=load_labels(which_norb, which_set),
             view_converter=make_view_converter(which_norb, which_set))
 
@@ -639,7 +659,8 @@ class StereoViewConverter(object):
             conv2d_axes.remove('s')
             return Conv2DSpace(shape=image_shape,
                                num_channels=shape[shape_axes.index('c')],
-                               axes=conv2d_axes)
+                               axes=conv2d_axes,
+                               dtype=None)
 
         conv2d_space = make_conv2d_space(shape, axes)
         self.topo_space = CompositeSpace((conv2d_space, conv2d_space))
