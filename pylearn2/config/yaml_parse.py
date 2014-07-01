@@ -200,7 +200,7 @@ def load(stream, environ=None, instantiate=True, **kwargs):
     if isinstance(stream, basestring):
         string = stream
     else:
-        string = '\n'.join(stream.readlines())
+        string = stream.read()
 
     proxy_graph = yaml.load(string, **kwargs)
     if instantiate:
