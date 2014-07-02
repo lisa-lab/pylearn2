@@ -68,7 +68,8 @@ def ais_data(fname, do_exact=True, betas=None):
     # run ais using B=0 model with ML visible biases
     t1 = time.time()
     (logz, log_var_dz), aisobj = \
-        rbm_tools.rbm_ais(rbm_params, n_runs=100, seed=123, data=data, betas=betas)
+        rbm_tools.rbm_ais(rbm_params, n_runs=100, seed=123, data=data,
+                          betas=betas)
     print 'AIS logZ         : %f' % logz
     print '    log_variance : %f' % log_var_dz
     print 'Elapsed time: ', time.time() - t1
