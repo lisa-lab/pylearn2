@@ -13,13 +13,14 @@ import warnings
 from numpy.lib.stride_tricks import as_strided
 
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
+from pylearn2.sandbox.nlp.datasets.text import TextDatasetMixin
 from pylearn2.utils import serial
 from pylearn2.utils.iteration import resolve_iterator_class
 
 
-class PennTreebank(DenseDesignMatrix):
+class PennTreebank(DenseDesignMatrix, TextDatasetMixin):
     """
-    Loads the Penn Treebank corpus.
+    Loads n-grams from the word-level Penn Treebank corpus.
 
     Parameters
     ----------
@@ -40,9 +41,8 @@ class PennTreebank(DenseDesignMatrix):
         self.__dict__.update(locals())
         del self.self
 
-        path = ("${PYLEARN2_DATA_PATH}/PennTreebankCorpus/" +
-                "penntree_char_and_word.npz")
-        npz_data = serial.load(path)
+        path = "${PYLEARN2_DATA_PATH}/PennTreebankCorpus/"
+        npz_data = serial.load(path + "penntree_char_and_word.npz")
         if which_set == 'train':
             self._raw_data = npz_data['train_words']
         elif which_set == 'valid':
@@ -52,7 +52,12 @@ class PennTreebank(DenseDesignMatrix):
         else:
             raise ValueError("Dataset must be one of 'train', 'valid' "
                              "or 'test'")
-        del npz_data  # Free up some memory?
+
+        # Set values for the TextDatasetMixin
+        npz_data = serial.load(path + "dictionaries.npz")
+        self._vocabulary = {word: word_index for word_index, word
+                            in enumerate(npz_data['unique_words'])}
+        self._unknown_index = 10000
 
         self._data = as_strided(self._raw_data,
                                 shape=(len(self._raw_data) - context_len,
