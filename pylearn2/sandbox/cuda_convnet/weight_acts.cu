@@ -668,7 +668,6 @@ void _weightActs(NVMatrix& images, NVMatrix& hidActs, NVMatrix& targets,
     }
     */
 
-
     assert(targets.getNumRows() == (numModules/partialSum) * numFilterColors*filterPixels);
     assert(targets.getNumCols() == numFilters);
 

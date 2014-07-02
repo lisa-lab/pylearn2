@@ -42,6 +42,7 @@ The copyright and licensing notice for this code is reproduced below:
 """
 
 import warnings
+import numpy as np
 from theano.sandbox.cuda import GpuOp
 from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
 from pylearn2.sandbox.cuda_convnet.convnet_compile import convnet_available
@@ -53,9 +54,25 @@ from theano import config
 
 class BaseActs(GpuOp):
     """
-    Shared code for wrapping various convnet operations.
+    Shared code for wrapping various convnet operations (FilterActs, WeightActs,
+    ImageActs).
+    
+    * pad: Implicitly zero-pad the image with a border of this many pixels
+    * partial_sum: Performance/Memory usage tradeoff. Leave at `None` for lowest
+      memory usage, set to `1` for highest performance, see the [cuda-convnet
+      documentation](http://code.google.com/p/cuda-convnet/wiki/LayerParams#Convolution_layer)
+      for more details.
+    * stride: Distance between successive filter applications in pixels
+    * groups: Divide the input channels and filters into this many groups, apply
+      each filter group to its input channel group only
+    * pattern: Two-dimensional integer numpy array defining which filter group
+      processes which input channels. If `None`, input channels will be
+      divided into `groups` same-sized groups, the first of which will be
+      processed by the first group of filters, the second by the second, etc.
+      If given, must be an array of shape (groups, filter_channels) which for
+      each filter group gives the indices of input channels to be processed.
     """
-    def __init__(self, pad=0, partial_sum=None, stride=1):
+    def __init__(self, pad=0, partial_sum=None, stride=1, groups=1, pattern=None):
 
         if not isinstance(pad, py_integer_types):
             raise TypeError("pad must be an int")
@@ -66,8 +83,20 @@ class BaseActs(GpuOp):
         self.pad = pad
         self.stride = stride
         self.copy_non_contiguous = 0
-        # TODO: support sparse connectivity pattern
-        self.dense_connectivity = True
+        if pattern is not None:
+            pattern = np.array(pattern, dtype=np.int)            
+            if groups == 1:
+                groups = len(pattern)
+            elif groups != len(pattern):
+                raise ValueError("The supplied value `groups=%d` does not match "
+                        "the number of groups in the supplied connection pattern "
+                        "(%d). Either omit `groups` or set it to the correct "
+                        "value." % (groups, len(pattern)))
+            # TODO: implement in FilterActs/ImageActs/WeightActs.c_code()
+            raise NotImplementedError("custom connection patterns not supported yet")
+        self.pattern = pattern
+        self.groups = groups
+        self.dense_connectivity = (groups == 1) and (pattern is None)  # defined for backwards compatibility, not sure if anybody uses it
 
     def c_header_dirs(self):
         return [this_dir, config.pthreads.inc_dir] if config.pthreads.inc_dir else [this_dir]
@@ -117,14 +146,15 @@ class BaseActs(GpuOp):
         return (type(self) == type(other) and
                 self.partial_sum == other.partial_sum and
                 self.pad == other.pad and
-                self.dense_connectivity == other.dense_connectivity and
+                self.groups == other.groups and
+                np.all(self.pattern == other.pattern) and
                 self.stride == other.stride and
                 self.copy_non_contiguous == other.copy_non_contiguous)
 
     def __hash__(self):
         msg = []
         msg.append(self.__class__.__name__)
-        for val in (self.partial_sum, self.pad, self.dense_connectivity,
+        for val in (self.partial_sum, self.pad, self.groups, self.pattern,
                     self.stride, self.copy_non_contiguous):
             msg.append(str(val))
 

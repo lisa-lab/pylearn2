@@ -66,8 +66,12 @@ class WeightActs(BaseActs):
       Input channels must be divisible by 4.
     * hid_grads: (output channels, rows, cols, batch_size)
       Output channels must be a multiple of 16.
-    * filters: (input channels, filter rows, filter cols, output channels)
-      Filter rows must be the same as filter cols.
+    * output_shape: (2,)
+      2-element TensorVariable specifying the spatial shape of a single filter
+      (filter rows, filter columns). Filter rows must be equal to filter cols.
+    * output: (filter channels, filter rows, filter cols, output channels)
+      Filter channels must be input channels / self.groups, or
+      self.pattern.shape[1]. Filter rows must be equal to filter cols.
 
     Notes
     -----
@@ -87,6 +91,13 @@ class WeightActs(BaseActs):
         .. todo::
 
             WRITEME
+
+        Parameters
+        ----------
+        images : WRITEME
+        hid_grads : WRITEME
+        output_shape : 2-element TensorVariable
+            The spatial shape of a single filter
         """
         if not isinstance(images.type, CudaNdarrayType):
             raise TypeError("WeightActs: expected images.type "
@@ -94,7 +105,7 @@ class WeightActs(BaseActs):
                             "got " + str(images.type))
 
         if not isinstance(hid_grads.type, CudaNdarrayType):
-            raise TypeError("WeightActs: expected hid_acts.type "
+            raise TypeError("WeightActs: expected hid_grads.type "
                             "to be CudaNdarrayType, "
                             "got " + str(hid_grads.type))
 
@@ -124,18 +135,31 @@ class WeightActs(BaseActs):
                      [weights_grads, partial_sums])
 
     def flops(self, inputs, outputs):
-        """ Useful with the hack in profilemode to print the MFlops"""
-        images, kerns, output_shape = inputs
-        out, partial = outputs
-        # The partial sum is just a way to specify how to compute
-        # stuff inside the op.  It don't change the number of flops.
-        assert images[3] == kerns[3]
-        # nb mul and add by output pixed
-        flops = kerns[1] * kerns[2] * 2
-        #nb flops by output image
-        flops *= out[1] * out[2]
-        # for all outputs images#n_stack==self.imshp[0]
-        flops *= images[3] * kerns[0] * images[0]
+        """
+        Returns the number of floating point operations for an application of
+        this Op.
+
+        * inputs: list of shapes of inputs to this node:
+          [(input channels, rows, cols, batch_size),
+          (output channels, rows, cols, batch_size),
+          (2,)]
+        * outputs: list of shapes of outputs of this node:
+          [(filter channels, filter rows, filter cols, output channels),
+          (input channels, filter rows, filter cols, output channels)]
+        """
+        images, hid_grads, _ = inputs
+        kerns, partial = outputs
+        assert kerns[3] == hid_grads[0]
+        # This Op computes a valid convolution of `images` with `hid_grads`,
+        # producing an output the same shape as `filters`. We reuse the code of
+        # `FilterActs.flops()` with suitable replacement of the variable names.
+        # Note: The partial sum is just a way to specify how to compute
+        # stuff inside the Op.  It doesn't change the number of flops.
+        images, kerns, out = images, hid_grads, kerns
+        # number of mul and add by output pixel
+        flops = kerns[0] * kerns[1] * kerns[2] * 2
+        # multiplied by number of output pixels
+        flops *= out[0] * out[1] * out[2] * out[3]
         return flops
 
     def c_headers(self):
@@ -162,12 +186,12 @@ class WeightActs(BaseActs):
         fail = sub['fail']
         pad = self.pad
 
-        # convFilterActs will multiply targets by scaleTargets
+        # convWeightActs will multiply targets by scaleTargets
         # then add scaleOutput * (the convolution value)
         # We could make use of this to implement an inplace
         # addconv op but for this op we just want to compute
         # the convolution so we set them to 0 and 1 respectively
-        # Note: there is another version of convFilterActs that
+        # Note: there is another version of convWeightActs that
         # does not take these arguments, but it is just a wrapper
         # around the version that does take them, so we save
         # a function call by using the version that we use.
@@ -176,10 +200,10 @@ class WeightActs(BaseActs):
         #define scaleOutput 1
         """
 
-        if self.dense_connectivity:
-            basic_setup += """
-            #define numGroups 1
-            """
+        assert self.groups >= 1, "groups must be greater than zero"
+        basic_setup += """
+        #define numGroups %d
+        """ % self.groups
 
         basic_setup += """
         #define paddingStart (-%(pad)d)
@@ -210,7 +234,7 @@ class WeightActs(BaseActs):
         # The amount of braces that must be closed at the end
         num_braces = 0
 
-        # Convert images int nv_images, an NVMatrix, for compatibility
+        # Convert images into nv_images, an NVMatrix, for compatibility
         # with the cuda-convnet functions
         setup_nv_images = self._argument_contiguity_check("images") + """
         if (%(images)s->nd != 4)
@@ -239,7 +263,7 @@ class WeightActs(BaseActs):
         """
         num_braces += 2
 
-        # Convert hid_grads int nv_hid_grads, an NVMatrix, for compatibility
+        # Convert hid_grads into nv_hid_grads, an NVMatrix, for compatibility
         # with the cuda-convnet functions
         setup_nv_hid_grads = self._argument_contiguity_check("hid_grads") + """
         if (%(hid_grads)s->nd != 4)
@@ -259,7 +283,7 @@ class WeightActs(BaseActs):
 
         setup_nv_weights_grads = """
         int filters_dims[4];
-        // filters:  (input channels, filter rows, filter cols, output channels)
+        // filters:  (filter channels, filter rows, filter cols, output channels)
 
         npy_intp *shape_dims = PyArray_DIMS(%(output_shape)s);
         npy_intp target_rows, target_cols;
@@ -290,9 +314,17 @@ class WeightActs(BaseActs):
                                                            intp_dtype, 0);
         target_rows = *((npy_intp *)PyArray_GETPTR1(casted_shape, 0));
         target_cols = *((npy_intp *)PyArray_GETPTR1(casted_shape, 1));
-        filters_dims[0] = img_channels;
+        const int filter_channels = img_channels / numGroups;  // TODO: support patterns
+        filters_dims[0] = filter_channels;
         filters_dims[1] = target_rows;
         filters_dims[2] = target_cols;
+        if (numGroups > 1 && filters_dims[0] %% 4 != 0)
+        {
+            PyErr_Format(PyExc_ValueError,
+                "for groups > 1, filters must have a multiple of 4 channels, got %%i",
+                filters_dims[0]);
+            %(fail)s;
+        }
         if (filters_dims[1] != filters_dims[2])
         {
             PyErr_Format(PyExc_ValueError,
@@ -344,6 +376,11 @@ class WeightActs(BaseActs):
 
         num_braces += 1
 
+        if self.pattern is not None:
+            # TODO: obtain int* pointer to pattern array (on host!), then call
+            # _weightActsSparse instead of _weightActs
+            raise NotImplementedError("custom connection patterns not supported yet")
+
         # note: imgSizeX is not specified here, it is computed internally
         # (in _filterActsSparse) by the lines:
         # int imgPixels = images.getNumRows() / numImgColors;
@@ -361,7 +398,7 @@ class WeightActs(BaseActs):
             _weightActs(nv_images, nv_hid_grads, nv_weights_grads,
                         imgSizeY, hidGradsSizeY, hidGradsSizeX, filterSize,
                         paddingStart, moduleStride, img_channels, numGroups,
-                        partialSum, 0, 1);
+                        partialSum, scaleTargets, scaleOutput);
         else {
             NVMatrix nv_partialsum(%(partialsum_storage)s, (numModules / partialSum) *
                      filters_dims[0] * filterSize * filterSize, numFilters,
@@ -374,12 +411,7 @@ class WeightActs(BaseActs):
 
             // sum out axis 0 of nv_partialsum
             #define AXIS 0
-            // scale the contents of nv_weights_grads by 0
-            // i.e., clear out its pre-existing content
-            #define SCALE_THIS 0
-            // scale the new sum by 1, i.e., don't do any scaling
-            #define SCALE_SUM 1
-            nv_weights_grads.addSum(nv_partialsum, AXIS, SCALE_THIS, SCALE_SUM);
+            nv_weights_grads.addSum(nv_partialsum, AXIS, scaleTargets, scaleOutput);
         }
         """
 
@@ -402,4 +434,4 @@ class WeightActs(BaseActs):
 
             WRITEME
         """
-        return (7,)
+        return (8,)

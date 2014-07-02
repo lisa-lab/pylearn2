@@ -69,10 +69,13 @@ class ImageActs(BaseActs):
     This op does the tranpose of that, so its output is sized like
     FilterActs' input.
 
-    * hid_acts: (output channels, rows, cols, batch_size)
-    * filters: (input channels, filter rows, filter cols, output channels).
+    * hid_acts: (output channels, rows, cols, batch size)
+    * filters: (filter channels, filter rows, filter cols, output channels)
       Rows must be the same as cols. Output channels must be a multiple
       of 16.
+    * output_shape: (2,)
+      2-element TensorVariable specifying the spatial shape of a single image
+      (rows, cols). Only needed if stride > 1.
     * output: (input channels, input rows, input cols, batch size)
 
     Notes
@@ -137,10 +140,22 @@ class ImageActs(BaseActs):
         return Apply(self, [hid_acts, filters, output_shape], [targets])
 
     def flops(self, inputs, outputs):
-        """ Useful with the hack in profilemode to print the MFlops"""
-        hid_acts, filters, output_shape = inputs
+        """
+        Returns the number of floating point operations for an application of
+        this Op.
+
+        * inputs: list of shapes of inputs to this node:
+          [(output channels, rows, cols, batch size),
+          (filter channels, filter rows, filter cols, output channels),
+          (2,)]
+        * outputs: list of shapes of outputs of this node:
+          [(input channels, input rows, input cols, batch size)]
+        """
+        hid_acts, filters, _ = inputs
         out, = outputs
         assert hid_acts[0] == filters[3]
+        # This Op computes a full convolution of `filters` with `hid_acts`,
+        # producing an output the same shape as `images`.
         flops = (hid_acts[3] * filters[0] * hid_acts[0] *
                  filters[1] * filters[2] *
                  hid_acts[1] * hid_acts[2] * 2)
@@ -172,11 +187,13 @@ class ImageActs(BaseActs):
             from pylearn2.sandbox.cuda_convnet.weight_acts import WeightActs
 
         g_filters = WeightActs(stride=self.stride,
-                partial_sum=self.partial_sum, pad=self.pad)(
+                partial_sum=self.partial_sum, pad=self.pad,
+                groups=self.groups, pattern=self.pattern)(
                         g_images, hid_acts, filters.shape[1:3])[0]
         assert not isinstance(g_filters, list)
-        g_hid_acts = FilterActs(stride=self.stride, pad=self.pad,
-                partial_sum=self.partial_sum)(g_images, filters)
+        g_hid_acts = FilterActs(stride=self.stride,
+                partial_sum=self.partial_sum, pad=self.pad,
+                groups=self.groups, pattern=self.pattern)(g_images, filters)
 
         return [g_hid_acts, g_filters, DisconnectedType()()]
 
@@ -190,12 +207,12 @@ class ImageActs(BaseActs):
         targets, = outputs
         fail = sub['fail']
 
-        # convFilterActs will multiply targets by scaleTargets
+        # convImgActs will multiply targets by scaleTargets
         # then add scaleOutput * (the convolution value)
         # We could make use of this to implement an inplace
         # addconv op but for this op we just want to compute
         # the convolution so we set them to 0 and 1 respectively
-        # Note: there is another version of convFilterActs that
+        # Note: there is another version of convImgActs that
         # does not take these arguments, but it is just a wrapper
         # around the version that does take them, so we save
         # a function call by using the version that we use.
@@ -204,10 +221,9 @@ class ImageActs(BaseActs):
         #define scaleOutput 1
         """
 
-        if self.dense_connectivity:
-            basic_setup += """
-            #define numGroups 1
-            """
+        basic_setup += """
+        #define numGroups %d
+        """ % self.groups
 
         basic_setup += """
         #define paddingStart (-%d)
@@ -225,7 +241,7 @@ class ImageActs(BaseActs):
         # The amount of braces that must be closed at the end
         num_braces = 0
 
-        # Convert images int nv_hid_acts, an NVMatrix, for compatibility
+        # Convert images into nv_hid_acts, an NVMatrix, for compatibility
         # with the cuda-convnet functions
         setup_nv_hid_acts = self._argument_contiguity_check("hid_acts") + """
         if (%(hid_acts)s->nd != 4)
@@ -333,8 +349,9 @@ class ImageActs(BaseActs):
         target_rows = *((npy_intp *)PyArray_GETPTR1(casted_shape, 0));
         target_cols = *((npy_intp *)PyArray_GETPTR1(casted_shape, 1));
         {
+        const int image_channels = filter_channels * numGroups;  // TODO: support patterns
         int target_dims [] = {
-            filter_channels,
+            image_channels,
             target_rows,
             target_cols,
             batch_size };
@@ -365,6 +382,11 @@ class ImageActs(BaseActs):
 
         num_braces += 2
 
+        if self.pattern is not None:
+            # TODO: obtain int* pointer to pattern array (on host!), then call
+            # convImgActsSparse instead of convImgActs
+            raise NotImplementedError("custom connection patterns not supported yet")
+
         # note: numFilters is not specified here. it is determined by
         # nv_filters.getNumCols()
         #
@@ -374,8 +396,8 @@ class ImageActs(BaseActs):
         do_convolution = """
         convImgActs(nv_hid_acts, nv_filters, nv_targets,
                     imgSizeY, imgSizeX, numModulesY,
-                    paddingStart, moduleStride, filter_channels,
-                    numGroups);
+                    paddingStart, moduleStride, image_channels,
+                    numGroups, scaleTargets, scaleOutput);
         """
 
         braces = '}' * num_braces
@@ -397,4 +419,4 @@ class ImageActs(BaseActs):
 
             WRITEME
         """
-        return (9,)
+        return (10,)
