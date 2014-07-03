@@ -1184,8 +1184,10 @@ class Softmax(Layer):
         assert isinstance(n_classes, py_integer_types)
 
         if binary_target_dim is not None:
+            assert isinstance(binary_target_dim, py_integer_types)
             self._has_binary_target = True
-            self._target_space= IndexSpace(dim=binary_target_dim, max_labels=n_classes)
+            self._target_space = IndexSpace(dim=binary_target_dim, 
+                                           max_labels=n_classes)
         else:
             self._has_binary_target = False
     
@@ -1482,8 +1484,11 @@ class Softmax(Layer):
             # happen on the GPU rather than CPU.
             flat_Y = Y.flatten()
             flat_log_prob = log_prob.flatten()
-            flat_indices = flat_Y + T.extra_ops.repeat(T.arange(Y.shape[0])*log_prob.shape[1], Y.shape[1])
-            log_prob_of = T.reshape(flat_log_prob[flat_indices], (Y.shape[0], Y.shape[1])).sum(axis=1)
+            flat_indices = flat_Y + T.extra_ops.repeat(
+                T.arange(Y.shape[0])*log_prob.shape[1], Y.shape[1]
+            )
+            log_prob_of = T.reshape(flat_log_prob[flat_indices], 
+                                    (Y.shape[0], Y.shape[1])).sum(axis=1)
             
         else:
             log_prob_of = (Y * log_prob).sum(axis=1)
