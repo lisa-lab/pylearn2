@@ -27,9 +27,11 @@ class TextDatasetMixin(object):
         """
         if hasattr(self, '_vocabulary'):
             if not getattr(self, '_vocabulary_case_checked', False):
-                if not all(word == word.lower() for word in self._vocabulary):
-                    raise ValueError('The vocabulary contained cased words '
-                                     'but the dataset is case-insensitive')
+                for word in self._vocabulary:
+                    if word != word.lower():
+                        raise ValueError('The vocabulary contains cased words '
+                                         '(%s) but the dataset is supposed to '
+                                         'be case-insensitive' % (word))
                 self._vocabulary_case_checked = True
             return self._vocabulary
         else:
@@ -85,8 +87,8 @@ class TextDatasetMixin(object):
         words : (nested) list of strings
             Assumes each element is a word
         """
-        assert is_iterable(words)
-        if all(is_iterable(word) for word in words):
+        assert isinstance(words, list)
+        if all(isinstance(word, list) for word in words):
             return [self.words_to_indices(word) for word in words]
         assert all(isinstance(word, basestring) for word in words)
         if self.case_sensitive:

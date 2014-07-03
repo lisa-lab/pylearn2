@@ -53,9 +53,10 @@ class PennTreebank(DenseDesignMatrix, TextDatasetMixin):
             raise ValueError("Dataset must be one of 'train', 'valid' "
                              "or 'test'")
 
-        # Set values for the TextDatasetMixin
+        # Use word.lower() because the dictionary contains a single word
+        # that is capitalized for some reason: N
         npz_data = serial.load(path + "dictionaries.npz")
-        self._vocabulary = {word: word_index for word_index, word
+        self._vocabulary = {word.lower(): word_index for word_index, word
                             in enumerate(npz_data['unique_words'])}
         self._unknown_index = 10000
         self._case_sensitive = False

@@ -8,12 +8,12 @@
 
 !obj:pylearn2.train.Train {
     dataset: &train !obj:pylearn2.sandbox.nlp.datasets.penntree.PennTreebank {
-        which_set: 'train',
+        which_set: 'valid',
         context_len: &context_len 6
     },
     model: !obj:pylearn2.models.mlp.MLP {
         layers: [
-            &projection_layer !obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
+            !obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
                 layer_name: 'projection',
                 dim: 128,
                 irange: 0.01
@@ -49,7 +49,7 @@
     },
     extensions: [
         !obj:pylearn2.sandbox.nlp.train_extensions.nlp.WordRelationshipTest {
-            projection_layer: *projection_layer,
+            projection_layer: 'projection',
             most_common: 1000,
             no_unknown: True,
         },

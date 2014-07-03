@@ -8,6 +8,7 @@ from theano import tensor, scan, shared, function
 from pylearn2.space import NullSpace
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.utils.string_utils import preprocess
+from pylearn2.utils import sharedX
 
 log = logging.getLogger(__name__)
 
@@ -18,14 +19,13 @@ class WordRelationshipTest(TrainExtension):
     test[1] to the monitor channels.
 
     It requires a subclass of TextDataset as the dataset to be used
-    i.e. it needs vocabulary, unknown_id and is_case_sensitive
+    i.e. it needs vocabulary, unknown_index and is_case_sensitive
     attributes.
 
     Parameters
     ----------
-    projection_layer : ProjectionLayer instance
-        The layer for which to provide predictions. This can be passed
-        in a YAML file using the * and & syntax
+    projection_layer : str
+        The name of the layer for which to provide predictions.
     most_common : int, optional
         Reports scores on a subset of questions which do not contain
         words whose index is strictly greater than this number. Note,
@@ -64,13 +64,25 @@ class WordRelationshipTest(TrainExtension):
 
     @functools.wraps(TrainExtension.setup)
     def setup(self, model, dataset, algorithm):
+        if not model.monitor._datasets:
+            # This is weird; why do we need a monitoring dataset to report
+            # anything?
+            raise ValueError('The WordRelationship extension requires a '
+                             'monitoring dataset to be defined')
+        for layer in model.layers:
+            if layer.layer_name == self.projection_layer:
+                self.projection_layer = layer
+        if isinstance(self.projection_layer, basestring):
+            raise ValueError('The layer `%s` could not be found' %
+                             self.projection_layer)
         self._load_questions(dataset)
         self._compile_theano_function()
 
         for channel in self.channels:
-            setattr(self, channel, shared(0.))
+            setattr(self, channel, sharedX(0))
             model.monitor.add_channel(
                 name='word_relationship_' + channel,
+                ipt=None,
                 val=getattr(self, channel),
                 data_specs=(NullSpace(), ''),
                 dataset=model.monitor._datasets[0]
@@ -122,9 +134,9 @@ class WordRelationshipTest(TrainExtension):
         self.binarized_questions = np.array(self.binarized_questions,
                                             dtype='int32')
         self.known_targets = (self.binarized_questions[:, 3] !=
-                              dataset.unknown_id)
-        self.known_words = np.any(self.binarized_questions !=
-                                  dataset.unknown_id, axis=1)
+                              dataset.unknown_index)
+        self.known_words = np.all(self.binarized_questions !=
+                                  dataset.unknown_index, axis=1)
         log.info('Word relationship test: %d questions loaded'
                  % (len(self.binarized_questions)))
         log.info('Word relationship test: %d questions have known targets'
@@ -164,8 +176,10 @@ class WordRelationshipTest(TrainExtension):
         # We want to calculate the cosine similarity, but the dot product
         # between the targets and embedding matrix can be enormous, so we
         # need to split it up
-        batch_size = shared(1024.)
-        num_batches = tensor.ceil(word_embeddings.shape[0] / batch_size)
+        batch_size = shared(1024)
+        num_batches = tensor.cast(tensor.ceil(
+            word_embeddings.shape[0] / tensor.cast(batch_size, 'float32')
+        ), dtype='int32')
 
         def _batch_similarity(batch_index, embedding_matrix):
             batch = embedding_matrix[batch_index * batch_size:
@@ -186,13 +200,13 @@ class WordRelationshipTest(TrainExtension):
         # max_similarities and most_similar are (num_batches, num_questions)
         best_batches = tensor.argmax(max_similarities, axis=0)
         closest_words = (best_batches * batch_size +
-                         most_similar.T.flatten()[best_batches,
+                         most_similar.T.flatten()[best_batches +
                                                   tensor.arange(
                                                       most_similar.shape[1]
                                                   ) * most_similar.shape[0]])
-        self.closest_words = function(word_indices, closest_words)
+        self.closest_words = function([word_indices], closest_words)
 
         similarities = (tensor.batched_dot(targets, word_embeddings[:, 3, :]) /
                         targets.norm(2, axis=1) /
                         word_embeddings[:, 3, :].norm(2, axis=1))
-        self.average_similarity = function(word_indices, similarities.mean())
+        self.average_similarity = function([word_indices], similarities.mean())
