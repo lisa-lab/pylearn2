@@ -16,7 +16,7 @@ def test():
     with open(os.path.join(dirname, 'sr_dataset.yaml'), 'r') as f:
         dataset = f.read()
 
-    hyper_params = {'train_stop': 50}
+    hyper_params = {'train_stop': 10}
     dataset = dataset % (hyper_params)
 
     with open(os.path.join(dirname, 'sr_model.yaml'), 'r') as f:
@@ -26,7 +26,7 @@ def test():
         algorithm = f.read()
 
     hyper_params = {'batch_size': 10,
-                    'valid_stop': 50050}
+                    'valid_stop': 50010}
     algorithm = algorithm % (hyper_params)
 
     with open(os.path.join(dirname, 'sr_train.yaml'), 'r') as f:
