@@ -119,7 +119,7 @@ class WordRelationshipTest(TrainExtension):
             The dataset used to train this model, from which the
             vocabulary is loaded
         """
-        with open(preprocess("${PYLEARN2_DATA_PATH}/word_relationship_test/"
+        with open(preprocess("${PYLEARN2_DATA_PATH}/word2vec/"
                              "questions-words.txt")) as f:
             i = 0
             for line in f:
