@@ -111,7 +111,7 @@ class WordRelationshipTest(TrainExtension):
                 == self.binarized_questions[self.common_words, 3],
                 dtype=config.floatX
             ) / np.sum(self.common_words, dtype=config.floatX))
-            self.avg_similarity_common.set_value(self.avg_similarity(
+            self.avg_similarity_common.set_value(self.average_similarity(
                 self.binarized_questions[self.common_words]
             ).astype(config.floatX))
 
