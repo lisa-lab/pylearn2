@@ -5,7 +5,7 @@
     node: '/double_filtered_binarized_corpus_train',
     which_set: 'train',
     frame_length: &n 7,
-    stop: 50000000,
+    stop: 30000000,
     _iter_num_batches: 1000,
     X_labels: &l 20000,
     load_to_memory: True
@@ -28,43 +28,37 @@
             n_classes: *l,
             layer_name: 'h0',
             irange: 0.01,
-            binary_target: True,
-            target_dim: 1
+            binary_target_dim: 1
           },
           !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
             n_classes: *l,
             layer_name: 'h1',
             irange: 0.01,
-            binary_target: True,
-            target_dim: 1
+            binary_target_dim: 1
           },
           !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
             n_classes: *l,
             layer_name: 'h2',
             irange: 0.01,
-            binary_target: True,
-            target_dim: 1
+            binary_target_dim: 1
           },
           !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
             n_classes: *l,
             layer_name: 'h3',
             irange: 0.01,
-            binary_target: True,
-           target_dim: 1
+            binary_target_dim: 1
           },
           !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
             n_classes: *l,
             layer_name: 'h4',
             irange: 0.01,
-            binary_target: True,
-            target_dim: 1
+            binary_target_dim: 1
           },
           !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
             n_classes: *l,
             layer_name: 'h5',
             irange: 0.01,
-            binary_target: True,
-            target_dim: 1
+            binary_target_dim: 1
           }
         ]
       }
