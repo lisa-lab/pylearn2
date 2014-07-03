@@ -13,7 +13,7 @@
     },
     model: !obj:pylearn2.models.mlp.MLP {
         layers: [
-            !obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
+            &projection_layer !obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
                 layer_name: 'projection',
                 dim: 128,
                 irange: 0.01
@@ -47,4 +47,11 @@
             N: 10
         },
     },
+    extensions: [
+        !obj:pylearn2.sandbox.nlp.train_extensions.nlp.WordRelationshipTest {
+            projection_layer: *projection_layer,
+            most_common: 1000,
+            no_unknown: True,
+        },
+    ],
 }

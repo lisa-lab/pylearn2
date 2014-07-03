@@ -58,6 +58,7 @@ class PennTreebank(DenseDesignMatrix, TextDatasetMixin):
         self._vocabulary = {word: word_index for word_index, word
                             in enumerate(npz_data['unique_words'])}
         self._unknown_index = 10000
+        self._case_sensitive = False
 
         self._data = as_strided(self._raw_data,
                                 shape=(len(self._raw_data) - context_len,

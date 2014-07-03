@@ -1,4 +1,5 @@
 """Datasets for working with text"""
+from pylearn2.utils import is_iterable
 
 
 class TextDatasetMixin(object):
@@ -15,12 +16,21 @@ class TextDatasetMixin(object):
     respectively.
     """
     @property
+    def case_sensitive(self):
+        return getattr(self, '_case_sensitive', True)
+
+    @property
     def vocabulary(self):
         """
         Returns the vocabulary (a dictionary from
         word to word indices)
         """
         if hasattr(self, '_vocabulary'):
+            if not getattr(self, '_vocabulary_case_checked', False):
+                if not all(word == word.lower() for word in self._vocabulary):
+                    raise ValueError('The vocabulary contained cased words '
+                                     'but the dataset is case-insensitive')
+                self._vocabulary_case_checked = True
             return self._vocabulary
         else:
             raise NotImplementedError('No vocabulary given')
@@ -67,17 +77,24 @@ class TextDatasetMixin(object):
 
     def words_to_indices(self, words):
         """
-        Converts text to word indices using a dictionary
+        Converts the elements of a (nested) list of strings
+        to word indices
 
         Parameters
         ----------
-        words : str or list of strings
-            If passed a string, it will assume a sentence that
-            is split at any whitespace. If a list, it assumes
-            each element is a word.
+        words : (nested) list of strings
+            Assumes each element is a word
         """
-        return [self.vocabulary.get(word, self.unknown_index)
-                for word in words]
+        assert is_iterable(words)
+        if all(is_iterable(word) for word in words):
+            return [self.words_to_indices(word) for word in words]
+        assert all(isinstance(word, basestring) for word in words)
+        if self.case_sensitive:
+            return [self.vocabulary.get(word, self.unknown_index)
+                    for word in words]
+        else:
+            return [self.vocabulary.get(word.lower(), self.unknown_index)
+                    for word in words]
 
     def indices_to_words(self, indices):
         """

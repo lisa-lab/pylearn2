@@ -7,6 +7,7 @@ from theano import tensor, scan, shared, function
 
 from pylearn2.space import NullSpace
 from pylearn2.train_extensions import TrainExtension
+from pylearn2.utils.string_utils import preprocess
 
 log = logging.getLogger(__name__)
 
@@ -22,17 +23,15 @@ class WordRelationshipTest(TrainExtension):
 
     Parameters
     ----------
-    questions : str
-        The location of the Google questions and answers
     projection_layer : ProjectionLayer instance
         The layer for which to provide predictions. This can be passed
         in a YAML file using the * and & syntax
     most_common : int, optional
         Reports scores on a subset of questions which do not contain
         words whose index is strictly greater than this number. Note,
-        this only makes sense if your words are numbered by frequency
-        and your dataset allows for an unknown word index which is
-        less than this number.
+        this only makes sense if your words are numbered by frequency.
+        If your dataset does not have an unknown word index, than pass
+        `most_common - 1` instead.
     no_unknown : bool, optional
         Defaults to false, if set to True it will not try to
         answer questions with unknown words; this must be set
@@ -47,9 +46,14 @@ class WordRelationshipTest(TrainExtension):
     binarized_questions : ndarray
         A num_questions x 4 matrix with word indices
     """
-    def __init__(self, questions, projection_layer, most_common):
+    def __init__(self, projection_layer, most_common=None,
+                 no_unknown=False):
         self.__dict__.update(locals())
         del self.self
+
+        self.channels = ['total_score', 'no_unk', 'avg_similarity']
+        if self.most_common is not None:
+            self.channels += ['common']
 
         # These lists will be populated in the `setup` method
         self.categories = []
@@ -63,34 +67,33 @@ class WordRelationshipTest(TrainExtension):
         self._load_questions(dataset)
         self._compile_theano_function()
 
-        self.total_score = shared(0.)
-        model.monitor.add_channel(
-            name='word_relationship',
-            val=self.total_score,
-            data_specs=(NullSpace(), ''),
-            dataset=model.monitor._datasets[0]
-        )
-
-        self.no_unk = shared(0.)
-        model.monitor.add_channel(
-            name='word_relationship_no_unk',
-            val=self.no_unk,
-            data_specs=(NullSpace(), ''),
-            dataset=model.monitor._datasets[0]
-        )
-
-        if self.most_common is not None:
-            self.common_only = shared(0.)
+        for channel in self.channels:
+            setattr(self, channel, shared(0.))
             model.monitor.add_channel(
-                name='word_relationship_common',
-                val=self.common_only,
+                name='word_relationship_' + channel,
+                val=getattr(self, channel),
                 data_specs=(NullSpace(), ''),
                 dataset=model.monitor._datasets[0]
             )
 
     @functools.wraps(TrainExtension.on_monitor)
     def on_monitor(self, model, dataset, algorithm):
-        pass
+        self.total_score.set_value(np.sum(
+            self.closest_words(self.binarized_questions) ==
+            self.binarized_questions[:, 3]
+        ) / float(self.num_questions))
+        self.no_unk.set_value(np.sum(
+            self.closest_words(self.binarized_questions[self.known_words]) ==
+            self.binarized_questions[self.known_words, 3]
+        ) / float(np.sum(self.known_words)))
+        self.avg_similarity.set_value(
+            self.average_similarity(self.binarized_questions)
+        )
+        if self.most_common is not None:
+            self.common.set_value(np.sum(
+                self.closest_words(self.binarized_questions[self.common_words])
+                == self.binarized_questions[self.common_words, 3]
+            ) / float(np.sum(self.common_words)))
 
     def _load_questions(self, dataset):
         """
@@ -103,41 +106,45 @@ class WordRelationshipTest(TrainExtension):
             The dataset used to train this model, from which the
             vocabulary is loaded
         """
-        with open(self.questions) as f:
+        with open(preprocess("${PYLEARN2_DATA_PATH}/word_relationship_test/"
+                             "questions-words.txt")) as f:
             i = 0
             for line in f:
-                if not dataset.is_case_sensitive:
-                    line = line.lower()
                 words = line.rstrip().split()
                 if words[0] == ':':
                     self.categories.append((i, words[1]))
                     continue
                 i += 1
                 self.binarized_questions.append(
-                    [dataset.vocabulary.get(word, dataset.unknown_id)
-                     for word in words]
+                    dataset.words_to_indices(words)
                 )
         self.num_questions = len(self.binarized_questions)
         self.binarized_questions = np.array(self.binarized_questions,
                                             dtype='int32')
-        self.unknown_targets = (self.binarized_questions[:, 3] ==
-                                dataset.unknown_id)
-        self.unknown_words = np.any(self.binarized_questions ==
-                                    dataset.unknown_id, axis=1)
+        self.known_targets = (self.binarized_questions[:, 3] !=
+                              dataset.unknown_id)
+        self.known_words = np.any(self.binarized_questions !=
+                                  dataset.unknown_id, axis=1)
         log.info('Word relationship test: %d questions loaded'
                  % (len(self.binarized_questions)))
-        log.info('Word relationship test: %d questions have an unknown target'
-                 % (np.sum(self.unknown_targets)))
-        log.info('Word relationship test: %d questions contain unknown words'
-                 % (np.sum(self.unknown_words)))
+        log.info('Word relationship test: %d questions have known targets'
+                 % (np.sum(self.known_targets)))
+        log.info('Word relationship test: %d questions are fully covered by '
+                 'the vocabulary' % (np.sum(self.known_words)))
         if self.most_common is not None:
-            self.uncommon_words = np.any(self.binarized_questions >
-                                         self.most_common, axis=1)
-            log.info('Word relationship test: %d questions contain words that '
-                     'are not in the %d most common words' %
-                     (np.sum(np.logical_or(self.uncommon_words,
-                                           self.unknown_words)),
+            self.common_words = np.all(self.binarized_questions <=
+                                       self.most_common, axis=1)
+            log.info('Word relationship test: %d questions consist of words '
+                     'that are in the %d most common words' %
+                     (np.sum(np.logical_and(self.common_words,
+                                            self.known_words)),
                       self.most_common))
+        if self.no_unknown:
+            self.binarized_questions = \
+                self.binarized_questions[self.known_words]
+            self.common_words = self.common_words[self.known_words]
+            self.known_targets = self.known_targets[self.known_targets]
+            self.known_words = self.known_words[self.known_words]
 
     def _compile_theano_function(self):
         """
