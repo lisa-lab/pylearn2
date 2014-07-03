@@ -3,7 +3,7 @@ import functools
 import logging
 
 import numpy as np
-from theano import tensor, scan, shared, function
+from theano import config, tensor, scan, shared, function
 
 from pylearn2.space import NullSpace
 from pylearn2.train_extensions import TrainExtension
@@ -93,19 +93,19 @@ class WordRelationshipTest(TrainExtension):
         self.total_score.set_value(np.sum(
             self.closest_words(self.binarized_questions) ==
             self.binarized_questions[:, 3]
-        ) / float(self.num_questions))
+        ) / self.num_questions)
         self.no_unk.set_value(np.sum(
             self.closest_words(self.binarized_questions[self.known_words]) ==
             self.binarized_questions[self.known_words, 3]
-        ) / float(np.sum(self.known_words)))
-        self.avg_similarity.set_value(
-            self.average_similarity(self.binarized_questions)
-        )
+        ) / np.sum(self.known_words, dtype=config.floatX))
+        self.avg_similarity.set_value(self.average_similarity(
+            self.binarized_questions
+        ).astype(config.floatX))
         if self.most_common is not None:
             self.common.set_value(np.sum(
                 self.closest_words(self.binarized_questions[self.common_words])
                 == self.binarized_questions[self.common_words, 3]
-            ) / float(np.sum(self.common_words)))
+            ) / np.sum(self.common_words, dtype=config.floatX))
 
     def _load_questions(self, dataset):
         """
@@ -130,7 +130,8 @@ class WordRelationshipTest(TrainExtension):
                 self.binarized_questions.append(
                     dataset.words_to_indices(words)
                 )
-        self.num_questions = len(self.binarized_questions)
+        self.num_questions = np.asarray(len(self.binarized_questions),
+                                        dtype=config.floatX)
         self.binarized_questions = np.array(self.binarized_questions,
                                             dtype='int32')
         self.known_targets = (self.binarized_questions[:, 3] !=
