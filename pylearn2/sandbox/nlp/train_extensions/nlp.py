@@ -92,11 +92,11 @@ class WordRelationshipTest(TrainExtension):
     def on_monitor(self, model, dataset, algorithm):
         self.total_score.set_value(np.sum(
             self.closest_words(self.binarized_questions) ==
-            self.binarized_questions[:, 3]
+            self.binarized_questions[:, 3], dtype=config.floatX
         ) / self.num_questions)
         self.no_unk.set_value(np.sum(
             self.closest_words(self.binarized_questions[self.known_words]) ==
-            self.binarized_questions[self.known_words, 3]
+            self.binarized_questions[self.known_words, 3], dtype=config.floatX
         ) / np.sum(self.known_words, dtype=config.floatX))
         self.avg_similarity.set_value(self.average_similarity(
             self.binarized_questions
@@ -104,7 +104,8 @@ class WordRelationshipTest(TrainExtension):
         if self.most_common is not None:
             self.common.set_value(np.sum(
                 self.closest_words(self.binarized_questions[self.common_words])
-                == self.binarized_questions[self.common_words, 3]
+                == self.binarized_questions[self.common_words, 3],
+                dtype=config.floatX
             ) / np.sum(self.common_words, dtype=config.floatX))
 
     def _load_questions(self, dataset):
