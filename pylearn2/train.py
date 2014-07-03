@@ -298,5 +298,6 @@ class SerializationGuard(object):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.ERROR)
     log.error("You probably meant to run scripts/train.py")
     sys.exit(1)

@@ -734,8 +734,9 @@ class MLP(Layer):
         for layer, coeff in safe_izip(self.layers, coeffs):
             if coeff != 0.:
                 layer_costs += [layer.get_weight_decay(coeff)]
-            else:
-                layer_costs += [0.]
+
+        if len(layer_costs) == 0:
+            return T.constant(0, dtype=config.floatX)
 
         total_cost = reduce(lambda x, y: x + y, layer_costs)
 
@@ -752,8 +753,9 @@ class MLP(Layer):
         for layer, coeff in safe_izip(self.layers, coeffs):
             if coeff != 0.:
                 layer_costs += [layer.get_l1_weight_decay(coeff)]
-            else:
-                layer_costs += [0.]
+
+        if len(layer_costs) == 0:
+            return T.constant(0, dtype=config.floatX)
 
         total_cost = reduce(lambda x, y: x + y, layer_costs)
 
@@ -1164,11 +1166,12 @@ class Softmax(Layer):
     no_affine : WRITEME
     max_col_norm : WRITEME
     init_bias_target_marginals : WRITEME
-    binary_target : A boolean value. If true, softmax will expect that target
-                    is an IndexSpace. If false, will expect a VectorSpace.
-                    Defaults to False.
-    target_dim : Ignored unless binary_target is True. The dimension of the
-                 target IndexSpace.
+    binary_target_dim : int, optional
+        If your targets are class labels (i.e. a binary vector) then set the
+        number of targets here so that an IndexSpace of the proper dimension
+        can be used as the target space. This allows the softmax to compute
+        the cost much more quickly than if it needs to convert the targets
+        into a VectorSpace
     """
 
     def __init__(self, n_classes, layer_name, irange=None,
@@ -1177,7 +1180,7 @@ class Softmax(Layer):
                  b_lr_scale=None, max_row_norm=None,
                  no_affine=False,
                  max_col_norm=None, init_bias_target_marginals=None,
-                 binary_target=False, target_dim=None):
+                 binary_target_dim=None):
 
         super(Softmax, self).__init__()
 
@@ -1190,9 +1193,11 @@ class Softmax(Layer):
 
         assert isinstance(n_classes, py_integer_types)
 
-        if binary_target:
+        if binary_target_dim is not None:
+            assert isinstance(binary_target_dim, py_integer_types)
             self._has_binary_target = True
-            self._target_space= IndexSpace(dim=target_dim, max_labels=n_classes)
+            self._target_space = IndexSpace(dim=binary_target_dim, 
+                                           max_labels=n_classes)
         else:
             self._has_binary_target = False
     
@@ -1484,14 +1489,16 @@ class Softmax(Layer):
         # we use sum and not mean because this is really one variable per row
         
         if self._has_binary_target:
-            #log_prob_of = (log_prob[T.arange(Y.shape[0]), Y])
+            # The following code is the equivalent of accessing log_prob by the
+            # indices in Y, but it is written such that the computation can 
+            # happen on the GPU rather than CPU.
             flat_Y = Y.flatten()
             flat_log_prob = log_prob.flatten()
-            Y_row = Y.shape[0]
-            Y_col = Y.shape[1]
-            L_col = log_prob.shape[1]
-            flat_indices = flat_Y + T.extra_ops.repeat(T.arange(Y_row)*L_col, Y_col)
-            log_prob_of = T.reshape(flat_log_prob[flat_indices], (Y_row, Y_col)).sum(axis=1)
+            flat_indices = flat_Y + T.extra_ops.repeat(
+                T.arange(Y.shape[0])*log_prob.shape[1], Y.shape[1]
+            )
+            log_prob_of = T.reshape(flat_log_prob[flat_indices], 
+                                    (Y.shape[0], Y.shape[1])).sum(axis=1)
             
         else:
             log_prob_of = (Y * log_prob).sum(axis=1)
@@ -4462,7 +4469,7 @@ class CompositeLayer(Layer):
             assert all(layer_coeff >= 0 for layer_coeff in coeff)
             return T.sum([getattr(layer, method_name)(layer_coeff) for
                           layer, layer_coeff in safe_zip(self.layers, coeff)
-                          if layer_coeff > 0])
+                          if layer_coeff > 0], dtype=config.floatX)
         else:
             raise TypeError("CompositeLayer's " + method_name + " received "
                             "coefficients of type " + str(type(coeff)) + " "
@@ -4613,6 +4620,7 @@ class FlattenerLayer(Layer):
     @wraps(Layer.get_input_space)
     def get_input_space(self):
         return self.raw_layer.get_input_space()
+
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self, data):
         return self.raw_layer.get_monitoring_channels(data)

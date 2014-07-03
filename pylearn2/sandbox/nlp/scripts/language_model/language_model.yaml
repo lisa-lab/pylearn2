@@ -24,7 +24,8 @@
             }, !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
                 n_classes: 10000,
                 layer_name: 'softmax',
-                irange: 0.01
+                irange: 0.01,
+                binary_target_dim: 1
             }
         ],
         input_space: !obj:pylearn2.space.IndexSpace {
