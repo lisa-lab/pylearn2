@@ -1,5 +1,6 @@
 """Training extensions for use in natural language processing"""
 import functools
+from itertools import product
 import logging
 
 import numpy as np
@@ -51,11 +52,6 @@ class WordRelationshipTest(TrainExtension):
         self.__dict__.update(locals())
         del self.self
 
-        self.channels = ['total_score', 'no_unk', 'avg_similarity',
-                         'avg_similarity_no_unk']
-        if self.most_common is not None:
-            self.channels += ['common', 'avg_similarity_common']
-
         # These lists will be populated in the `setup` method
         self.categories = []
         self.binarized_questions = []
@@ -79,41 +75,42 @@ class WordRelationshipTest(TrainExtension):
         self._load_questions(dataset)
         self._compile_theano_function()
 
-        for channel in self.channels:
-            setattr(self, channel, sharedX(0))
+        self.measures = ['score', 'similarity']
+        self.subsets = ['total', 'known_words', 'common_words']
+        if self.most_common is not None:
+            self.subsets += ['common']
+        for channel in product(self.categories, self.subsets, self.measures):
+            channel_name = "_".join(channel)
+            setattr(self, channel_name, sharedX(0))
             model.monitor.add_channel(
-                name='word_relationship_' + channel,
+                name='word_relationship_' + channel_name,
                 ipt=None,
-                val=getattr(self, channel),
+                val=getattr(self, channel_name),
                 data_specs=(NullSpace(), ''),
                 dataset=model.monitor._datasets[0]
             )
 
     @functools.wraps(TrainExtension.on_monitor)
     def on_monitor(self, model, dataset, algorithm):
-        self.total_score.set_value(np.sum(
-            self.closest_words(self.binarized_questions) ==
-            self.binarized_questions[:, 3], dtype=config.floatX
-        ) / self.num_questions)
-        self.no_unk.set_value(np.sum(
-            self.closest_words(self.binarized_questions[self.known_words]) ==
-            self.binarized_questions[self.known_words, 3], dtype=config.floatX
-        ) / np.sum(self.known_words, dtype=config.floatX))
-        self.avg_similarity.set_value(self.average_similarity(
-            self.binarized_questions
-        ).astype(config.floatX))
-        self.avg_similarity_no_unk.set_value(self.average_similarity(
-            self.binarized_questions[self.known_words]
-        ).astype(config.floatX))
-        if self.most_common is not None:
-            self.common.set_value(np.sum(
-                self.closest_words(self.binarized_questions[self.common_words])
-                == self.binarized_questions[self.common_words, 3],
-                dtype=config.floatX
-            ) / np.sum(self.common_words, dtype=config.floatX))
-            self.avg_similarity_common.set_value(self.average_similarity(
-                self.binarized_questions[self.common_words]
-            ).astype(config.floatX))
+        for channel in product(self.categories, self.subsets,
+                               self.measures):
+            channel_name = "_".join(channel)
+            category, subset, measure = channel
+            category_slice = self.categories[category]
+            category_data = self.binarized_questions[category_slice]
+            if subset != 'total':
+                subset = subset[category_slice]
+                category_data = category_data[subset]
+
+            val = getattr(self, channel_name)
+            if measure == 'score':
+                val.set_value(np.sum(
+                    self.closest_words(category_data) == category_data[:, 3],
+                    dtype=config.floatX
+                ) / np.asarray(len(category_data), dtype=config.floatX))
+            else:
+                val.set_value(self.average_similarity(
+                    category_data).astype(config.floatX))
 
     def _load_questions(self, dataset):
         """
@@ -128,16 +125,23 @@ class WordRelationshipTest(TrainExtension):
         """
         with open(preprocess("${PYLEARN2_DATA_PATH}/word2vec/"
                              "questions-words.txt")) as f:
+            last_seen_category = None
             i = 0
             for line in f:
                 words = line.rstrip().split()
                 if words[0] == ':':
-                    self.categories.append((i, words[1]))
+                    if last_seen_category is not None:
+                        self.categories[last_seen_category[0]] = \
+                            slice(last_seen_category[1], i)
+                    last_seen_category = (words[1].replace('-', '_'), i)
                     continue
                 i += 1
                 self.binarized_questions.append(
                     dataset.words_to_indices(words)
                 )
+            self.categories[last_seen_category[0]] = \
+                slice(last_seen_category[0], i)
+            self.categories['total'] = slice(0, i)
         self.num_questions = np.asarray(len(self.binarized_questions),
                                         dtype=config.floatX)
         self.binarized_questions = np.array(self.binarized_questions,
