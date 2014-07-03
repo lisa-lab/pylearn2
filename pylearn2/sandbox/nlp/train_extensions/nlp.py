@@ -51,9 +51,10 @@ class WordRelationshipTest(TrainExtension):
         self.__dict__.update(locals())
         del self.self
 
-        self.channels = ['total_score', 'no_unk', 'avg_similarity']
+        self.channels = ['total_score', 'no_unk', 'avg_similarity',
+                         'avg_similarity_no_unk']
         if self.most_common is not None:
-            self.channels += ['common']
+            self.channels += ['common', 'avg_similarity_common']
 
         # These lists will be populated in the `setup` method
         self.categories = []
@@ -101,12 +102,18 @@ class WordRelationshipTest(TrainExtension):
         self.avg_similarity.set_value(self.average_similarity(
             self.binarized_questions
         ).astype(config.floatX))
+        self.avg_similarity_no_unk.set_value(self.average_similarity(
+            self.binarized_questions[self.known_words]
+        ).astype(config.floatX))
         if self.most_common is not None:
             self.common.set_value(np.sum(
                 self.closest_words(self.binarized_questions[self.common_words])
                 == self.binarized_questions[self.common_words, 3],
                 dtype=config.floatX
             ) / np.sum(self.common_words, dtype=config.floatX))
+            self.avg_similarity_common.set_value(self.avg_similarity(
+                self.binarized_questions[self.common_words]
+            ).astype(config.floatX))
 
     def _load_questions(self, dataset):
         """
