@@ -104,7 +104,11 @@ def get_weights_report(model_path=None,
         if dataset is None:
             logger.info('loading dataset...')
             control.push_load_data(False)
+            
             dataset = yaml_parse.load(model.dataset_yaml_src)
+            if model.dataset_yaml_src[:5] != "!obj:":
+                # logger.info('Got a real file!')
+                dataset = serial.load(dataset)
             control.pop_load_data()
             logger.info('...done')
 
