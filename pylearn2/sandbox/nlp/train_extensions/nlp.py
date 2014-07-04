@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 class WordRelationshipTest(TrainExtension):
     """
     This training extension adds scores on Google's word relationship
-    test[1] to the monitor channels.
+    test to the monitor channels.
 
     It requires a subclass of TextDataset as the dataset to be used
     i.e. it needs vocabulary, unknown_index and is_case_sensitive
@@ -36,9 +36,10 @@ class WordRelationshipTest(TrainExtension):
 
     Attributes
     ----------
-    categories : list of tuples
-        Each tuple is of the form (i, category) where i is the index
-        of the first question of this category
+    categories : dict
+        The categories are described by strings (keys) and the values
+        describe the corresponding rows of the questions-matrix as a
+        slice.
     binarized_questions : ndarray
         A num_questions x 4 matrix with word indices
     """
@@ -182,7 +183,7 @@ class WordRelationshipTest(TrainExtension):
         # need to split it up
         batch_size = shared(1024)
         num_batches = tensor.cast(tensor.ceil(
-            word_embeddings.shape[0] / tensor.cast(batch_size, 'float32')
+            embedding_matrix.shape[0] / tensor.cast(batch_size, 'float32')
         ), dtype='int32')
 
         def _batch_similarity(batch_index, embedding_matrix):

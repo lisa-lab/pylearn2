@@ -1,5 +1,4 @@
 """Datasets for working with text"""
-from pylearn2.utils import is_iterable
 
 
 class TextDatasetMixin(object):
@@ -16,8 +15,8 @@ class TextDatasetMixin(object):
     respectively.
     """
     @property
-    def case_sensitive(self):
-        return getattr(self, '_case_sensitive', True)
+    def is_case_sensitive(self):
+        return getattr(self, '_is_case_sensitive', True)
 
     @property
     def vocabulary(self):
@@ -91,7 +90,7 @@ class TextDatasetMixin(object):
         if all(isinstance(word, list) for word in words):
             return [self.words_to_indices(word) for word in words]
         assert all(isinstance(word, basestring) for word in words)
-        if self.case_sensitive:
+        if self.is_case_sensitive:
             return [self.vocabulary.get(word, self.unknown_index)
                     for word in words]
         else:
