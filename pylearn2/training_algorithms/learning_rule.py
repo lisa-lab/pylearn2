@@ -252,3 +252,60 @@ class AdaDelta(LearningRule):
 
         return updates
 
+
+class NesterovAcceleratedGradient(LearningRule):
+    """
+    Implements the Nesterov's Accelerated Gradient learning rule as
+    described in: "A method of solving a convex programming problem with
+    convergence rate O(1/sqr(k))", Nesterov, Yuri.
+    This class is based on Sandler Dieleman's implementation.
+
+    Parameters
+    ----------
+    momentum : float
+        Value for the momentum coefficien. It remains fixed during training.
+    """
+
+    def __init__(self, momentum=0.95):
+        assert momentum >= 0.
+        assert momentum < 1.
+        self.momentum = momentum
+
+    def add_channels_to_monitor(self, monitor, monitoring_dataset):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        # TODO: add channels worth monitoring
+        #return
+        monitor.add_channel(
+            name='momentum',
+            ipt=None,
+            val=self.momentum,
+            data_specs=(NullSpace(), ''),
+            dataset=monitoring_dataset)
+
+    def get_updates(self, learning_rate, grads, lr_scalers=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        updates = OrderedDict()
+
+        for (param, grad) in grads.iteritems():
+            inc = sharedX(param.get_value() * 0.)
+            assert param.dtype == inc.dtype
+            assert grad.dtype == param.dtype
+            if param.name is not None:
+                inc.name = 'inc_' + param.name
+            updated_inc = self.momentum * inc -\
+                learning_rate * lr_scalers.get(param, 1.) * grad
+            w = param + self.momentum * updated_inc -\
+                learning_rate * lr_scalers.get(param, 1.) * grad
+            assert updated_inc.dtype == inc.dtype
+            updates[inc] = updated_inc
+            updates[param] = w
+
+        return updates
