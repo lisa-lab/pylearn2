@@ -1501,6 +1501,8 @@ class Softmax(Layer):
             )
         else:
             log_prob_of = (Y * log_prob)
+
+        return log_prob_of
         
 
     @wraps(Layer.cost)
