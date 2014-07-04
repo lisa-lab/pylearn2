@@ -1468,8 +1468,7 @@ class Softmax(Layer):
 
         return rval
 
-    @wraps(Layer.cost)
-    def cost(self, Y, Y_hat):
+    def _cost(self, Y, Y_hat):
 
         assert hasattr(Y_hat, 'owner')
         owner = Y_hat.owner
@@ -1498,37 +1497,32 @@ class Softmax(Layer):
                 T.arange(Y.shape[0])*log_prob.shape[1], Y.shape[1]
             )
             log_prob_of = T.reshape(flat_log_prob[flat_indices], 
-                                    (Y.shape[0], Y.shape[1])).sum(axis=1)
-            
+                                (Y.shape[0], Y.shape[1])
+            )
         else:
-            log_prob_of = (Y * log_prob).sum(axis=1)
+            log_prob_of = (Y * log_prob)
         
+
+    @wraps(Layer.cost)
+    def cost(self, Y, Y_hat):
+
+        log_prob_of = self._cost(Y, Y_hat).sum(axis=1)
         assert log_prob_of.ndim == 1
 
         rval = log_prob_of.mean()
-
         return - rval
 
     @wraps(Layer.cost_matrix)
     def cost_matrix(self, Y, Y_hat):
 
-        assert hasattr(Y_hat, 'owner')
-        owner = Y_hat.owner
-        assert owner is not None
-        op = owner.op
-        if isinstance(op, Print):
-            assert len(owner.inputs) == 1
-            Y_hat, = owner.inputs
-            owner = Y_hat.owner
-            op = owner.op
-        assert isinstance(op, T.nnet.Softmax)
-        z, = owner.inputs
-        assert z.ndim == 2
-
-        z = z - z.max(axis=1).dimshuffle(0, 'x')
-        log_prob = z - T.log(T.exp(z).sum(axis=1).dimshuffle(0, 'x'))
-        # we use sum and not mean because this is really one variable per row
-        log_prob_of = (Y * log_prob)
+        log_prob_of = self._cost(Y, Y_hat)
+        if self._has_binary_target:
+            flat_Y = Y.flatten()
+            flat_matrix = T.alloc(0, (Y.shape[0]*log_prob.shape[1]))
+            flat_indices = flat_Y + T.extra_ops.repeat(
+                T.arange(Y.shape[0])*log_prob.shape[1], Y.shape[1]
+            )
+            log_prob_of = T.set_subtensor(flat_matrix[flat_indices], flat_Y)
 
         return -log_prob_of
 
