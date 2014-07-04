@@ -427,7 +427,7 @@ class Model(object):
 
     def get_target_space(self):
         """
-        Returns an instance of pylearn2.space.Space describing the format of 
+        Returns an instance of pylearn2.space.Space describing the format of
         that the targets should be in, which may be different from the output
         space. Calls get_output_space() unless _target_space exists.
         """
