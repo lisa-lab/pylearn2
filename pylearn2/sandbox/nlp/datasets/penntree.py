@@ -70,7 +70,7 @@ class PennTreebank(DenseDesignMatrix, TextDatasetMixin):
         super(PennTreebank, self).__init__(
             X=self._data[:, :-1],
             y=self._data[:, -1:],
-            X_labels=10000, y_labels=10000
+            X_labels=10001, y_labels=10000
         )
 
         if shuffle:

@@ -33,11 +33,6 @@ class WordRelationshipTest(TrainExtension):
         this only makes sense if your words are numbered by frequency.
         If your dataset does not have an unknown word index, than pass
         `most_common - 1` instead.
-    no_unknown : bool, optional
-        Defaults to false, if set to True it will not try to
-        answer questions with unknown words; this must be set
-        to true if your model does not have an embedding for
-        unknown words, which would cause indexing errors.
 
     Attributes
     ----------
@@ -47,13 +42,12 @@ class WordRelationshipTest(TrainExtension):
     binarized_questions : ndarray
         A num_questions x 4 matrix with word indices
     """
-    def __init__(self, projection_layer, most_common=None,
-                 no_unknown=False):
+    def __init__(self, projection_layer, most_common=None):
         self.__dict__.update(locals())
         del self.self
 
         # These lists will be populated in the `setup` method
-        self.categories = []
+        self.categories = {}
         self.binarized_questions = []
 
         # TODO: Perform some validation on the input
@@ -76,9 +70,9 @@ class WordRelationshipTest(TrainExtension):
         self._compile_theano_function()
 
         self.measures = ['score', 'similarity']
-        self.subsets = ['total', 'known_words', 'common_words']
+        self.subsets = ['total', 'known_words']
         if self.most_common is not None:
-            self.subsets += ['common']
+            self.subsets += ['common_words']
         for channel in product(self.categories, self.subsets, self.measures):
             channel_name = "_".join(channel)
             setattr(self, channel_name, sharedX(0))
@@ -99,10 +93,13 @@ class WordRelationshipTest(TrainExtension):
             category_slice = self.categories[category]
             category_data = self.binarized_questions[category_slice]
             if subset != 'total':
-                subset = subset[category_slice]
+                subset = getattr(self, subset)[category_slice]
                 category_data = category_data[subset]
 
             val = getattr(self, channel_name)
+            if not len(category_data) > 0:
+                val.set_value(np.nan)
+                continue
             if measure == 'score':
                 val.set_value(np.sum(
                     self.closest_words(category_data) == category_data[:, 3],
@@ -140,7 +137,7 @@ class WordRelationshipTest(TrainExtension):
                     dataset.words_to_indices(words)
                 )
             self.categories[last_seen_category[0]] = \
-                slice(last_seen_category[0], i)
+                slice(last_seen_category[1], i)
             self.categories['total'] = slice(0, i)
         self.num_questions = np.asarray(len(self.binarized_questions),
                                         dtype=config.floatX)
@@ -164,12 +161,6 @@ class WordRelationshipTest(TrainExtension):
                      (np.sum(np.logical_and(self.common_words,
                                             self.known_words)),
                       self.most_common))
-        if self.no_unknown:
-            self.binarized_questions = \
-                self.binarized_questions[self.known_words]
-            self.common_words = self.common_words[self.known_words]
-            self.known_targets = self.known_targets[self.known_targets]
-            self.known_words = self.known_words[self.known_words]
 
     def _compile_theano_function(self):
         """
