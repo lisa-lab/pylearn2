@@ -32,7 +32,6 @@ __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
-import ipdb
 import functools, warnings
 import numpy as np
 import theano
