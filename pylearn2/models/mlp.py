@@ -1504,10 +1504,15 @@ class Softmax(Layer):
 
     @wraps(Layer.cost_matrix)
     def cost_matrix(self, Y, Y_hat):
+
         log_prob_of = self._cost(Y, Y_hat)
         if self._has_binary_target:
-            matrix = T.alloc(0, (Y.shape[0], log_prob.shape[1]))
-            log_prob_of[Y] = costs
+            flat_Y = Y.flatten()
+            flat_matrix = T.alloc(0, (Y.shape[0]*log_prob.shape[1]))
+            flat_indices = flat_Y + T.extra_ops.repeat(
+                T.arange(Y.shape[0])*log_prob.shape[1], Y.shape[1]
+            )
+            log_prob_of = T.set_subtensor(flat_matrix[flat_indices], flat_Y)
 
         return -log_prob_of
 
