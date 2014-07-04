@@ -9,7 +9,7 @@ from theano import config, tensor, scan, shared, function
 from pylearn2.space import NullSpace
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.utils.string_utils import preprocess
-from pylearn2.utils import sharedX
+from pylearn2.utils import sharedX, py_integer_types
 
 log = logging.getLogger(__name__)
 
@@ -51,24 +51,28 @@ class WordRelationshipTest(TrainExtension):
         self.categories = {}
         self.binarized_questions = []
 
-        # TODO: Perform some validation on the input
-        # also check if monitoring datasets are defined
+        assert isinstance(projection_layer, basestring)
+        assert isinstance(most_common, py_integer_types)
 
     @functools.wraps(TrainExtension.setup)
     def setup(self, model, dataset, algorithm):
+        # This is weird; why do we need a monitoring dataset to report
+        # anything?
         if not model.monitor._datasets:
-            # This is weird; why do we need a monitoring dataset to report
-            # anything?
             raise ValueError('The WordRelationship extension requires a '
                              'monitoring dataset to be defined')
+
+        # There should be a better method to get a layer! What if the layer
+        # is nested?
         for layer in model.layers:
             if layer.layer_name == self.projection_layer:
                 self.projection_layer = layer
         if isinstance(self.projection_layer, basestring):
             raise ValueError('The layer `%s` could not be found' %
                              self.projection_layer)
+
         self._load_questions(dataset)
-        self._compile_theano_function()
+        self._compile_theano_function(dataset)
 
         self.measures = ['score', 'similarity']
         self.subsets = ['total', 'known_words']
@@ -123,6 +127,8 @@ class WordRelationshipTest(TrainExtension):
         """
         with open(preprocess("${PYLEARN2_DATA_PATH}/word2vec/"
                              "questions-words.txt")) as f:
+            # last_seen_category stores (category_name, start_index)
+            # until we get to the next category, and now the stop_index
             last_seen_category = None
             i = 0
             for line in f:
@@ -140,35 +146,44 @@ class WordRelationshipTest(TrainExtension):
             self.categories[last_seen_category[0]] = \
                 slice(last_seen_category[1], i)
             self.categories['total'] = slice(0, i)
-        self.num_questions = np.asarray(len(self.binarized_questions),
-                                        dtype=config.floatX)
-        self.binarized_questions = np.array(self.binarized_questions,
-                                            dtype='int32')
-        self.known_targets = (self.binarized_questions[:, 3] !=
-                              dataset.unknown_index)
-        self.known_words = np.all(self.binarized_questions !=
-                                  dataset.unknown_index, axis=1)
+
+        # Report some statistics
+        known_targets = self.binarized_questions[:, 3] != dataset.unknown_index
+        known_words = np.all(self.binarized_questions !=
+                             dataset.unknown_index, axis=1)
         log.info('Word relationship test: %d questions loaded'
                  % (len(self.binarized_questions)))
         log.info('Word relationship test: %d questions have known targets'
-                 % (np.sum(self.known_targets)))
+                 % (np.sum(known_targets)))
         log.info('Word relationship test: %d questions are fully covered by '
-                 'the vocabulary' % (np.sum(self.known_words)))
+                 'the vocabulary' % (np.sum(known_words)))
         if self.most_common is not None:
-            self.common_words = np.all(self.binarized_questions <=
-                                       self.most_common, axis=1)
+            common_words = np.all(self.binarized_questions <= self.most_common,
+                                  axis=1)
             log.info('Word relationship test: %d questions consist of words '
                      'that are in the %d most common words' %
-                     (np.sum(np.logical_and(self.common_words,
-                                            self.known_words)),
-                      self.most_common))
+                     (np.sum(common_words & known_words), self.most_common))
 
-    def _compile_theano_function(self):
+    def _compile_theano_function(self, dataset):
         """
         Compiles the Theano functions necessary to compute the
         scores
         """
-        word_indices = tensor.imatrix('word_indices')
+        # Create Theano variables
+        word_indices = shared(
+            np.asarray(self.binarized_questions, dtype='int32'),
+            name='binarized_questions'
+        )
+
+        self.known_words = tensor.all(self.binarized_questions !=
+                                      dataset.unknown_index, axis=1)
+        self.common_words = tensor.all(
+            self.binarized_questions <= self.most_common, axis=1
+        ) & self.known_words
+
+        # Make sure that everything is config.floatX to allow storing
+        # in shared variables. Note that float32 / int{32,64} = float64!
+
         embedding_matrix = self.projection_layer.get_params()[0]
         word_embeddings = embedding_matrix[word_indices.flatten()].reshape((
             word_indices.shape[0], word_indices.shape[1],
@@ -176,11 +191,11 @@ class WordRelationshipTest(TrainExtension):
         ))  # (num_questions, 4, embedding_dim)
         targets = (word_embeddings[:, 1, :] -
                    word_embeddings[:, 0, :] +
-                   word_embeddings[:, 2, :])
+                   word_embeddings[:, 2, :])  # (num_questions, embedding_dim)
 
         # We want to calculate the cosine similarity, but the dot product
         # between the targets and embedding matrix can be enormous, so we
-        # need to split it up
+        # split the embedding matrix into batches
         batch_size = shared(1024)
         num_batches = tensor.cast(tensor.ceil(
             embedding_matrix.shape[0] / tensor.cast(batch_size, 'float32')
