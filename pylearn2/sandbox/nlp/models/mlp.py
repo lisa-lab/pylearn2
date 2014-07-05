@@ -33,23 +33,38 @@ class Softmax(mlp.Softmax):
     max_col_norm : WRITEME
     init_bias_target_marginals : WRITEME
     """
-    @wraps(Layer.get_monitoring_channels_from_state)
-    def get_monitoring_channels_from_state(self, state, target=None):
+    @wraps(Layer.get_layer_monitoring_channels)
+    def get_layer_monitoring_channels(self, state_below=None,
+                                      state=None, targets=None):
+        if self.no_affine:
+            rval = OrderedDict()
+        else:
+            W = self.W
+            sq_W = T.sqr(W)
+            row_norms = T.sqrt(sq_W.sum(axis=1))
+            col_norms = T.sqrt(sq_W.sum(axis=0))
+            rval = OrderedDict([('row_norms_min',  row_norms.min()),
+                                ('row_norms_mean', row_norms.mean()),
+                                ('row_norms_max',  row_norms.max()),
+                                ('col_norms_min',  col_norms.min()),
+                                ('col_norms_mean', col_norms.mean()),
+                                ('col_norms_max',  col_norms.max()), ])
 
-        mx = state.max(axis=1)
-
-        rval = OrderedDict([('mean_max_class', mx.mean()),
-                            ('max_max_class', mx.max()),
-                            ('min_max_class', mx.min())])
-
-        if target is not None:
-            y_hat = T.argmax(state, axis=1)
-            y = T.argmax(target, axis=1)
-            misclass = T.neq(y, y_hat).mean()
-            misclass = T.cast(misclass, config.floatX)
-            rval['misclass'] = misclass
-            rval['nll'] = self.cost(Y_hat=state, Y=target)
-            rval['ppl'] = 2 ** (rval['nll'] / T.log(2))
+        if (state_below is not None) or (state is not None):
+            if state is None:
+                state = self.fprop(state_below)
+            mx = state.max(axis=1)
+            rval.update(OrderedDict([('mean_max_class', mx.mean()),
+                                     ('max_max_class', mx.max()),
+                                     ('min_max_class', mx.min())]))
+            if targets is not None:
+                y_hat = T.argmax(state, axis=1)
+                y = T.argmax(targets, axis=1)
+                misclass = T.neq(y, y_hat).mean()
+                misclass = T.cast(misclass, config.floatX)
+                rval['misclass'] = misclass
+                rval['nll'] = self.cost(Y_hat=state, Y=targets)
+                rval['ppl'] = 2 ** (rval['nll'] / T.log(2))
 
         return rval
 
