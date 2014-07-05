@@ -4,24 +4,55 @@ from itertools import product
 import logging
 
 import numpy as np
-from theano import config, tensor, scan, shared, function
+from theano import config, tensor, scan, shared
 
-from pylearn2.space import NullSpace
+from pylearn2.sandbox.nlp.datasets.text import TextDatasetMixin
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.utils.string_utils import preprocess
-from pylearn2.utils import sharedX, py_integer_types
+from pylearn2.utils import py_integer_types
 
 log = logging.getLogger(__name__)
+
+
+class QuestionCategory(object):
+    """
+    A helper class to store information about a question category.
+
+    Parameters
+    ----------
+    The name of the category
+    """
+    def __init__(self, name):
+        self.name = name.replace('-', '_')
+
+    @property
+    def slice(self):
+        return slice(self.start_slice, self.stop_slice)
+
+    @property
+    def size(self):
+        return self.stop - self.start
+
+    @property
+    def num_known(self):
+        return self.stop_slice - self.start_slice
+
+    def __str__(self):
+        return self.name
 
 
 class WordRelationshipTest(TrainExtension):
     """
     This training extension adds scores on Google's word relationship
-    test to the monitor channels.
+    test[1] to the monitor channels.
 
     It requires a subclass of TextDataset as the dataset to be used
     i.e. it needs vocabulary, unknown_index and is_case_sensitive
     attributes.
+
+    [1] Tomas Mikolov, Kai Chen, Greg Corrado, and Jeffrey Dean. Efficient
+    Estimation of Word Representations in Vector Space. In Proceedings of
+    Workshop at ICLR, 2013.
 
     Parameters
     ----------
@@ -33,23 +64,15 @@ class WordRelationshipTest(TrainExtension):
         this only makes sense if your words are numbered by frequency.
         If your dataset does not have an unknown word index, than pass
         `most_common - 1` instead.
-
-    Attributes
-    ----------
-    categories : dict
-        The categories are described by strings (keys) and the values
-        describe the corresponding rows of the questions-matrix as a
-        slice.
-    binarized_questions : ndarray
-        A num_questions x 4 matrix with word indices
+    report_categories : bool, optional
+        Report results on each category of the questions separately,
+        defaults to False. Note that scores are not reported for the
+        questions in each category covered by the `most_common` words
     """
-    def __init__(self, projection_layer, most_common=None):
+    def __init__(self, projection_layer, most_common=None,
+                 report_categories=False):
         self.__dict__.update(locals())
         del self.self
-
-        # These lists will be populated in the `setup` method
-        self.categories = {}
-        self.binarized_questions = []
 
         assert isinstance(projection_layer, basestring)
         assert isinstance(most_common, py_integer_types)
@@ -61,6 +84,9 @@ class WordRelationshipTest(TrainExtension):
         if not model.monitor._datasets:
             raise ValueError('The WordRelationship extension requires a '
                              'monitoring dataset to be defined')
+        if not issubclass(dataset.__class__, TextDatasetMixin):
+            raise ValueError('The WordRelationship extension requires a '
+                             'Text dataset')
 
         # There should be a better method to get a layer! What if the layer
         # is nested?
@@ -74,45 +100,49 @@ class WordRelationshipTest(TrainExtension):
         self._load_questions(dataset)
         self._compile_theano_function(dataset)
 
-        self.measures = ['score', 'similarity']
-        self.subsets = ['total', 'known_words']
-        if self.most_common is not None:
-            self.subsets += ['common_words']
-        for channel in product(self.categories, self.subsets, self.measures):
-            channel_name = "_".join(channel)
-            setattr(self, channel_name, sharedX(0))
+        def _add_channel(channel_name, measure, subset, category=None):
+            """
+            Adds a monitoring channel.
+            """
+            if measure == 'cos_similarity':
+                val = self.similarities
+            elif measure == 'correct':
+                val = tensor.cast(self.correct, config.floatX)
+
+            if category is not None:
+                val = val[category.slice]
+
+            if subset == 'common':
+                if category is not None:
+                    val = val[self.common_words[category.slice]]
+                else:
+                    val = val[self.common_words]
+            if subset == 'all':
+                if category is not None:
+                    val = val.sum() / category.size
+                else:
+                    val = val.sum() / self.num_questions
+            else:
+                val = val.mean()
             model.monitor.add_channel(
                 name='word_relationship_' + channel_name,
                 ipt=None,
-                val=getattr(self, channel_name),
-                data_specs=(NullSpace(), ''),
-                dataset=model.monitor._datasets[0]
+                val=tensor.cast(val, dtype=config.floatX),
             )
 
-    @functools.wraps(TrainExtension.on_monitor)
-    def on_monitor(self, model, dataset, algorithm):
-        for channel in product(self.categories, self.subsets,
-                               self.measures):
-            channel_name = "_".join(channel)
-            category, subset, measure = channel
-            category_slice = self.categories[category]
-            category_data = self.binarized_questions[category_slice]
-            if subset != 'total':
-                subset = getattr(self, subset)[category_slice]
-                category_data = category_data[subset]
-
-            val = getattr(self, channel_name)
-            if not len(category_data) > 0:
-                val.set_value(np.nan)
-                continue
-            if measure == 'score':
-                val.set_value(np.sum(
-                    self.closest_words(category_data) == category_data[:, 3],
-                    dtype=config.floatX
-                ) / np.asarray(len(category_data), dtype=config.floatX))
-            else:
-                val.set_value(self.average_similarity(
-                    category_data).astype(config.floatX))
+        measures = ['cos_similarity', 'correct']
+        subsets = ['all', 'known']
+        if self.most_common is not None:
+            subsets += ['common']
+        for channel in product(measures, subsets):
+            channel_name = "_".join(elem for elem in channel)
+            measure, subset = channel
+            _add_channel(channel_name, measure, subset)
+        if self.report_categories:
+            for channel in product(measures, subsets, self.categories):
+                measure, subset, category = channel
+                channel_name = "_".join(str(elem) for elem in channel)
+                _add_channel(channel_name, measure, subset, category)
 
     def _load_questions(self, dataset):
         """
@@ -121,68 +151,80 @@ class WordRelationshipTest(TrainExtension):
 
         Parameters
         ----------
-        dataset : TextDataset
+        dataset : subclass of TextDatasetMixin
             The dataset used to train this model, from which the
             vocabulary is loaded
         """
         with open(preprocess("${PYLEARN2_DATA_PATH}/word2vec/"
                              "questions-words.txt")) as f:
-            # last_seen_category stores (category_name, start_index)
-            # until we get to the next category, and now the stop_index
-            last_seen_category = None
-            i = 0
+            num_known_questions = 0
+            num_questions = 0
+            binarized_questions = []
+            categories = []
+            cur_category = None
             for line in f:
                 words = line.rstrip().split()
                 if words[0] == ':':
-                    if last_seen_category is not None:
-                        self.categories[last_seen_category[0]] = \
-                            slice(last_seen_category[1], i)
-                    last_seen_category = (words[1].replace('-', '_'), i)
+                    if cur_category is not None:
+                        cur_category.stop_slice = num_known_questions
+                        cur_category.stop = num_questions
+                        categories.append(cur_category)
+                    cur_category = QuestionCategory(words[1])
+                    cur_category.start_slice = num_known_questions
+                    cur_category.start = num_questions
                     continue
-                i += 1
-                self.binarized_questions.append(
-                    dataset.words_to_indices(words)
-                )
-            self.categories[last_seen_category[0]] = \
-                slice(last_seen_category[1], i)
-            self.categories['total'] = slice(0, i)
+                word_indices = dataset.words_to_indices(words)
+                num_questions += 1
+                if not dataset.unknown_index in word_indices:
+                    num_known_questions += 1
+                    binarized_questions.append(word_indices)
+        cur_category.stop_slice = num_known_questions
+        cur_category.stop = num_questions
+        self.binarized_questions = np.asarray(
+            binarized_questions, dtype='int32'
+        )
+        self.categories = categories
+
+        if num_known_questions == 0:
+            raise UserWarning("None of the questions in the word relationship "
+                              "test were covered by the vocabulary of your "
+                              "dataset.")
 
         # Report some statistics
-        known_targets = self.binarized_questions[:, 3] != dataset.unknown_index
-        known_words = np.all(self.binarized_questions !=
-                             dataset.unknown_index, axis=1)
-        log.info('Word relationship test: %d questions loaded'
-                 % (len(self.binarized_questions)))
-        log.info('Word relationship test: %d questions have known targets'
-                 % (np.sum(known_targets)))
-        log.info('Word relationship test: %d questions are fully covered by '
-                 'the vocabulary' % (np.sum(known_words)))
+        log.info('Word relationship test:')
+        log.info('\t%d questions loaded' % (num_questions))
+        log.info('\t%d questions are fully covered by the vocabulary' %
+                 (len(binarized_questions)))
         if self.most_common is not None:
             common_words = np.all(self.binarized_questions <= self.most_common,
                                   axis=1)
-            log.info('Word relationship test: %d questions consist of words '
-                     'that are in the %d most common words' %
-                     (np.sum(common_words & known_words), self.most_common))
+            log.info('\t%d questions consist of words that are in the %d most '
+                     'common words' % (np.sum(common_words), self.most_common))
+        if self.report_categories:
+            log.info('\tCategories:')
+            for category in categories:
+                log.info('\t\t%s: %d questions, %d known' %
+                         (category, category.size, category.num_known))
+
+        # Save this for use in the monitoring channels
+        self.num_questions = tensor.as_tensor_variable(num_questions)
+        self.num_known_questions = \
+            tensor.as_tensor_variable(num_known_questions)
 
     def _compile_theano_function(self, dataset):
         """
         Compiles the Theano functions necessary to compute the
         scores
+
+        Parameters
+        ----------
+        dataset : subclass of TextDatasetMixin
+            The dataset used to train this model, from which the
+            vocabulary is loaded
         """
         # Create Theano variables
-        word_indices = shared(
-            np.asarray(self.binarized_questions, dtype='int32'),
-            name='binarized_questions'
-        )
-
-        self.known_words = tensor.all(self.binarized_questions !=
-                                      dataset.unknown_index, axis=1)
-        self.common_words = tensor.all(
-            self.binarized_questions <= self.most_common, axis=1
-        ) & self.known_words
-
-        # Make sure that everything is config.floatX to allow storing
-        # in shared variables. Note that float32 / int{32,64} = float64!
+        word_indices = shared(self.binarized_questions,
+                              name='binarized_questions')
 
         embedding_matrix = self.projection_layer.get_params()[0]
         word_embeddings = embedding_matrix[word_indices.flatten()].reshape((
@@ -212,21 +254,30 @@ class WordRelationshipTest(TrainExtension):
             batch_argmax = tensor.argmax(similarities, axis=1)
             return [batch_max, batch_argmax]
 
-        [max_similarities, most_similar], updates = scan(
+        [batch_maxes, batch_argmaxes], updates = scan(
             fn=_batch_similarity,
             sequences=[tensor.arange(num_batches)],
             non_sequences=[embedding_matrix]
         )
-        # max_similarities and most_similar are (num_batches, num_questions)
-        best_batches = tensor.argmax(max_similarities, axis=0)
-        closest_words = (best_batches * batch_size +
-                         most_similar.T.flatten()[best_batches +
-                                                  tensor.arange(
-                                                      most_similar.shape[1]
-                                                  ) * most_similar.shape[0]])
-        self.closest_words = function([word_indices], closest_words)
 
-        similarities = (tensor.batched_dot(targets, word_embeddings[:, 3, :]) /
-                        targets.norm(2, axis=1) /
-                        word_embeddings[:, 3, :].norm(2, axis=1))
-        self.average_similarity = function([word_indices], similarities.mean())
+        # batch_maxes and batch_argmaxes are (num_batches, num_questions)
+        # avoiding fancy indexing on GPU here
+        best_batches = tensor.argmax(batch_maxes, axis=0)
+        closest_words = (
+            best_batches * batch_size + batch_argmaxes.T.flatten()[
+                best_batches + tensor.arange(batch_argmaxes.shape[1]) *
+                batch_argmaxes.shape[0]
+            ]
+        )
+
+        # The final results: Whether the question is answered correctly,
+        # and how similar the target is to the correct answer
+        self.correct = tensor.eq(closest_words, word_indices.T[3])
+        self.similarities = (tensor.batched_dot(targets,
+                                                word_embeddings[:, 3, :]) /
+                             targets.norm(2, axis=1) /
+                             word_embeddings[:, 3, :].norm(2, axis=1))
+        if self.most_common is not None:
+            self.common_words = tensor.all(
+                word_indices <= self.most_common, axis=1
+            )

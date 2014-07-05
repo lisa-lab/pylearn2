@@ -8,7 +8,7 @@
 
 !obj:pylearn2.train.Train {
     dataset: &train !obj:pylearn2.sandbox.nlp.datasets.penntree.PennTreebank {
-        which_set: 'train',
+        which_set: 'valid',
         context_len: &context_len 6
     },
     model: !obj:pylearn2.models.mlp.MLP {
