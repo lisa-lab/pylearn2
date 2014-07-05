@@ -75,7 +75,7 @@ class WordRelationshipTest(TrainExtension):
         del self.self
 
         assert isinstance(projection_layer, basestring)
-        assert isinstance(most_common, py_integer_types)
+        assert most_common is None or isinstance(most_common, py_integer_types)
 
     @functools.wraps(TrainExtension.setup)
     def setup(self, model, dataset, algorithm):
