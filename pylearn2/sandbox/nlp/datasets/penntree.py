@@ -56,8 +56,8 @@ class PennTreebank(DenseDesignMatrix, TextDatasetMixin):
         # Use word.lower() because the dictionary contains a single word
         # that is capitalized for some reason: N
         npz_data = serial.load(path + "dictionaries.npz")
-        self._vocabulary = {word.lower(): word_index for word_index, word
-                            in enumerate(npz_data['unique_words'])}
+        self._vocabulary = dict((word.lower(), word_index) for word_index, word
+                                in enumerate(npz_data['unique_words']))
         self._unknown_index = 10000
         self._is_case_sensitive = False
 
