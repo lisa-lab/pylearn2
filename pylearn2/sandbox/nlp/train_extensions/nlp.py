@@ -175,7 +175,7 @@ class WordRelationshipTest(TrainExtension):
                     continue
                 word_indices = dataset.words_to_indices(words)
                 num_questions += 1
-                if not dataset.unknown_index in word_indices:
+                if dataset.unknown_index not in word_indices:
                     num_known_questions += 1
                     binarized_questions.append(word_indices)
         cur_category.stop_slice = num_known_questions
