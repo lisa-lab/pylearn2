@@ -1499,6 +1499,14 @@ class Softmax(Layer):
             log_prob_of = T.reshape(flat_log_prob[flat_indices], 
                                 (Y.shape[0], Y.shape[1])
             )
+
+            
+            # flat_log_prob = log_prob.flatten()
+            # flat_indices = Y.flatten() + T.arange(Y.shape[0])*log_prob.shape[1]
+            # log_prob_of = T.reshape(flat_log_prob[flat_indices], 
+            #                     (Y.shape[0], Y.shape[1])
+            # )
+            #log_prob_of = log_prob[T.arange(Y.shape[0]), Y]
         else:
             log_prob_of = (Y * log_prob)
 
@@ -1516,7 +1524,7 @@ class Softmax(Layer):
 
     @wraps(Layer.cost_matrix)
     def cost_matrix(self, Y, Y_hat):
-
+        print "CALLING COST_MATRIX!!!!!!!!!!!!!!!!!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
         log_prob_of = self._cost(Y, Y_hat)
         if self._has_binary_target:
             flat_Y = Y.flatten()
