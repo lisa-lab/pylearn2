@@ -22,6 +22,7 @@ from pylearn2.space import CompositeSpace, VectorSpace, IndexSpace, Conv2DSpace
 from pylearn2.utils import serial
 from pylearn2.utils import safe_zip
 from pylearn2.utils.iteration import FiniteDatasetIterator
+from multiprocessing import Process, Pipe
 
 def index_from_one_hot(one_hot):
     return numpy.where(one_hot == 1.0)[0][0]
@@ -35,7 +36,7 @@ class H5Shuffle(Dataset):
     def __init__(self, path, node, which_set, frame_length,
                  start=0, stop=None, X_labels=None,
 		 _iter_num_batches=None,
-                 rng=_default_seed, load_to_memory=False):
+                 rng=_default_seed, load_to_memory=False, cache_size=None):
         """
         Parameters
         ----------
@@ -74,6 +75,10 @@ class H5Shuffle(Dataset):
 		self._iter_num_batches = _iter_num_batches
         self._load_to_memory = load_to_memory
         #self.y_labels = y_labels
+        if cache_size is not None:
+            self._cache_size = cache_size
+            self._max_data_index = stop
+            self.pipe_in, self.pipe_out = Pipe()
 
         # RNG initialization
         if hasattr(rng, 'random_integers'):
@@ -83,10 +88,14 @@ class H5Shuffle(Dataset):
 
         print which_set
         print "Start is", start, "stop is", stop
-        
-        # Load data from disk
-        self._load_data(which_set, (start, stop))
-        
+
+        if self._load_to_memory:   
+            # Load data from disk
+            self._load_data(which_set, (start, stop))
+        else:
+    
+        self._num_batches_seen = 0
+            
         # self.cumulative_sequence_indexes = numpy.cumsum(len(s) for s in self.raw_data)
   
         # DataSpecs
@@ -153,6 +162,12 @@ class H5Shuffle(Dataset):
 
         self.sourceFNs = {'features': getFeatures, 'targets': getTarget}
 
+    def _parallel_load_data(self, start, stop, pipe_in):
+        f = tables.open_file(self.base_path)
+	self.node = f.get_node(self.node_name)
+        new_data = self.node[start:stop]
+        pipe_in.send(new_data)
+
     def _load_data(self, which_set, startstop):
         """
         Load the WMT14 data from disk.
@@ -187,7 +202,7 @@ class H5Shuffle(Dataset):
             if stop is None:
                 self.num_examples = self.node.nrows
             else:   
-                self.num_examples = stop - start #self.node.nrows # len(self.samples_sequences)
+                self.num_examples = stop - start 
         print "Got", self.num_examples, "sentences"
         #self.samples_sequences = numpy.asarray(self.samples_sequences)
  
@@ -230,6 +245,16 @@ class H5Shuffle(Dataset):
 
             WRITEME
         """
+        num_examples = self._num_batches_seen*self.batch_size
+        if (num_examples) % self._cache_size == 0:
+            if num_examples + self._cache_size > self._max_data_index:
+                start = 0
+                stop = cache_size
+            else:
+                start = num_examples
+                stop = num_examples + cache_size
+            p = 
+
         if type(indexes) is slice:
             indexes = numpy.arange(indexes.start, indexes.stop)
         self._validate_source(source)
