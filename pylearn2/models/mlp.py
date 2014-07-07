@@ -50,6 +50,8 @@ from pylearn2.expr.nnet import (elemwise_kl, kl, compute_precision,
 from pylearn2.costs.mlp import L1WeightDecay as _L1WD
 from pylearn2.costs.mlp import WeightDecay as _WD
 
+from pylearn2.sandbox.rnn.models.mlp_hook import RNNWrapper
+
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +91,8 @@ class Layer(Model):
     Block interface were upgraded to be that flexible, then we could make this
     a block.
     """
+    # This enables RNN compatibility
+    __metaclass__ = RNNWrapper
 
 
     # When applying dropout to a layer's input, use this for masked values.
