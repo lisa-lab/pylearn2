@@ -80,8 +80,8 @@ def ais_data(fname, do_exact=True, betas=None):
         numpy.testing.assert_almost_equal(exact_logz, logz, decimal=0)
 
 
-def test_ais(fast=True):
-    if fast:
+def test_ais():
+    if config.mode == "DEBUG_MODE":
         betas = numpy.hstack((numpy.asarray(numpy.linspace(0, 0.5, 10),
                                             dtype=config.floatX),
                               numpy.asarray(numpy.linspace(0.5, 0.9, 10),
@@ -97,6 +97,3 @@ def test_ais(fast=True):
 
     # Estimate can be off when using the wrong base-rate model.
     ais_nodata('mnistvh.mat', do_exact=do_exact, betas=betas)
-
-if __name__ == "__main__":
-    test_ais(fast=False)
