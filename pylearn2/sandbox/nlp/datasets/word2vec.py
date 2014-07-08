@@ -49,13 +49,13 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
             # VLArray is strange, and this seems faster than reading node[:]
             # Format is now [batch, time, data]
             X = np.asarray([char_sequence[:, np.newaxis]
-                for char_sequence in node[:10]])
+                            for char_sequence in node])
         self._sequence_lengths = [len(sequence) for sequence in X]
 
         with tables.open_file(preprocess('${PYLEARN2_DATA_PATH}/word2vec/'
                                          'embeddings.h5')) as f:
             node = f.get_node('/embeddings_%s' % which_set)
-            y = node[:10]
+            y = node[:]
 
         source = ('features', 'targets')
         space = CompositeSpace([SequenceSpace(IndexSpace(dim=1,

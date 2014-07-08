@@ -36,6 +36,9 @@ class RNNWrapper(MetaLibVersion):
         dct['_scan_updates'] = OrderedDict()
         return type.__new__(cls, name, bases, dct)
 
+    def __repr__(cls):
+        return cls.__name__
+
     @classmethod
     def fprop_wrapper(cls, fprop):
         """
