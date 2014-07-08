@@ -20,6 +20,7 @@ import functools
 import inspect
 import numpy as np
 
+from pylearn2.sandbox.rnn.space import SequenceSpace
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_izip, wraps
 from pylearn2.utils.data_specs import is_flat_specs
@@ -785,6 +786,11 @@ class FiniteDatasetIterator(object):
                 if fn is None:
 
                     def fn(batch, dspace=dspace, sp=sp):
+                        # The batch of a SequenceSpace is a sequence of
+                        # arrays of the same size, which we convert into a
+                        # single ndarray here
+                        if isinstance(dspace, SequenceSpace):
+                            batch = np.array([_ for _ in batch])
                         try:
                               return dspace.np_format_as(batch, sp)
                         except ValueError as e:

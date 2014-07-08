@@ -1,5 +1,6 @@
 import functools
 
+import numpy as np
 from theano import tensor
 
 from pylearn2 import space
@@ -43,3 +44,15 @@ class SequenceSpace(space.SimplyTypedSpace):
 
     def __str__(self):
         return 'SequenceSpace(%s)' % (self.space)
+
+    @functools.wraps(space.Space._format_as_impl)
+    def _format_as_impl(self, is_numeric, batch, target_space):
+        assert isinstance(target_space, SequenceSpace)
+        if is_numeric:
+            rval = np.apply_over_axes(lambda batch: self.space._format_as_impl(
+                is_numeric=is_numeric,
+                batch=batch,
+                target_space=target_space.space), batch, 0)
+        else:
+            NotImplementedError()
+        return rval
