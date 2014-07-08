@@ -33,7 +33,7 @@ class SequenceSpace(space.SimplyTypedSpace):
         sequence = self.space.make_theano_batch(name=None, dtype=dtype,
                                                 batch_size=batch_size)
         tensor_type = tensor.TensorType(sequence.dtype,
-                                        (False,) * (sequence.ndim + 1))
+                                        (False,) + sequence.broadcastable)
         return tensor_type(name)
 
     @functools.wraps(space.Space._batch_size_impl)
@@ -46,8 +46,7 @@ class SequenceSpace(space.SimplyTypedSpace):
 
     @functools.wraps(space.Space._validate_impl)
     def _validate_impl(self, is_numeric, batch):
-        # Data here is [batch, data, time] so we validate a single
-        # sample
+        # Data here is [batch, data, time]
         self.space._validate_impl(is_numeric, batch[0])
 
     def __str__(self):
@@ -64,5 +63,5 @@ class SequenceSpace(space.SimplyTypedSpace):
                     space=space.space),
                 batch, 0)
         else:
-            NotImplementedError()
+            NotImplementedError("Can't convert SequenceSpace Theano variables")
         return rval
