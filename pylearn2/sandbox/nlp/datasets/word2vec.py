@@ -42,7 +42,9 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
                                          'characters.h5')) as f:
             node = f.get_node('/characters_%s' % which_set)
             # VLArray is strange, and this seems faster than reading node[:]
-            X = np.asarray([char_sequence for char_sequence in node])
+            # Format is now [batch, data, time]
+            X = np.asarray([char_sequence[np.newaxis].T
+                            for char_sequence in node])
 
         with tables.open_file(preprocess('${PYLEARN2_DATA_PATH}/word2vec/'
                                          'embeddings.h5')) as f:

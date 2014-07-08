@@ -40,6 +40,8 @@ class SequenceSpace(space.SimplyTypedSpace):
 
     @functools.wraps(space.Space._validate_impl)
     def _validate_impl(self, is_numeric, batch):
+        # Data here is [batch, data, time] so we validate a single
+        # sample
         self.space._validate_impl(is_numeric, np.asarray([batch[0]]))
 
     def __str__(self):
