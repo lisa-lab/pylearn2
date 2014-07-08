@@ -791,6 +791,7 @@ class FiniteDatasetIterator(object):
                         # single ndarray here
                         if isinstance(dspace, SequenceSpace):
                             batch = np.array([_ for _ in batch])
+                            batch = np.transpose(batch, (0, 1, 2))
                         try:
                               return dspace.np_format_as(batch, sp)
                         except ValueError as e:

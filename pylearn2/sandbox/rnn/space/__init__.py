@@ -48,13 +48,15 @@ class SequenceSpace(space.SimplyTypedSpace):
         return 'SequenceSpace(%s)' % (self.space)
 
     @functools.wraps(space.Space._format_as_impl)
-    def _format_as_impl(self, is_numeric, batch, target_space):
-        assert isinstance(target_space, SequenceSpace)
+    def _format_as_impl(self, is_numeric, batch, space):
+        assert isinstance(space, SequenceSpace)
         if is_numeric:
-            rval = np.apply_over_axes(lambda batch: self.space._format_as_impl(
-                is_numeric=is_numeric,
-                batch=batch,
-                target_space=target_space.space), batch, 0)
+            rval = np.apply_over_axes(
+                lambda batch, axis: self.space._format_as_impl(
+                    is_numeric=is_numeric,
+                    batch=batch,
+                    space=space.space),
+                batch, 0)
         else:
             NotImplementedError()
         return rval
