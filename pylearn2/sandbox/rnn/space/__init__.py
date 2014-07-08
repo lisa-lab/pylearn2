@@ -42,7 +42,7 @@ class SequenceSpace(space.SimplyTypedSpace):
 
     @functools.wraps(space.Space.get_total_dimension)
     def get_total_dimension(self):
-        return self.space.get_total_dimension
+        return self.space.get_total_dimension()
 
     @functools.wraps(space.Space._validate_impl)
     def _validate_impl(self, is_numeric, batch):
