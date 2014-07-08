@@ -39,6 +39,7 @@ class Recurrent(mlp.Layer):
         # Save the parameters and set the output space
         self.params = [W_recurrent, W_in, b]
         self.output_space = VectorSpace(dim=self.dim)
+        self.input_space = space
 
     def fprop(self, state_below):
         # The initial hidden state is just zeros
