@@ -16,6 +16,8 @@ class ShuffledSequentialSubsetIterator(
         super(ShuffledSequentialSubsetIterator, self).__init__(
             dataset_size, batch_size, num_batches, rng
         )
+        # If this iterator was called by a dataset with sequences we must
+        # make sure that the batches contain sequences of the same length
         if sequence_lengths:
             assert len(sequence_lengths) == dataset_size
             self._sequence_lengths = np.asarray(sequence_lengths)
@@ -50,6 +52,8 @@ class ShuffledSequentialSubsetIterator(
 
     @wraps(iteration.ShuffledSequentialSubsetIterator.next)
     def next(self):
+        # Either use the pre-created batches with equal sequence lengths,
+        # or else just call the base class's default next method
         if hasattr(self, '_sequence_lengths'):
             if self._batch >= len(self._batches):
                 raise StopIteration()

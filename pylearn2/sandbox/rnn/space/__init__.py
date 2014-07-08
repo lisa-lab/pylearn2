@@ -20,6 +20,7 @@ class SequenceSpace(space.SimplyTypedSpace):
         self.space = space
         self.dim = space.dim
         self._dtype = super(SequenceSpace, self)._clean_dtype_arg(space.dtype)
+        super(SequenceSpace, self).__init__()
 
     @functools.wraps(space.Space.__eq__)
     def __eq__(self, other):
