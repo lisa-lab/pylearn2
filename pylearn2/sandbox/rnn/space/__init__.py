@@ -30,10 +30,15 @@ class SequenceSpace(space.SimplyTypedSpace):
 
     @functools.wraps(space.Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
-        return tensor.shape_padleft(
-            self.space.make_theano_batch(name=name, dtype=dtype,
-                                         batch_size=batch_size)
-        )
+        sequence = self.space.make_theano_batch(name=None, dtype=dtype,
+                                                batch_size=batch_size)
+        tensor_type = tensor.TensorType(sequence.dtype,
+                                        (False,) * (sequence.ndim + 1))
+        return tensor_type(name)
+
+    @functools.wraps(space.Space._batch_size_impl)
+    def _batch_size_impl(self, is_numeric, batch):
+        return batch.shape[1]
 
     @functools.wraps(space.Space.get_total_dimension)
     def get_total_dimension(self):

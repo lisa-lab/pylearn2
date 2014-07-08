@@ -788,7 +788,8 @@ class FiniteDatasetIterator(object):
                     def fn(batch, dspace=dspace, sp=sp):
                         # The batch of a SequenceSpace is a sequence of
                         # arrays of the same size, which we convert into a
-                        # single ndarray here
+                        # single ndarray here; we also need to reorder the
+                        # axes from [batch, time, data] to [time, batch, data]
                         if isinstance(dspace, SequenceSpace):
                             batch = np.array([_ for _ in batch])
                             batch = np.transpose(batch, (1, 0, 2))

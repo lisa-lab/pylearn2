@@ -5,15 +5,15 @@ import numpy as np
 from pylearn2.utils import iteration, safe_izip
 
 
-class ShuffledSequentialSubsetIterator(
-        iteration.ShuffledSequentialSubsetIterator):
-    fancy = True
-    stochastic = True
-    uniform_batch_size = False
-
+class SequentialSubsetIterator(iteration.SequentialSubsetIterator):
+    """
+    An RNN-friendly version of the SequentialSubsetIterator. If passed
+    a list of sequence lengths, it will create batches which only
+    contain sequences of the same length.
+    """
     def __init__(self, dataset_size, batch_size, num_batches, rng=None,
                  sequence_lengths=None):
-        super(ShuffledSequentialSubsetIterator, self).__init__(
+        super(SequentialSubsetIterator, self).__init__(
             dataset_size, batch_size, num_batches, rng
         )
         # If this iterator was called by a dataset with sequences we must
@@ -21,14 +21,21 @@ class ShuffledSequentialSubsetIterator(
         if sequence_lengths:
             assert len(sequence_lengths) == dataset_size
             self._sequence_lengths = np.asarray(sequence_lengths)
-            self._shuffled_sequence_lengths = \
-                self._sequence_lengths[self._shuffled]
-            self._create_batches()
+            self._indices = np.arange(self._dataset_size)
+            self._create_batches(self._indices, self._sequence_lengths)
 
-    def _create_batches(self):
+    def _create_batches(self, indices, sequence_lengths):
         """
-        This method creates batches given a list of sequence lengths.
-        It ensures that batches all have the same sequence lengths.
+        This method creates batches with the same sequence lengths.
+
+        Parameters
+        ----------
+        indices : list of ints or numpy array
+            A list of indices; can be either shuffled or simply
+            sequential, but must be in the same order as the
+            sequence lengths
+        sequence_lengths : list of ints or numpy array
+            The lengths of the sequences in the same order as indices.
         """
         # TODO This needs to be optimized a lot; very slow right now
         seen = set()
@@ -37,18 +44,49 @@ class ShuffledSequentialSubsetIterator(
             batch = []
             batch_sequence_length = None
             for index, sequence_length \
-                    in safe_izip(self._shuffled,
-                                 self._shuffled_sequence_lengths):
+                    in safe_izip(indices, sequence_lengths):
                 if index not in seen:
                     if not batch_sequence_length:
                         batch_sequence_length = sequence_length
                     if sequence_length == batch_sequence_length:
                         batch.append(index)
-                        seen.add(index)
                         if len(batch) == self._batch_size:
                             break
+            seen.update(batch)
             batches.append(batch)
         self._batches = batches
+
+    @wraps(iteration.SequentialSubsetIterator.next)
+    def next(self):
+        # Either use the pre-created batches with equal sequence lengths,
+        # or else just call the base class's default next method
+        if hasattr(self, '_sequence_lengths'):
+            if self._batch >= len(self._batches):
+                raise StopIteration()
+            else:
+                self._last = self._batches[self._batch]
+                self._idx += len(self._last)
+                self._batch += 1
+                return self._last
+        else:
+            return super(SequentialSubsetIterator, self).next()
+
+
+class ShuffledSequentialSubsetIterator(
+        iteration.ShuffledSequentialSubsetIterator, SequentialSubsetIterator):
+    # Inherit from SequentialSubsetIterator for _create_batches
+    def __init__(self, dataset_size, batch_size, num_batches, rng=None,
+                 sequence_lengths=None):
+        super(ShuffledSequentialSubsetIterator, self).__init__(
+            dataset_size, batch_size, num_batches, rng
+        )
+        if sequence_lengths:
+            assert len(sequence_lengths) == dataset_size
+            self._sequence_lengths = np.asarray(sequence_lengths)
+            self._shuffled_sequence_lengths = \
+                self._sequence_lengths[self._shuffled]
+            self._create_batches(self._shuffled,
+                                 self._shuffled_sequence_lengths)
 
     @wraps(iteration.ShuffledSequentialSubsetIterator.next)
     def next(self):

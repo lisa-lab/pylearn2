@@ -12,7 +12,9 @@ import tables
 
 from pylearn2.sandbox.nlp.datasets.text import TextDatasetMixin
 from pylearn2.sandbox.rnn.space import SequenceSpace
-from pylearn2.sandbox.rnn.utils.iteration import ShuffledSequentialSubsetIterator
+from pylearn2.sandbox.rnn.utils.iteration import (
+    SequentialSubsetIterator, ShuffledSequentialSubsetIterator
+)
 from pylearn2.datasets.vector_spaces_dataset import VectorSpacesDataset
 from pylearn2.space import IndexSpace, CompositeSpace, VectorSpace
 from pylearn2.utils.iteration import FiniteDatasetIterator
@@ -67,13 +69,29 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
                  return_tuple=False):
         if rng is None:
             rng = self.rng
-        subset_iterator = ShuffledSequentialSubsetIterator(
-            dataset_size=self.get_num_examples(),
-            batch_size=batch_size,
-            num_batches=num_batches,
-            rng=rng,
-            sequence_lengths=self._sequence_lengths
-        )
+        if mode is None or mode == 'shuffled_sequential':
+            subset_iterator = ShuffledSequentialSubsetIterator(
+                dataset_size=self.get_num_examples(),
+                batch_size=batch_size,
+                num_batches=num_batches,
+                rng=rng,
+                sequence_lengths=self._sequence_lengths
+            )
+        elif mode == 'sequential':
+            subset_iterator = SequentialSubsetIterator(
+                dataset_size=self.get_num_examples(),
+                batch_size=batch_size,
+                num_batches=num_batches,
+                rng=None,
+                sequence_lengths=self._sequence_lengths
+            )
+        else:
+            raise ValueError('For sequential datasets only the '
+                             'SequentialSubsetIterator and '
+                             'ShuffledSequentialSubsetIterator have been '
+                             'ported, so the mode `%s` is not supported.' %
+                             (mode,))
+
         if data_specs is None:
             data_specs = self.data_specs
         return FiniteDatasetIterator(
