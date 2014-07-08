@@ -138,7 +138,7 @@ class FiniteDatasetIterator(
                             # Data is stores as [batch, data, time], and we
                             # want [time, batch, data]
                             batch = np.array([_ for _ in batch])
-                            batch = np.transpose(batch, (2, 0, 1))
+                            batch = np.transpose(batch, (1, 0, 2))
                         try:
                             return dspace.np_format_as(batch, sp)
                         except ValueError as e:

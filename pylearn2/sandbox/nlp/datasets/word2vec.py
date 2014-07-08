@@ -42,7 +42,7 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
                                          'characters.h5')) as f:
             node = f.get_node('/characters_%s' % which_set)
             # VLArray is strange, and this seems faster than reading node[:]
-            # Format is now [batch, data, time]
+            # Format is now [batch, time, data]
             X = np.asarray([char_sequence[np.newaxis].T
                             for char_sequence in node])
 
