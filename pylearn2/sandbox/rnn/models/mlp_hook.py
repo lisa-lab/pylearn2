@@ -25,9 +25,9 @@ class RNNWrapper(MetaLibVersion):
                     accessors.setdefault(attr[4:],
                                          [None, None, None])[i] = getattr(cls,
                                                                           attr)
-        for name, methods in accessors.iteritems():
+        for attr, methods in accessors.iteritems():
             if None not in methods:
-                dct[name] = property(*methods)
+                dct[attr] = property(*methods)
 
         # By default layers are not RNN friendly and don't have
         # a SequenceSpace as input or output
@@ -35,9 +35,6 @@ class RNNWrapper(MetaLibVersion):
         dct['_sequence_space'] = False
         dct['_scan_updates'] = OrderedDict()
         return type.__new__(cls, name, bases, dct)
-
-    def __repr__(cls):
-        return cls.__name__
 
     @classmethod
     def fprop_wrapper(cls, fprop):
