@@ -5,7 +5,6 @@ This dataset maps sequences of character indices to word embeddings.
 See: https://code.google.com/p/word2vec/
 """
 import cPickle
-import functools
 
 import numpy as np
 import tables
@@ -51,14 +50,7 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
             y = node[:]
 
         source = ('features', 'targets')
-        space = CompositeSpace(SequenceSpace(IndexSpace(dim=1,
-                                                        max_labels=101)),
-                               VectorSpace(dim=300))
+        space = CompositeSpace([SequenceSpace(IndexSpace(dim=1,
+                                                         max_labels=101)),
+                                VectorSpace(dim=300)])
         super(Word2Vec, self).__init__(data=(X, y), data_specs=(source, space))
-
-    @functools.wraps(VectorSpacesDataset.iterator)
-    def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 topo=None, targets=None, rng=None, data_specs=None,
-                 return_tuple=False):
-        import ipdb
-        ipdb.set_trace()
