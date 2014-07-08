@@ -5,7 +5,7 @@
     node: '/double_filtered_binarized_corpus_train',
     which_set: 'train',
     frame_length: &n 7,
-    stop: 10000000,
+    stop: 1000000,
     _iter_num_batches: 1000,
     X_labels: &l 15000,
     load_to_memory: True
@@ -15,50 +15,51 @@
       dim: 1,
       max_labels: *l  
     },
-    target_source: ['target0', 'target1', 'target2', 'target3', 'target4', 'target5'],
+    target_source: ['target0', 'target1', 'target2', 'target3', 'target4', 'target5' ],
     layers: [
       !obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
         layer_name: 'projection',
         dim: 512,
         irange: 0.01
       },
-      !obj:pylearn2.models.mlp.CompositeLayer {
+     !obj:pylearn2.models.mlp.CompositeLayer {
         layer_name: 'composite_layer',
-        layers: [!obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
+        layers: 
+        [!obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
             n_classes: *l,
             layer_name: 'h0',
             irange: 0.01,
-            binary_target_dim: 1
+           # binary_target_dim: 1
           },
           !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
-            n_classes: *l,
+           n_classes: *l,
             layer_name: 'h1',
             irange: 0.01,
-            binary_target_dim: 1
+           # binary_target_dim: 1
           },
           !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
             n_classes: *l,
             layer_name: 'h2',
             irange: 0.01,
-            binary_target_dim: 1
+           # binary_target_dim: 1
           },
           !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
             n_classes: *l,
             layer_name: 'h3',
             irange: 0.01,
-            binary_target_dim: 1
+           # binary_target_dim: 1
           },
           !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
             n_classes: *l,
             layer_name: 'h4',
             irange: 0.01,
-            binary_target_dim: 1
+           # binary_target_dim: 1
           },
           !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
             n_classes: *l,
             layer_name: 'h5',
             irange: 0.01,
-            binary_target_dim: 1
+           # binary_target_dim: 1
           }
         ]
       }
@@ -66,10 +67,10 @@
   },
   algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
     batch_size: 256,
-    learning_rate: .000001,
+    learning_rate: .01,
     learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {},
     monitoring_dataset: {
-      'valid': !obj:pylearn2.sandbox.nlp.datasets.skipgram.H5Skipgram {
+     'valid': !obj:pylearn2.sandbox.nlp.datasets.skipgram.H5Skipgram {
         path: '/data/lisatmp3/pougetj/double_filtered_binarized_corpus_valid.h5',
         node: '/double_filtered_binarized_corpus_valid',
         which_set: 'valid',
