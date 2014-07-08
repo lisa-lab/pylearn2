@@ -1,6 +1,6 @@
 import functools
 
-from theano import scan
+from theano import tensor
 from theano.compat.python2x import OrderedDict
 
 from pylearn2.sandbox.rnn.space import SequenceSpace
@@ -46,10 +46,14 @@ class RNNWrapper(MetaLibVersion):
         @functools.wraps(fprop)
         def outer(self, state_below):
             if self._sequence_space:
-                partial_fprop = functools.partial(fprop, self)
-                rval, updates = scan(fn=partial_fprop, sequences=[state_below])
-                self._scan_updates.update(updates)
-                return rval
+                original_shape = state_below.shape
+                state_below = state_below.T.flatten(ndim=state_below.ndim-1).T
+                state = fprop(self, state_below)
+                state = state.T.reshape(
+                    tensor.concatenate([state.T.shape[:-1],
+                                        original_shape[-2::-1]]),
+                    ndim=state.ndim + 1).T
+                return state
             else:
                 return fprop(self, state_below)
         return outer
