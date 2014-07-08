@@ -1,16 +1,3 @@
-# These hyperparameters, identified by David Warde-Farley via random search,
-# obtain 1.08% on MNIST, nearly matching the 1.05% in Nitish Srivastava's
-# Master's thesis.
-#
-# An important difference is that this uses only the first 50,000 examples
-# and does early stopping on a validation set of the last 10,000 training
-# points, whereas Nitish Srivastava's results trained on the entire training
-# set for a given number of epochs. It is quite possible that re-training
-# with these hyperparameters on the entire 60,000 using some alternate stopping
-# criterion (matching the best training set likelihood of this job, for instance,
-# or stopping after the same number of epochs) would yield better than 1.05%
-# performance.
-
 !obj:pylearn2.train.Train {
     dataset: &train !obj:pylearn2.datasets.mnist.MNIST {
         which_set: "train",
