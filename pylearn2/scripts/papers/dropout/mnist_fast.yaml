@@ -1,9 +1,12 @@
+# This is a copy of mnist.yaml with modified parameters
+# in order to make the tests in DEBUG_MODE faster
+
 !obj:pylearn2.train.Train {
     dataset: &train !obj:pylearn2.datasets.mnist.MNIST {
         which_set: "train",
         shuffle: 0,
         start: 0,
-        stop: 1
+        stop: 10
     },
     model: !obj:pylearn2.models.mlp.MLP {
         batch_size : 1,
@@ -14,6 +17,13 @@
                 dim: 1,
                 irange: 0.00891030471479,
                 layer_name: 'h0',
+                init_bias: 0.000000
+            },
+            !obj:pylearn2.models.mlp.RectifiedLinear {
+                max_col_norm: 2.970242,
+                dim: 1,
+                irange: 0.0575059125935,
+                layer_name: 'h1',
                 init_bias: 0.000000
             },
             !obj:pylearn2.models.mlp.Softmax {
@@ -43,6 +53,18 @@
             max_epochs: 1
         }
     },
+    extensions: [
+        !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
+            start: 1,
+            saturate: 698,
+            final_momentum: 0.699217
+        },
+        !obj:pylearn2.training_algorithms.sgd.LinearDecayOverEpoch {
+            start: 1,
+            saturate: 560,
+            decay_factor: 0.022292
+        }
+    ],
     save_path: "${PYLEARN2_TRAIN_FILE_FULL_STEM}.pkl",
     save_freq : 1
 }

@@ -1,3 +1,6 @@
+# This is a copy of mnist_valid.yaml with modified parameters
+# in order to make the tests in DEBUG_MODE faster
+
 !obj:pylearn2.train.Train {
     dataset: &train !obj:pylearn2.datasets.mnist.MNIST {
         which_set: "train",
