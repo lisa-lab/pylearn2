@@ -40,7 +40,7 @@ class SequenceSpace(space.SimplyTypedSpace):
 
     @functools.wraps(space.Space._validate_impl)
     def _validate_impl(self, is_numeric, batch):
-        self.space._validate_impl(is_numeric, batch[0])
+        self.space._validate_impl(is_numeric, np.asarray([batch[0]]))
 
     def __str__(self):
         return 'SequenceSpace(%s)' % (self.space)
