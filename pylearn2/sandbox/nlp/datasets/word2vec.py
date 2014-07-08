@@ -53,4 +53,4 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
         space = CompositeSpace([SequenceSpace(IndexSpace(dim=1,
                                                          max_labels=101)),
                                 VectorSpace(dim=300)])
-        super(Word2Vec, self).__init__(data=(X, y), data_specs=(source, space))
+        super(Word2Vec, self).__init__(data=(X, y), data_specs=(space, source))
