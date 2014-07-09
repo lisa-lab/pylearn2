@@ -22,7 +22,7 @@ from pylearn2.space import CompositeSpace, VectorSpace, IndexSpace, Conv2DSpace
 from pylearn2.utils import serial
 from pylearn2.utils import safe_zip
 from pylearn2.utils.iteration import FiniteDatasetIterator
-from multiprocessing import Process, Pipe
+from multiprocessing import Process, Queue
 
 def index_from_one_hot(one_hot):
     return numpy.where(one_hot == 1.0)[0][0]
@@ -257,12 +257,12 @@ class H5Shuffle(Dataset):
             else:
                 start = num_examples
                 stop = num_examples + cache_size
-            p = Process(target=self._parallel_load_data, args=(start, stop, self.queue))
+            p = Process(target=self._parallel_load_data, args=(start, stop, self._data_queue))
             p.start()
-        if not self.queue.empty():
+        if not self._data_queue.empty():
             print "queue has stuff"
-            self.samples_sequences = samples_sequences[cache_size:] + self.queue.get()
-            print "Queue is empty", self.queue.empty()
+            self.samples_sequences = samples_sequences[cache_size:] + self._data_queue.get()
+            print "Queue is empty", self._data_queue.empty()
             print "got stuff from queue"
 
     def get(self, source, indexes):
