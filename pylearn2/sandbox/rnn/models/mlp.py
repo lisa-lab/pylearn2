@@ -13,6 +13,21 @@ class Recurrent(mlp.Layer):
     """
     A recurrent neural network layer using the hyperbolic
     tangent activation function which only returns its last state
+
+    Parameters
+    ----------
+    dim : int
+        The number of elements in the hidden layer
+    layer_name : str
+        The name of the layer. All layers in an MLP must have a unique name.
+    irange : float
+        Initializes each weight randomly in U(-irange, irange)
+    output : slice, list of integers or integer, optional
+        If specified this layer will return only the given hidden
+        states. If an integer is given, it will not return a
+        SequenceSpace. Otherwise, it will return a SequenceSpace of
+        fixed length. Note that a SequenceSpace of fixed length
+        can be flattened by using the FlattenerLayer.
     """
     def __init__(self, dim, layer_name, irange):
         self._rnn_friendly = True

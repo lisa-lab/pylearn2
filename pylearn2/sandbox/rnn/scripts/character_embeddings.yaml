@@ -35,5 +35,9 @@
         which_set: 'valid',
       },
     },
+    cost: !obj:pylearn2.sandbox.rnn.costs.gradient_clipping.GradientClipping {
+      clipping_value: 1,
+      cost: !obj:pylearn2.costs.mlp.Default {}
+    }
   },
 }
