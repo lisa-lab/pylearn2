@@ -14,7 +14,7 @@ class GradientClipping(ModelExtension):
         Parameters
         ----------
         clipping_value : float or int
-            The norm above which to clip the gradient.
+            The squared norm above which to clip the gradient.
         exclude_params : list of strings
             The names of the parameters that are excluded from clipping
         """
