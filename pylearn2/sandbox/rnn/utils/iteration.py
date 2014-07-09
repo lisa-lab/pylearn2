@@ -1,3 +1,6 @@
+"""
+Subset iterators which have been adapted for RNNs.
+"""
 from functools import wraps
 
 import numpy as np
@@ -10,6 +13,17 @@ class SequentialSubsetIterator(iteration.SequentialSubsetIterator):
     An RNN-friendly version of the SequentialSubsetIterator. If passed
     a list of sequence lengths, it will create batches which only
     contain sequences of the same length.
+    Returns mini-batches proceeding sequentially through the dataset.
+
+    See :py:class:`SubsetIterator` for detailed constructor parameter
+    and attribute documentation.
+
+    Parameters
+    -----
+    sequence_lengths : list or array of ints
+        This should contain a list of sequence lengths in the
+        same order as the dataset, allowing the iterator to return
+        batches with uniform sequence lengths.
     """
     def __init__(self, dataset_size, batch_size, num_batches, rng=None,
                  sequence_lengths=None):
@@ -74,6 +88,15 @@ class SequentialSubsetIterator(iteration.SequentialSubsetIterator):
 
 class ShuffledSequentialSubsetIterator(
         iteration.ShuffledSequentialSubsetIterator, SequentialSubsetIterator):
+    """
+    Randomly shuffles the example indices and then proceeds sequentially
+    through the permutation.
+
+    Parameters
+    -----
+    See :py:class:`SequentialSubsetIterator` for detailed constructor
+    parameter and attribute documentation.
+    """
     # Inherit from SequentialSubsetIterator for _create_batches
     def __init__(self, dataset_size, batch_size, num_batches, rng=None,
                  sequence_lengths=None):

@@ -1,3 +1,6 @@
+"""
+Spaces specific to the RNN framework, specifically the SequenceSpace
+"""
 import functools
 
 import numpy as np

@@ -1,3 +1,6 @@
+"""
+RNN layers.
+"""
 import numpy as np
 from theano import config
 from theano import scan
@@ -28,6 +31,7 @@ class Recurrent(mlp.Layer):
         SequenceSpace. Otherwise, it will return a SequenceSpace of
         fixed length. Note that a SequenceSpace of fixed length
         can be flattened by using the FlattenerLayer.
+    irange : float
     """
     def __init__(self, dim, layer_name, irange):
         self._rnn_friendly = True

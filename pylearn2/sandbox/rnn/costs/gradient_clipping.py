@@ -1,3 +1,6 @@
+"""
+Implements gradient clipping as a cost wrapper.
+"""
 from theano import tensor
 from theano.compat.python2x import OrderedDict
 

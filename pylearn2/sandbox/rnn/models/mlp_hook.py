@@ -1,6 +1,8 @@
+"""
+Code to hook into the MLP framework
+"""
 import functools
 
-from theano import tensor
 from theano.compat.python2x import OrderedDict
 
 from pylearn2.sandbox.rnn.space import SequenceSpace
@@ -8,6 +10,12 @@ from pylearn2.utils.track_version import MetaLibVersion
 
 
 class RNNWrapper(MetaLibVersion):
+    """
+    This metaclass wraps the MLP class by intercepting the class
+    creation. Properties can be wrapped by defining `get_`, `set_`,
+    and `del_` methods. Methods can be wrapped by defining a
+    `_wrapper` method.
+    """
     def __new__(cls, name, bases, dct):
         # Allow for methods to be wrapped
         for attr in dct:
