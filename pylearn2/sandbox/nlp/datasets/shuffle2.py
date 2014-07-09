@@ -74,6 +74,7 @@ class H5Shuffle(Dataset):
 	else:
 		self._iter_num_batches = _iter_num_batches
         self._load_to_memory = load_to_memory
+
         self._using_cache = False
         #self.y_labels = y_labels
         if cache_size is not None:
@@ -167,10 +168,12 @@ class H5Shuffle(Dataset):
         self.sourceFNs = {'features': getFeatures, 'targets': getTarget}
 
     def _parallel_load_data(self, start, stop, queue):
+        print "Starting to load data"
         f = tables.open_file(self.base_path)
 	self.node = f.get_node(self.node_name)
         new_data = self.node[start:stop]
         queue.put(new_data)
+        print "Finished loading data"
 
     def _load_data(self, which_set, startstop):
         """
@@ -257,9 +260,10 @@ class H5Shuffle(Dataset):
             p = Process(target=self._parallel_load_data, args=(start, stop, self.queue))
             p.start()
         if not self.queue.empty():
-            print "got data"
+            print "queue has stuff"
             self.samples_sequences = samples_sequences[cache_size:] + self.queue.get()
-        
+            print "Queue is empty", self.queue.empty()
+            print "got stuff from queue"
 
     def get(self, source, indexes):
         """
