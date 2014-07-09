@@ -80,7 +80,7 @@ class H5Shuffle(Dataset):
         if cache_size is not None:
             self._using_cache = True
             self._cache_size = cache_size
-            self._cache_batch = 100 #cache_batch
+            self._cache_batch = 4 #cache_batch
             self._max_data_index = stop
             self._data_queue = Queue()
             self._num_batches_seen = 0
@@ -247,10 +247,11 @@ class H5Shuffle(Dataset):
         return self.data_specs
     
     def _maybe_load_data(self):
-        
+        print "In maybe load data"
+        print "cache batch", self._cache_batch
         if (self._num_batches_seen) % self._cache_batch == 0:
             print "need to load data"
-            num_examples = self._num_batches_seen*self.batch_size
+            num_examples = self._num_batches_seen*256
             if num_examples + self._cache_batch > self._max_data_index:
                 start = 0
                 stop = cache_size
@@ -272,8 +273,8 @@ class H5Shuffle(Dataset):
             WRITEME
         """
         if self._using_cache:
-            print "new batch", self._num_batches_seen
             self._num_batches_seen += 1
+            print "new batch", self._num_batches_seen
             self._maybe_load_data()
 
         if type(indexes) is slice:
