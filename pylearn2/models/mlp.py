@@ -2629,7 +2629,7 @@ class Sigmoid(Linear):
         fp = ((1-y) * y_hat).sum()
 
         precision = compute_precision(tp, fp)
-        recall = compute_recall(y, fp)
+        recall = compute_recall(y, tp)
         f1 = compute_f1(precision, recall)
 
         rval['precision'] = precision
