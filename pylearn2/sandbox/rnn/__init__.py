@@ -14,6 +14,7 @@ several ways, most notably:
   e.g. SequenceSpace(VectorSpace(dim=100)).
 
 - The dataset iterators are adapted to deal with sequential data, either
-  by creating batches which are uniform in sequence length, or by providing
-  a mask along with zero-padded data, describing the length of the sequences.
+  by creating batches which are uniform in sequence length, or by
+  providing a mask along with zero-padded data, describing the length of
+  the sequences.
 """

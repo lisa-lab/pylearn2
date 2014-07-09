@@ -1,6 +1,8 @@
 """
 RNN layers.
 """
+from functools import wraps
+
 import numpy as np
 from theano import config
 from theano import scan
@@ -39,6 +41,7 @@ class Recurrent(mlp.Layer):
         del self.self
         super(Recurrent, self).__init__()
 
+    @wraps(mlp.Layer.set_input_space)
     def set_input_space(self, space):
         # This space expects a VectorSpace sequence
         assert isinstance(space, SequenceSpace)
@@ -60,6 +63,7 @@ class Recurrent(mlp.Layer):
         self.output_space = VectorSpace(dim=self.dim)
         self.input_space = space
 
+    @wraps(mlp.Layer.fprop)
     def fprop(self, state_below):
         # The initial hidden state is just zeros
         h0 = tensor.alloc(np.cast[config.floatX](0),
@@ -81,5 +85,6 @@ class Recurrent(mlp.Layer):
 
         return rval
 
+    @wraps(mlp.Layer.get_params)
     def get_params(self):
         return self.params

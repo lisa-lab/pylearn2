@@ -19,7 +19,7 @@ class SequentialSubsetIterator(iteration.SequentialSubsetIterator):
     and attribute documentation.
 
     Parameters
-    -----
+    ----------
     sequence_lengths : list or array of ints
         This should contain a list of sequence lengths in the
         same order as the dataset, allowing the iterator to return
@@ -93,7 +93,7 @@ class ShuffledSequentialSubsetIterator(
     through the permutation.
 
     Parameters
-    -----
+    ----------
     See :py:class:`SequentialSubsetIterator` for detailed constructor
     parameter and attribute documentation.
     """

@@ -10,20 +10,20 @@ from pylearn2.utils import py_number_types
 
 
 class GradientClipping(object):
-    def __init__(self, clipping_value, cost, exclude_params=[]):
-        """
-        Clip the gradient if the sum of squared gradient norms
-        is above the clipping_value.
+    """
+    Clip the gradient if the sum of squared gradient norms
+    is above the clipping_value.
 
-        Parameters
-        ----------
-        clipping_value : float or int
-            The squared norm above which to clip the gradient.
-        cost : Cost object
-            The actual cost to use for this model.
-        exclude_params : list of strings, optional
-            The names of the parameters that are excluded from clipping
-        """
+    Parameters
+    ----------
+    clipping_value : float or int
+        The squared norm above which to clip the gradient.
+    cost : Cost object
+        The actual cost to use for this model.
+    exclude_params : list of strings, optional
+        The names of the parameters that are excluded from clipping
+    """
+    def __init__(self, clipping_value, cost, exclude_params=[]):
         assert isinstance(clipping_value, py_number_types)
         assert isinstance(cost, Cost)
         assert is_iterable(exclude_params)

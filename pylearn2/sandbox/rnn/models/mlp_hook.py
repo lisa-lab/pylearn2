@@ -36,6 +36,12 @@ class RNNWrapper(MetaLibVersion):
         dct['_scan_updates'] = OrderedDict()
         return type.__new__(cls, name, bases, dct)
 
+    def __init__(cls, name, bases, dct):
+        # Here we should call the __init__ method, and then
+        # change the input space and input source if necessary
+        # to include a mask
+        pass
+
     @classmethod
     def fprop_wrapper(cls, fprop):
         """
@@ -79,6 +85,11 @@ class RNNWrapper(MetaLibVersion):
 
     @classmethod
     def get_output_space_wrapper(cls, get_output_space):
+        """
+        Same thing as set_input_space_wrapper. This could be overwritten
+        in a subclass of MLP instead, but in that case the normal
+        MLP couldn't be used anymore in YAML files.
+        """
         @functools.wraps(get_output_space)
         def outer(self):
             if self._sequence_space and hasattr(self, 'output_space'):
