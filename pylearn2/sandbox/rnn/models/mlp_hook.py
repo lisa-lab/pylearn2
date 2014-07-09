@@ -17,25 +17,17 @@ class RNNWrapper(MetaLibVersion):
     `_wrapper` method.
     """
     def __new__(cls, name, bases, dct):
-        # Allow for methods to be wrapped
-        for attr in dct:
-            wrapper_name = attr + '_wrapper'
-            if hasattr(cls, wrapper_name):
-                dct[attr] = getattr(cls, wrapper_name)(dct[attr])
-
-        # Allow for properties to be wrapped; all three methods need
-        # to be defined
-        accessors = {}
-        prefixes = ['get_', 'set_', 'del_']
-        for attr in dir(cls):
-            for i, prefix in enumerate(prefixes):
-                if attr.startswith(prefix):
-                    accessors.setdefault(attr[4:],
-                                         [None, None, None])[i] = getattr(cls,
-                                                                          attr)
-        for attr, methods in accessors.iteritems():
-            if None not in methods:
-                dct[attr] = property(*methods)
+        wrappers = [attr[:-8] for attr in cls.__dict__.keys()
+                    if attr.endswith('_wrapper')]
+        for wrapper in wrappers:
+            if wrapper not in dct:
+                for base in bases:
+                    method = getattr(base, wrapper, None)
+                    if method is not None:
+                        break
+            else:
+                method = dct[wrapper]
+            dct[wrapper] = getattr(cls, wrapper + '_wrapper')(method)
 
         # By default layers are not RNN friendly and don't have
         # a SequenceSpace as input or output
@@ -86,16 +78,11 @@ class RNNWrapper(MetaLibVersion):
         return outer
 
     @classmethod
-    def get_output_space(cls, self):
-        return self._output_space
-
-    @classmethod
-    def set_output_space(cls, self, output_space):
-        if self._sequence_space:
-            self._output_space = SequenceSpace(output_space)
-        else:
-            self._output_space = output_space
-
-    @classmethod
-    def del_output_space(cls, self):
-        del self._output_space
+    def get_output_space_wrapper(cls, get_output_space):
+        @functools.wraps(get_output_space)
+        def outer(self):
+            if self._sequence_space and hasattr(self, 'output_space'):
+                return SequenceSpace(self.output_space)
+            else:
+                return get_output_space(self)
+        return outer
