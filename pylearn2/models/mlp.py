@@ -15,6 +15,7 @@ import warnings
 import numpy as np
 from theano import config
 from theano.compat.python2x import OrderedDict
+from theano.compile import get_default_mode
 from theano.gof.op import get_debug_values
 from theano.printing import Print
 from theano.sandbox.rng_mrg import MRG_RandomStreams
@@ -50,6 +51,9 @@ from pylearn2.expr.nnet import (elemwise_kl, kl, compute_precision,
 from pylearn2.costs.mlp import L1WeightDecay as _L1WD
 from pylearn2.costs.mlp import WeightDecay as _WD
 
+
+mode = get_default_mode()
+mode.check_py_code = False
 
 logger = logging.getLogger(__name__)
 
@@ -1777,7 +1781,7 @@ class SoftmaxPool(Layer):
 
         W = Conv2DSpace.convert(W, self.input_space.axes, ('b', 0, 1, 'c'))
 
-        return function([], W)()
+        return function([], W, mode=mode)()
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
@@ -2267,7 +2271,7 @@ class Linear(Layer):
 
         W = Conv2DSpace.convert(W, self.input_space.axes, ('b', 0, 1, 'c'))
 
-        return function([], W)()
+        return function([], W, mode=mode)()
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):

@@ -393,11 +393,16 @@ class SGD(TrainingAlgorithm):
 
 
         with log_timing(log, 'Compiling sgd_update'):
+            if hasattr(self.theano_function_mode, 'check_py_code'):
+                check_py_code = self.theano_function_mode.check_py_code
+                self.theano_function_mode.check_py_code = False
             self.sgd_update = function(theano_args,
                                        updates=updates,
                                        name='sgd_update',
                                        on_unused_input='ignore',
                                        mode=self.theano_function_mode)
+            if hasattr(self.theano_function_mode, 'check_py_code'):
+                self.theano_function_mode.check_py_code = check_py_code
         self.params = params
 
     def train(self, dataset):
