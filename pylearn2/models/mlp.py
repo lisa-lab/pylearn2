@@ -31,7 +31,7 @@ from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
 from pylearn2.space import CompositeSpace
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
-from pylearn2.space import VectorSpace
+from pylearn2.space import VectorSpace, IndexSpace
 from pylearn2.utils import function
 from pylearn2.utils import is_iterable
 from pylearn2.utils import py_float_types
@@ -513,6 +513,11 @@ class MLP(Layer):
 
         return self.layers[-1].get_output_space()
 
+    @wraps(Layer.get_target_space)
+    def get_target_space(self):
+        
+        return self.layers[-1].get_target_space()
+
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
 
@@ -680,7 +685,7 @@ class MLP(Layer):
             The data specifications for both inputs and targets.
         """
         space = CompositeSpace((self.get_input_space(),
-                                self.get_output_space()))
+                                self.get_target_space()))
         source = (self.get_input_source(), self.get_target_source())
         return (space, source)
 
@@ -1151,6 +1156,12 @@ class Softmax(Layer):
     no_affine : WRITEME
     max_col_norm : WRITEME
     init_bias_target_marginals : WRITEME
+    binary_target_dim : int, optional
+        If your targets are class labels (i.e. a binary vector) then set the
+        number of targets here so that an IndexSpace of the proper dimension
+        can be used as the target space. This allows the softmax to compute
+        the cost much more quickly than if it needs to convert the targets
+        into a VectorSpace.
     """
 
     def __init__(self, n_classes, layer_name, irange=None,
@@ -1158,7 +1169,8 @@ class Softmax(Layer):
                  sparse_init=None, W_lr_scale=None,
                  b_lr_scale=None, max_row_norm=None,
                  no_affine=False,
-                 max_col_norm=None, init_bias_target_marginals=None):
+                 max_col_norm=None, init_bias_target_marginals=None,
+                 binary_target_dim=None):
 
         super(Softmax, self).__init__()
 
@@ -1171,6 +1183,14 @@ class Softmax(Layer):
 
         assert isinstance(n_classes, py_integer_types)
 
+        if binary_target_dim is not None:
+            assert isinstance(binary_target_dim, py_integer_types)
+            self._has_binary_target = True
+            self._target_space = IndexSpace(dim=binary_target_dim, 
+                                            max_labels=n_classes)
+        else:
+            self._has_binary_target = False
+    
         self.output_space = VectorSpace(n_classes)
         if not no_affine:
             self.b = sharedX(np.zeros((n_classes,)), name='softmax_b')
@@ -1438,18 +1458,17 @@ class Softmax(Layer):
 
         return rval
 
-    @wraps(Layer.cost)
-    def cost(self, Y, Y_hat):
+    def _cost(self, Y, Y_hat):
 
         assert hasattr(Y_hat, 'owner')
         owner = Y_hat.owner
         assert owner is not None
         op = owner.op
         if isinstance(op, Print):
-            assert len(owner.inputs) == 1
-            Y_hat, = owner.inputs
-            owner = Y_hat.owner
-            op = owner.op
+           assert len(owner.inputs) == 1
+           Y_hat, = owner.inputs
+           owner = Y_hat.owner
+           op = owner.op
         assert isinstance(op, T.nnet.Softmax)
         z, = owner.inputs
         assert z.ndim == 2
@@ -1457,33 +1476,43 @@ class Softmax(Layer):
         z = z - z.max(axis=1).dimshuffle(0, 'x')
         log_prob = z - T.log(T.exp(z).sum(axis=1).dimshuffle(0, 'x'))
         # we use sum and not mean because this is really one variable per row
-        log_prob_of = (Y * log_prob).sum(axis=1)
+        
+        if self._has_binary_target:
+            # The following code is the equivalent of accessing log_prob by the
+            # indices in Y, but it is written such that the computation can 
+            # happen on the GPU rather than CPU.
+            
+            flat_Y = Y.flatten()
+            flat_log_prob = log_prob.flatten()
+            flat_indices = flat_Y + T.arange(Y.shape[0])*self.n_classes
+            log_prob_of = flat_log_prob[flat_indices].dimshuffle(0, 'x')
+
+        else:
+            log_prob_of = (Y * log_prob)
+
+        return log_prob_of
+        
+
+    @wraps(Layer.cost)
+    def cost(self, Y, Y_hat):
+
+        log_prob_of = self._cost(Y, Y_hat).sum(axis=1)
         assert log_prob_of.ndim == 1
 
         rval = log_prob_of.mean()
-
         return - rval
 
     @wraps(Layer.cost_matrix)
     def cost_matrix(self, Y, Y_hat):
 
-        assert hasattr(Y_hat, 'owner')
-        owner = Y_hat.owner
-        assert owner is not None
-        op = owner.op
-        if isinstance(op, Print):
-            assert len(owner.inputs) == 1
-            Y_hat, = owner.inputs
-            owner = Y_hat.owner
-            op = owner.op
-        assert isinstance(op, T.nnet.Softmax)
-        z, = owner.inputs
-        assert z.ndim == 2
-
-        z = z - z.max(axis=1).dimshuffle(0, 'x')
-        log_prob = z - T.log(T.exp(z).sum(axis=1).dimshuffle(0, 'x'))
-        # we use sum and not mean because this is really one variable per row
-        log_prob_of = (Y * log_prob)
+        log_prob_of = self._cost(Y, Y_hat)
+        if self._has_binary_target:
+            flat_Y = Y.flatten()
+            flat_matrix = T.alloc(0, (Y.shape[0]*log_prob_of.shape[1]))
+            flat_indices = flat_Y + T.extra_ops.repeat(
+                T.arange(Y.shape[0])*log_prob_of.shape[1], Y.shape[1]
+            )
+            log_prob_of = T.set_subtensor(flat_matrix[flat_indices], flat_Y)
 
         return -log_prob_of
 
@@ -4345,6 +4374,7 @@ class CompositeLayer(Layer):
                 self.inputs_to_layers[key] = sorted(value)
         super(CompositeLayer, self).__init__()
         self.__dict__.update(locals())
+
         del self.self
 
     @property
@@ -4389,7 +4419,9 @@ class CompositeLayer(Layer):
         self.input_space = space
         self.output_space = CompositeSpace(tuple(layer.get_output_space()
                                                  for layer in self.layers))
-
+        self._target_space = CompositeSpace(tuple(layer.get_target_space()
+                                                  for layer in self.layers))
+        
     @wraps(Layer.get_params)
     def get_params(self):
         rval = []
@@ -4573,6 +4605,7 @@ class FlattenerLayer(Layer):
     @wraps(Layer.get_input_space)
     def get_input_space(self):
         return self.raw_layer.get_input_space()
+
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self, data):
         return self.raw_layer.get_monitoring_channels(data)
