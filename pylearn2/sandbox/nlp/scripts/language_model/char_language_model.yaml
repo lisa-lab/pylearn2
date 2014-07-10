@@ -48,4 +48,6 @@
       }
     },
   },
+  save_path: '/Tmp/devincol/char_language_model.pkl',
+  save_freq: 1
 }
