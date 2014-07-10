@@ -190,14 +190,14 @@ class H5Shuffle(Dataset):
         self.sourceFNs = {'features': getFeatures, 'targets': getTarget}
 
     def _parallel_load_data(self, start, stop, queue):
-        print "Starting to load data"
+        #print "Starting to load data"
         #with tables.open_file(self.base_path) as f:
         #self.node = f.get_node(self.node_name)
         with tables.open_file(self.base_path) as f:
             node = f.get_node(self.node_name)
             new_data = node[start:stop]
         queue.put(new_data)
-        print "Finished loading data"
+        #print "Finished loading data"
 
     def _load_data(self, which_set, startstop):
         """
@@ -274,7 +274,7 @@ class H5Shuffle(Dataset):
     def _maybe_load_data(self):
        # print "In maybe load data"
         if self._num_since_last_load >= self._cache_delta and not self._loading:
-            print "need to load data"
+            #print "need to load data"
 
             # If we would go over the end of the dataset by loading more data,
             # we start over from the beginning of the dataset.
@@ -292,12 +292,12 @@ class H5Shuffle(Dataset):
             p.start()
 
         if not self._data_queue.empty():
-            print "queue has stuff"
+            #print "queue has stuff"
             self.samples_sequences = self.samples_sequences[self._cache_delta:] + self._data_queue.get()
-            print "Queue is empty", self._data_queue.empty()
+            #print "Queue is empty", self._data_queue.empty()
             self._num_since_last_load = 0
             self._loading = False
-            print "got stuff from queue"
+            #print "got stuff from queue"
 
     def get(self, source, indexes):
         """
