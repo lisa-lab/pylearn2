@@ -35,8 +35,9 @@ class H5Skipgram(H5Shuffle):
 
     def __init__(self, path, node, which_set, frame_length,
                  start=0, stop=None, X_labels=None,
-		 _iter_num_batches=None,
-                 rng=_default_seed, load_to_memory=False, cache_size=None):
+		 _iter_num_batches=None, rng=_default_seed, 
+                 load_to_memory=False, cache_size=None,
+                 cache_delta=None):
         """
         Parameters
         ----------
@@ -59,8 +60,9 @@ class H5Skipgram(H5Shuffle):
         """
         super(H5Skipgram, self).__init__(path, node, which_set, frame_length,
                  start=start, stop=stop, X_labels=X_labels,
-		 _iter_num_batches=_iter_num_batches,
-                 rng=rng, load_to_memory=load_to_memory, cache_size=cache_size)
+		 _iter_num_batches=_iter_num_batches, rng=rng, 
+                 load_to_memory=load_to_memory, cache_size=cache_size,
+                 cache_delta=cache_delta)
 
         features_space = IndexSpace(
             dim=1,

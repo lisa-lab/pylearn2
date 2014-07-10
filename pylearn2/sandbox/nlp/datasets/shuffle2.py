@@ -35,8 +35,9 @@ class H5Shuffle(Dataset):
 
     def __init__(self, path, node, which_set, frame_length,
                  start=0, stop=None, X_labels=None,
-		 _iter_num_batches=None,
-                 rng=_default_seed, load_to_memory=False, cache_size=None):
+		 _iter_num_batches=None, rng=_default_seed, 
+                 load_to_memory=False, cache_size=None,
+                 cache_delta=None):
         """
         Parameters
         ----------
@@ -63,6 +64,18 @@ class H5Shuffle(Dataset):
         load_to_memory : bool, optional
             If True, will load all requested data into memory. This allows the
             iterations to go faster, but requires significantly more memory.
+        cache_size : int, optional
+            If cache_size is set, the dataset will initially only load the 
+            first cache_size examples from the data. Making this larger will
+            increase the possible distance between examples (because data is
+            loaded sequentially)
+        cache_delta : int, optional
+            Required if cache_size is set. Every cache_delta examples 
+            (approximately because it doesn't need to be a multiple of batches)
+            the dataset will load an additional cache_delta examples from the
+            data (in consecutive order). Making this larger will allow more 
+            non-sequentiality, but if cache_delta is equal to cache_size,
+            then there will be no overlap between caches.
         """
         self.base_path = path
         self.node_name = node
@@ -78,12 +91,18 @@ class H5Shuffle(Dataset):
         self._using_cache = False
         #self.y_labels = y_labels
         if cache_size is not None:
+            assert cache_delta is not None, "cache_delta cannot be None if" \
+                                            "cache_size is set"
+            assert cache_size >= cache_delta, "cache_delta must be less than" \
+                                              "or equal to cache_size"
             self._using_cache = True
             self._cache_size = cache_size
-            self._cache_batch = 4 #cache_batch
+            self._cache_delta = cache_delta
             self._max_data_index = stop
+            self._start = start
             self._data_queue = Queue()
-            self._num_batches_seen = 0
+            self._num_examples_seen = 0
+            self._next_cache_index = cache_delta + cache_size + start
 
         # RNG initialization
         if hasattr(rng, 'random_integers'):
@@ -172,6 +191,8 @@ class H5Shuffle(Dataset):
         #with tables.open_file(self.base_path) as f:
         #self.node = f.get_node(self.node_name)
         new_data = self.node[start:stop]
+        import time
+        time.sleep(10)
         queue.put(new_data)
         print "Finished loading data"
 
@@ -248,18 +269,22 @@ class H5Shuffle(Dataset):
     
     def _maybe_load_data(self):
         print "In maybe load data"
-        print "cache batch", self._cache_batch
-        if (self._num_batches_seen) % self._cache_batch == 0:
+        if self._num_examples_seen + self._start >= self._next_cache_index:
             print "need to load data"
-            num_examples = self._num_batches_seen*256
-            if num_examples + self._cache_batch > self._max_data_index:
-                start = 0
-                stop = self._cache_size
+
+            # If we would go over the end of the dataset by loading more data,
+            # we start over from hte beginning of the dataset.
+            if (self._num_examples_seen + self._cache_delta > 
+                self._max_data_index):
+                start = self._start
+                stop = self._cache_delta + start
             else:
-                start = num_examples
-                stop = num_examples + self._cache_size
+                start = self._num_examples_seen + self._start
+                stop = self._cache_delta + start
+            self._next_cache_index = stop + self._cache_delta
             p = Process(target=self._parallel_load_data, args=(start, stop, self._data_queue))
             p.start()
+
         if not self._data_queue.empty():
             print "queue has stuff"
             self.samples_sequences = self.samples_sequences[self._cache_size:] + self._data_queue.get()
@@ -273,8 +298,8 @@ class H5Shuffle(Dataset):
             WRITEME
         """
         if self._using_cache:
-            self._num_batches_seen += 1
-            print "new batch", self._num_batches_seen
+            self._num_examples_seen += len(indexes)
+            print "new batch", self._num_examples_seen
             self._maybe_load_data()
 
         if type(indexes) is slice:
