@@ -169,8 +169,8 @@ class H5Shuffle(Dataset):
 
     def _parallel_load_data(self, start, stop, queue):
         print "Starting to load data"
-        f = tables.open_file(self.base_path)
-	self.node = f.get_node(self.node_name)
+        #with tables.open_file(self.base_path) as f:
+        #self.node = f.get_node(self.node_name)
         new_data = self.node[start:stop]
         queue.put(new_data)
         print "Finished loading data"
@@ -195,7 +195,7 @@ class H5Shuffle(Dataset):
         print startstop
         (start, stop) = startstop
 	f = tables.open_file(self.base_path)
-	self.node = f.get_node(self.node_name)
+        self.node = f.get_node(self.node_name)
         # with tables.open_file(self.base_path) as f:
         #     print "Loading n-grams..."
         #     node = f.get_node(self.node_name)
@@ -203,7 +203,7 @@ class H5Shuffle(Dataset):
             if stop is not None:
                 self.samples_sequences = self.node[start:stop]
             else:
-                self.samples_sequences = self.node[start:]
+                    self.samples_sequences = self.node[start:]
             self.num_examples = len(self.samples_sequences)
         else:
             if stop is None:
@@ -254,15 +254,15 @@ class H5Shuffle(Dataset):
             num_examples = self._num_batches_seen*256
             if num_examples + self._cache_batch > self._max_data_index:
                 start = 0
-                stop = cache_size
+                stop = self._cache_size
             else:
                 start = num_examples
-                stop = num_examples + cache_size
+                stop = num_examples + self._cache_size
             p = Process(target=self._parallel_load_data, args=(start, stop, self._data_queue))
             p.start()
         if not self._data_queue.empty():
             print "queue has stuff"
-            self.samples_sequences = samples_sequences[cache_size:] + self._data_queue.get()
+            self.samples_sequences = self.samples_sequences[self._cache_size:] + self._data_queue.get()
             print "Queue is empty", self._data_queue.empty()
             print "got stuff from queue"
 
