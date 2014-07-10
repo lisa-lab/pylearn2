@@ -162,7 +162,7 @@ class PennTreebank_Sequences(VectorSpacesDataset, PennTreebank):
                 batch_size=batch_size,
                 num_batches=num_batches,
                 rng=rng,
-                sequence_lengths=self._sequence_lengths
+                #sequence_lengths=self._sequence_lengths
             )
         elif mode == 'sequential':
             subset_iterator = SequentialSubsetIterator(
