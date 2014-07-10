@@ -35,7 +35,8 @@
     },
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
         batch_size: 256,
-        learning_rate: .1,
+        learning_rate: .000001,
+	learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {},
         monitoring_dataset: {
             'valid' : !obj:pylearn2.sandbox.nlp.datasets.penntree.PennTreebank_NGrams {
                 which_set: 'valid',
