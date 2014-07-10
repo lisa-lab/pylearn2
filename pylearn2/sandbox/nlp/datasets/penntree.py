@@ -128,12 +128,16 @@ class PennTreebank_Sequences(VectorSpacesDataset, PennTreebank):
     """
     def __init__(self, which_set, context_len, data_mode):
 
+        if data_mode == 'words':
+            max_labels = 10000
+        else:
+            max_labels = 51
 
         self._load_data(which_set, context_len, data_mode)
         source = ('features', 'targets')
         space = CompositeSpace([
-            SequenceSpace(IndexSpace(dim=1,max_labels=50)),
-            IndexSpace(dim=1, max_labels=50)
+            SequenceSpace(IndexSpace(dim=1,max_labels=max_labels)),
+            IndexSpace(dim=1, max_labels=max_labels)
         ])
 
         self._sequence_lengths = [context_len]*len(self._data)

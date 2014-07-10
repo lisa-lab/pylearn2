@@ -16,7 +16,7 @@
     input_space: !obj:pylearn2.sandbox.rnn.space.SequenceSpace {
       space: !obj:pylearn2.space.IndexSpace {
         dim: 1,
-        max_labels: 50,
+        max_labels: 51,
       },
     },
     layers: [
@@ -31,7 +31,7 @@
          irange: 0.01,
       },
       !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
-         n_classes: 50,
+         n_classes: 51,
          layer_name: 'softmax',
          irange: 0.01
       }
@@ -46,11 +46,6 @@
         context_len: *context_len,
         data_mode: *data_mode
       }
-    },
-    termination_criterion: !obj:pylearn2.termination_criteria.MonitorBased {
-      channel_name: 'valid_softmax_nll',
-      prop_decrease: 0.,
-      N: 10
     },
   },
 }
