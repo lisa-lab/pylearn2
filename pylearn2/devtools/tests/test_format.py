@@ -658,6 +658,7 @@ whitelist_docstrings.extend([
 
 # add files which fail to run to whitelist_docstrings
 whitelist_docstrings.extend([
+    'sandbox/rnn/models/mlp_hook.py',
     'training_algorithms/tests/test_learning_rule.py',
     'models/pca.py',
     'datasets/tests/test_hdf5.py',

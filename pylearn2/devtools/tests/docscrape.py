@@ -732,11 +732,8 @@ def handle_class(val, class_name):
             NumpyClassDocString(docstring, class_name, val).get_errors()
         ]
         # Get public methods and parse their docstrings
-        # Metaclasses have an `mro` method which causes an error if inspected
         methods = dict(((name, func) for name, func in inspect.getmembers(val)
-                        if not name.startswith('_') and callable(func) and
-                        type(func) is not type and
-                        not (name == 'mro')))
+                        if not name.startswith('_') and callable(func) and type(func) is not type))
         for m_name, method in methods.iteritems():
             # skip error check if the method was inherited
             # from a parent class (which means it wasn't
