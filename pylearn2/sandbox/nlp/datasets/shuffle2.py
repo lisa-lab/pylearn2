@@ -103,8 +103,9 @@ class H5Shuffle(Dataset):
             self._max_data_index = stop
             self._start = start
             self._data_queue = Queue()
-            self._num_examples_seen = 0
+            self._num_since_last_load = 0
             self._next_cache_index = cache_delta + cache_size + start
+            self._loading = False
 
         # RNG initialization
         if hasattr(rng, 'random_integers'):
@@ -192,9 +193,9 @@ class H5Shuffle(Dataset):
         print "Starting to load data"
         #with tables.open_file(self.base_path) as f:
         #self.node = f.get_node(self.node_name)
-        new_data = self.node[start:stop]
-        import time
-        time.sleep(10)
+        with tables.open_file(self.base_path) as f:
+            node = f.get_node(self.node_name)
+            new_data = node[start:stop]
         queue.put(new_data)
         print "Finished loading data"
 
@@ -228,6 +229,7 @@ class H5Shuffle(Dataset):
             else:
                     self.samples_sequences = self.node[start:]
             self.num_examples = len(self.samples_sequences)
+            f.close()
         else:
             if stop is None:
                 self.num_examples = self.node.nrows
@@ -270,27 +272,31 @@ class H5Shuffle(Dataset):
         return self.data_specs
     
     def _maybe_load_data(self):
-        print "In maybe load data"
-        if self._num_examples_seen + self._start >= self._next_cache_index:
+       # print "In maybe load data"
+        if self._num_since_last_load >= self._cache_delta and not self._loading:
             print "need to load data"
 
             # If we would go over the end of the dataset by loading more data,
-            # we start over from hte beginning of the dataset.
-            if (self._num_examples_seen + self._cache_delta > 
+            # we start over from the beginning of the dataset.
+            if (self._next_cache_index + self._cache_delta > 
                 self._max_data_index):
                 start = self._start
                 stop = self._cache_delta + start
             else:
-                start = self._num_examples_seen + self._start
+                start = self._next_cache_index
                 stop = self._cache_delta + start
-            self._next_cache_index = stop + self._cache_delta
+
+            self._next_cache_index = stop 
+            self._loading = True
             p = Process(target=self._parallel_load_data, args=(start, stop, self._data_queue))
             p.start()
 
         if not self._data_queue.empty():
             print "queue has stuff"
-            self.samples_sequences = self.samples_sequences[self._cache_size:] + self._data_queue.get()
+            self.samples_sequences = self.samples_sequences[self._cache_delta:] + self._data_queue.get()
             print "Queue is empty", self._data_queue.empty()
+            self._num_since_last_load = 0
+            self._loading = False
             print "got stuff from queue"
 
     def get(self, source, indexes):
@@ -300,8 +306,8 @@ class H5Shuffle(Dataset):
             WRITEME
         """
         if self._using_cache:
-            self._num_examples_seen += len(indexes)
-            print "new batch", self._num_examples_seen
+            self._num_since_last_load += len(indexes)
+            #print "new batch", self._num_examples_seen
             self._maybe_load_data()
 
         if type(indexes) is slice:
