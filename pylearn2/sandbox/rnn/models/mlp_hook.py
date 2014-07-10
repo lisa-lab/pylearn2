@@ -3,8 +3,6 @@ Code to hook into the MLP framework
 """
 import functools
 
-from theano.compat.python2x import OrderedDict
-
 from pylearn2.sandbox.rnn.space import SequenceSpace
 from pylearn2.utils.track_version import MetaLibVersion
 
@@ -15,6 +13,10 @@ class RNNWrapper(MetaLibVersion):
     creation. Properties can be wrapped by defining `get_`, `set_`,
     and `del_` methods. Methods can be wrapped by defining a
     `_wrapper` method.
+
+    Parameters
+    ----------
+    See https://docs.python.org/2/reference/datamodel.html#object.__new__
     """
     def __new__(cls, name, bases, dct):
         wrappers = [attr[:-8] for attr in cls.__dict__.keys()
@@ -31,16 +33,9 @@ class RNNWrapper(MetaLibVersion):
 
         # By default layers are not RNN friendly and don't have
         # a SequenceSpace as input or output
-        dct['_rnn_friendly'] = False
+        dct['rnn_friendly'] = False
         dct['_sequence_space'] = False
-        dct['_scan_updates'] = OrderedDict()
         return type.__new__(cls, name, bases, dct)
-
-    def __init__(cls, name, bases, dct):
-        # Here we should call the __init__ method, and then
-        # change the input space and input source if necessary
-        # to include a mask
-        pass
 
     @classmethod
     def fprop_wrapper(cls, fprop):
@@ -48,6 +43,11 @@ class RNNWrapper(MetaLibVersion):
         If this was a non-RNN friendly layer, the sequence property
         might have been set, which means we apply this layer element-
         wise over the time axis using scan.
+
+        Parameters
+        ----------
+        fprop : method
+            The fprop method to be wrapped
         """
         @functools.wraps(fprop)
         def outer(self, state_below):
@@ -71,12 +71,15 @@ class RNNWrapper(MetaLibVersion):
         """
         If this layer is not RNN-adapted, we intercept the call to the
         set_input_space method and set the space to a non-sequence space.
-        However, when output space is set, we set it to the
-        SequenceSpace version again.
+
+        Parameters
+        ----------
+        set_input_space : method
+            The set_input_space method to be wrapped
         """
         @functools.wraps(set_input_space)
         def outer(self, space):
-            if isinstance(space, SequenceSpace) and not self._rnn_friendly:
+            if isinstance(space, SequenceSpace) and not self.rnn_friendly:
                 self._sequence_space = True
                 set_input_space(self, space.space)
             else:
@@ -86,14 +89,21 @@ class RNNWrapper(MetaLibVersion):
     @classmethod
     def get_output_space_wrapper(cls, get_output_space):
         """
-        Same thing as set_input_space_wrapper. This could be overwritten
-        in a subclass of MLP instead, but in that case the normal
-        MLP couldn't be used anymore in YAML files.
+        Same thing as set_input_space_wrapper.
+
+        Parameters
+        ----------
+        get_output_space : method
+            The get_output_space method to be wrapped
         """
         @functools.wraps(get_output_space)
         def outer(self):
-            if self._sequence_space and hasattr(self, 'output_space'):
-                return SequenceSpace(self.output_space)
+            if (self._sequence_space and
+                    not isinstance(get_output_space(self), SequenceSpace)):
+                # Since not only this class, but also the Layer class gets
+                # wrapped, we need to make sure we don't wrape the space
+                # in a SequenceSpace twice
+                return SequenceSpace(get_output_space(self))
             else:
                 return get_output_space(self)
         return outer

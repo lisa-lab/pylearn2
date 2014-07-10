@@ -2,11 +2,11 @@
 RNN layers.
 """
 from functools import wraps
-
 import numpy as np
 from theano import config
 from theano import scan
 from theano import tensor
+from theano.compat.python2x import OrderedDict
 
 from pylearn2.models import mlp
 from pylearn2.space import VectorSpace
@@ -36,7 +36,8 @@ class Recurrent(mlp.Layer):
     irange : float
     """
     def __init__(self, dim, layer_name, irange):
-        self._rnn_friendly = True
+        self.rnn_friendly = True
+        self._scan_updates = OrderedDict()
         self.__dict__.update(locals())
         del self.self
         super(Recurrent, self).__init__()
@@ -59,9 +60,18 @@ class Recurrent(mlp.Layer):
         b = sharedX(np.zeros((self.dim,)), name=self.layer_name + '_b')
 
         # Save the parameters and set the output space
-        self.params = [W_recurrent, W_in, b]
+        self._params = [W_recurrent, W_in, b]
         self.output_space = VectorSpace(dim=self.dim)
         self.input_space = space
+
+    @wraps(mlp.Layer._modify_updates)
+    def _modify_updates(self, updates):
+        # Is this needed?
+        if any(key in updates for key in self._scan_updates):
+            # Is this possible? What to do in this case?
+            raise ValueError("A single shared variable is being updated by "
+                             "multiple scan functions")
+        updates.update(self._scan_updates)
 
     @wraps(mlp.Layer.fprop)
     def fprop(self, state_below):
@@ -76,7 +86,7 @@ class Recurrent(mlp.Layer):
             return h
 
         h, updates = scan(fn=_fprop_step, sequences=[state_below],
-                          outputs_info=[h0], non_sequences=self.params)
+                          outputs_info=[h0], non_sequences=self._params)
         self._scan_updates.update(updates)
 
         assert h.ndim == 3
@@ -84,7 +94,3 @@ class Recurrent(mlp.Layer):
         assert rval.ndim == 2
 
         return rval
-
-    @wraps(mlp.Layer.get_params)
-    def get_params(self):
-        return self.params

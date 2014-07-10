@@ -1,6 +1,8 @@
 """
 Implements gradient clipping as a cost wrapper.
 """
+from functools import wraps
+
 from theano import tensor
 from theano.compat.python2x import OrderedDict
 
@@ -37,6 +39,7 @@ class GradientClipping(object):
         # of the class instance that was passed in the constructor
         return getattr(self.cost, attr)
 
+    @wraps(Cost.get_gradients)
     def get_gradients(self, model, data, **kwargs):
         gradients, updates = self.cost.get_gradients(model, data, **kwargs)
 
