@@ -91,10 +91,12 @@ class H5Shuffle(Dataset):
         self._using_cache = False
         #self.y_labels = y_labels
         if cache_size is not None:
-            assert cache_delta is not None, "cache_delta cannot be None if" \
-                                            "cache_size is set"
-            assert cache_size >= cache_delta, "cache_delta must be less than" \
-                                              "or equal to cache_size"
+            assert cache_delta is not None, (
+                "cache_delta cannot be None if cache_size is set"
+            )
+            assert cache_size >= cache_delta, (
+                "cache_delta must be less than or equal to cache_size"
+            )
             self._using_cache = True
             self._cache_size = cache_size
             self._cache_delta = cache_delta
