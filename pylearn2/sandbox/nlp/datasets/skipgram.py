@@ -92,8 +92,10 @@ class H5Skipgram(H5Shuffle):
             .. todo::
                 Write me
             """
-            sequences = [self.node[i] for i in indexes]
-
+            if self._load_to_memory:
+                sequences = [self.samples_sequences[i] for i in indexes]
+            else:
+                sequences = [self.node[i] for i in indexes]
             # Get random start point for ngram
             wis = [numpy.random.randint(0, len(s)-self.frame_length+1, 1)[0] for s in sequences]
             # end = min(len(s), self.frame_length+wi)

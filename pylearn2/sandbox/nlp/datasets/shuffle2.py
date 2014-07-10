@@ -227,7 +227,7 @@ class H5Shuffle(Dataset):
             if stop is not None:
                 self.samples_sequences = self.node[start:stop]
             else:
-                    self.samples_sequences = self.node[start:]
+                self.samples_sequences = self.node[start:]
             self.num_examples = len(self.samples_sequences)
             f.close()
         else:
