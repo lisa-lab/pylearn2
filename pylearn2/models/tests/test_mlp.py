@@ -12,7 +12,7 @@ from pylearn2.models.mlp import (FlattenerLayer, MLP, Linear, Softmax, Sigmoid,
                                  exhaustive_dropout_average,
                                  sampled_dropout_average, CompositeLayer)
 from pylearn2.space import VectorSpace, CompositeSpace
-from pylearn2.utils import is_iterable
+from pylearn2.utils import is_iterable, sharedX
 
 
 class IdentityLayer(Linear):
@@ -332,22 +332,28 @@ def test_softmax_binary_targets():
     num_classes = 10
     batch_size = 20
     mlp_bin = MLP(
-        layers=[Softmax(num_classes, 's1', irange=10**-10, binary_target_dim=1)],
+        layers=[Softmax(num_classes, 's1', irange=0.1, binary_target_dim=1)],
         nvis=100
     )
     mlp_vec = MLP(
-        layers=[Softmax(num_classes, 's1', irange=10**-10)],
+        layers=[Softmax(num_classes, 's1', irange=0.1)],
         nvis=100
     )
 
-    y_bin = np.random.randint(low=0, high=10, size=(batch_size, 1))
-    y_vec = np.zeros((batch_size, num_classes))
-    y_vec[np.arange(batch_size),y_bin.flatten()] = 1
+    X = mlp_bin.get_input_space().make_theano_batch()
+    y_bin = mlp_bin.get_target_space().make_theano_batch()
+    y_vec = mlp_vec.get_target_space().make_theano_batch()
 
-    X = theano.shared(np.random.random(size=(batch_size, 100)))
     y_hat_bin = mlp_bin.fprop(X)
     y_hat_vec = mlp_vec.fprop(X)
+    cost_bin = theano.function([X, y_bin], mlp_bin.cost(y_bin, y_hat_bin), 
+                               allow_input_downcast=True)
+    cost_vec = theano.function([X, y_vec], mlp_vec.cost(y_vec, y_hat_vec),
+                               allow_input_downcast=True)
 
-    cost_bin = mlp_bin.cost(y_bin, y_hat_bin).eval()
-    cost_vec = mlp_vec.cost(y_vec, y_hat_vec).eval()
-    np.testing.assert_allclose(cost_bin, cost_vec)
+    X_data = np.random.random(size=(batch_size, 100))
+    y_bin_data = np.random.randint(low=0, high=10, size=(batch_size, 1))
+    y_vec_data = np.zeros((batch_size, num_classes))
+    y_vec_data[np.arange(batch_size),y_bin_data.flatten()] = 1
+    np.testing.assert_allclose(cost_bin(X_data, y_bin_data), cost_vec(X_data, y_vec_data))
+
