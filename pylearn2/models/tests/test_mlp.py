@@ -322,3 +322,32 @@ def test_nested_mlp():
     X = outer_mlp.get_input_space().make_theano_batch()
     f = theano.function([X], outer_mlp.fprop(X))
     f(np.random.rand(5, 10).astype(theano.config.floatX))
+
+
+def test_softmax_binary_targets():
+    """
+    Constructs softmax layers with binary target and with vector targets
+    to check that they give the same cost.
+    """
+    num_classes = 10
+    batch_size = 20
+    mlp_bin = MLP(
+        layers=[Softmax(num_classes, 's1', irange=10**-10, binary_target_dim=1)],
+        nvis=100
+    )
+    mlp_vec = MLP(
+        layers=[Softmax(num_classes, 's1', irange=10**-10)],
+        nvis=100
+    )
+
+    y_bin = np.random.randint(low=0, high=10, size=(batch_size, 1))
+    y_vec = np.zeros((batch_size, num_classes))
+    y_vec[np.arange(batch_size),y_bin.flatten()] = 1
+
+    X = theano.shared(np.random.random(size=(batch_size, 100)))
+    y_hat_bin = mlp_bin.fprop(X)
+    y_hat_vec = mlp_vec.fprop(X)
+
+    cost_bin = mlp_bin.cost(y_bin, y_hat_bin).eval()
+    cost_vec = mlp_vec.cost(y_vec, y_hat_vec).eval()
+    np.testing.assert_allclose(cost_bin, cost_vec)
