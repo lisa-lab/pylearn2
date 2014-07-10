@@ -1171,7 +1171,7 @@ class Softmax(Layer):
         number of targets here so that an IndexSpace of the proper dimension
         can be used as the target space. This allows the softmax to compute
         the cost much more quickly than if it needs to convert the targets
-        into a VectorSpace
+        into a VectorSpace.
     """
 
     def __init__(self, n_classes, layer_name, irange=None,
@@ -1197,7 +1197,7 @@ class Softmax(Layer):
             assert isinstance(binary_target_dim, py_integer_types)
             self._has_binary_target = True
             self._target_space = IndexSpace(dim=binary_target_dim, 
-                                           max_labels=n_classes)
+                                            max_labels=n_classes)
         else:
             self._has_binary_target = False
     
@@ -1475,10 +1475,10 @@ class Softmax(Layer):
         assert owner is not None
         op = owner.op
         if isinstance(op, Print):
-            assert len(owner.inputs) == 1
-            Y_hat, = owner.inputs
-            owner = Y_hat.owner
-            op = owner.op
+           assert len(owner.inputs) == 1
+           Y_hat, = owner.inputs
+           owner = Y_hat.owner
+           op = owner.op
         assert isinstance(op, T.nnet.Softmax)
         z, = owner.inputs
         assert z.ndim == 2
@@ -1491,22 +1491,12 @@ class Softmax(Layer):
             # The following code is the equivalent of accessing log_prob by the
             # indices in Y, but it is written such that the computation can 
             # happen on the GPU rather than CPU.
+            
             flat_Y = Y.flatten()
             flat_log_prob = log_prob.flatten()
-            flat_indices = flat_Y + T.extra_ops.repeat(
-                T.arange(Y.shape[0])*log_prob.shape[1], Y.shape[1]
-            )
-            log_prob_of = T.reshape(flat_log_prob[flat_indices], 
-                                (Y.shape[0], Y.shape[1])
-            )
+            flat_indices = flat_Y + T.arange(Y.shape[0])*self.n_classes
+            log_prob_of = flat_log_prob[flat_indices].dimshuffle(0, 'x')
 
-            
-            # flat_log_prob = log_prob.flatten()
-            # flat_indices = Y.flatten() + T.arange(Y.shape[0])*log_prob.shape[1]
-            # log_prob_of = T.reshape(flat_log_prob[flat_indices], 
-            #                     (Y.shape[0], Y.shape[1])
-            # )
-            #log_prob_of = log_prob[T.arange(Y.shape[0]), Y]
         else:
             log_prob_of = (Y * log_prob)
 
@@ -1524,13 +1514,12 @@ class Softmax(Layer):
 
     @wraps(Layer.cost_matrix)
     def cost_matrix(self, Y, Y_hat):
-        print "CALLING COST_MATRIX!!!!!!!!!!!!!!!!!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
         log_prob_of = self._cost(Y, Y_hat)
         if self._has_binary_target:
             flat_Y = Y.flatten()
-            flat_matrix = T.alloc(0, (Y.shape[0]*log_prob.shape[1]))
+            flat_matrix = T.alloc(0, (Y.shape[0]*log_prob_of.shape[1]))
             flat_indices = flat_Y + T.extra_ops.repeat(
-                T.arange(Y.shape[0])*log_prob.shape[1], Y.shape[1]
+                T.arange(Y.shape[0])*log_prob_of.shape[1], Y.shape[1]
             )
             log_prob_of = T.set_subtensor(flat_matrix[flat_indices], flat_Y)
 
@@ -4394,6 +4383,7 @@ class CompositeLayer(Layer):
                 self.inputs_to_layers[key] = sorted(value)
         super(CompositeLayer, self).__init__()
         self.__dict__.update(locals())
+
         del self.self
 
     @property
@@ -4440,7 +4430,7 @@ class CompositeLayer(Layer):
                                                  for layer in self.layers))
         self._target_space = CompositeSpace(tuple(layer.get_target_space()
                                                   for layer in self.layers))
-
+        
     @wraps(Layer.get_params)
     def get_params(self):
         rval = []
