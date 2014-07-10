@@ -51,9 +51,9 @@ from pylearn2.expr.nnet import (elemwise_kl, kl, compute_precision,
 from pylearn2.costs.mlp import L1WeightDecay as _L1WD
 from pylearn2.costs.mlp import WeightDecay as _WD
 
-
-mode = get_default_mode()
-mode.check_py_code = False
+if config.mode == "DEBUG_MODE":
+    mode = get_default_mode()
+    mode.check_py_code = False
 
 logger = logging.getLogger(__name__)
 

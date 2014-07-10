@@ -18,6 +18,7 @@ import numpy as np
 from theano import config
 from theano import function
 from theano.compat.python2x import OrderedDict
+from theano.compile import get_default_mode
 from theano.gof.op import get_debug_values
 
 from pylearn2.monitor import Monitor
@@ -393,15 +394,19 @@ class SGD(TrainingAlgorithm):
 
 
         with log_timing(log, 'Compiling sgd_update'):
-            if hasattr(self.theano_function_mode, 'check_py_code'):
-                check_py_code = self.theano_function_mode.check_py_code
+            check_py_code = None
+            if config.mode == "DEBUG_MODE":
+                if self.theano_function_mode is None:
+                    self.theano_function_mode = get_default_mode()
+                if hasattr(self.theano_function_mode, 'check_py_code'):
+                    check_py_code = self.theano_function_mode.check_py_code
                 self.theano_function_mode.check_py_code = False
             self.sgd_update = function(theano_args,
                                        updates=updates,
                                        name='sgd_update',
                                        on_unused_input='ignore',
                                        mode=self.theano_function_mode)
-            if hasattr(self.theano_function_mode, 'check_py_code'):
+            if check_py_code:
                 self.theano_function_mode.check_py_code = check_py_code
         self.params = params
 
