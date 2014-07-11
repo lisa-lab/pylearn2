@@ -126,7 +126,7 @@ class PennTreebank_Sequences(VectorSpacesDataset, PennTreebank):
         Whether to shuffle the samples or go through the dataset
         linearly
     """
-    def __init__(self, which_set, context_len, data_mode):
+    def __init__(self, which_set, context_len, data_mode, shuffle=True):
 
         if data_mode == 'words':
             max_labels = 10000
@@ -144,11 +144,13 @@ class PennTreebank_Sequences(VectorSpacesDataset, PennTreebank):
         X = numpy.asarray(
             [sequence[:, numpy.newaxis] for sequence in self._data[:, :-1]]
         )
-    
+        y = self._data[:, -1:]
+        print "Got", len(X), " examples"
         super(PennTreebank_Sequences, self).__init__(
-            data=(X, self._data[:, -1:]), 
+            data=(X, y), 
             data_specs=(space, source)
         )
+
 
     @functools.wraps(VectorSpacesDataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
@@ -170,7 +172,7 @@ class PennTreebank_Sequences(VectorSpacesDataset, PennTreebank):
                 batch_size=batch_size,
                 num_batches=num_batches,
                 rng=None,
-                sequence_lengths=self._sequence_lengths
+                #sequence_lengths=self._sequence_lengths
             )
         else:
             raise ValueError('For sequential datasets only the '

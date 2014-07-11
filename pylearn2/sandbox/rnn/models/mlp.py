@@ -45,9 +45,11 @@ class Recurrent(mlp.Layer):
         # The initial hidden state is just zeros
         h0 = tensor.alloc(np.cast[config.floatX](0),
                           state_below.shape[1], self.dim)
+        W_in = self.params[1]
+        state_below = tensor.dot(state_below, W_in)
 
         def _fprop_step(state_below, state_before, W_recurrent, W_in, b):
-            pre_h = (tensor.dot(state_below, W_in) +
+            pre_h = (state_below +
                      tensor.dot(state_before, W_recurrent) + b)
             h = tensor.tanh(pre_h)
             return h
