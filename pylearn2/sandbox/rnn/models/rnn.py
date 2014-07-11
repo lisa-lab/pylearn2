@@ -464,6 +464,7 @@ class ClockworkRecurrent(Recurrent):
                                      non_sequences=[U, state_before])
             z = z[-1]
             z += T.alloc(b[:index*self.module_dim], index*self.module_dim)
+            z = T.tanh(z)
             state_now = T.set_subtensor(state_now[:, :index*self.module_dim], z)
 
             return state_now
