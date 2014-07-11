@@ -6,7 +6,7 @@ from functools import wraps
 import numpy as np
 import theano.tensor as T
 from pylearn2.models.mlp import Layer
-from pylearn2.space import VectorSpace
+from pylearn2.space import CompositeSpace, VectorSpace
 from pylearn2.sandbox.rnn.space import SequenceSpace
 from pylearn2.utils import sharedX
 from theano import config, scan
@@ -40,6 +40,7 @@ class Recurrent(Layer):
                  dim,
                  layer_name,
                  irange,
+                 indices=None,
                  init_bias=0.,
                  svd=True):
         self.rnn_friendly = True
@@ -47,14 +48,22 @@ class Recurrent(Layer):
         self.__dict__.update(locals())
         del self.self
         super(Recurrent, self).__init__()
+        if indices is None:
+            self.indices = None
 
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
+
         assert isinstance(space, SequenceSpace)
         assert isinstance(space.space, VectorSpace)
+
         self.input_space = space
-        #self.output_space = SequenceSpace(dim=self.dim)
-        self.output_space = VectorSpace(dim=self.dim)
+
+        if self.indices is not None:
+            self.output_space = CompositeSpace(VectorSpace(dim=self.dim) *
+                                               len(self.indices))
+        else:
+            self.output_space = SequenceSpace(dim=self.dim)
 
         rng = self.mlp.rng
         assert self.irange is not None
@@ -146,7 +155,7 @@ class Recurrent(Layer):
         updates.update(self._scan_updates)
 
     @wraps(Layer.fprop)
-    def fprop(self, state_below, return_last=True):
+    def fprop(self, state_below):
 
         z0 = T.alloc(np.cast[config.floatX](0),
                      state_below.shape[1],
@@ -173,8 +182,8 @@ class Recurrent(Layer):
                             non_sequences=[W, U, b])
         self._scan_updates.update(updates)
 
-        if return_last:
-            return z[-1]
+        if self.indices is not None:
+            return [z[i] for i in self.indices]
         else:
             return z
 
@@ -266,7 +275,7 @@ class LSTM(Recurrent):
         updates.update(self._scan_updates)
 
     @wraps(Layer.fprop)
-    def fprop(self, state_below, return_last=True):
+    def fprop(self, state_below):
 
         z0 = T.alloc(np.cast[config.floatX](0),
                      state_below.shape[1],
@@ -313,8 +322,8 @@ class LSTM(Recurrent):
                                  non_sequences=[W, U, b])
         self._scan_updates.update(updates)
 
-        if return_last:
-            return z[-1]
+        if self.indices is not None:
+            return [z[i] for i in self.indices]
         else:
             return z
 
@@ -354,11 +363,17 @@ class ClockworkRecurrent(Recurrent):
 
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
+
         assert isinstance(space, SequenceSpace)
         assert isinstance(space.space, VectorSpace)
+
         self.input_space = space
-        #self.output_space = SequenceSpace(dim=self.dim)
-        self.output_space = VectorSpace(dim=self.dim)
+
+        if self.indices is not None:
+            self.output_space = CompositeSpace(VectorSpace(dim=self.dim) *
+                                               len(self.indices))
+        else:
+            self.output_space = SequenceSpace(dim=self.dim)
 
         rng = self.mlp.rng
         assert self.irange is not None
@@ -420,7 +435,7 @@ class ClockworkRecurrent(Recurrent):
         updates.update(self._scan_updates)
 
     @wraps(Layer.fprop)
-    def fprop(self, state_below, return_last=True):
+    def fprop(self, state_below):
 
         z0 = T.alloc(np.cast[config.floatX](0),
                      state_below.shape[1],
@@ -476,7 +491,7 @@ class ClockworkRecurrent(Recurrent):
                             non_sequences=[W, U, b])
         self._scan_updates.update(updates)
 
-        if return_last:
-            return z[-1]
+        if self.indices is not None:
+            return [z[i] for i in self.indices]
         else:
             return z
