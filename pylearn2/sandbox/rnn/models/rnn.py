@@ -64,7 +64,7 @@ class Recurrent(Layer):
             U, s, V = np.linalg.svd(U, full_matrices=True, compute_uv=True)
 
         W = rng.uniform(-self.irange, self.irange,
-                        (space.dim, self.dim))
+                        (self.input_space.dim, self.dim))
 
         self.W = sharedX(W, name=(self.layer_name + '_W'))
         self.U = sharedX(U, name=(self.layer_name + '_U'))
@@ -181,7 +181,8 @@ class Recurrent(Layer):
 class LSTM(Recurrent):
     """
     Implementation of Long Short-Term Memory proposed by
-    S. Hochreiter and J. Schmidhuber, "Long short-term memory", 1997.
+    S. Hochreiter and J. Schmidhuber in their paper
+    "Long short-term memory", Neural Computation, 1997.
 
     Parameters
     ----------
@@ -201,6 +202,8 @@ class LSTM(Recurrent):
     init_bias : float
     svd : bool,
     forget_gate_init_bias : float
+        Bias for forget gate. Set this variable into high value to force
+        the model to learn long-term dependencies.
     input_gate_init_bias : float
     output_gate_init_bias : float
     """
@@ -213,6 +216,7 @@ class LSTM(Recurrent):
         self.__dict__.update(locals())
         del self.self
 
+    @wraps(Layer.set_input_space)
     def set_input_space(self, space):
         super(LSTM, self).set_input_space(space)
 
@@ -220,7 +224,7 @@ class LSTM(Recurrent):
         # Output gate switch
         W_x = self.mlp.rng.uniform(-self.irange,
                                    self.irange,
-                                   (space.dim, 1))
+                                   (self.input_space.dim, 1))
         W_h = self.mlp.rng.uniform(-self.irange,
                                    self.irange,
                                    (self.dim, 1))
@@ -245,18 +249,9 @@ class LSTM(Recurrent):
     @wraps(Layer.get_params)
     def get_params(self):
         rval = super(LSTM, self).get_params()
-        rval.append(self.O_b)
-        rval.append(self.O_x)
-        rval.append(self.O_h)
-        rval.append(self.O_c)
-        rval.append(self.I_b)
-        rval.append(self.I_x)
-        rval.append(self.I_h)
-        rval.append(self.I_c)
-        rval.append(self.F_b)
-        rval.append(self.F_x)
-        rval.append(self.F_h)
-        rval.append(self.F_c)
+        rval += [self.O_b, self.O_x, self.O_h, self.O_c]
+        rval += [self.I_b, self.I_x, self.I_h, self.I_c]
+        rval += [self.F_b, self.F_x, self.F_h, self.F_c]
 
         return rval
 
@@ -315,6 +310,168 @@ class LSTM(Recurrent):
                                  sequences=[state_below],
                                  outputs_info=[z0, c0],
                                  non_sequences=[W, U, b])
+        self._scan_updates.update(updates)
+
+        if return_last:
+            return z[-1]
+        else:
+            return z
+
+
+class ClockworkRecurrent(Recurrent):
+    """
+    Implementation of Clockwork RNN proposed by
+    J. Koutnik, K. Greff, F. Gomez and J. Schmidhuber in their paper
+    "A Clockwork RNN", ICML, 2014.
+
+    Parameters
+    ----------
+    dim : int
+        The number of elements in the hidden layer
+    layer_name : str
+        The name of the layer. All layers in an MLP must have a unique name.
+    irange : float
+        Initializes each weight randomly in U(-irange, irange)
+    output : slice, list of integers or integer, optional
+        If specified this layer will return only the given hidden
+        states. If an integer is given, it will not return a
+        SequenceSpace. Otherwise, it will return a SequenceSpace of
+        fixed length. Note that a SequenceSpace of fixed length
+        can be flattened by using the FlattenerLayer.
+    irange : float
+    init_bias : float
+    svd : bool,
+    num_modules :
+        Number of modules
+    """
+    def __init__(self,
+                 num_modules=1,
+                 **kwargs):
+        super(ClockworkRecurrent, self).__init__(**kwargs)
+        self.__dict__.update(locals())
+        del self.self
+
+    @wraps(Layer.set_input_space)
+    def set_input_space(self, space):
+        assert isinstance(space, SequenceSpace)
+        assert isinstance(space.space, VectorSpace)
+        self.input_space = space
+        #self.output_space = SequenceSpace(dim=self.dim)
+        self.output_space = VectorSpace(dim=self.dim)
+
+        rng = self.mlp.rng
+        assert self.irange is not None
+        if self.num_modules == 1:
+            # identical to Recurrent Layer
+            U = self.mlp.rng.uniform(-self.irange,
+                                     self.irange,
+                                     (self.dim, self.dim))
+            if self.svd:
+                U = self.mlp.rng.randn(self.dim, self.dim)
+                U, s, V = np.linalg.svd(U, full_matrices=True, compute_uv=True)
+
+            W = rng.uniform(-self.irange, self.irange,
+                            (self.input_space.dim, self.dim))
+
+        else:
+            # Use exponentially scaled period
+            if isinstance(self.dim, list):
+                # So far size of each module should be same
+
+                raise NotImplementedError()
+            else:
+                # It's restricted to use same dimension for each module.
+                # It should be generalized.
+                # We will use transposed order which is different from
+                # the original paper but will give same result.
+                assert self.dim % self.num_modules == 0
+                self.module_dim = self.dim / self.num_modules
+                if self.irange is not None:
+                    W = rng.uniform(-self.irange, self.irange,
+                                    (self.input_space.dim, self.dim))
+
+                total_modules = np.sum(np.arange(self.num_modules + 1))
+                U = np.zeros((total_modules*self.module_dim, self.module_dim),
+                             dtype=config.floatX)
+                for i in xrange(total_modules):
+                    u = self.mlp.rng.uniform(-self.irange, self.irange,
+                                             (self.module_dim,
+                                              self.module_dim))
+                    U[i*self.module_dim:(i+1)*self.module_dim, :] = u
+
+        self.W = sharedX(W, name=(self.layer_name + '_W'))
+        self.U = sharedX(U, name=(self.layer_name + '_U'))
+        self.b = sharedX(np.zeros((self.dim,)) + self.init_bias,
+                         name=self.layer_name + '_b')
+        # We consider using power of 2 for exponential scale period
+        # However, one can easily set clock-rates of integer k by defining a
+        # clock-rate matrix M = k**np.arange(self.num_modules)
+        M = 2**np.arange(self.num_modules)
+        self.M = sharedX(M, name=(self.layer_name + '_M'))
+
+    @wraps(Layer._modify_updates)
+    def _modify_updates(self, updates):
+        # Is this needed?
+        if any(key in updates for key in self._scan_updates):
+            # Is this possible? What to do in this case?
+            raise ValueError("A single shared variable is being updated by "
+                             "multiple scan functions")
+        updates.update(self._scan_updates)
+
+    @wraps(Layer.fprop)
+    def fprop(self, state_below, return_last=True):
+
+        z0 = T.alloc(np.cast[config.floatX](0),
+                     state_below.shape[1],
+                     self.dim)
+
+        if state_below.shape[1] == 1:
+            z0 = T.unbroadcast(z0, 0)
+
+        # Later we will add_noise function
+        # Meanwhile leave this part in this way
+        W = self.W
+        U = self.U
+        b = self.b
+
+        idx = T.arange(state_below.shape[0])
+
+        def fprop_step(state_below, index, state_before, W, U, b):
+
+            state_now = state_before.copy()
+            index = self.num_modules -\
+                T.nonzero(T.mod(index+1, self.M))[0].shape[0]
+            W = T.alloc(W[:, :index*self.module_dim],
+                        self.input_space.dim,
+                        index*self.module_dim)
+            z = T.dot(state_below, W)
+            start = np.cast[np.int64](0)
+            clockrate = T.arange(index)
+
+            def rec_step(c, z, start, U, state_before):
+                this_len = self.dim - (c * self.module_dim)
+                stop = start + this_len
+                u = T.alloc(U[start:stop, :],
+                            this_len,
+                            self.module_dim)
+                z = T.set_subtensor(z[:, c*self.module_dim:(c+1)*self.module_dim],
+                                    z[:, c*self.module_dim:(c+1)*self.module_dim] +
+                                    T.dot(state_before[:, c*self.module_dim:], u))
+                return z, stop
+            ((z, s), updates) = scan(fn=rec_step,
+                                     sequences=[clockrate],
+                                     outputs_info=[z, start],
+                                     non_sequences=[U, state_before])
+            z = z[-1]
+            z += T.alloc(b[:index*self.module_dim], index*self.module_dim)
+            state_now = T.set_subtensor(state_now[:, :index*self.module_dim], z)
+
+            return state_now
+
+        (z, updates) = scan(fn=fprop_step,
+                            sequences=[state_below, idx],
+                            outputs_info=[z0],
+                            non_sequences=[W, U, b])
         self._scan_updates.update(updates)
 
         if return_last:
