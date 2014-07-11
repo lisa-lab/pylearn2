@@ -9,7 +9,7 @@
 !obj:pylearn2.train.Train {
   dataset: &train !obj:pylearn2.sandbox.nlp.datasets.penntree.PennTreebank_Sequences {
       which_set: 'train',
-      context_len: &context_len 1,
+      context_len: &context_len 50,
       data_mode: &data_mode 'chars'
   },
   model: !obj:pylearn2.models.mlp.MLP {
