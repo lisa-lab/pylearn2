@@ -1,6 +1,7 @@
 """
 Recurrent Neural Network Layer
 """
+
 from functools import wraps
 import numpy as np
 import theano.tensor as T
@@ -381,7 +382,7 @@ class ClockworkRecurrent(Recurrent):
                 raise NotImplementedError()
             else:
                 # It's restricted to use same dimension for each module.
-                # It should be generalized.
+                # This should be generalized.
                 # We will use transposed order which is different from
                 # the original paper but will give same result.
                 assert self.dim % self.num_modules == 0
