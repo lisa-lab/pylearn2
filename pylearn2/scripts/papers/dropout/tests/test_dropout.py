@@ -36,6 +36,7 @@ def test_mnist_valid():
     finally:
         mode.check_py_code = old_value
 
+
 def test_mnist():
     """
     Tests mnist.yaml by running it for only one epoch
