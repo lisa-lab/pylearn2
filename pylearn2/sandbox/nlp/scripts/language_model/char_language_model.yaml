@@ -9,7 +9,7 @@
 !obj:pylearn2.train.Train {
   dataset: &train !obj:pylearn2.sandbox.nlp.datasets.penntree.PennTreebank_Sequences {
       which_set: 'train',
-      context_len: &context_len 50,
+      context_len: &context_len 200,
       data_mode: &data_mode 'chars'
   },
   model: !obj:pylearn2.models.mlp.MLP {
@@ -33,7 +33,8 @@
       !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
          n_classes: 51,
          layer_name: 'softmax',
-         irange: 0.01
+         irange: 0.01,
+         binary_target_dim: 1
       }
     ],
   },
