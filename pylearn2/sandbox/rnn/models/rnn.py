@@ -406,19 +406,26 @@ class ClockworkRecurrent(Recurrent):
                     W = rng.uniform(-self.irange, self.irange,
                                     (self.input_space.dim, self.dim))
 
-                total_modules = np.sum(np.arange(self.num_modules + 1))
-                U = np.zeros((total_modules*self.module_dim, self.module_dim),
-                             dtype=config.floatX)
-                for i in xrange(total_modules):
-                    u = self.mlp.rng.uniform(-self.irange, self.irange,
-                                             (self.module_dim,
-                                              self.module_dim))
-                    U[i*self.module_dim:(i+1)*self.module_dim, :] = u
+                U = np.zeros((self.dim, self.dim), dtype=config.floatX)
+                for i in xrange(self.num_modules):
+                    for j in xrange(self.num_modules):
+                        if i >= j:
+                            u = rng.uniform(-self.irange, self.irange,
+                                            (self.module_dim, self.module_dim))
+                            if self.svd:
+                                u, s, v = np.linalg.svd(u, full_matrices=True,
+                                                        compute_uv=True)
+                            U[i*self.module_dim:(i+1)*self.module_dim,
+                              j*self.module_dim:(j+1)*self.module_dim] = u
 
         self.W = sharedX(W, name=(self.layer_name + '_W'))
         self.U = sharedX(U, name=(self.layer_name + '_U'))
         self.b = sharedX(np.zeros((self.dim,)) + self.init_bias,
                          name=self.layer_name + '_b')
+        nonzero_idx = np.nonzero(U)
+        self.mask_weights = np.zeros(shape=(U.shape), dtype=config.floatX)
+        self.mask_weights[nonzero_idx[0], nonzero_idx[1]] = 1.
+        self.mask = sharedX(self.mask_weights)
         # We consider using power of 2 for exponential scale period
         # However, one can easily set clock-rates of integer k by defining a
         # clock-rate matrix M = k**np.arange(self.num_modules)
@@ -427,6 +434,11 @@ class ClockworkRecurrent(Recurrent):
 
     @wraps(Layer._modify_updates)
     def _modify_updates(self, updates):
+
+        if self.U in updates:
+
+            updates[self.U] = updates[self.U] * self.mask
+
         # Is this needed?
         if any(key in updates for key in self._scan_updates):
             # Is this possible? What to do in this case?
