@@ -1,7 +1,6 @@
 """
 Recurrent Neural Network Layer
 """
-import ipdb
 from functools import wraps
 import numpy as np
 import theano.tensor as T
