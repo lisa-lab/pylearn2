@@ -7,7 +7,7 @@
     frame_length: &n 7,
     stop: 100000000,
     _iter_num_batches: 1000,
-    X_labels: &l 15000,
+    X_labels: &l 30000,
     load_to_memory: True,
     cache_size: 1000000,
     cache_delta: 100000
