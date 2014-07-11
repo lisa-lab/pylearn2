@@ -75,6 +75,7 @@ class Recurrent(mlp.Layer):
 
     @wraps(mlp.Layer.fprop)
     def fprop(self, state_below):
+        state_below, mask = state_below
         # The initial hidden state is just zeros
         h0 = tensor.alloc(np.cast[config.floatX](0),
                           state_below.shape[1], self.dim)

@@ -1,4 +1,4 @@
-xxxx!obj:pylearn2.train.Train {
+!obj:pylearn2.train.Train {
   dataset: !obj:pylearn2.sandbox.nlp.datasets.word2vec.Word2Vec {
     which_set: 'train',
   },

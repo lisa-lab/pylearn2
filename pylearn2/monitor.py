@@ -163,9 +163,8 @@ class Monitor(object):
                                 data_specs=self._flat_data_specs,
                                 return_tuple=True,
                                 rng=sd)
-            except ValueError as exc:
-                raise ValueError("invalid iteration parameters in " +
-                                 "Monitor.add_dataset: " + str(exc))
+            except:
+                raise
             if it.stochastic:
                 # Must be a seed, not a random number generator. If it were a
                 # random number generator, different iterators using it would
@@ -507,6 +506,7 @@ class Monitor(object):
         final_names = dir(self)
         self.register_names_to_del([name for name in final_names
                                     if name not in init_names])
+
 
     def register_names_to_del(self, names):
         """

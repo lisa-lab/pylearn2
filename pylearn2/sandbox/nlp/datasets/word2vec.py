@@ -5,20 +5,25 @@ This dataset maps sequences of character indices to word embeddings.
 See: https://code.google.com/p/word2vec/
 """
 import cPickle
-import functools
 
 import numpy as np
 import tables
+from theano import config
 
 from pylearn2.sandbox.nlp.datasets.text import TextDatasetMixin
-from pylearn2.sandbox.rnn.space import SequenceSpace
-from pylearn2.sandbox.rnn.utils.iteration import (
-    SequentialSubsetIterator, ShuffledSequentialSubsetIterator
-)
+from pylearn2.sandbox.rnn.space import SequenceDataSpace, SequenceMaskSpace
 from pylearn2.datasets.vector_spaces_dataset import VectorSpacesDataset
 from pylearn2.space import IndexSpace, CompositeSpace, VectorSpace
-from pylearn2.utils.iteration import FiniteDatasetIterator
 from pylearn2.utils.string_utils import preprocess
+
+
+def create_mask(data):
+    sequence_lengths = [len(sample) for sample in data]
+    max_sequence_length = max(sequence_lengths)
+    mask = np.zeros((len(data), max_sequence_length), dtype=config.floatX)
+    for i, sequence_length in enumerate(sequence_lengths):
+        mask[i, :sequence_length] = 1
+    return mask
 
 
 class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
@@ -50,53 +55,17 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
             # Format is now [batch, time, data]
             X = np.asarray([char_sequence[:, np.newaxis]
                             for char_sequence in node])
-        self._sequence_lengths = [len(sequence) for sequence in X]
+        X_mask = create_mask(X)
 
         with tables.open_file(preprocess('${PYLEARN2_DATA_PATH}/word2vec/'
                                          'embeddings.h5')) as f:
             node = f.get_node('/embeddings_%s' % which_set)
             y = node[:]
 
-        source = ('features', 'targets')
-        space = CompositeSpace([SequenceSpace(IndexSpace(dim=1,
-                                                         max_labels=101)),
+        source = ('features', 'features_mask', 'targets')
+        space = CompositeSpace([SequenceDataSpace(IndexSpace(dim=1,
+                                                             max_labels=101)),
+                                SequenceMaskSpace(),
                                 VectorSpace(dim=300)])
-        super(Word2Vec, self).__init__(data=(X, y), data_specs=(space, source))
-
-    @functools.wraps(VectorSpacesDataset.iterator)
-    def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 topo=None, targets=None, rng=None, data_specs=None,
-                 return_tuple=False):
-        if rng is None:
-            rng = self.rng
-        if mode is None or mode == 'shuffled_sequential':
-            subset_iterator = ShuffledSequentialSubsetIterator(
-                dataset_size=self.get_num_examples(),
-                batch_size=batch_size,
-                num_batches=num_batches,
-                rng=rng,
-                sequence_lengths=self._sequence_lengths
-            )
-        elif mode == 'sequential':
-            subset_iterator = SequentialSubsetIterator(
-                dataset_size=self.get_num_examples(),
-                batch_size=batch_size,
-                num_batches=num_batches,
-                rng=None,
-                sequence_lengths=self._sequence_lengths
-            )
-        else:
-            raise ValueError('For sequential datasets only the '
-                             'SequentialSubsetIterator and '
-                             'ShuffledSequentialSubsetIterator have been '
-                             'ported, so the mode `%s` is not supported.' %
-                             (mode,))
-
-        if data_specs is None:
-            data_specs = self.data_specs
-        return FiniteDatasetIterator(
-            dataset=self,
-            subset_iterator=subset_iterator,
-            data_specs=data_specs,
-            return_tuple=return_tuple
-        )
+        super(Word2Vec, self).__init__(data=(X, X_mask, y),
+                                       data_specs=(space, source))
