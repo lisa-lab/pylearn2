@@ -507,7 +507,7 @@ def multi_constructor_pkl(loader, tag_suffix, node):
     mapping = loader.construct_yaml_str(node)
     obj = serial.load(preprocess(mapping, additional_environ))
     proxy = Proxy(callable=do_not_recurse, positionals=(),
-                  keywords={'value': obj}, yaml_src=mapping)
+                  keywords={'value': obj}, yaml_src=yaml.serialize(node))
     return proxy
 
 

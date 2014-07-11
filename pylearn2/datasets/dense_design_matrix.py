@@ -1309,7 +1309,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         y = h5file.createCArray(gcolumns,
                                 'y',
                                 atom=atom,
-                                shape=((stop - start, 10)),
+                                shape=((stop - start, data.y.shape[1])),
                                 title="Data targets",
                                 filters=self.filters)
         x[:] = data.X[start:stop]

@@ -425,6 +425,17 @@ class Model(object):
 
         return self.output_space
 
+    def get_target_space(self):
+        """
+        Returns an instance of pylearn2.space.Space describing the format of
+        that the targets should be in, which may be different from the output
+        space. Calls get_output_space() unless _target_space exists.
+        """
+        if hasattr(self, '_target_space'):
+            return self._target_space
+        else:
+            return self.get_output_space()
+
     def get_input_source(self):
         """
         Returns a string, stating the source for the input. By default the
