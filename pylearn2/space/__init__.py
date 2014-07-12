@@ -2146,9 +2146,7 @@ class CompositeSpace(Space):
             """
             Returns True if space can contain no data.
             """
-            from pylearn2.sandbox.rnn.space import SequenceMaskSpace
-            return (isinstance(subspace, SequenceMaskSpace) or
-                    isinstance(subspace, NullSpace) or
+            return (isinstance(subspace, NullSpace) or
                     (isinstance(subspace, CompositeSpace) and
                      len(subspace.components) == 0))
 

@@ -60,7 +60,6 @@ class VectorSpacesDataset(Dataset):
             assert sorted(set(data_specs[1])) == sorted(data_specs[1])
         space, source = data_specs
         space.np_validate(data)
-        assert len(set(elem.shape[0] for elem in list(data))) <= 1
         self.data = data
         self.data_specs = data_specs
         self.num_examples = list(data)[0].shape[0]

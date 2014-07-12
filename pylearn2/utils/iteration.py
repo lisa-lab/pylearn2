@@ -16,11 +16,11 @@ Presets:
   container is empty after num_examples / batch_size calls
 """
 from __future__ import division
-import functools
-import inspect
-import numpy as np
 import warnings
 
+import numpy as np
+
+from pylearn2.sandbox.rnn.space import SequenceDataSpace
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_izip, wraps
 from pylearn2.utils.data_specs import is_flat_specs
@@ -797,6 +797,8 @@ class FiniteDatasetIterator(object):
                 if fn is None:
 
                     def fn(batch, dspace=dspace, sp=sp):
+                        if isinstance(dspace, SequenceDataSpace):
+                            batch = np.transpose(batch, (1, 0, 2))
                         try:
                               return dspace.np_format_as(batch, sp)
                         except ValueError as e:

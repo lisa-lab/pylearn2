@@ -135,6 +135,18 @@ class SequenceMaskSpace(space.SimplyTypedSpace):
     def __str__(self):
         return '%s' % (self.__class__.__name__)
 
+    def _batch_size_impl(self, is_numeric, batch):
+        return batch.shape[1]
+
+    def _format_as_impl(self, is_numeric, batch, space):
+        if space == self:
+            return batch
+        else:
+            raise NotImplementedError
+
+    def get_total_dimension(self):
+        return 0
+
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
         return tensor.matrix(name=name, dtype=dtype)
 
