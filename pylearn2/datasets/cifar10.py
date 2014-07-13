@@ -10,6 +10,11 @@ import numpy as np
 N = np
 from pylearn2.datasets import cache, dense_design_matrix
 from pylearn2.expr.preprocessing import global_contrast_normalize
+import warnings
+
+from pylearn2.datasets.preprocessing import GlobalContrastNormalization, \
+    TorontoPreprocessor, CenterPreprocessor, RescalePreprocessor
+from pylearn2.datasets.preprocessing import Pipeline
 
 
 class CIFAR10(dense_design_matrix.DenseDesignMatrix):
@@ -33,14 +38,31 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     axes : WRITEME
     toronto_prepro : WRITEME
     preprocessor : WRITEME
+    preprocessor_from : dense_design_matrix
+        The preprocessor from the given dataset is applied on the current
+        CIFAR10 dataset with can_fit=False.
     """
 
     def __init__(self, which_set, center = False, rescale = False, gcn = None,
             one_hot = False, start = None, stop = None, axes=('b', 0, 1, 'c'),
-            toronto_prepro = False, preprocessor = None):
+            toronto_prepro = False, preprocessor = None, preprocessor_from=None):
         # note: there is no such thing as the cifar10 validation set;
         # pylearn1 defined one but really it should be user-configurable
         # (as it is here)
+
+        # arguments
+        self.which_set = which_set
+        self.center = center
+        self.rescale = rescale
+        self.toronto_prepro = toronto_prepro
+        self.gcn = gcn
+        self.preprocessor_from = preprocessor_from
+
+        # private attributes
+        self._preprocessor = None
+        self._preprocessors = []
+
+        self.validate_options()
 
         self.axes = axes
 
@@ -103,48 +125,36 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
                 one_hot[i,y[i]] = 1.
             y = one_hot
 
-        if center:
-            X -= 127.5
-        self.center = center
 
-        if rescale:
-            X /= 127.5
-        self.rescale = rescale
+        view_converter = dense_design_matrix.DefaultViewConverter((32,32,3),
+                                                                  axes)
 
-        if toronto_prepro:
-            assert not center
-            assert not gcn
-            X = X / 255.
-            if which_set == 'test':
-                other = CIFAR10(which_set='train')
-                oX = other.X
-                oX /= 255.
-                X = X - oX.mean(axis=0)
-            else:
-                X = X - X.mean(axis=0)
-        self.toronto_prepro = toronto_prepro
+        super(CIFAR10, self).__init__(X=X, y=y, view_converter=view_converter)
 
-        self.gcn = gcn
-        if gcn is not None:
-            gcn = float(gcn)
-            X = global_contrast_normalize(X, scale=gcn)
+        if self._preprocessors:
+            pipeline = Pipeline(self._preprocessors)
+            pipeline.apply(self, True)
+            self.preprocessor = self._preprocessor
+
+        # For some preprocessors that have to be applied on a test set,
+        # we have to compute first the stats (e.g. mean) on a train set and use
+        # these stats when applying the preprocessors on the test set.
+        # TorontoPreprocessor is one of these preprocessors.
+        if self.preprocessor_from:
+            self.preprocessor_from.preprocessor.apply(self, can_fit=False)
 
         if start is not None:
             # This needs to come after the prepro so that it doesn't change the pixel
             # means computed above for toronto_prepro
             assert start >= 0
             assert stop > start
-            assert stop <= X.shape[0]
-            X = X[start:stop, :]
-            y = y[start:stop]
-            assert X.shape[0] == y.shape[0]
+            assert stop <= self.X.shape[0]
+            self.X = self.X[start:stop, :]
+            self.y = self.y[start:stop]
+            assert self.X.shape[0] == self.y.shape[0]
 
         if which_set == 'test':
-            assert X.shape[0] == 10000
-
-        view_converter = dense_design_matrix.DefaultViewConverter((32,32,3), axes)
-
-        super(CIFAR10, self).__init__(X=X, y=y, view_converter=view_converter)
+            assert self.X.shape[0] == 10000
 
         assert not np.any(np.isnan(self.X))
 
@@ -258,3 +268,43 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         dict = cPickle.load(fo)
         fo.close()
         return dict
+
+
+    def validate_options(self):
+        """
+        Performs the following validation on the constructor's arguments:
+            if an option (center, rescale, gcn or toronto_prepro) was
+            specified, then the corresponding preprocessor from the
+            Preprocessor class is instantiated and added to `preprocessors`
+        """
+        ### Check that any of the options are specified. Issue a warning
+        ### and instantiate the corresponding preprocessor if that's the case
+        if self.center:
+            warnings.warn("The option center will be deprecated on or after "
+                          "2014-11-10. CenterPreprocessor should be used instead.")
+            self._preprocessors.append(CenterPreprocessor())
+
+        if self.rescale:
+            warnings.warn("The option rescale will be deprecated on or after "
+                          "2014-11-10. RescalePreprocessor should be used instead.")
+            self._preprocessors.append(RescalePreprocessor())
+
+        if self.gcn:
+            warnings.warn("The option gcn will be deprecated on or after "
+                          "2014-11-10. The GlobalContrastNormalization preprocessor "
+                          "should be used instead.")
+            self._preprocessors.append(GlobalContrastNormalization(scale=float(self.gcn)))
+
+        if self.toronto_prepro:
+            warnings.warn("The option toronto_preproc will be deprecated on "
+                          "or after 2014-11-10. The TorontoPreprocessor "
+                          "preprocessor should be used instead.")
+            assert not self.center
+            assert not self.gcn
+            # If we have to apply the TorontoPreprocessor on a test set,
+            # we must first compute the mean on the train set and use this
+            # mean when applying the preprocessor on the test set.
+            if self.which_set == 'train':
+                preproc = TorontoPreprocessor()
+                self._preprocessors.append(preproc)
+                self._preprocessor = preproc
