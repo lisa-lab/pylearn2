@@ -9,8 +9,10 @@ __copyright__ = "Copyright 2010-2014, Universite de Montreal"
 __license__ = "3-clause BSD"
 
 import warnings
+<<<<<<< HEAD
 import functools
 import numpy
+
 from numpy.lib.stride_tricks import as_strided
 
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
@@ -84,13 +86,20 @@ class PennTreebank_NGrams(DenseDesignMatrix, PennTreebank):
     shuffle : bool
         Whether to shuffle the samples or go through the dataset
         linearly
+    permutation : int, optional
+        If given our target is a binary vector of length
+        (context_len - 1), with value i being 1 if the words
+        i and i + 1 are in the wrong order, and 0 otherwise.
     """
+
     def __init__(self, which_set, context_len, data_mode, shuffle=True):
+
         self.__dict__.update(locals())
         del self.self
 
         # Load data into self._data (defined in PennTreebank)
         self._load_data(which_set, context_len, data_mode)
+
 
         print self._raw_data[0:30]
         print self._data[:, :-1][:10]
