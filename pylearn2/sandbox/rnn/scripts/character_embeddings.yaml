@@ -19,6 +19,7 @@
         layer_name: 'recurrent_layer',
         dim: 500,
         irange: 0.01,
+        indices: [-1]
       },
       !obj:pylearn2.models.mlp.Linear {
         layer_name: 'linear_layer',

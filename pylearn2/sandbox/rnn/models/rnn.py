@@ -67,7 +67,7 @@ class Recurrent(Layer):
             else:
                 self.output_space = VectorSpace(dim=self.dim)
         else:
-            self.output_space = SequenceSpace(dim=self.dim)
+            self.output_space = SequenceSpace(VectorSpace(dim=self.dim))
 
         rng = self.mlp.rng
         assert self.irange is not None
