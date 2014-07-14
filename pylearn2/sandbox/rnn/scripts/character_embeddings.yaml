@@ -15,7 +15,7 @@
         dim: 300,
         irange: 0.01,
       },
-      !obj:pylearn2.sandbox.rnn.models.mlp.Recurrent {
+      !obj:pylearn2.sandbox.rnn.models.rnn.Recurrent {
         layer_name: 'recurrent_layer',
         dim: 500,
         irange: 0.01,

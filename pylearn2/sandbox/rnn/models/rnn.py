@@ -145,7 +145,8 @@ class Recurrent(Layer):
         updates.update(self._scan_updates)
 
     @wraps(Layer.fprop)
-    def fprop(self, state_below, return_last=True):
+    def fprop(self, state_below):
+        state_below, mask = state_below
 
         z0 = T.alloc(np.cast[config.floatX](0),
                      state_below.shape[1],
@@ -172,10 +173,7 @@ class Recurrent(Layer):
                             non_sequences=[W, U, b])
         self._scan_updates.update(updates)
 
-        if return_last:
-            return z[-1]
-        else:
-            return z
+        return z[-1]
 
 
 class LSTM(Recurrent):
