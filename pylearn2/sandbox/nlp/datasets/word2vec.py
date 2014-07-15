@@ -5,25 +5,19 @@ This dataset maps sequences of character indices to word embeddings.
 See: https://code.google.com/p/word2vec/
 """
 import cPickle
+from functools import wraps
 
 import numpy as np
 import tables
-from theano import config
 
 from pylearn2.sandbox.nlp.datasets.text import TextDatasetMixin
-from pylearn2.sandbox.rnn.space import SequenceDataSpace, SequenceMaskSpace
+from pylearn2.sandbox.rnn.space import SequenceDataSpace
+from pylearn2.sandbox.rnn.utils.iteration import SequenceDatasetIterator
 from pylearn2.datasets.vector_spaces_dataset import VectorSpacesDataset
 from pylearn2.space import IndexSpace, CompositeSpace, VectorSpace
+from pylearn2.utils.iteration import resolve_iterator_class
+from pylearn2.utils.rng import make_np_rng
 from pylearn2.utils.string_utils import preprocess
-
-
-def create_mask(data):
-    sequence_lengths = [len(sample) for sample in data]
-    max_sequence_length = max(sequence_lengths)
-    mask = np.zeros((max_sequence_length, len(data)), dtype=config.floatX)
-    for i, sequence_length in enumerate(sequence_lengths):
-        mask[:sequence_length, i] = 1
-    return mask
 
 
 class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
@@ -52,43 +46,35 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
                                          'characters.h5')) as f:
             node = f.get_node('/characters_%s' % which_set)
             # VLArray is strange, and this seems faster than reading node[:]
-            # Format is now [batch, time, data]
             self.X = np.asarray([char_sequence[:, np.newaxis]
                                 for char_sequence in node])
+            # Format is [batch, time, data]
 
         with tables.open_file(preprocess('${PYLEARN2_DATA_PATH}/word2vec/'
                                          'embeddings.h5')) as f:
             node = f.get_node('/embeddings_%s' % which_set)
             self.y = node[:]
 
-        source = ('features', 'features_mask', 'targets')
+        source = ('features', 'targets')
         space = CompositeSpace([SequenceDataSpace(IndexSpace(dim=1,
                                                              max_labels=101)),
-                                SequenceMaskSpace(),
                                 VectorSpace(dim=300)])
-        super(Word2Vec, self).__init__(data=(self.X, np.array([[]]), self.y),
+        super(Word2Vec, self).__init__(data=(self.X, self.y),
                                        data_specs=(space, source))
 
-    def get(self, sources, indices):
-        if isinstance(indices, slice):
-            batch_size = indices.stop - indices.start
-        else:
-            batch_size = len(indices)
-        rval = []
-        for source in sources:
-            if source == 'targets':
-                rval.append(self.y[indices])
-            elif source == 'features':
-                max_sequence_length = max(len(sample) for sample
-                                          in self.X[indices])
-                batch = np.zeros((batch_size, max_sequence_length, 1),
-                                 dtype='int64')
-                for i, sample in enumerate(self.X[indices]):
-                    batch[i, :len(sample)] = sample
-                rval.append(batch)
-            elif source == 'features_mask':
-                rval.append(create_mask(self.X[indices]))
-            else:
-                import ipdb
-                ipdb.set_trace()
-        return rval
+    def _create_subset_iterator(self, mode, batch_size=None, num_batches=None,
+                                rng=None):
+        subset_iterator = resolve_iterator_class(mode)
+        if rng is None and subset_iterator.stochastic:
+            rng = make_np_rng()
+        return subset_iterator(self.get_num_examples(), batch_size,
+                               num_batches, rng)
+
+    @wraps(VectorSpacesDataset.iterator)
+    def iterator(self, batch_size=None, num_batches=None, rng=None,
+                 data_specs=None, return_tuple=False, mode=None):
+        subset_iterator = self._create_subset_iterator(
+            mode=mode, batch_size=batch_size, num_batches=num_batches, rng=rng
+        )
+        return SequenceDatasetIterator(self, data_specs, subset_iterator,
+                                       return_tuple=return_tuple)
