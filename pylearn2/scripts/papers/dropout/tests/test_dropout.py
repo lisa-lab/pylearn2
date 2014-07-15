@@ -17,6 +17,7 @@ def test_mnist_valid():
     """
     Tests mnist_valid.yaml by running it for only one epoch
     """
+    skip_if_no_data()
     mode = get_default_mode()
     if hasattr(mode, 'check_py_code'):
         old_value = mode.check_py_code
@@ -26,13 +27,12 @@ def test_mnist_valid():
             yaml_file = 'mnist_valid_fast'
         else:
             yaml_file = 'mnist_valid'
-        skip_if_no_data()
         limited_epoch_train(os.path.join(yaml_file_path, '%s.yaml'
                                          % yaml_file))
         try:
             os.remove(os.path.join(save_path, '%s.pkl' % yaml_file))
             os.remove(os.path.join(save_path, '%s_best.pkl' % yaml_file))
-        except:
+        except Exception:
             pass
     finally:
         if hasattr(mode, 'check_py_code'):
@@ -43,6 +43,7 @@ def test_mnist():
     """
     Tests mnist.yaml by running it for only one epoch
     """
+    skip_if_no_data()
     mode = get_default_mode()
     if hasattr(mode, 'check_py_code'):
         old_value = mode.check_py_code
@@ -52,13 +53,12 @@ def test_mnist():
             yaml_file = 'mnist_fast'
         else:
             yaml_file = 'mnist'
-        skip_if_no_data()
         limited_epoch_train(os.path.join(yaml_file_path, '%s.yaml'
                                          % yaml_file))
         try:
             os.remove(os.path.join(save_path, '%s.pkl' % yaml_file))
             os.remove(os.path.join(save_path, '%s_best.pkl' % yaml_file))
-        except:
+        except Exception:
             pass
     finally:
         if hasattr(mode, 'check_py_code'):
