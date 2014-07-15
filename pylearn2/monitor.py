@@ -156,12 +156,16 @@ class Monitor(object):
                              "batch size and number of batches.")
         for (d, m, b, n, sd) in safe_izip(dataset, mode, batch_size,
                                           num_batches, seed):
-            it = d.iterator(mode=m,
-                            batch_size=b,
-                            num_batches=n,
-                            data_specs=self._flat_data_specs,
-                            return_tuple=True,
-                            rng=sd)
+            try:
+                it = d.iterator(mode=m,
+                                batch_size=b,
+                                num_batches=n,
+                                data_specs=self._flat_data_specs,
+                                return_tuple=True,
+                                rng=sd)
+            except ValueError as exc:
+                raise ValueError("invalid iteration parameters in " +
+                                 "Monitor.add_dataset: " + str(exc))
             if it.stochastic:
                 # Must be a seed, not a random number generator. If it were a
                 # random number generator, different iterators using it would

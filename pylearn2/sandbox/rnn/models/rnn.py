@@ -393,7 +393,6 @@ class ClockworkRecurrent(Recurrent):
         else:
             self.output_space = SequenceSpace(VectorSpace(dim=self.dim))
 
-
         rng = self.mlp.rng
         assert self.irange is not None
         if self.num_modules == 1:
