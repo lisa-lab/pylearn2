@@ -13,6 +13,7 @@ from pylearn2.testing.datasets import ArangeDataset
 from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.training_algorithms.learning_rule import Momentum
 from pylearn2.training_algorithms.learning_rule import AdaDelta
+from pylearn2.training_algorithms.learning_rule import RMSProp
 from pylearn2.utils import sharedX
 
 from test_sgd import DummyCost, DummyModel
@@ -124,3 +125,57 @@ def test_adadelta():
     sgd.train(dataset=dataset)
     assert all(np.allclose(manual_param, sgd_param.get_value()) for manual_param,
             sgd_param in zip(manual, model.get_params()))
+
+def test_rmsprop():
+    """
+    Make sure that learning_rule.RMSProp obtains the same parameter values as
+    with a hand-crafted RMSProp implementation, given a dummy model and
+    learning rate scaler for each parameter.
+    """
+
+    # We include a cost other than SumOfParams so that data is actually
+    # queried from the training set, and the expected number of updates
+    # are applied.
+    cost = SumOfCosts([SumOfOneHalfParamsSquared(), (0., DummyCost())])
+
+    scales = [ .01, .02, .05, 1., 5. ]
+    shapes = [(1,), (9,), (8, 7), (6, 5, 4), (3, 2, 2, 2)]
+
+    model = DummyModel(shapes, lr_scalers=scales)
+    dataset = ArangeDataset(1)
+    learning_rate = .001
+    decay = 0.90
+    max_scaling = 1e5
+
+    sgd = SGD(cost=cost,
+              learning_rate=learning_rate,
+              learning_rule = RMSProp(decay),
+              batch_size=1)
+
+    sgd.setup(model=model, dataset=dataset)
+
+    state = {}
+    for param in model.get_params():
+        param_shape = param.get_value().shape
+        state[param] = {}
+        state[param]['g2'] = np.zeros(param_shape)
+
+    def rmsprop_manual(model, state):
+        inc = []
+        rval = []
+        epsilon = 1. / max_scaling
+        for scale, param in zip(scales, model.get_params()):
+            pstate = state[param]
+            param_val =  param.get_value()
+            # begin rmsprop
+            pstate['g2'] = decay * pstate['g2'] + (1. - decay) * param_val**2
+            rms_g_t = np.maximum(np.sqrt(pstate['g2']), epsilon)
+            dx_t = - scale * learning_rate / rms_g_t * param_val
+            rval += [param_val + dx_t]
+        return rval
+
+    manual = rmsprop_manual(model, state)
+    sgd.train(dataset=dataset)
+    assert all(np.allclose(manual_param, sgd_param.get_value()) for manual_param,
+            sgd_param in zip(manual, model.get_params()))
+    

@@ -252,3 +252,62 @@ class AdaDelta(LearningRule):
 
         return updates
 
+class RMSProp(LearningRule):
+    """
+    Implements the RMSProp learning rule as described by Hinton in:
+    http://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf
+
+    Parameters
+    ----------
+    decay : float, optional
+        Decay constant similar to that used in AdaDelta and Momentum methods.
+    max_scaling: float, optional
+        Restrict the RMSProp gradient scaling coefficient to values
+        below `max_scaling`. 
+    """
+
+    def __init__(self, decay=0.9, max_scaling=1e5):
+        assert 0. <= decay < 1.
+        assert max_scaling > 0 
+        self.decay = sharedX(decay, 'decay')
+        self.epsilon = 1. / max_scaling
+
+    def add_channels_to_monitor(self, monitor, monitoring_dataset):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        # TODO: add channels worth monitoring
+        return
+
+    def get_updates(self, learning_rate, grads, lr_scalers=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        updates = OrderedDict()    
+        for param in grads:
+
+            # mean_squared_grad := E[g^2]_{t-1}
+            mean_square_grad = sharedX(param.get_value() * 0.)
+
+            if param.name is not None:
+                mean_square_grad.name = 'mean_square_grad_' + param.name
+
+            # Accumulate gradient
+            new_mean_squared_grad = \
+                    self.decay * mean_square_grad +\
+                    (1 - self.decay) * T.sqr(grads[param])
+
+            # Compute update
+            scaled_lr = lr_scalers.get(param, 1.) * learning_rate
+            rms_grad_t = T.sqrt(new_mean_squared_grad)
+            delta_x_t = - scaled_lr * grads[param] / T.maximum(rms_grad_t, self.epsilon)
+
+            # Apply update
+            updates[mean_square_grad] = new_mean_squared_grad
+            updates[param] = param + delta_x_t
+
+        return updates
