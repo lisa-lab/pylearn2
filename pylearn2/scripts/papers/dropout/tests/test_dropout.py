@@ -18,8 +18,9 @@ def test_mnist_valid():
     Tests mnist_valid.yaml by running it for only one epoch
     """
     mode = get_default_mode()
-    old_value = mode.check_py_code
-    mode.check_py_code = False
+    if hasattr(mode, 'check_py_code'):
+        old_value = mode.check_py_code
+        mode.check_py_code = False
     try:
         if config.mode == "DEBUG_MODE":
             yaml_file = 'mnist_valid_fast'
@@ -34,7 +35,8 @@ def test_mnist_valid():
         except:
             pass
     finally:
-        mode.check_py_code = old_value
+        if hasattr(mode, 'check_py_code'):
+            mode.check_py_code = old_value
 
 
 def test_mnist():
@@ -42,8 +44,9 @@ def test_mnist():
     Tests mnist.yaml by running it for only one epoch
     """
     mode = get_default_mode()
-    old_value = mode.check_py_code
-    mode.check_py_code = False
+    if hasattr(mode, 'check_py_code'):
+        old_value = mode.check_py_code
+        mode.check_py_code = False
     try:
         if config.mode == "DEBUG_MODE":
             yaml_file = 'mnist_fast'
@@ -58,4 +61,5 @@ def test_mnist():
         except:
             pass
     finally:
-        mode.check_py_code = old_value
+        if hasattr(mode, 'check_py_code'):
+            mode.check_py_code = old_value
