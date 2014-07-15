@@ -130,30 +130,54 @@ class RNNWrapper(MetaLibVersion):
         """
         @functools.wraps(fprop)
         def outer(self, state_below):
-            if not self.rnn_friendly:
-                if self._requires_reshape:
-                    if self._requires_unmask:
-                        state_below, mask = state_below
-                    input_shape = ([state_below.shape[0] *
-                                    state_below.shape[1]] +
-                                   [state_below.shape[i]
-                                    for i in xrange(2, state_below.ndim)])
-                    reshaped_state_below = state_below.reshape(input_shape)
-                    reshaped_state = fprop(self, reshaped_state_below)
-                    output_shape = ([state_below.shape[0],
-                                     state_below.shape[1]] +
-                                    [reshaped_state.shape[i]
-                                     for i in xrange(1, reshaped_state.ndim)])
-                    state = reshaped_state.reshape(output_shape)
-                    if self._requires_unmask:
-                        return (state, mask)
-                    else:
-                        return state
-                else:  # Not RNN-friendly, but not requiring reshape
-                    return fprop(self, state_below)
-            else:  # RNN-friendly
+            if self._requires_reshape:
+                if self._requires_unmask:
+                    state_below, mask = state_below
+                input_shape = ([state_below.shape[0] *
+                                state_below.shape[1]] +
+                               [state_below.shape[i]
+                                for i in xrange(2, state_below.ndim)])
+                reshaped_state_below = state_below.reshape(input_shape)
+                reshaped_state = fprop(self, reshaped_state_below)
+                output_shape = ([state_below.shape[0],
+                                 state_below.shape[1]] +
+                                [reshaped_state.shape[i]
+                                 for i in xrange(1, reshaped_state.ndim)])
+                state = reshaped_state.reshape(output_shape)
+                if self._requires_unmask:
+                    return (state, mask)
+                else:
+                    return state
+            else:  # Not RNN-friendly, but not requiring reshape
                 return fprop(self, state_below)
         return outer
+
+    @classmethod
+    def cost_wrapper(cls, name, cost):
+        """
+        This layer wraps cost methods by reshaping the tensor (merging
+        the time and batch axis) and then taking out all the masked
+        values before applying the cost method.
+        """
+        @functools.wraps(cost)
+        def outer(self, Y, Y_hat):
+            if self._requires_reshape:
+                if self._requires_unmask:
+                    Y, Y_mask = Y
+                    Y_hat, Y_hat_mask = Y_hat
+                input_shape = ([Y.shape[0] * Y.shape[1]] +
+                               [Y.shape[i] for i in xrange(2, Y.ndim)])
+                reshaped_Y = Y.reshape(input_shape)
+                reshaped_Y_hat = Y_hat.reshape(input_shape)
+                # Here we need to take the indices of only the unmasked data
+                if self._requires_unmask:
+                    return cost(self, reshaped_Y[Y_mask.flatten()],
+                                reshaped_Y_hat[Y_hat_mask.flatten()])
+                return cost(self, reshaped_Y, reshaped_Y_hat)
+            else:  # Not RNN-friendly, but not requiring reshape
+                return cost(self, Y, Y_hat)
+        return outer
+
 
     @classmethod
     def set_input_space_wrapper(cls, name, set_input_space):
