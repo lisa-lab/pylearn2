@@ -231,6 +231,7 @@ class LSTM(Recurrent):
                  output_gate_init_bias=0.,
                  **kwargs):
         super(LSTM, self).__init__(**kwargs)
+        self.rnn_friendly = True
         self.__dict__.update(locals())
         del self.self
 
@@ -284,6 +285,7 @@ class LSTM(Recurrent):
 
     @wraps(Layer.fprop)
     def fprop(self, state_below):
+        state_below, mask = state_below
 
         z0 = T.alloc(np.cast[config.floatX](0),
                      state_below.shape[1],
@@ -331,7 +333,10 @@ class LSTM(Recurrent):
         self._scan_updates.update(updates)
 
         if self.indices is not None:
-            return [z[i] for i in self.indices]
+            if len(self.indices) > 1:
+                return [z[i] for i in self.indices]
+            else:
+                return z[self.indices[0]]
         else:
             return z
 
@@ -366,6 +371,7 @@ class ClockworkRecurrent(Recurrent):
                  num_modules=1,
                  **kwargs):
         super(ClockworkRecurrent, self).__init__(**kwargs)
+        self.rnn_friendly = True
         self.__dict__.update(locals())
         del self.self
 
@@ -378,10 +384,15 @@ class ClockworkRecurrent(Recurrent):
         self.input_space = space
 
         if self.indices is not None:
-            self.output_space = CompositeSpace(VectorSpace(dim=self.dim) *
-                                               len(self.indices))
+            if len(self.indices) > 1:
+                self.output_space = CompositeSpace([VectorSpace(dim=self.dim)
+                                                    for _ in
+                                                    range(len(self.indices))])
+            else:
+                self.output_space = VectorSpace(dim=self.dim)
         else:
-            self.output_space = SequenceSpace(dim=self.dim)
+            self.output_space = SequenceSpace(VectorSpace(dim=self.dim))
+
 
         rng = self.mlp.rng
         assert self.irange is not None
@@ -431,9 +442,9 @@ class ClockworkRecurrent(Recurrent):
         self.b = sharedX(np.zeros((self.dim,)) + self.init_bias,
                          name=self.layer_name + '_b')
         nonzero_idx = np.nonzero(U)
-        self.mask_weights = np.zeros(shape=(U.shape), dtype=config.floatX)
-        self.mask_weights[nonzero_idx[0], nonzero_idx[1]] = 1.
-        self.mask = sharedX(self.mask_weights)
+        mask_weights = np.zeros(shape=(U.shape), dtype=config.floatX)
+        mask_weights[nonzero_idx[0], nonzero_idx[1]] = 1.
+        self.mask = sharedX(mask_weights)
         # We consider using power of 2 for exponential scale period
         # However, one can easily set clock-rates of integer k by defining a
         # clock-rate matrix M = k**np.arange(self.num_modules)
@@ -456,6 +467,7 @@ class ClockworkRecurrent(Recurrent):
 
     @wraps(Layer.fprop)
     def fprop(self, state_below):
+        state_below, mask = state_below
 
         z0 = T.alloc(np.cast[config.floatX](0),
                      state_below.shape[1],
@@ -477,35 +489,12 @@ class ClockworkRecurrent(Recurrent):
             state_now = state_before.copy()
             index = self.num_modules -\
                 T.nonzero(T.mod(index+1, self.M))[0].shape[0]
-            W = T.alloc(W[:, :index*self.module_dim],
-                        self.input_space.dim,
-                        index*self.module_dim)
-            z = T.dot(state_below, W)
-            start = np.cast[np.int64](0)
-            clockrate = T.arange(index)
-
-            def rec_step(c, z, start, U, state_before):
-                this_len = self.dim - (c * self.module_dim)
-                stop = start + this_len
-                u = T.alloc(U[start:stop, :],
-                            this_len,
-                            self.module_dim)
-                z = T.set_subtensor(z[:, c * self.module_dim:
-                                      (c + 1) * self.module_dim],
-                                    z[:, c * self.module_dim:
-                                      (c + 1) * self.module_dim] +
-                                    T.dot(state_before[:, c*self.module_dim:],
-                                          u))
-                return z, stop
-            ((z, s), updates) = scan(fn=rec_step,
-                                     sequences=[clockrate],
-                                     outputs_info=[z, start],
-                                     non_sequences=[U, state_before])
-            z = z[-1]
-            z += T.alloc(b[:index*self.module_dim], index*self.module_dim)
+            this_range = index * self.module_dim
+            z = T.dot(state_below, W[:, :this_range]) +\
+                T.dot(state_before, U[:, :this_range]) +\
+                b[:this_range]
             z = T.tanh(z)
-            state_now = T.set_subtensor(state_now[:, :index * self.module_dim],
-                                        z)
+            state_now = T.set_subtensor(state_now[:, :this_range], z)
 
             return state_now
 
@@ -516,6 +505,9 @@ class ClockworkRecurrent(Recurrent):
         self._scan_updates.update(updates)
 
         if self.indices is not None:
-            return [z[i] for i in self.indices]
+            if len(self.indices) > 1:
+                return [z[i] for i in self.indices]
+            else:
+                return z[self.indices[0]]
         else:
             return z
