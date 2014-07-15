@@ -16,11 +16,11 @@ Presets:
   container is empty after num_examples / batch_size calls
 """
 from __future__ import division
-import functools
-import inspect
+import warnings
+
 import numpy as np
 
-from pylearn2.sandbox.rnn.space import SequenceSpace
+from pylearn2.sandbox.rnn.space import SequenceDataSpace
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_izip, wraps
 from pylearn2.utils.data_specs import is_flat_specs
@@ -712,6 +712,11 @@ class FiniteDatasetIterator(object):
     -----
     See the documentation for :py:class:`SubsetIterator` for
     attribute documentation.
+
+    The dataset should provide a `get` method which accepts a tuple of source
+    identifiers and a list or slice of indexes and returns a tuple of batches
+    of examples, one for each source. The old interface using `get_data` is
+    deprecated and will become unsupported as of October 28, 2014.
     """
 
     def __init__(self, dataset, subset_iterator, data_specs=None,
@@ -741,10 +746,6 @@ class FiniteDatasetIterator(object):
             dataset_sub_spaces = dataset_space.components
         assert len(dataset_source) == len(dataset_sub_spaces)
 
-        all_data = self._dataset.get_data()
-        if not isinstance(all_data, tuple):
-            all_data = (all_data,)
-
         space, source = data_specs
         if not isinstance(source, tuple):
             source = (source,)
@@ -754,9 +755,22 @@ class FiniteDatasetIterator(object):
             sub_spaces = space.components
         assert len(source) == len(sub_spaces)
 
-        self._raw_data = tuple(all_data[dataset_source.index(s)]
-                               for s in source)
+        # If `dataset` is incompatible with the new interface, fall back to the
+        # old interface
+        if not hasattr(self._dataset, 'get'):
+            warnings.warn("dataset is using the old iterator interface which "
+                          "is deprecated and will become officially "
+                          "unsupported as of October 28, 2014. The dataset "
+                          "should implement a `get` method respecting the new "
+                          "interface.")
+            all_data = self._dataset.get_data()
+            if not isinstance(all_data, tuple):
+                all_data = (all_data,)
+            self._raw_data = tuple(all_data[dataset_source.index(s)]
+                                   for s in source)
+
         self._source = source
+        self._space = sub_spaces
 
         if convert is None:
             self._convert = [None for s in source]
@@ -764,9 +778,7 @@ class FiniteDatasetIterator(object):
             assert len(convert) == len(source)
             self._convert = convert
 
-        for i, (so, sp, dt) in enumerate(safe_izip(source,
-                                                   sub_spaces,
-                                                   self._raw_data)):
+        for i, (so, sp) in enumerate(safe_izip(source, sub_spaces)):
             idx = dataset_source.index(so)
             dspace = dataset_sub_spaces[idx]
 
@@ -786,13 +798,6 @@ class FiniteDatasetIterator(object):
                 if fn is None:
 
                     def fn(batch, dspace=dspace, sp=sp):
-                        # The batch of a SequenceSpace is a sequence of
-                        # arrays of the same size, which we convert into a
-                        # single ndarray here; we also need to reorder the
-                        # axes from [batch, time, data] to [time, batch, data]
-                        if isinstance(dspace, SequenceSpace):
-                            batch = np.array([_ for _ in batch])
-                            batch = np.transpose(batch, (1, 0, 2))
                         try:
                               return dspace.np_format_as(batch, sp)
                         except ValueError as e:
@@ -829,15 +834,32 @@ class FiniteDatasetIterator(object):
             When there are no more batches to return.
         """
         next_index = self._subset_iterator.next()
-        # TODO: handle fancy-index copies by allocating a buffer and
-        # using np.take()
 
-        rval = tuple(
-            fn(data[next_index]) if fn else data[next_index]
-            for data, fn in safe_izip(self._raw_data, self._convert))
+        # If the dataset is incompatible with the new interface, fall back to
+        # the old one
+        if hasattr(self._dataset, 'get'):
+            rval = self._next(next_index)
+        else:
+            rval = self._fallback_next(next_index)
+
         if not self._return_tuple and len(rval) == 1:
             rval, = rval
         return rval
+
+    def _next(self, next_index):
+        return tuple(
+            fn(batch) if fn else batch for batch, fn in
+            safe_izip(self._dataset.get(self._source, next_index),
+                      self._convert)
+        )
+
+    def _fallback_next(self, next_index):
+        # TODO: handle fancy-index copies by allocating a buffer and
+        # using np.take()
+        return tuple(
+            fn(data[next_index]) if fn else data[next_index]
+            for data, fn in safe_izip(self._raw_data, self._convert)
+        )
 
     @property
     @wraps(SubsetIterator.batch_size, assigned=(), updated=())

@@ -1,3 +1,3 @@
 """
-Utility functions needed for the RNN framework.
+Utilities for RNN framework
 """

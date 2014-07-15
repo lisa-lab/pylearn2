@@ -1,4 +1,4 @@
-xxxx!obj:pylearn2.train.Train {
+!obj:pylearn2.train.Train {
   dataset: !obj:pylearn2.sandbox.nlp.datasets.word2vec.Word2Vec {
     which_set: 'train',
   },
@@ -15,10 +15,11 @@ xxxx!obj:pylearn2.train.Train {
         dim: 300,
         irange: 0.01,
       },
-      !obj:pylearn2.sandbox.rnn.models.mlp.Recurrent {
+      !obj:pylearn2.sandbox.rnn.models.rnn.Recurrent {
         layer_name: 'recurrent_layer',
         dim: 500,
         irange: 0.01,
+        indices: [-1]
       },
       !obj:pylearn2.models.mlp.Linear {
         layer_name: 'linear_layer',
