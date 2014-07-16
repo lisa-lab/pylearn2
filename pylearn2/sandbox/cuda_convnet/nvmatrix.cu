@@ -59,7 +59,7 @@ pthread_mutex_t* NVMatrix::makeMutex() {
 }
 
 NVMatrix::NVMatrix(const CudaNdarray * view,
-		int numRows, int numCols, const char * msg)
+                int numRows, int numCols, const char * msg)
 {
     if (!CudaNdarray_is_c_contiguous(view))
     {
@@ -80,14 +80,14 @@ NVMatrix::NVMatrix(const CudaNdarray * view,
     }
     if (total != numRows * numCols)
     {
-	    fprintf(stderr, "NVMatrix asked to make a view of a CudaNdarray with %d elements",total);
-	    fprintf(stderr, " but told to arrange these in a %d x %d rectangle (of total size %d).\n",
-			    numRows, numCols, numRows * numCols);
-	    fprintf(stderr, "CudaNdarray dims: ");
-	    for (int i = 0; i < view->nd; i++)
-		    fprintf(stderr, "%d ", dims[i]);
-	    fprintf(stderr, "\n");
-	    assert(false);
+            fprintf(stderr, "NVMatrix asked to make a view of a CudaNdarray with %d elements",total);
+            fprintf(stderr, " but told to arrange these in a %d x %d rectangle (of total size %d).\n",
+                            numRows, numCols, numRows * numCols);
+            fprintf(stderr, "CudaNdarray dims: ");
+            for (int i = 0; i < view->nd; i++)
+                    fprintf(stderr, "%d ", dims[i]);
+            fprintf(stderr, "\n");
+            assert(false);
     }
 
     //Make the view
@@ -539,7 +539,7 @@ bool NVMatrix::resize(int numRows, int numCols) {
         if (_numElements != numRows * numCols) {
             assert(_ownsData); // assert moved here by Ian Goodfellow
             if (_numElements > 0) { // free old memory
-		        // This line was modified by Ian Goodfellow to use device_free so theano may track device memory usage accurately
+                        // This line was modified by Ian Goodfellow to use device_free so theano may track device memory usage accurately
                 int status = device_free(_devData);
                 if (status != 0) {
                     fprintf(stderr, "!!!! memory free error: %X\n", status);
