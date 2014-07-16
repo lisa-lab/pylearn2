@@ -24,6 +24,10 @@ from pylearn2.space import CompositeSpace, VectorSpace, IndexSpace, Conv2DSpace
 from pylearn2.utils import serial
 from pylearn2.utils import safe_zip
 from pylearn2.utils.iteration import FiniteDatasetIterator
+from pylearn2.sandbox.rnn.space import SequenceSpace
+from pylearn2.sandbox.rnn.utils.iteration import (
+    SequentialSubsetIterator, ShuffledSequentialSubsetIterator
+)
 
 def index_from_one_hot(one_hot):
     return numpy.where(one_hot == 1.0)[0][0]
@@ -66,10 +70,7 @@ class H5RnnSkipgram(H5Shuffle):
                  cache_delta=cache_delta)
 
         self._load_dicts()
-        features_space = IndexSpace(
-            dim=1,
-            max_labels=self.X_labels
-        )
+        features_space = SequenceSpace(IndexSpace(dim=1, max_labels=212))
         features_source = 'features'
 
         targets_space = [
@@ -128,7 +129,7 @@ class H5RnnSkipgram(H5Shuffle):
             else:
                 print "You can only ask for targets immediately after asking for those features"
                 return None
-
+               
         targetFNs = [
             lambda indexes: getTarget(0, indexes), lambda indexes: getTarget(1, indexes),
             lambda indexes: getTarget(2, indexes),lambda indexes: getTarget(3, indexes),
@@ -138,13 +139,76 @@ class H5RnnSkipgram(H5Shuffle):
         self.sourceFNs = {'target'+str(i): targetFNs[i] for i in range(len(targets_space))}
         print "sourceFNs", self.sourceFNs
         self.sourceFNs['features'] =  getFeatures
-        
+      
+    def _load_dicts(self):
+        word_dict_path = "/data/lisatmp3/pougetj/vocab.pkl"
+        char_dict_path = "/data/lisatmp3/pougetj/char_vocab.pkl"
+        with open(word_dict_path) as f:
+            word_labels = cPickle.load(f)
+        self._inv_words = {v:k for k, v in word_labels.items()}
+        with open(char_dict_path) as f:
+            self._char_labels = cPickle.load(f)
 
-        def _load_dicts(self):
-            word_dict_path = "/data/lisatmp3/pougetj/vocab.pkl"
-            char_dict_path = "/data/lisatmp3/pougetj/char_vocab.pkl"
-            with open(word_dict_path) as f:
-                word_labels = cPickle.load(f)
-            self._inv_words = {v:k for k, v in word_labels.items()}
-            with open(char_dict_path) as f:
-                self._char_labels = cPickle.load(f)
+    @functools.wraps(Dataset.iterator)
+    def iterator(self, mode=None, batch_size=None, num_batches=None,
+                 rng=None, data_specs=None, return_tuple=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        if data_specs is None:
+            data_specs = self._iter_data_specs
+
+        # TODO: Refactor
+        if mode is None or mode == 'shuffled_sequential':
+            subset_iterator = ShuffledSequentialSubsetIterator(
+                dataset_size=self.get_num_examples(),
+                batch_size=batch_size,
+                num_batches=num_batches,
+                rng=rng,
+                #sequence_lengths=self._sequence_lengths
+            )
+        elif mode == 'sequential':
+            subset_iterator = SequentialSubsetIterator(
+                dataset_size=self.get_num_examples(),
+                batch_size=batch_size,
+                num_batches=num_batches,
+                rng=None,
+                #sequence_lengths=self._sequence_lengths
+            )
+
+
+        # if mode is None:
+        #     if hasattr(self, '_iter_subset_class'):
+        #         # mode = self._iter_subset_class 
+        #     else:
+        #         raise ValueError('iteration mode not provided and no default '
+        #                          'mode set for %s' % str(self))
+        # else:
+        #     mode = resolve_iterator_class(mode)
+
+        if batch_size is None:
+            batch_size = getattr(self, '_iter_batch_size', None)
+        #if num_batches is None:
+        #    num_batches = getattr(self, '_iter_num_batches', None)
+        num_batches = self._iter_num_batches 
+        if rng is None:# and mode.stochastic:
+            rng = self.rng
+
+        if data_specs is None:
+            data_specs = self.data_specs
+        return FiniteDatasetIterator(
+            dataset=self,
+            subset_iterator=subset_iterator,
+            data_specs=data_specs,
+            return_tuple=return_tuple
+        )
+
+
+        # return FiniteDatasetIterator(self,
+        #                              mode(self.num_examples, batch_size,
+        #                                   num_batches, rng),
+        #                              data_specs=data_specs,
+        #                              return_tuple=return_tuple,
+        #                              convert=convert)

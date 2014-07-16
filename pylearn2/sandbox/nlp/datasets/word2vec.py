@@ -56,7 +56,11 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
                                          'embeddings.h5')) as f:
             node = f.get_node('/embeddings_%s' % which_set)
             y = node[:]
+        
+        with open(preprocess('../scripts/normalization.pkl')) as f:
+            (means, stds) = cPickle.load(f)
 
+        y = (y - means)/stds
         source = ('features', 'targets')
         space = CompositeSpace([SequenceSpace(IndexSpace(dim=1,
                                                          max_labels=101)),

@@ -79,7 +79,7 @@
     learning_rate: .01,
     learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {},
     monitoring_dataset: {
-     'valid': !obj:pylearn2.sandbox.nlp.datasets.skipgram.H5Skipgram {
+     'valid': !obj:pylearn2.sandbox.nlp.datasets.rnn_skipgram.H5RnnSkipgram {
         path: '/data/lisatmp3/pougetj/double_filtered_binarized_corpus_valid.h5',
         node: '/double_filtered_binarized_corpus_valid',
         which_set: 'valid',

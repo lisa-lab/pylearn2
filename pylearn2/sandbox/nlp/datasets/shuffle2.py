@@ -347,8 +347,9 @@ class H5Shuffle(Dataset):
         convert = []
         for sp, src in safe_zip(sub_spaces, sub_sources):
             convert.append(None)
-
+ 
         # TODO: Refactor
+        print "In shuffle init!"
         if mode is None:
             if hasattr(self, '_iter_subset_class'):
                 mode = self._iter_subset_class

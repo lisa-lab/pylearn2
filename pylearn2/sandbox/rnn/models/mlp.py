@@ -1,4 +1,6 @@
 import numpy as np
+import scipy
+
 from theano import config
 from theano import scan
 from theano import tensor
@@ -29,9 +31,10 @@ class Recurrent(mlp.Layer):
         self.rng = self.mlp.rng
         W_recurrent = self.rng.uniform(-self.irange, self.irange,
                                   (self.dim, self.dim))
+        W_recurrent,_,_ = scipy.linalg.svd(W_recurrent)
         W_in = self.rng.uniform(-self.irange, self.irange,
                            (space.dim, self.dim))
-        W_recurrent, W_in = sharedX(W_recurrent), sharedX(W_in)
+        W_recurrent, W_in = sharedX(0.9 * W_recurrent), sharedX(W_in)
         W_recurrent.name, W_in.name = [self.layer_name + '_' + param
                                        for param in ['W_recurrent', 'W_in']]
         b = sharedX(np.zeros((self.dim,)), name=self.layer_name + '_b')
