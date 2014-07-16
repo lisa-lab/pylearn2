@@ -93,12 +93,18 @@ class Momentum(LearningRule):
         Initial value for the momentum coefficient. It remains fixed during
         training unless used with a `training_algorithms.sgd.MomentumAdjustor`
         extension.
+    nesterov_momentum: bool
+        Use the accelerated momentum technique described in:
+        "On the importance of initialization and momentum in deep learning",
+        Ilya Sutskever.
+
     """
 
-    def __init__(self, init_momentum):
+    def __init__(self, init_momentum, nesterov_momentum=False):
         assert init_momentum >= 0.
         assert init_momentum < 1.
         self.momentum = sharedX(init_momentum, 'momentum')
+        self.nesterov_momentum = nesterov_momentum
 
     def add_channels_to_monitor(self, monitor, monitoring_dataset):
         """Activates monitoring of the momentum."""
@@ -117,16 +123,21 @@ class Momentum(LearningRule):
         updates = OrderedDict()
 
         for (param, grad) in grads.iteritems():
-            inc = sharedX(param.get_value() * 0.)
-            assert param.dtype == inc.dtype
+            vel = sharedX(param.get_value() * 0.)
+            assert param.dtype == vel.dtype
             assert grad.dtype == param.dtype
             if param.name is not None:
-                inc.name = 'inc_' + param.name
-            updated_inc = self.momentum * inc -\
-                learning_rate * lr_scalers.get(param, 1.) * grad
-            assert updated_inc.dtype == inc.dtype
-            updates[inc] = updated_inc
-            updates[param] = param + updated_inc
+                vel.name = 'vel_'+param.name
+
+            scaled_lr = learning_rate * lr_scalers.get(param, 1.)
+            updates[vel] = self.momentum * vel - scaled_lr * grad
+
+            inc = updates[vel]
+            if self.nesterov_momentum:
+                inc = self.momentum * inc - scaled_lr * grad
+
+            assert inc.dtype == vel.dtype
+            updates[param] = param + inc
 
         return updates
 
