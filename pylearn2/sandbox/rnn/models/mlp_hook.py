@@ -178,7 +178,6 @@ class RNNWrapper(MetaLibVersion):
                 return cost(self, Y, Y_hat)
         return outer
 
-
     @classmethod
     def set_input_space_wrapper(cls, name, set_input_space):
         """
