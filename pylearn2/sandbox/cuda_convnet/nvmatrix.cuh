@@ -38,7 +38,7 @@
 
 #include <pthread.h>
 #include <map>
-#include <cublas.h>
+#include <cublas_v2.h>
 #include <cuda.h>
 #include <curand.h>
 #include <cutil_inline.h>
@@ -89,8 +89,7 @@ private:
     static std::map<int,curandState*> rndDevStates;
     static pthread_mutex_t *_rndMutex;
 
-    static void checkCublasError(const char* msg) {
-        cublasStatus status = cublasGetError();
+    static void checkCublasError(cublasStatus_t status, const char* msg) {
         if (status != CUBLAS_STATUS_SUCCESS) {
             fprintf(stderr, msg, NULL);
             exit(EXIT_FAILURE);
@@ -104,6 +103,14 @@ private:
          * cublas matrix is in column-major order.
          */
         return _isTrans ? 'n' : 't';
+    }
+    cublasOperation_t getTransOp() const {
+        /*
+         * not a typo! return opposite character because a
+         * non-transposed krizhevsky matrix is in row-major order while a non-transposed
+         * cublas matrix is in column-major order.
+         */
+        return _isTrans ? CUBLAS_OP_N : CUBLAS_OP_T;
     }
 
     void _init(int numRows, int numCols);
