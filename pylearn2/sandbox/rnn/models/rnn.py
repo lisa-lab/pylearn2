@@ -4,7 +4,7 @@ Recurrent Neural Network Layer
 
 from functools import wraps
 import numpy as np
-import theano.tensor as T
+from theano import tensor
 from pylearn2.models.mlp import Layer
 from pylearn2.space import CompositeSpace, VectorSpace
 from pylearn2.sandbox.rnn.space import SequenceSpace
@@ -15,8 +15,11 @@ from theano.compat.python2x import OrderedDict
 
 class Recurrent(Layer):
     """
-    A recurrent neural network layer using the hyperbolic
-    tangent activation function which only returns its last state
+    A recurrent neural network layer using the hyperbolic tangent
+    activation function, passing on all hidden states or a selection
+    of them to the next layer.
+
+    The hidden state is initialized to zeros.
 
     Parameters
     ----------
@@ -26,101 +29,103 @@ class Recurrent(Layer):
         The name of the layer. All layers in an MLP must have a unique name.
     irange : float
         Initializes each weight randomly in U(-irange, irange)
-    output : slice, list of integers or integer, optional
+    irange : float
+        The input-to-hidden weight matrix is initialized with weights in
+        the uniform interval (-irange, irange). The hidden-to-hidden
+        matrix weights are sampled in the same manner, unless the argument
+        svd is set to True (see below).
+    indices : slice, list of integers or integer, optional
         If specified this layer will return only the given hidden
         states. If an integer is given, it will not return a
         SequenceSpace. Otherwise, it will return a SequenceSpace of
         fixed length. Note that a SequenceSpace of fixed length
         can be flattened by using the FlattenerLayer.
-    irange : float
-    init_bias : float
-    svd : bool
+        Note: For now only [-1] is supported.
+    init_bias : float, optional
+        Set an initial bias to be added at each time step. Defaults to 0.
+    svd : bool, optional
+        Use singular value decomposition to factorize the hidden-to-hidden
+        transition matrix with weights in U(-irange, irange) into matrices
+        U*s*V, where U is orthogonal. This orthogonal matrix is used to
+        initialize the weight matrix. Defaults to True.
+    nonlinearity : theano function, optional
+        Defaults to tensor.tanh, the non-linearity to be applied to the
+        hidden state after each update
     """
-    def __init__(self,
-                 dim,
-                 layer_name,
-                 irange,
-                 indices=None,
-                 init_bias=0.,
-                 svd=True):
+    def __init__(self, dim, layer_name, irange, indices=None,
+                 init_bias=0., svd=True, nonlinearity=tensor.tanh):
         self.rnn_friendly = True
         self._scan_updates = OrderedDict()
         self.__dict__.update(locals())
         del self.self
         super(Recurrent, self).__init__()
-        if indices is None:
-            self.indices = None
 
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
-
-        assert isinstance(space, SequenceSpace)
-        assert isinstance(space.space, VectorSpace)
-
+        if (not isinstance(space, SequenceSpace) or
+                not isinstance(space.space, VectorSpace)):
+            raise ValueError("Recurrent layer needs a SequenceSpace("
+                             "VectorSpace) as input but received  %s instead"
+                             % (space))
         self.input_space = space
 
         if self.indices is not None:
             if len(self.indices) > 1:
-                self.output_space = CompositeSpace([VectorSpace(dim=self.dim)
-                                                    for _ in
-                                                    range(len(self.indices))])
+                raise ValueError("Only indices = [-1] is supported right now")
+                self.output_space = CompositeSpace(
+                    [VectorSpace(dim=self.dim) for _
+                     in range(len(self.indices))]
+                )
             else:
+                assert self.indices == [-1], "Only indices = [-1] works now"
                 self.output_space = VectorSpace(dim=self.dim)
         else:
             self.output_space = SequenceSpace(VectorSpace(dim=self.dim))
 
+        # Initialize the parameters
         rng = self.mlp.rng
-        assert self.irange is not None
-        U = rng.uniform(-self.irange, self.irange,
-                        (self.dim, self.dim))
+        if self.irange is None:
+            raise ValueError("Recurrent layer requires an irange value in "
+                             "order to initialize its weight matrices")
+
+        # U is the hidden-to-hidden transition matrix
+        U = rng.uniform(-self.irange, self.irange, (self.dim, self.dim))
         if self.svd:
             U = self.mlp.rng.randn(self.dim, self.dim)
             U, s, V = np.linalg.svd(U, full_matrices=True, compute_uv=True)
 
+        # W is the input-to-hidden matrix
         W = rng.uniform(-self.irange, self.irange,
                         (self.input_space.dim, self.dim))
 
-        self.W = sharedX(W, name=(self.layer_name + '_W'))
-        self.U = sharedX(U, name=(self.layer_name + '_U'))
-        self.b = sharedX(np.zeros((self.dim,)) + self.init_bias,
-                         name=self.layer_name + '_b')
-
-    @wraps(Layer.get_params)
-    def get_params(self):
-
-        assert self.W.name is not None
-        rval = self.W
-        rval = [rval]
-        assert self.U.name is not None
-        rval.append(self.U)
-        rval.append(self.b)
-
-        return rval
+        self._params = [sharedX(W, name=(self.layer_name + '_W')),
+                        sharedX(U, name=(self.layer_name + '_U')),
+                        sharedX(np.zeros(self.dim) + self.init_bias,
+                                name=self.layer_name + '_b')]
 
     @wraps(Layer.get_layer_monitoring_channels)
-    def get_layer_monitoring_channels(self,
-                                      state_below=None,
-                                      state=None,
+    def get_layer_monitoring_channels(self, state_below=None, state=None,
                                       targets=None):
-        sq_W = T.sqr(self.W)
-        sq_U = T.sqr(self.U)
-        row_norms = T.sqrt(sq_W.sum(axis=1))
-        col_norms = T.sqrt(sq_W.sum(axis=0))
-        u_row_norms = T.sqrt(sq_U.sum(axis=1))
-        u_col_norms = T.sqrt(sq_U.sum(axis=0))
+        W, U, b = self._params
+        sq_W = tensor.sqr(W)
+        sq_U = tensor.sqr(U)
+        row_norms = tensor.sqrt(sq_W.sum(axis=1))
+        col_norms = tensor.sqrt(sq_W.sum(axis=0))
+        u_row_norms = tensor.sqrt(sq_U.sum(axis=1))
+        u_col_norms = tensor.sqrt(sq_U.sum(axis=0))
 
-        rval = OrderedDict([('row_norms_min',  row_norms.min()),
-                            ('row_norms_mean', row_norms.mean()),
-                            ('row_norms_max',  row_norms.max()),
-                            ('col_norms_min',  col_norms.min()),
-                            ('col_norms_mean', col_norms.mean()),
-                            ('col_norms_max',  col_norms.max()),
-                            ('u_row_norms_min', u_row_norms.min()),
-                            ('u_row_norms_mean', u_row_norms.mean()),
-                            ('u_row_norms_max', u_row_norms.max()),
-                            ('u_col_norms_min', u_col_norms.min()),
-                            ('u_col_norms_mean', u_col_norms.mean()),
-                            ('u_col_norms_max', u_col_norms.max())])
+        rval = OrderedDict([('W_row_norms_min',  row_norms.min()),
+                            ('W_row_norms_mean', row_norms.mean()),
+                            ('W_row_norms_max',  row_norms.max()),
+                            ('W_col_norms_min',  col_norms.min()),
+                            ('W_col_norms_mean', col_norms.mean()),
+                            ('W_col_norms_max',  col_norms.max()),
+                            ('U_row_norms_min', u_row_norms.min()),
+                            ('U_row_norms_mean', u_row_norms.mean()),
+                            ('U_row_norms_max', u_row_norms.max()),
+                            ('U_col_norms_min', u_col_norms.min()),
+                            ('U_col_norms_mean', u_col_norms.mean()),
+                            ('U_col_norms_max', u_col_norms.max())])
 
         if (state is not None) or (state_below is not None):
             if state is None:
@@ -151,9 +156,12 @@ class Recurrent(Layer):
 
     @wraps(Layer._modify_updates)
     def _modify_updates(self, updates):
-        # Is this needed?
+        # When random variables are used in the scan function the updates
+        # dictionary returned by scan might not be empty, and needs to be
+        # added to the updates dictionary before compiling the training
+        # function
         if any(key in updates for key in self._scan_updates):
-            # Is this possible? What to do in this case?
+            # Don't think this is possible, but let's check anyway
             raise ValueError("A single shared variable is being updated by "
                              "multiple scan functions")
         updates.update(self._scan_updates)
@@ -162,29 +170,31 @@ class Recurrent(Layer):
     def fprop(self, state_below):
         state_below, mask = state_below
 
-        z0 = T.alloc(np.cast[config.floatX](0),
-                     state_below.shape[1],
-                     self.dim)
-
+        # z0 is the initial hidden state which is (batch size, output dim)
+        z0 = tensor.alloc(np.cast[config.floatX](0), state_below.shape[1],
+                          self.dim)
+        # TODO Add unit test for this
         if state_below.shape[1] == 1:
-            z0 = T.unbroadcast(z0, 0)
+            z0 = tensor.unbroadcast(z0, 0)
 
-        # Later we will add_noise function
-        # Meanwhile leave this part in this way
-        W = self.W
-        U = self.U
-        b = self.b
+        # Later we will add a noise function
+        W, U, b = self._params
 
-        def fprop_step(state_below, state_before, W, U, b):
+        # It is faster to do the input-to-hidden matrix multiplications
+        # outside of scan
+        state_below = tensor.dot(state_below, W)
 
-            z = T.tanh(T.dot(state_below, W) + T.dot(state_before, U) + b)
+        def fprop_step(state_below, mask, state_before, W, U, b):
+            z = self.nonlinearity(state_below +
+                                  tensor.dot(state_before, U) + b)
 
+            # Only update the state for non-masked data, otherwise
+            # just carry on the previous state until the end
+            z = mask[:, None] * z + (1 - mask[:, None]) * state_before
             return z
 
-        (z, updates) = scan(fn=fprop_step,
-                            sequences=[state_below],
-                            outputs_info=[z0],
-                            non_sequences=[W, U, b])
+        z, updates = scan(fn=fprop_step, sequences=[state_below, mask],
+                          outputs_info=[z0], non_sequences=[W, U, b])
         self._scan_updates.update(updates)
 
         if self.indices is not None:
@@ -193,7 +203,7 @@ class Recurrent(Layer):
             else:
                 return z[self.indices[0]]
         else:
-            return z
+            return (z, mask)
 
 
 class LSTM(Recurrent):
@@ -287,16 +297,16 @@ class LSTM(Recurrent):
     def fprop(self, state_below):
         state_below, mask = state_below
 
-        z0 = T.alloc(np.cast[config.floatX](0),
-                     state_below.shape[1],
-                     self.dim)
-        c0 = T.alloc(np.cast[config.floatX](0),
-                     state_below.shape[1],
-                     self.dim)
+        z0 = tensor.alloc(np.cast[config.floatX](0),
+                          state_below.shape[1],
+                          self.dim)
+        c0 = tensor.alloc(np.cast[config.floatX](0),
+                          state_below.shape[1],
+                          self.dim)
 
         if state_below.shape[1] == 1:
-            z0 = T.unbroadcast(z0, 0)
-            c0 = T.unbroadcast(c0, 0)
+            z0 = tensor.unbroadcast(z0, 0)
+            c0 = tensor.unbroadcast(c0, 0)
 
         # Later we will add_noise function
         # Meanwhile leave this part in this way
@@ -306,23 +316,29 @@ class LSTM(Recurrent):
 
         def fprop_step(state_below, state_before, cell_before, W, U, b):
 
-            i_on = T.nnet.sigmoid(T.dot(state_below, self.I_x) +
-                                  T.dot(state_before, self.I_h) +
-                                  T.dot(cell_before, self.I_c) + self.I_b)
-            f_on = T.nnet.sigmoid(T.dot(state_below, self.F_x) +
-                                  T.dot(state_before, self.F_h) +
-                                  T.dot(cell_before, self.F_c) + self.F_b)
-            i_on = T.addbroadcast(i_on, 1)
-            f_on = T.addbroadcast(f_on, 1)
+            i_on = tensor.nnet.sigmoid(
+                tensor.dot(state_below, self.I_x) +
+                tensor.dot(state_before, self.I_h) +
+                tensor.dot(cell_before, self.I_c) + self.I_b
+            )
+            f_on = tensor.nnet.sigmoid(
+                tensor.dot(state_below, self.F_x) +
+                tensor.dot(state_before, self.F_h) +
+                tensor.dot(cell_before, self.F_c) + self.F_b
+            )
+            i_on = tensor.addbroadcast(i_on, 1)
+            f_on = tensor.addbroadcast(f_on, 1)
 
-            c_t = T.dot(state_below, W) + T.dot(state_before, U) + b
-            c_t = f_on * cell_before + i_on * T.tanh(c_t)
+            c_t = tensor.dot(state_below, W) + tensor.dot(state_before, U) + b
+            c_t = f_on * cell_before + i_on * tensor.tanh(c_t)
 
-            o_on = T.nnet.sigmoid(T.dot(state_below, self.O_x) +
-                                  T.dot(state_before, self.O_h) +
-                                  T.dot(c_t, self.O_c) + self.O_b)
-            o_on = T.addbroadcast(o_on, 1)
-            z = o_on * T.tanh(c_t)
+            o_on = tensor.nnet.sigmoid(
+                tensor.dot(state_below, self.O_x) +
+                tensor.dot(state_before, self.O_h) +
+                tensor.dot(c_t, self.O_c) + self.O_b
+            )
+            o_on = tensor.addbroadcast(o_on, 1)
+            z = o_on * tensor.tanh(c_t)
 
             return z, c_t
 
@@ -468,12 +484,12 @@ class ClockworkRecurrent(Recurrent):
     def fprop(self, state_below):
         state_below, mask = state_below
 
-        z0 = T.alloc(np.cast[config.floatX](0),
-                     state_below.shape[1],
-                     self.dim)
+        z0 = tensor.alloc(np.cast[config.floatX](0),
+                          state_below.shape[1],
+                          self.dim)
 
         if state_below.shape[1] == 1:
-            z0 = T.unbroadcast(z0, 0)
+            z0 = tensor.unbroadcast(z0, 0)
 
         # Later we will add_noise function
         # Meanwhile leave this part in this way
@@ -481,19 +497,19 @@ class ClockworkRecurrent(Recurrent):
         U = self.U
         b = self.b
 
-        idx = T.arange(state_below.shape[0])
+        idx = tensor.arange(state_below.shape[0])
 
         def fprop_step(state_below, index, state_before, W, U, b):
 
             state_now = state_before.copy()
             index = self.num_modules -\
-                T.nonzero(T.mod(index+1, self.M))[0].shape[0]
+                tensor.nonzero(tensor.mod(index+1, self.M))[0].shape[0]
             this_range = index * self.module_dim
-            z = T.dot(state_below, W[:, :this_range]) +\
-                T.dot(state_before, U[:, :this_range]) +\
+            z = tensor.dot(state_below, W[:, :this_range]) +\
+                tensor.dot(state_before, U[:, :this_range]) +\
                 b[:this_range]
-            z = T.tanh(z)
-            state_now = T.set_subtensor(state_now[:, :this_range], z)
+            z = tensor.tanh(z)
+            state_now = tensor.set_subtensor(state_now[:, :this_range], z)
 
             return state_now
 
