@@ -1,0 +1,104 @@
+
+!obj:pylearn2.train.Train {
+  dataset: !obj:pylearn2.sandbox.nlp.datasets.rnn_skipgram.H5RnnSkipgram {
+    path: '/data/lisatmp3/pougetj/double_filtered_binarized_corpus_train.h5',
+    node: '/double_filtered_binarized_corpus_train',
+    which_set: 'train',
+    frame_length: &n 7,
+    stop: 100000000,
+    _iter_num_batches: 1000,
+    X_labels: &l 30000, 
+    load_to_memory: True,
+    cache_size: 1000000,
+    cache_delta: 100000
+  },
+  model: !obj:pylearn2.models.mlp.MLP {
+    input_space: !obj:pylearn2.sandbox.rnn.space.SequenceSpace {
+      space: !obj:pylearn2.space.IndexSpace {
+        dim: 1,
+        max_labels: 212, # Number of different characters
+      },
+    },
+    target_source: ['target0', 'target1', 'target2', 'target3', 'target4', 'target5' ],
+    layers: [
+      !obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
+        layer_name: 'projection',
+        dim: 256,
+        irange: 0.01
+      },
+     !obj:pylearn2.sandbox.rnn.models.mlp.Gated_Recurrent {
+        layer_name: 'recurrent_layer',
+        dim: 512,
+        irange: 0.01,
+      },
+     !obj:pylearn2.models.mlp.CompositeLayer {
+        layer_name: 'composite_layer',
+        layers: 
+        [!obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
+            n_classes: *l,
+            layer_name: 'h0',
+            irange: 0.01,
+           # binary_target_dim: 1
+          },
+          !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
+           n_classes: *l,
+            layer_name: 'h1',
+            irange: 0.01,
+           # binary_target_dim: 1
+          },
+          !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
+            n_classes: *l,
+            layer_name: 'h2',
+            irange: 0.01,
+           # binary_target_dim: 1
+          },
+          !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
+            n_classes: *l,
+            layer_name: 'h3',
+            irange: 0.01,
+           # binary_target_dim: 1
+          },
+          !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
+            n_classes: *l,
+            layer_name: 'h4',
+            irange: 0.01,
+           # binary_target_dim: 1
+          },
+          !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
+            n_classes: *l,
+            layer_name: 'h5',
+            irange: 0.01,
+           # binary_target_dim: 1
+          }
+        ]
+      }
+    ],
+  },
+  algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+    batch_size: 256,
+    learning_rate: .01,
+    learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {},
+    monitoring_dataset: {
+     'valid': !obj:pylearn2.sandbox.nlp.datasets.rnn_skipgram.H5RnnSkipgram {
+        path: '/data/lisatmp3/pougetj/double_filtered_binarized_corpus_valid.h5',
+        node: '/double_filtered_binarized_corpus_valid',
+        which_set: 'valid',
+        frame_length: *n,
+        stop: 100000,
+        _iter_num_batches: 100,
+        X_labels: *l,
+        load_to_memory: True
+      },
+    },
+  },
+  extensions: [
+       !obj:pylearn2.train_extensions.WordRelationship {
+         vocab: "/data/lisatmp3/pougetj/vocab.pkl",
+         questions: "/data/lisatmp3/pougetj/questions-words.txt",
+         vocab_size: *l,
+         UNK: 1,
+         n_batches: 4, 
+       }
+  ],
+  save_freq: 1,
+}

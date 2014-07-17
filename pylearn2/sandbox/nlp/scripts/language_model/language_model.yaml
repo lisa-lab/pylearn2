@@ -7,9 +7,10 @@
 # perplexity of 194.16 on the validation set (nll: 5.09).
 
 !obj:pylearn2.train.Train {
-    dataset: &train !obj:pylearn2.sandbox.nlp.datasets.penntree.PennTreebank {
+    dataset: &train !obj:pylearn2.sandbox.nlp.datasets.penntree.PennTreebank_NGrams {
         which_set: 'train',
-        context_len: &context_len 6
+        context_len: &context_len 6,
+        data_mode: 'words'
     },
     model: !obj:pylearn2.models.mlp.MLP {
         layers: [
@@ -35,11 +36,13 @@
     },
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
         batch_size: 256,
-        learning_rate: .1,
+        learning_rate: .000001,
+	learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {},
         monitoring_dataset: {
-            'valid' : !obj:pylearn2.sandbox.nlp.datasets.penntree.PennTreebank {
+            'valid' : !obj:pylearn2.sandbox.nlp.datasets.penntree.PennTreebank_NGrams {
                 which_set: 'valid',
-                context_len: *context_len
+                context_len: *context_len,
+                data_mode: 'words'
             }
         },
         termination_criterion: !obj:pylearn2.termination_criteria.MonitorBased {
