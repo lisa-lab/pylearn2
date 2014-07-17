@@ -517,7 +517,7 @@ class DefaultDataSpecsMixin(object):
         """
         if self.supervised:
             space = CompositeSpace([model.get_input_space(),
-                                    model.get_output_space()])
+                                    model.get_target_space()])
             sources = (model.get_input_source(), model.get_target_source())
             return (space, sources)
         else:

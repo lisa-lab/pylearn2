@@ -17,8 +17,8 @@ The copyright and licensing notice for this code is reproduced below:
  * Copyright (c) 2011, Alex Krizhevsky (akrizhevsky@gmail.com)
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
  * - Redistributions of source code must retain the above copyright notice,
  *   this list of conditions and the following disclaimer.
@@ -31,10 +31,11 @@ The copyright and licensing notice for this code is reproduced below:
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
@@ -42,14 +43,19 @@ The copyright and licensing notice for this code is reproduced below:
 """
 
 import warnings
+
+import theano
+from theano.compat import get_unbound_function
+from theano import config
 from theano.sandbox.cuda import GpuOp
+
 from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
 from pylearn2.sandbox.cuda_convnet.convnet_compile import convnet_available
 from pylearn2.sandbox.cuda_convnet.convnet_compile import cuda_convnet_loc
 from pylearn2.utils import py_integer_types
 
 import pylearn2.sandbox.cuda_convnet.pthreads
-from theano import config
+
 
 class BaseActs(GpuOp):
     """
@@ -60,7 +66,8 @@ class BaseActs(GpuOp):
         if not isinstance(pad, py_integer_types):
             raise TypeError("pad must be an int")
         if not (pad >= 0):
-            raise ValueError("bad value of pad (must be non-negative): " + str(pad))
+            raise ValueError("bad value of pad (must be non-negative): " +
+                             str(pad))
 
         self.partial_sum = partial_sum
         self.pad = pad
@@ -70,7 +77,10 @@ class BaseActs(GpuOp):
         self.dense_connectivity = True
 
     def c_header_dirs(self):
-        return [this_dir, config.pthreads.inc_dir] if config.pthreads.inc_dir else [this_dir]
+        if config.pthreads.inc_dir:
+            return [this_dir, config.pthreads.inc_dir]
+        else:
+            return [this_dir]
 
     def c_headers(self):
         return ['nvmatrix.cuh', 'cudaconv2.cuh']
@@ -81,10 +91,16 @@ class BaseActs(GpuOp):
         return ()
 
     def c_lib_dirs(self):
-        return [cuda_convnet_loc, config.pthreads.lib_dir] if config.pthreads.lib_dir else [cuda_convnet_loc]
+        if config.pthreads.lib_dir:
+            return [cuda_convnet_loc, config.pthreads.lib_dir]
+        else:
+            return [cuda_convnet_loc]
 
     def c_libraries(self):
-        return ['cuda_convnet', config.pthreads.lib] if config.pthreads.lib else ['cuda_convnet']
+        if config.pthreads.lib:
+            return ['cuda_convnet', config.pthreads.lib]
+        else:
+            return ['cuda_convnet']
 
     def _argument_contiguity_check(self, arg_name):
         return """
@@ -137,6 +153,12 @@ class BaseActs(GpuOp):
 
         return super(BaseActs, self).make_thunk(node, storage_map,
                                                 compute_map, no_recycling)
+
+# This is needed as otherwise DebugMode will consider that
+# BaseActs.make_thunk do something else then the default code, and
+# would duplicate verification.
+theano.compile.debugmode.default_make_thunk.append(
+    get_unbound_function(BaseActs.make_thunk))
 
 
 class UnimplementedError(Exception):

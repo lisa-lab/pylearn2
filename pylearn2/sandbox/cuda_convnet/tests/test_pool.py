@@ -35,8 +35,10 @@ def my_rand(*shape):
 
 def test_pool():
     try:
-        mode_with_gpu_check_is_finite_prev = mode_with_gpu.check_isfinite
-        mode_without_gpu_check_is_finite_prev = mode_without_gpu.check_isfinite
+        if hasattr(mode_with_gpu, 'check_isfinite'):
+            mode_with_gpu_check_is_finite_prev = mode_with_gpu.check_isfinite
+        if hasattr(mode_without_gpu, 'check_isfinite'):
+            mode_without_gpu_check_is_finite_prev = mode_without_gpu.check_isfinite
         mode_with_gpu.check_isfinite = False
         mode_without_gpu.check_isfinite = False
         #(batch, channel, x, y)
@@ -127,5 +129,7 @@ def test_pool():
                         theano.tests.unittest_tools.verify_grad(op,
                                                                 [a.get_value()])
     finally:
-        mode_with_gpu.check_isfinite = mode_with_gpu_check_is_finite_prev
-        mode_without_gpu.check_isfinite = mode_without_gpu_check_is_finite_prev
+        if 'mode_with_gpu_check_is_finite_prev' in locals():
+            mode_with_gpu.check_isfinite = mode_with_gpu_check_is_finite_prev
+        if 'mode_without_gpu_check_is_finite_prev' in locals():
+            mode_without_gpu.check_isfinite = mode_without_gpu_check_is_finite_prev
