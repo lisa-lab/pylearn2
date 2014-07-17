@@ -173,9 +173,9 @@ class Recurrent(Layer):
         # z0 is the initial hidden state which is (batch size, output dim)
         z0 = tensor.alloc(np.cast[config.floatX](0), state_below.shape[1],
                           self.dim)
-        # TODO Add unit test for this
-        if state_below.shape[1] == 1:
-            z0 = tensor.unbroadcast(z0, 0)
+        if self.dim == 1:
+            # This should fix the bug described in Theano issue #1772
+            z0 = tensor.unbroadcast(z0, 1)
 
         # Later we will add a noise function
         W, U, b = self._params
