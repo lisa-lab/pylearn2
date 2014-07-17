@@ -171,8 +171,8 @@ class RNNWrapper(MetaLibVersion):
                 reshaped_Y_hat = Y_hat.reshape(input_shape)
                 # Here we need to take the indices of only the unmasked data
                 if self._requires_unmask:
-                    return cost(self, reshaped_Y[Y_mask.flatten()],
-                                reshaped_Y_hat[Y_hat_mask.flatten()])
+                    return cost(self, reshaped_Y[Y_mask.flatten().nonzero()],
+                                reshaped_Y_hat[Y_mask.flatten().nonzero()])
                 return cost(self, reshaped_Y, reshaped_Y_hat)
             else:  # Not RNN-friendly, but not requiring reshape
                 return cost(self, Y, Y_hat)
