@@ -57,7 +57,7 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
             node = f.get_node('/embeddings_%s' % which_set)
             y = node[:]
         
-        with open(preprocess('../scripts/normalization.pkl')) as f:
+        with open(preprocess('/data/lisatmp3/devincol/normalization.pkl')) as f:
             (means, stds) = cPickle.load(f)
 
         y = (y - means)/stds
