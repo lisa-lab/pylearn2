@@ -5,7 +5,9 @@ import unittest
 
 import numpy as np
 from theano import function
+from theano import tensor
 
+from pylearn2.costs.mlp import Default
 from pylearn2.models.mlp import MLP, Linear
 from pylearn2.sandbox.rnn.models.rnn import Recurrent
 from pylearn2.sandbox.rnn.space import SequenceSpace
@@ -75,14 +77,38 @@ class TestRNNs(unittest.TestCase):
                      rnn.cost((y_data, y_mask), (y_data_hat, y_mask_hat)),
                      allow_input_downcast=True)
         # The cost for two exact sequences should be zero
-        np.testing.assert_allclose(f(X_data_vals, X_mask_vals,
-                                     y_data_vals, y_mask_vals), 0)
+        assert f(X_data_vals, X_mask_vals, y_data_vals, y_mask_vals) == 0
         # If the input is different, the cost should be non-zero
         assert f(X_data_vals + 1, X_mask_vals, y_data_vals, y_mask_vals) != 0
-        # If the target sequence is longer, the cost should be non-zero
-        y_mask_vals.T[0, 1] = 1
-        assert f(X_data_vals, X_mask_vals, y_data_vals, y_mask_vals) != 0
+        # And same for the target data; using squared L2 norm, so should be 1
+        assert f(X_data_vals, X_mask_vals, y_data_vals + 1, y_mask_vals) == 1
+        # But if the masked data changes, the cost should remain the same
+        X_data_vals_plus = X_data_vals + (1 - X_mask_vals[:, :, None])
+        assert f(X_data_vals_plus, X_mask_vals, y_data_vals, y_mask_vals) == 0
+        y_data_vals_plus = y_data_vals + (1 - y_mask_vals[:, :, None])
+        assert f(X_data_vals, X_mask_vals, y_data_vals_plus, y_mask_vals) == 0
 
+    def test_gradient(self):
+        """
+        Testing to see whether the gradient can be calculated.
+        """
+        rnn = MLP(input_space=SequenceSpace(VectorSpace(dim=1)),
+                  layers=[Recurrent(dim=1, layer_name='recurrent',
+                                    irange=0, nonlinearity=lambda x: x),
+                          Linear(dim=1, layer_name='linear', irange=0)])
+        W, U, b = rnn.layers[0].get_params()
+        W.set_value([[1]])
+        U.set_value([[2]])
+
+        W, b = rnn.layers[1].get_params()
+        W.set_value([[1]])
+
+        X_data, X_mask = rnn.get_input_space().make_theano_batch()
+        y_data, y_mask = rnn.get_output_space().make_theano_batch()
+
+        default_cost = Default()
+        cost = default_cost.expr(rnn, ((X_data, X_mask), (y_data, y_mask)))
+        tensor.grad(cost, rnn.get_params(), disconnected_inputs='ignore')
 
 if __name__ == '__main__':
     unittest.main()

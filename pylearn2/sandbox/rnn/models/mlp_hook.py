@@ -33,9 +33,12 @@ BLACKLIST = [
 
 class RNNWrapper(MetaLibVersion):
     """
-    This metaclass wraps the MLP class by intercepting the class
-    creation. Methods can be wrapped by defining a
-    `_wrapper` method.
+    This metaclass wraps the Layer class and all its children
+    by intercepting the class creation. Methods can be wrapped by
+    defining a `_wrapper` method.
+
+    Note that the MLP class isn't wrapped in general, it suffices to
+    wrap the component layers.
 
     Parameters
     ----------
@@ -193,7 +196,8 @@ class RNNWrapper(MetaLibVersion):
         """
         @functools.wraps(set_input_space)
         def outer(self, input_space):
-            if not self.rnn_friendly:
+            # The set_input_space method could be called for nested MLPs
+            if not self.rnn_friendly and name != 'MLP':
                 def find_sequence_space(input_space):
                     """
                     Recursive helper function that searches the (possibly
