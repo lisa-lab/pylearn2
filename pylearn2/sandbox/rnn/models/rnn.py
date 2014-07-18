@@ -318,9 +318,7 @@ class LSTM(Recurrent):
         state_below_forget = tensor.dot(state_below, self.F_x) + self.F_b
         state_below_output = tensor.dot(state_below, self.O_x) + self.O_b
 
-
         def fprop_step(state_below, state_before, cell_before, U):
-
             i_on = tensor.nnet.sigmoid(
                 state_below_input +
                 tensor.dot(state_before, self.I_h) +
