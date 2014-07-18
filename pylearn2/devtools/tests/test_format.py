@@ -65,14 +65,12 @@ whitelist_pep8 = [
     "sandbox/cuda_convnet/tests/test_weight_acts_strided.py",
     "sandbox/cuda_convnet/tests/test_image_acts_strided.py",
     "sandbox/cuda_convnet/tests/test_img_acts.py",
-    "sandbox/cuda_convnet/tests/test_weight_acts.py",
     "sandbox/cuda_convnet/tests/test_stochastic_pool.py",
     "sandbox/cuda_convnet/specialized_bench.py",
     "sandbox/cuda_convnet/response_norm.py",
     "sandbox/cuda_convnet/__init__.py",
     "sandbox/cuda_convnet/img_acts.py",
     "sandbox/cuda_convnet/convnet_compile.py",
-    "sandbox/cuda_convnet/base_acts.py",
     "sandbox/cuda_convnet/pthreads.py",
     "sandbox/cuda_convnet/pool.py",
     "sandbox/cuda_convnet/bench.py",
@@ -658,6 +656,7 @@ whitelist_docstrings.extend([
 
 # add files which fail to run to whitelist_docstrings
 whitelist_docstrings.extend([
+    'sandbox/rnn/models/mlp_hook.py',
     'training_algorithms/tests/test_learning_rule.py',
     'models/pca.py',
     'datasets/tests/test_hdf5.py',
