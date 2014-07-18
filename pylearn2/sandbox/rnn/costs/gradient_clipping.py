@@ -19,7 +19,7 @@ class GradientClipping(object):
     Parameters
     ----------
     clipping_value : float or int
-        The squared norm above which to clip the gradient.
+        The norm above which to clip the gradient.
     cost : Cost object
         The actual cost to use for this model.
     exclude_params : list of strings, optional
@@ -43,17 +43,17 @@ class GradientClipping(object):
     def get_gradients(self, model, data, **kwargs):
         gradients, updates = self.cost.get_gradients(model, data, **kwargs)
 
-        sq_norm = tensor.sum(
+        norm = tensor.sqrt(tensor.sum(
             [tensor.sum(param_gradient ** 2) for param, param_gradient
              in gradients.iteritems() if param.name not in self.exclude_params]
-        )
+        ))
 
         clipped_gradients = OrderedDict()
         for param, param_gradient in gradients.iteritems():
             if param.name not in self.exclude_params:
                 clipped_gradients[param] = tensor.switch(
-                    tensor.ge(sq_norm, self.clipping_value),
-                    param_gradient / sq_norm * self.clipping_value,
+                    tensor.ge(norm, self.clipping_value),
+                    param_gradient / norm * self.clipping_value,
                     param_gradient
                 )
         gradients.update(clipped_gradients)
