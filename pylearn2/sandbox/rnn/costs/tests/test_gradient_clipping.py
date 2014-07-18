@@ -21,7 +21,8 @@ class TestGradientClipping(unittest.TestCase):
     """
     def test_gradient_clipping(self):
         """
-        Create a gradient of a 100 and check whether it is being clipped
+        Create a known gradient and check whether it is being clipped
+        correctly
         """
         mlp = MLP(layers=[Linear(dim=1, irange=0, layer_name='linear')],
                   nvis=1)
