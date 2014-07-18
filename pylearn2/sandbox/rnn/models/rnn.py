@@ -313,10 +313,10 @@ class LSTM(Recurrent):
         W = self.W
         U = self.U
         b = self.b
-        state_below = tensor.dot(state_below, W) + b
         state_below_input = tensor.dot(state_below, self.I_x) + self.I_b
         state_below_forget = tensor.dot(state_below, self.F_x) + self.F_b
         state_below_output = tensor.dot(state_below, self.O_x) + self.O_b
+        state_below = tensor.dot(state_below, W) + b
 
         def fprop_step(state_below, state_before, cell_before, U):
             i_on = tensor.nnet.sigmoid(
