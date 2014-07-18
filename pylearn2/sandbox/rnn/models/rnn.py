@@ -253,23 +253,23 @@ class LSTM(Recurrent):
         # Output gate switch
         W_x = self.mlp.rng.uniform(-self.irange,
                                    self.irange,
-                                   (self.input_space.dim, 1))
+                                   (self.input_space.dim, self.dim))
         W_h = self.mlp.rng.uniform(-self.irange,
                                    self.irange,
-                                   (self.dim, 1))
-        self.O_b = sharedX(np.zeros((1,)) + self.output_gate_init_bias,
+                                   (self.dim, self.dim))
+        self.O_b = sharedX(np.zeros((self.dim,)) + self.output_gate_init_bias,
                            name=(self.layer_name + '_O_b'))
         self.O_x = sharedX(W_x, name=(self.layer_name + '_O_x'))
         self.O_h = sharedX(W_h, name=(self.layer_name + '_O_h'))
         self.O_c = sharedX(W_h.copy(), name=(self.layer_name + '_O_c'))
         # Input gate switch
-        self.I_b = sharedX(np.zeros((1,)) + self.input_gate_init_bias,
+        self.I_b = sharedX(np.zeros((self.dim,)) + self.input_gate_init_bias,
                            name=(self.layer_name + '_I_b'))
         self.I_x = sharedX(W_x.copy(), name=(self.layer_name + '_I_x'))
         self.I_h = sharedX(W_h.copy(), name=(self.layer_name + '_I_h'))
         self.I_c = sharedX(W_h.copy(), name=(self.layer_name + '_I_c'))
         # Forget gate switch
-        self.F_b = sharedX(np.zeros((1,)) + self.forget_gate_init_bias,
+        self.F_b = sharedX(np.zeros((self.dim,)) + self.forget_gate_init_bias,
                            name=(self.layer_name + '_F_b'))
         self.F_x = sharedX(W_x.copy(), name=(self.layer_name + '_F_x'))
         self.F_h = sharedX(W_h.copy(), name=(self.layer_name + '_F_h'))
@@ -329,8 +329,6 @@ class LSTM(Recurrent):
                 tensor.dot(state_before, self.F_h) +
                 tensor.dot(cell_before, self.F_c)
             )
-            i_on = tensor.addbroadcast(i_on, 1)
-            f_on = tensor.addbroadcast(f_on, 1)
 
             c_t = state_below + tensor.dot(state_before, U)
             c_t = f_on * cell_before + i_on * tensor.tanh(c_t)
@@ -340,7 +338,6 @@ class LSTM(Recurrent):
                 tensor.dot(state_before, self.O_h) +
                 tensor.dot(c_t, self.O_c)
             )
-            o_on = tensor.addbroadcast(o_on, 1)
             z = o_on * tensor.tanh(c_t)
 
             return z, c_t
