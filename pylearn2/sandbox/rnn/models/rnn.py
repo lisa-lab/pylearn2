@@ -182,11 +182,11 @@ class Recurrent(Layer):
 
         # It is faster to do the input-to-hidden matrix multiplications
         # outside of scan
-        state_below = tensor.dot(state_below, W)
+        state_below = tensor.dot(state_below, W) + b
 
-        def fprop_step(state_below, mask, state_before, W, U, b):
+        def fprop_step(state_below, mask, state_before, U):
             z = self.nonlinearity(state_below +
-                                  tensor.dot(state_before, U) + b)
+                                  tensor.dot(state_before, U))
 
             # Only update the state for non-masked data, otherwise
             # just carry on the previous state until the end
@@ -194,7 +194,7 @@ class Recurrent(Layer):
             return z
 
         z, updates = scan(fn=fprop_step, sequences=[state_below, mask],
-                          outputs_info=[z0], non_sequences=[W, U, b])
+                          outputs_info=[z0], non_sequences=[U])
         self._scan_updates.update(updates)
 
         if self.indices is not None:
@@ -313,29 +313,34 @@ class LSTM(Recurrent):
         W = self.W
         U = self.U
         b = self.b
+        state_below = tensor.dot(state_below, W) + b
+        state_below_input = tensor.dot(state_below, self.I_x) + self.I_b
+        state_below_forget = tensor.dot(state_below, self.F_x) + self.F_b
+        state_below_output = tensor.dot(state_below, self.O_x) + self.O_b
 
-        def fprop_step(state_below, state_before, cell_before, W, U, b):
+
+        def fprop_step(state_below, state_before, cell_before, U):
 
             i_on = tensor.nnet.sigmoid(
-                tensor.dot(state_below, self.I_x) +
+                state_below_input +
                 tensor.dot(state_before, self.I_h) +
-                tensor.dot(cell_before, self.I_c) + self.I_b
+                tensor.dot(cell_before, self.I_c)
             )
             f_on = tensor.nnet.sigmoid(
-                tensor.dot(state_below, self.F_x) +
+                state_below_forget +
                 tensor.dot(state_before, self.F_h) +
-                tensor.dot(cell_before, self.F_c) + self.F_b
+                tensor.dot(cell_before, self.F_c)
             )
             i_on = tensor.addbroadcast(i_on, 1)
             f_on = tensor.addbroadcast(f_on, 1)
 
-            c_t = tensor.dot(state_below, W) + tensor.dot(state_before, U) + b
+            c_t = state_below + tensor.dot(state_before, U)
             c_t = f_on * cell_before + i_on * tensor.tanh(c_t)
 
             o_on = tensor.nnet.sigmoid(
-                tensor.dot(state_below, self.O_x) +
+                state_below_output +
                 tensor.dot(state_before, self.O_h) +
-                tensor.dot(c_t, self.O_c) + self.O_b
+                tensor.dot(c_t, self.O_c)
             )
             o_on = tensor.addbroadcast(o_on, 1)
             z = o_on * tensor.tanh(c_t)
@@ -343,9 +348,12 @@ class LSTM(Recurrent):
             return z, c_t
 
         ((z, c), updates) = scan(fn=fprop_step,
-                                 sequences=[state_below],
+                                 sequences=[state_below,
+                                            state_below_input,
+                                            state_below_forget,
+                                            state_below_output],
                                  outputs_info=[z0, c0],
-                                 non_sequences=[W, U, b])
+                                 non_sequences=[U])
         self._scan_updates.update(updates)
 
         if self.indices is not None:
