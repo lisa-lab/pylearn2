@@ -2,6 +2,7 @@
 Code to hook into the MLP framework
 """
 import functools
+import inspect
 import logging
 
 from pylearn2.sandbox.rnn.space import SequenceSpace, SequenceDataSpace
@@ -179,6 +180,41 @@ class RNNWrapper(MetaLibVersion):
                 return cost(self, reshaped_Y, reshaped_Y_hat)
             else:  # Not RNN-friendly, but not requiring reshape
                 return cost(self, Y, Y_hat)
+        return outer
+
+    @classmethod
+    def cost_matrix_wrapper(cls, name, cost_matrix):
+        """
+        If the cost_matrix is called from within a cost function,
+        everything is fine, since things were reshaped and unpacked.
+        In any other case we raise a warning (after which it most likely
+        crashes).
+        """
+        @functools.wraps(cost_matrix)
+        def outer(self, Y, Y_hat):
+            if self._requires_reshape and inspect.stack()[1][3] != 'cost':
+                log.warning("You are using the `cost_matrix` method on a "
+                            "layer which has been wrapped to accept sequence "
+                            "input, might or might not be problematic.")
+            return cost_matrix(self, Y, Y_hat)
+        return outer
+
+    @classmethod
+    def cost_from_cost_matrix_wrapper(cls, name, cost_from_cost_matrix):
+        """
+        If the cost_from_cost_matrix is called from within a cost function,
+        everything is fine, since things were reshaped and unpacked.
+        In any other case we raise a warning (after which it most likely
+        crashes).
+        """
+        @functools.wraps(cost_from_cost_matrix)
+        def outer(self, cost_matrix):
+            if self._requires_reshape and inspect.stack()[1][3] != 'cost':
+                log.warning("You are using the `cost_from_cost_matrix` method "
+                            "on a layer which has been wrapped to accept "
+                            "sequence input, might or might not be "
+                            "problematic.")
+            return cost_from_cost_matrix(self, cost_matrix)
         return outer
 
     @classmethod
