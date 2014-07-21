@@ -68,8 +68,12 @@ def main():
     parser.add_argument("model_paths", nargs='+')
     options = parser.parse_args()
     model_paths = options.model_paths
+    options_out = options.out
 
-    if options.out is not None:
+    run(model_paths, options_out)
+
+def run(model_paths=[], options_out=None, show_codes=None):
+    if options_out is not None:
       import matplotlib
       matplotlib.use('Agg')
     import matplotlib.pyplot as plt
@@ -93,7 +97,7 @@ def main():
             raise
         this_model_channels = model.monitor.channels
 
-        if len(sys.argv) > 2:
+        if len(model_paths) > 1:
             postfix = ":" + model_names[i]
         else:
             postfix = ""
@@ -127,8 +131,9 @@ def main():
         # If there is more than one channel in the monitor ask which ones to
         # plot
         prompt = len(channels.values()) > 1
-
-        if prompt:
+        if show_codes:
+            final_codes = show_codes
+        elif prompt:
 
             # Display the codebook
             for code in sorted_codes:
@@ -232,7 +237,10 @@ def main():
         # plot the requested channels
         for idx, code in enumerate(sorted(final_codes)):
 
-            channel_name= codebook[code]
+            if code in codebook.values():
+                channel_name = code
+            else:
+                channel_name = codebook[code]
             channel = channels[channel_name]
 
             y = np.asarray(channel.val_record)
@@ -276,12 +284,12 @@ def main():
         # 0.046 is the size of 1 legend box
         fig.subplots_adjust(bottom=0.11 + 0.046 * len(final_codes))
 
-        if options.out is None:
+        if options_out is None:
           plt.show()
         else:
-          plt.savefig(options.out)
+          plt.savefig(options_out)
 
-        if not prompt:
+        if not prompt or show_codes:
             break
 
 if __name__ == "__main__":
