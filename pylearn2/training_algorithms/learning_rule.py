@@ -235,7 +235,8 @@ class AdaDelta(LearningRule):
                     (1 - self.decay) * T.sqr(grads[param])
 
             # Compute update
-            epsilon = lr_scalers.get(param, 1.) * learning_rate
+            epsilon = 1e-6
+            #epsilon = lr_scalers.get(param, 1.) * learning_rate
             rms_dx_tm1 = T.sqrt(mean_square_dx + epsilon)
             rms_grad_t = T.sqrt(new_mean_squared_grad + epsilon)
             delta_x_t = - rms_dx_tm1 / rms_grad_t * grads[param]
