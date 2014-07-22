@@ -37,6 +37,7 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
 
         # TextDatasetMixin parameters
         self._unknown_index = 0
+        self._end_of_word_index = 100
         self._case_sensitive = True
         with open(preprocess('${PYLEARN2_DATA_PATH}/word2vec/'
                              'char_vocab.pkl')) as f:
@@ -48,12 +49,13 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
             node = f.get_node('/characters_%s' % which_set)
             # VLArray is strange, and this seems faster than reading node[:]
             # Format is now [batch, time, data]
-            X = np.asarray([char_sequence[:, np.newaxis]
+            # TODO: Do addition EOW index on the below line, not using for loop
+            X = np.asarray([char_sequence.append[:, np.newaxis]
                             for char_sequence in node])
+            
             for ind, word in enumerate(X):
-                if len(word) == 1:
-                    word = np.append(word,0) # append unknown character
-                    X[ind] = word.reshape(2,1) # reshape
+                word = np.append(word,self._end_of_word_index) # append unknown character
+                X[ind] = word.reshape(len(word),1) # reshape
 
             ##############
             #for key, val in self._vocabulary.iteritems():
