@@ -112,6 +112,11 @@ def show(image):
         If ndarray, integer formats are assumed to use 0-255
         and float formats are assumed to use 0-1
     """
+    viewer_command = string.preprocess('${PYLEARN2_VIEWER_COMMAND}')
+
+    if viewer_command == 'inline':
+        return imview(image)
+
     if hasattr(image, '__array__'):
         #do some shape checking because PIL just raises a tuple indexing error
         #that doesn't make it very clear what the problem is
@@ -160,7 +165,6 @@ def show(image):
     #
 
     image.save(name)
-    viewer_command = string.preprocess('${PYLEARN2_VIEWER_COMMAND}')
     if os.name == 'nt':
         subprocess.Popen(viewer_command + ' ' + name +' && del ' + name,
                          shell=True)
