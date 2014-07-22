@@ -38,23 +38,43 @@ class SequentialSubsetIterator(iteration.SequentialSubsetIterator):
             The lengths of the sequences in the same order as indices.
         """
         # TODO This needs to be optimized a lot; very slow right now
+        print "Starting create Batches"
         seen = set()
-        batches = []
-        while len(seen) < self._dataset_size:
-            batch = []
-            batch_sequence_length = None
-            for index, sequence_length \
+        batches = {}
+        length_addons = {}
+        for index, sequence_length \
                     in safe_izip(indices, sequence_lengths):
-                if index not in seen:
-                    if not batch_sequence_length:
-                        batch_sequence_length = sequence_length
-                    if sequence_length == batch_sequence_length:
-                        batch.append(index)
-                        if len(batch) == self._batch_size:
-                            break
-            seen.update(batch)
-            batches.append(batch)
-        self._batches = batches
+            key = str(sequence_length)
+            if key in batches:
+                if len(batches[key]) >= self._batch_size:
+                    if key not in length_addons:
+                        length_addons[key] = 0
+                    key_add = '_' + str(length_addons[key])
+                    batches[key + key_add] = batches[key]
+                    length_addons[key] += 1
+                    batches[key] = [index]
+                else:
+                    batches[key].append(index)
+            else: 
+                batches[key] = [index]
+        self._batches = batches.values()
+
+        # while len(seen) < self._dataset_size:
+        #     batch = []
+        #     batch_sequence_length = None
+        #     for index, sequence_length \
+        #             in safe_izip(indices, sequence_lengths):
+        #         if index not in seen:
+        #             if not batch_sequence_length:
+        #                 batch_sequence_length = sequence_length
+        #             if sequence_length == batch_sequence_length:
+        #                 batch.append(index)
+        #                 if len(batch) == self._batch_size:
+        #                     break
+        #     seen.update(batch)
+        #     batches.append(batch)
+        # self._batches = batches
+        print "Ended create batches"
 
     @wraps(iteration.SequentialSubsetIterator.next)
     def next(self):

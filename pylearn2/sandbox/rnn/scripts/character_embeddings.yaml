@@ -32,7 +32,7 @@
     batch_size: 32,
     monitoring_dataset: {
       valid: !obj:pylearn2.sandbox.nlp.datasets.word2vec.Word2Vec {
-        which_set: 'valid',
+        which_set: 'train',
       },
     },
   },

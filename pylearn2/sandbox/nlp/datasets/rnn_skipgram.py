@@ -70,7 +70,7 @@ class H5RnnSkipgram(H5Shuffle):
                  cache_delta=cache_delta)
 
         self._load_dicts()
-        features_space = SequenceSpace(IndexSpace(dim=1, max_labels=212))
+        features_space = SequenceSpace(IndexSpace(dim=1, max_labels=213))
         features_source = 'features'
 
         targets_space = [
@@ -89,6 +89,7 @@ class H5RnnSkipgram(H5Shuffle):
         print "source len", len(source)
         self.data_specs = (space, source)
         print self.data_specs
+        self._sequence_lengths = [1]*cache_size
 
         def getFeatures(indexes):
             """
@@ -107,11 +108,24 @@ class H5RnnSkipgram(H5Shuffle):
             middle = int(frame_length/2)
             preX = ngrams[:,middle]
             X = []
+            
+            
+            def make_sequence(word):
+                string = self._inv_words[word]
+                #if len(string) < 1:
+                    #print "Word index", word, "Returns empty word"
+                seq = map(lambda c: [self._char_labels[c]], self._inv_words[word])
+                #if len(seq) < 1:
+                   # print "Word index", word, "Returns empty sequence", string
+                seq.append([self._eow])
+
+                return numpy.asarray(seq)
+
             for word in preX:
-                X.append(map(lambda c: self._char_labels[c], self._inv_words[word]))
+                X.append(make_sequence(word))
             X = numpy.asarray(X)
             y = numpy.concatenate((ngrams[:,range(middle)], ngrams[:,range(middle+1,self.frame_length)]), axis=1)
-
+            
             # Target Words mapped to integers greater than input max are set to 
             # 1 (unknown)
             y[y>=self.X_labels] = 1
@@ -148,6 +162,7 @@ class H5RnnSkipgram(H5Shuffle):
         self._inv_words = {v:k for k, v in word_labels.items()}
         with open(char_dict_path) as f:
             self._char_labels = cPickle.load(f)
+        self._eow = len(self._char_labels)
 
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
@@ -157,17 +172,15 @@ class H5RnnSkipgram(H5Shuffle):
 
             WRITEME
         """
-        if data_specs is None:
-            data_specs = self._iter_data_specs
-
-        # TODO: Refactor
+        if rng is None:
+            rng = self.rng
         if mode is None or mode == 'shuffled_sequential':
             subset_iterator = ShuffledSequentialSubsetIterator(
                 dataset_size=self.get_num_examples(),
                 batch_size=batch_size,
                 num_batches=num_batches,
                 rng=rng,
-                #sequence_lengths=self._sequence_lengths
+                sequence_lengths=self._sequence_lengths
             )
         elif mode == 'sequential':
             subset_iterator = SequentialSubsetIterator(
@@ -175,26 +188,14 @@ class H5RnnSkipgram(H5Shuffle):
                 batch_size=batch_size,
                 num_batches=num_batches,
                 rng=None,
-                #sequence_lengths=self._sequence_lengths
+                sequence_lengths=self._sequence_lengths
             )
-
-
-        # if mode is None:
-        #     if hasattr(self, '_iter_subset_class'):
-        #         # mode = self._iter_subset_class 
-        #     else:
-        #         raise ValueError('iteration mode not provided and no default '
-        #                          'mode set for %s' % str(self))
-        # else:
-        #     mode = resolve_iterator_class(mode)
-
-        if batch_size is None:
-            batch_size = getattr(self, '_iter_batch_size', None)
-        #if num_batches is None:
-        #    num_batches = getattr(self, '_iter_num_batches', None)
-        num_batches = self._iter_num_batches 
-        if rng is None:# and mode.stochastic:
-            rng = self.rng
+        else:
+            raise ValueError('For sequential datasets only the '
+                             'SequentialSubsetIterator and '
+                             'ShuffledSequentialSubsetIterator have been '
+                             'ported, so the mode `%s` is not supported.' %
+                             (mode,))
 
         if data_specs is None:
             data_specs = self.data_specs
@@ -204,6 +205,56 @@ class H5RnnSkipgram(H5Shuffle):
             data_specs=data_specs,
             return_tuple=return_tuple
         )
+
+
+
+        # if data_specs is None:
+        #     data_specs = self._iter_data_specs
+
+        # # TODO: Refactor
+        # if mode is None or mode == 'shuffled_sequential':
+        #     subset_iterator = ShuffledSequentialSubsetIterator(
+        #         dataset_size=self.get_num_examples(),
+        #         batch_size=batch_size,
+        #         num_batches=num_batches,
+        #         rng=rng,
+        #         #sequence_lengths=self._sequence_lengths
+        #     )
+        # elif mode == 'sequential':
+        #     subset_iterator = SequentialSubsetIterator(
+        #         dataset_size=self.get_num_examples(),
+        #         batch_size=batch_size,
+        #         num_batches=num_batches,
+        #         rng=None,
+        #         #sequence_lengths=self._sequence_lengths
+        #     )
+
+
+        # # if mode is None:
+        # #     if hasattr(self, '_iter_subset_class'):
+        # #         # mode = self._iter_subset_class 
+        # #     else:
+        # #         raise ValueError('iteration mode not provided and no default '
+        # #                          'mode set for %s' % str(self))
+        # # else:
+        # #     mode = resolve_iterator_class(mode)
+
+        # if batch_size is None:
+        #     batch_size = getattr(self, '_iter_batch_size', None)
+        # #if num_batches is None:
+        # #    num_batches = getattr(self, '_iter_num_batches', None)
+        # num_batches = self._iter_num_batches 
+        # if rng is None:# and mode.stochastic:
+        #     rng = self.rng
+
+        # if data_specs is None:
+        #     data_specs = self.data_specs
+        # return FiniteDatasetIterator(
+        #     dataset=self,
+        #     subset_iterator=subset_iterator,
+        #     data_specs=data_specs,
+        #     return_tuple=return_tuple
+        # )
 
 
         # return FiniteDatasetIterator(self,

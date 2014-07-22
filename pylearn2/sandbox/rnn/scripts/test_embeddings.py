@@ -57,8 +57,8 @@ all_embeddings = (all_embeddings - means)/stds
 # print "Have", len(words), "words"
 # print "have", len(all_embeddings), "embeddings"
 
-# print "Making KDTree"
-# tree = cKDTree(all_embeddings)
+#print "Making KDTree"
+#tree = cKDTree(all_embeddings)
 
 space = model.get_input_space()
 batch_var = space.make_theano_batch(batch_size=1)
@@ -80,7 +80,7 @@ def stringToArr(string):
 
 def closest(vec, n):
     words = []
-    dists = [(cosine(vec,all_embeddings[i]), i) for i in range(800000)]
+    dists = [(cosine(vec,all_embeddings[i]), i) for i in range(100000)]
     for k in range(n):
         index = min(dists)[1]
         dists[index] = (float("inf"),index)
@@ -90,21 +90,24 @@ def closest(vec, n):
 def run_example(example):
     batch = np.asarray([np.asarray([np.asarray([char])]) for char in example])
     batch = space.np_format_as(batch, space)
-    wordvec = fprop(batch)[0] 
+    wordvec = fprop(batch)[0]
+    return wordvec
+
+def findClose(wordvec): 
     indices = closest(wordvec, 4)
-    #close = makeWord(i)
+    #(d, indices) = tree.query(wordvec, k=4)
     close = [makeWord(i) for i in indices]
     return close
 
 def run_string(word):
     L = stringToArr(word)
-    close = run_example(L)
+    close = findClose(run_example(L))
     print word, ":", close
 
 def run_index(index):
-    close = run_example(train_chars[index])
+    close = findClose(run_example(train_chars[index]))
     print makeWord(index), ":", close
 
-
-map(run_string, ['France', 'Canada', 'Paris'])
-map(run_index, range(150, 200))
+if __name__ == "__main__":
+    map(run_string, ['monarch', 'democracy', 'political', 'raspberry', 'blueberry', 'accomplishment', 'applying', 'application'])
+    map(run_index, range(150, 200))
