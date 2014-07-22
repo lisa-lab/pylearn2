@@ -90,7 +90,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         y = Ys[which_set]
 
         if isinstance(y, list):
-            y = np.asarray(y)
+            y = np.asarray(y).astype(dtype)
 
         if which_set == 'test':
             assert y.shape[0] == 10000
