@@ -17,10 +17,6 @@ class RecursiveConvolutionalLayer(mlp.Layer):
     def __init__(self, dim, layer_name, irange, activation = 'rect'):
         self._rnn_friendly = True
         self.__dict__.update(locals())
-        if activation == 'rect':
-            self.activation = lambda x: tensor.maximum(0., x)
-        elif activation =='tanh':
-            self.activation = tensor.tanh
         del self.self
         super(RecursiveConvolutionalLayer, self).__init__()
 
@@ -87,7 +83,10 @@ class RecursiveConvolutionalLayer(mlp.Layer):
 
             prev_shifted = tensor.dot(prev_shifted, U_hh)
             prev_level = tensor.dot(prev_level, W_hh)
-            new_act = self.activation(prev_level + prev_shifted + b_hh)
+            if self.activation == 'rect':
+                new_act = tensor.maximum(0., prev_level + prev_shifted + b_hh)
+            elif self.activation == 'tanh':
+                new_act = tensor.tanh(prev_level + prev_shifted + b_hh)
             
             gater = tensor.dot(lower_shifted, GU_hh) + \
                     tensor.dot(lower_level, GW_hh) + Gb_hh

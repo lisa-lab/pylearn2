@@ -50,18 +50,9 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
             node = f.get_node('/characters_%s' % which_set)
             # VLArray is strange, and this seems faster than reading node[:]
             # Format is now [batch, time, data]
-            # TODO: Do addition EOW index on the below line, not using for loop
-            X = np.asarray([char_sequence.append[:, np.newaxis]
+            X = np.asarray([np.append(char_sequence,self._end_of_word_index)[:, np.newaxis]
                             for char_sequence in node])
-            for ind, word in enumerate(X):
-                word = np.append(word,self._end_of_word_index) # append unknown character
-                X[ind] = word.reshape(len(word),1) # reshape
 
-            ##############
-            #for key, val in self._vocabulary.iteritems():
-            #    if val in [0,20,60,67,24,41,31,38,34,13,21,9,73,61]:
-            #        print key, val
-            ############
         self._sequence_lengths = [len(sequence) for sequence in X]
         #self._sequence_lengths = None
         print "Loading targets"
