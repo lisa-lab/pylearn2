@@ -588,7 +588,7 @@ class Space(object):
             Necessary because it can be impossible to tell from the
             batch whether it should be treated as a numeric of symbolic
             batch, for example when the batch is the empty tuple (),
-			or NullSpace batch None.
+            or NullSpace batch None.
 
         batch : a theano variable, numpy ndarray, scipy.sparse matrix \
                 or a nested tuple thereof
