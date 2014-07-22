@@ -39,7 +39,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     """
 
     def __init__(self, which_set, center=False, rescale=False, gcn=None,
-                 one_hot=False, start=None, stop=None, axes=('b', 0, 1, 'c'),
+                 one_hot=None, start=None, stop=None, axes=('b', 0, 1, 'c'),
                  toronto_prepro = False, preprocessor = None):
         # note: there is no such thing as the cifar10 validation set;
         # pylearn1 defined one but really it should be user-configurable
