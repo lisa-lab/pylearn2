@@ -120,8 +120,10 @@ class Momentum(LearningRule):
             assert grad.dtype == param.dtype
             if param.name is not None:
                 inc.name = 'inc_'+param.name
+            #updated_inc = self.momentum * inc -\
+            #    learning_rate * lr_scalers.get(param, 1.) * grad
             updated_inc = self.momentum * inc -\
-                learning_rate * lr_scalers.get(param, 1.) * grad
+                learning_rate * grad
             assert updated_inc.dtype == inc.dtype
             updates[inc] = updated_inc
             updates[param] = param + updated_inc
@@ -235,7 +237,8 @@ class AdaDelta(LearningRule):
                     (1 - self.decay) * T.sqr(grads[param])
 
             # Compute update
-            epsilon = lr_scalers.get(param, 1.) * learning_rate
+            epsilon = 1e-6
+            #epsilon = lr_scalers.get(param, 1.) * learning_rate
             rms_dx_tm1 = T.sqrt(mean_square_dx + epsilon)
             rms_grad_t = T.sqrt(new_mean_squared_grad + epsilon)
             delta_x_t = - rms_dx_tm1 / rms_grad_t * grads[param]
