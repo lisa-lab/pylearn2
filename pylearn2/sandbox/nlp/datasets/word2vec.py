@@ -50,6 +50,16 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
             # Format is now [batch, time, data]
             X = np.asarray([char_sequence[:, np.newaxis]
                             for char_sequence in node])
+            for ind, word in enumerate(X):
+                if len(word) == 1:
+                    word = np.append(word,0) # append unknown character
+                    X[ind] = word.reshape(2,1) # reshape
+
+            ##############
+            #for key, val in self._vocabulary.iteritems():
+            #    if val in [0,20,60,67,24,41,31,38,34,13,21,9,73,61]:
+            #        print key, val
+            ############
         self._sequence_lengths = [len(sequence) for sequence in X]
 
         with tables.open_file(preprocess('${PYLEARN2_DATA_PATH}/word2vec/'
