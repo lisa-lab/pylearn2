@@ -43,6 +43,7 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
             self._vocabulary = cPickle.load(f)
 
         # Load the data
+        print "loading data"
         with tables.open_file(preprocess('${PYLEARN2_DATA_PATH}/word2vec/'
                                          'characters.h5')) as f:
             node = f.get_node('/characters_%s' % which_set)
@@ -50,8 +51,13 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
             # Format is now [batch, time, data]
             X = np.asarray([char_sequence[:, np.newaxis]
                             for char_sequence in node])
+        print "X[0]"
+        print X[0]
+        print X[1]
+        print X[2]
         self._sequence_lengths = [len(sequence) for sequence in X]
-
+        #self._sequence_lengths = None
+        print "Loading targets"
         with tables.open_file(preprocess('${PYLEARN2_DATA_PATH}/word2vec/'
                                          'embeddings.h5')) as f:
             node = f.get_node('/embeddings_%s' % which_set)
@@ -60,6 +66,7 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
         with open(preprocess('/data/lisatmp3/devincol/normalization.pkl')) as f:
             (means, stds) = cPickle.load(f)
 
+        print "normalizing targets"
         y = (y - means)/stds
         source = ('features', 'targets')
         space = CompositeSpace([SequenceSpace(IndexSpace(dim=1,

@@ -31,7 +31,7 @@
   algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
     learning_rate: .000001,
     learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {},
-    batch_size: 32,
+    batch_size: 1,# 32,
     monitoring_dataset: {
       valid: !obj:pylearn2.sandbox.nlp.datasets.word2vec.Word2Vec {
         which_set: 'train',
