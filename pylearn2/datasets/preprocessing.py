@@ -26,6 +26,7 @@ from pylearn2.space import Conv2DSpace, VectorSpace
 from pylearn2.expr.preprocessing import global_contrast_normalize
 from pylearn2.utils.insert_along_axis import insert_columns
 from pylearn2.utils import sharedX
+from pylearn2.utils.exc import reraise_as
 from pylearn2.utils.rng import make_np_rng
 
 
@@ -341,9 +342,9 @@ class ReassembleGridPatches(Preprocessor):
             try:
                 patch = patches[i, :]
             except IndexError:
-                raise IndexError('Gave index of ' + str(i) +
-                                 ', : into thing of shape ' +
-                                 str(patches.shape))
+                reraise_as(IndexError('Gave index of ' + str(i) +
+                                      ', : into thing of shape ' +
+                                      str(patches.shape)))
             reassembled[args] = patch
             i += 1
             j = 0
@@ -1683,8 +1684,8 @@ class CentralWindow(Preprocessor):
         try:
             axes = dataset.view_converter.axes
         except AttributeError:
-            raise NotImplementedError("I don't know how to tell what the axes "
-                                      "of this kind of dataset are.")
+            reraise_as(NotImplementedError("I don't know how to tell what the axes "
+                                           "of this kind of dataset are."))
 
         needs_transpose = not axes[1:3] == (0, 1)
 

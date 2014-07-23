@@ -24,6 +24,7 @@ from pylearn2.expr.nnet import inverse_sigmoid_numpy
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.space import VectorSpace
 from pylearn2.utils import safe_union
+from pylearn2.utils.exc import reraise_as
 from pylearn2.utils.rng import make_np_rng, make_theano_rng
 theano.config.warn.sum_div_dimshuffle_bug = False
 
@@ -342,14 +343,14 @@ class RBM(Block, Model):
             b_vis = self.vis_space.get_origin()
             b_vis += init_bias_vis
         except ValueError:
-            raise ValueError("bad shape or value for init_bias_vis")
+            reraise_as(ValueError("bad shape or value for init_bias_vis"))
         self.bias_vis = sharedX(b_vis, name='bias_vis', borrow=True)
 
         try:
             b_hid = self.hid_space.get_origin()
             b_hid += init_bias_hid
         except ValueError:
-            raise ValueError('bad shape or value for init_bias_hid')
+            reraise_as(ValueError('bad shape or value for init_bias_hid'))
         self.bias_hid = sharedX(b_hid, name='bias_hid', borrow=True)
 
         self.random_patches_src = random_patches_src

@@ -22,6 +22,7 @@ from pylearn2.config import yaml_parse
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.space import Space, CompositeSpace, NullSpace
 from pylearn2.utils import function, sharedX, safe_zip, safe_izip
+from pylearn2.utils.exc import reraise_as
 from pylearn2.utils.iteration import is_stochastic
 from pylearn2.utils.data_specs import DataSpecsMapping
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
@@ -164,8 +165,8 @@ class Monitor(object):
                                 return_tuple=True,
                                 rng=sd)
             except ValueError as exc:
-                raise ValueError("invalid iteration parameters in " +
-                                 "Monitor.add_dataset: " + str(exc))
+                reraise_as(ValueError("invalid iteration parameters in " +
+                                      "Monitor.add_dataset: " + str(exc)))
             if it.stochastic:
                 # Must be a seed, not a random number generator. If it were a
                 # random number generator, different iterators using it would
@@ -683,8 +684,8 @@ class Monitor(object):
         try:
             self._datasets.index(dataset)
         except ValueError:
-            raise ValueError("The dataset specified is not one of the " +
-                             "monitor's datasets")
+            reraise_as(ValueError("The dataset specified is not one of the " +
+                                  "monitor's datasets"))
 
         if name in self.channels:
             raise ValueError("Tried to create the same channel twice (%s)" %

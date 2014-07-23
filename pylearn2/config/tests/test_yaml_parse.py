@@ -12,6 +12,7 @@ from os import environ, close
 from decimal import Decimal
 from tempfile import mkstemp
 from pylearn2.utils import serial
+from pylearn2.utils.exc import reraise_as
 import yaml
 
 
@@ -117,7 +118,7 @@ def test_multi_constructor_obj():
         pass
     except Exception, e:
         error_msg = "Got the unexpected error: %s" % (e)
-        raise ValueError(error_msg)
+        reraise_as(ValueError(error_msg))
 
 
 def test_duplicate_keywords():

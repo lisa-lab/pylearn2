@@ -1,6 +1,7 @@
 """Support code for YAML parsing of experiment descriptions."""
 import yaml
 from pylearn2.utils import serial
+from pylearn2.utils.exc import reraise_as
 from pylearn2.utils.string_utils import preprocess
 from pylearn2.utils.call_check import checked_call
 from pylearn2.utils.string_utils import match
@@ -401,8 +402,8 @@ def try_to_import(tag_suffix):
             # The yaml file is probably to blame.
             # Report the problem with the full module path from the YAML
             # file
-            raise ImportError("Could not import %s; ImportError was %s" %
-                              (modulename, str_e))
+            reraise_as(ImportError("Could not import %s; ImportError was %s" %
+                                   (modulename, str_e)))
         else:
 
             pcomponents = components[:-1]
@@ -417,8 +418,8 @@ def try_to_import(tag_suffix):
                     if j > 1:
                         modulename = '.'.join(pcomponents[:j - 1])
                         base_msg += ' but could import %s' % modulename
-                    raise ImportError(base_msg + '. Original exception: '
-                                      + str(e))
+                    reraise_as(ImportError(base_msg + '. Original exception: '
+                                           + str(e)))
                 j += 1
     try:
         obj = eval(tag_suffix)
@@ -438,9 +439,9 @@ def try_to_import(tag_suffix):
 
         except:
             warnings.warn("Attempt to decipher AttributeError failed")
-            raise AttributeError('Could not evaluate %s. ' % tag_suffix +
-                                 'Original error was ' + str(e))
-        raise AttributeError(msg)
+            reraise_as(AttributeError('Could not evaluate %s. ' % tag_suffix +
+                                      'Original error was ' + str(e)))
+        reraise_as(AttributeError(msg))
     return obj
 
 
@@ -557,10 +558,10 @@ def construct_mapping(node, deep=False):
             hash(key)
         except TypeError, exc:
             const = yaml.constructor
-            raise const.ConstructorError("while constructing a mapping",
-                                         node.start_mark,
-                                         "found unacceptable key (%s)" % exc,
-                                         key_node.start_mark)
+            reraise_as(const.ConstructorError("while constructing a mapping",
+                                              node.start_mark,
+                                              "found unacceptable key (%s)" %
+                                              (exc, key_node.start_mark)))
         if key in mapping:
             const = yaml.constructor
             raise const.ConstructorError("while constructing a mapping",
