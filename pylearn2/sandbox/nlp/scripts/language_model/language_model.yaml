@@ -30,7 +30,7 @@
         ],
         input_space: !obj:pylearn2.space.IndexSpace {
             dim: 6,
-            max_labels: 10000
+            max_labels: 10001 # +1 for the unknown word index
         }
     },
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
@@ -48,4 +48,9 @@
             N: 10
         },
     },
+    extensions: [
+        !obj:pylearn2.sandbox.nlp.train_extensions.nlp.WordRelationshipTest {
+            projection_layer: 'projection',
+        },
+    ],
 }
