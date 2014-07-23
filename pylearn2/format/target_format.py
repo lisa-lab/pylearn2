@@ -2,9 +2,12 @@
 from operator import mul
 
 import numpy as np
-import scipy
-import scipy.sparse
 import theano.sparse
+if theano.sparse.enable_sparse:
+    scipy_available = True
+    import scipy.sparse
+else:
+    scipy_available = False
 from theano import tensor, config
 
 
@@ -92,6 +95,10 @@ class OneHotFormatter(object):
         if 'int' not in str(targets.dtype):
             raise TypeError("need an integer array for targets")
         if sparse:
+            if not scipy_available:
+                raise ImportError("The converting of indices to a sparse "
+                                  "one-hot vector requires scipy to be "
+                                  "installed")
             if mode == 'concatenate':
                 one_hot = scipy.sparse.csr_matrix(
                     (np.ones(targets.size, dtype=self._dtype),
