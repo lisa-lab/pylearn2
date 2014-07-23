@@ -1,6 +1,7 @@
 !obj:pylearn2.train.Train {
   dataset: !obj:pylearn2.sandbox.nlp.datasets.word2vec.Word2Vec {
     which_set: 'train',
+    stop: None,
   },
   model: !obj:pylearn2.models.mlp.MLP {
     input_space: !obj:pylearn2.sandbox.rnn.space.SequenceSpace {
@@ -12,12 +13,12 @@
     layers: [
       !obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
         layer_name: 'projection_layer',
-        dim: 300,
+        dim: 500,
         irange: 0.01,
       },
       !obj:pylearn2.sandbox.rnn.models.mlp.RecursiveConvolutionalLayer {
         layer_name: 'rconv_layer',
-        dim: 300,
+        dim: 500,
         irange: 0.01,
         activation: 'rect'
       },
@@ -25,6 +26,7 @@
         layer_name: 'linear_layer',
         dim: 300,
         irange: 0.01,
+        use_cosine_loss: True
       }
     ],
   },
@@ -35,6 +37,11 @@
     monitoring_dataset: {
       valid: !obj:pylearn2.sandbox.nlp.datasets.word2vec.Word2Vec {
         which_set: 'valid',
+        stop: None
+      },
+      train: !obj:pylearn2.sandbox.nlp.datasets.word2vec.Word2Vec {
+        which_set: 'train',
+        stop: 1000 
       },
     },
   },

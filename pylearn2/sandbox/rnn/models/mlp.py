@@ -14,7 +14,7 @@ class RecursiveConvolutionalLayer(mlp.Layer):
     """
         (Binary) Recursive Convolutional Layer
     """
-    def __init__(self, dim, layer_name, irange, activation = 'rect'):
+    def __init__(self, dim, layer_name, irange, activation = 'rect', conv_mode = 'conv'):
         self._rnn_friendly = True
         self.__dict__.update(locals())
         del self.self
@@ -74,7 +74,7 @@ class RecursiveConvolutionalLayer(mlp.Layer):
         else:
             b_hh = b_hh.dimshuffle('x',0)
 
-        def _level_fprop(mask_t, prev_level):
+        def _level_fprop(mask_t, n_iter, prev_level):
             lower_level = prev_level
 
             prev_shifted = tensor.zeros_like(prev_level)
@@ -109,34 +109,42 @@ class RecursiveConvolutionalLayer(mlp.Layer):
             act = new_act * gater_new + \
                     lower_shifted * gater_left + \
                     lower_level * gater_right
-
+            
+            if self.conv_mode == 'deconv':
+                new_act = tensor.zeros_like(act)
+                new_act = tensor.set_subtensor(new_act[:n_iter],act[:n_iter])
+                act = new_act
+ 
             if prev_level.ndim == 3:
                 mask_t = mask_t.dimshuffle('x',0,'x')
             else:
                 mask_t = mask_t.dimshuffle('x', 0)
             new_level = tensor.switch(mask_t, act, lower_level)
-            return new_level
+            new_iter = n_iter + 1
+
+            return new_iter, new_level
 
         rval, updates = scan(_level_fprop,
                         sequences = [mask[1:]],
-                        outputs_info = [state_below],
+                        outputs_info = [tensor.constant(2), state_below],
                         name='layer_%s'%self.layer_name,
                         n_steps = nsteps-1)
 
         seqlens = tensor.cast(mask.sum(axis=0), 'int64')-1
-        roots = rval[-1]
+        roots = rval[-1][-1]
+    
+        if self.conv_mode == 'conv':
+            if state_below.ndim == 3:
+                def _grab_root(seqlen,one_sample,prev_sample):
+                    return one_sample[seqlen]
 
-        if state_below.ndim == 3:
-            def _grab_root(seqlen,one_sample,prev_sample):
-                return one_sample[seqlen]
-
-            roots, updates = scan(_grab_root,
-                    sequences = [seqlens, roots.dimshuffle(1,0,2)],
-                    outputs_info = [tensor.alloc(0., self.dim)],
-                    name='grab_root_%s'%self.layer_name)
-            #roots = roots.dimshuffle('x', 0, 1)
-        else:
-            roots = roots[seqlens]
+                roots, updates = scan(_grab_root,
+                        sequences = [seqlens, roots.dimshuffle(1,0,2)],
+                        outputs_info = [tensor.alloc(0., self.dim)],
+                        name='grab_root_%s'%self.layer_name)
+                #roots = roots.dimshuffle('x', 0, 1)
+            else:
+                roots = roots[seqlens]
 
 
         # Note that roots has only a single timestep

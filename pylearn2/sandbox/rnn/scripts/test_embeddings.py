@@ -5,7 +5,7 @@ from scipy.spatial import cKDTree
 from scipy.spatial.distance import cosine
 import theano as t
 
-path = 'gated_char_embeddings12.pkl'
+path = '/data/lisa/exp/kimtaeho/char_embedding/rc_char_embeddings.pkl'
 embeddings_path = '/data/lisa/data/word2vec/embeddings.h5'
 chars_path = '/data/lisa/data/word2vec/char_vocab.pkl'
 _path = '/data/lisa/data/word2vec/characters.pkl'
@@ -40,7 +40,7 @@ with tables.open_file(embeddings_path) as f:
 # all_embeddings = np.concatenate((valid_embeddings, train_embeddings))
 all_embeddings = train_embeddings
 print all_embeddings.shape
-with open('normalization.pkl') as f:
+with open('/data/lisatmp3/devincol/normalization.pkl') as f:
     (means, stds) = cPickle.load(f)
 
 print "Normalizing"

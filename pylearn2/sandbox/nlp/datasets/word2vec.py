@@ -32,9 +32,12 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
     which_set : str
         Either `train` or `valid`
     """
-    def __init__(self, which_set):
+    def __init__(self, which_set, stop= None):
         assert which_set in ['train', 'valid']
 
+        if stop == 'None':
+            stop = None
+        
         # TextDatasetMixin parameters
         self._unknown_index = 0
         self._end_of_word_index = 100
@@ -44,27 +47,24 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
             self._vocabulary = cPickle.load(f)
 
         # Load the data
-        print "loading data"
         with tables.open_file(preprocess('${PYLEARN2_DATA_PATH}/word2vec/'
                                          'characters.h5')) as f:
             node = f.get_node('/characters_%s' % which_set)
             # VLArray is strange, and this seems faster than reading node[:]
             # Format is now [batch, time, data]
             X = np.asarray([np.append(char_sequence,self._end_of_word_index)[:, np.newaxis]
-                            for char_sequence in node])
+                            for char_sequence in node[:stop]])
 
         self._sequence_lengths = [len(sequence) for sequence in X]
         #self._sequence_lengths = None
-        print "Loading targets"
         with tables.open_file(preprocess('${PYLEARN2_DATA_PATH}/word2vec/'
                                          'embeddings.h5')) as f:
             node = f.get_node('/embeddings_%s' % which_set)
-            y = node[:]
-        
+            y = node[:stop]
+
         with open(preprocess('/data/lisatmp3/devincol/normalization.pkl')) as f:
             (means, stds) = cPickle.load(f)
 
-        print "normalizing targets"
         y = (y - means)/stds
         source = ('features', 'targets')
         space = CompositeSpace([SequenceSpace(IndexSpace(dim=1,
