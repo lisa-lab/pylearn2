@@ -299,7 +299,7 @@ yaml_string_maxout_conv_c01b_cifar10_fast = """
             one_hot: 1,
             axes: ['c', 0, 1, 'b'],
             start: 0,
-            stop: 40000
+            stop: 100
         },
         model: !obj:pylearn2.models.mlp.MLP {
             batch_size: 100,
@@ -314,7 +314,7 @@ yaml_string_maxout_conv_c01b_cifar10_fast = """
                          pad: 0,
                          num_channels: 16,
                          num_pieces: 1,
-                         kernel_shape: [6, 6],
+                         kernel_shape: [5, 5],
                          pool_shape: [3, 3],
                          pool_stride: [2, 2],
                          irange: .01,
@@ -416,12 +416,14 @@ class TestMaxout(unittest.TestCase):
             # Check that the performance is close to the expected one:
             # test_y_misclass: 0.3777000308036804
             misclass_chan = train.algorithm.monitor.channels['test_y_misclass']
-            assert misclass_chan.val_record[-1] < 0.38, \
-                ("misclass_chan.val_record[-1] = %g" %
-                 misclass_chan.val_record[-1])
+            if not config.mode == 'DEBUG_MODE':
+                assert misclass_chan.val_record[-1] < 0.38, \
+                    ("misclass_chan.val_record[-1] = %g" %
+                     misclass_chan.val_record[-1])
             # test_y_nll: 1.0978516340255737
             nll_chan = train.algorithm.monitor.channels['test_y_nll']
-            assert nll_chan.val_record[-1] < 1.1
+            if not config.mode == 'DEBUG_MODE':
+                assert nll_chan.val_record[-1] < 1.1
         finally:
             config.floatX = old_floatX
             cuda.unuse()
