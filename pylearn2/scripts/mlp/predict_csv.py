@@ -19,7 +19,8 @@ from pylearn2.utils import serial
 from theano import tensor as T
 from theano import function
 
-if __name__ == "__main__":
+
+def main():
     try:
         model_path = sys.argv[1]
         test_path = sys.argv[2]
@@ -28,7 +29,10 @@ if __name__ == "__main__":
         print "Usage: predict.py <model file> <test file> <output file>"
         print "       predict.py saved_model.pkl test_x.csv predictions.csv\n"
         quit(-1)
+    run(model_path, test_path, out_path)
 
+
+def run(model_path, test_path, out_path, headers=False, cast_to_float32=False, first_col_label=False):
     print "loading model..."
 
     try:
@@ -52,7 +56,14 @@ if __name__ == "__main__":
 
 # x is a numpy array
 # x = pickle.load(open(test_path, 'rb'))
-    x = np.loadtxt(test_path, delimiter=',')	# no labels in the file
+    # only skip first row if labels in the file
+    skiprows = 1 if headers else 0
+    x = np.loadtxt(test_path, delimiter=',', skiprows=skiprows)
+    if cast_to_float32:
+        x = x.astype(np.float32)
+
+    if first_col_label:
+        x = x[:,1:]
 
     y = f(x)
 
@@ -60,4 +71,7 @@ if __name__ == "__main__":
 
     np.savetxt(out_path, y, fmt='%d')
 
+
+if __name__ == "__main__":
+    main()
 
