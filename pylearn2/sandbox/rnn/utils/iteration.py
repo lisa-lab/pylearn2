@@ -102,7 +102,7 @@ class SequenceDatasetIterator(FiniteDatasetIterator):
         mask = np.zeros((max_sequence_length, len(data)), dtype=config.floatX)
         for i, sequence_length in enumerate(sequence_lengths):
             mask[:sequence_length, i] = 1
-        return mask
+        return mask.T
 
     @wraps(FiniteDatasetIterator.next)
     def next(self):
@@ -111,20 +111,25 @@ class SequenceDatasetIterator(FiniteDatasetIterator):
         for space, source, data, fn in safe_izip(self._space, self._source,
                                                  self._raw_data,
                                                  self._convert):
-            rval = fn(data[next_index]) if fn else data[next_index]
+            rval = data[next_index]
             if isinstance(space, SequenceDataSpace):
                 # Add padding
                 max_sequence_length = max(len(sample) for sample
-                                          in data)
-                batch = np.zeros((len(rval), max_sequence_length,
-                                  space.dim), dtype=space.dtype)
+                                          in rval)
+                batch = np.zeros((len(rval), max_sequence_length) +
+                                 data[0].shape[1:], dtype=data[0].dtype)
                 for i, sample in enumerate(rval):
                     batch[i, :len(sample)] = sample
-                rvals.append(np.transpose(batch, (1, 0, 2)))
+                rval = np.transpose(batch, (1, 0, 2))
+                if fn:
+                    rval = fn(rval)
+                rvals.append(rval)
 
                 # Create mask
                 rvals.append(self._create_mask(rval))
             else:
+                if fn:
+                    rval = fn(rval)
                 rvals.append(rval)
 
         # Reorder according to given data specs

@@ -1,12 +1,14 @@
 !obj:pylearn2.train.Train {
-  dataset: !obj:pylearn2.sandbox.nlp.datasets.word2vec.Word2Vec {
+  dataset: !obj:pylearn2.sandbox.nlp.datasets.penntree.PennTreebankSequences {
     which_set: 'train',
+    context_len: 200,
+    data_mode: 'words',
   },
-  model: !obj:pylearn2.models.mlp.MLP {
+  model: !obj:pylearn2.sandbox.rnn.models.rnn.RNN {
     input_space: !obj:pylearn2.sandbox.rnn.space.SequenceSpace {
       space: !obj:pylearn2.space.IndexSpace {
         dim: 1,
-        max_labels: 101,
+        max_labels: 10000,
       },
     },
     layers: [
@@ -19,11 +21,10 @@
         layer_name: 'recurrent_layer',
         dim: 500,
         irange: 0.01,
-        indices: [-1]
       },
-      !obj:pylearn2.models.mlp.Linear {
-        layer_name: 'linear_layer',
-        dim: 300,
+      !obj:pylearn2.models.mlp.Softmax {
+        layer_name: 'softmax',
+        n_classes: 10000,
         irange: 0.01,
       }
     ],
@@ -32,8 +33,10 @@
     learning_rate: 0.1,
     batch_size: 32,
     monitoring_dataset: {
-      valid: !obj:pylearn2.sandbox.nlp.datasets.word2vec.Word2Vec {
+      valid: !obj:pylearn2.sandbox.nlp.datasets.penntree.PennTreebankSequences {
         which_set: 'valid',
+        context_len: 200,
+        data_mode: 'words',
       },
     },
     cost: !obj:pylearn2.sandbox.rnn.costs.gradient_clipping.GradientClipping {

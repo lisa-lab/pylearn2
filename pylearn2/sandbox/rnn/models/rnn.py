@@ -1,16 +1,62 @@
 """
 Recurrent Neural Network Layer
 """
-
 from functools import wraps
+
 import numpy as np
 from theano import tensor
-from pylearn2.models.mlp import Layer
-from pylearn2.space import CompositeSpace, VectorSpace
-from pylearn2.sandbox.rnn.space import SequenceSpace
-from pylearn2.utils import sharedX
 from theano import config, scan
 from theano.compat.python2x import OrderedDict
+
+from pylearn2.models.mlp import Layer, MLP
+from pylearn2.sandbox.rnn.space import SequenceSpace
+from pylearn2.space import CompositeSpace, VectorSpace
+from pylearn2.utils import sharedX
+
+
+class RNN(MLP):
+    """
+    This method overrides MLP's __init__ method. It recursively
+    goes through the spaces and sources, and for each SequenceSpace
+    it adds an extra source for the mask. This is just syntactic sugar,
+    preventing people from adding a source for each mask.
+
+    Eventually this behaviour could maybe be moved to the
+    DataSpecsMapping class.
+
+    Parameters
+    ----------
+    See https://docs.python.org/2/reference/datamodel.html#object.__new__
+    """
+    def __init__(self, layers, batch_size=None, input_space=None,
+                 input_source='features', nvis=None, seed=None,
+                 layer_name=None, **kwargs):
+        input_source = self.add_mask_source(input_space, input_source)
+        super(RNN, self).__init__(layers, batch_size, input_space,
+                                  input_source, nvis, seed, layer_name,
+                                  **kwargs)
+
+    def get_target_source(self):
+        target_source = self.add_mask_source(self.get_target_space(),
+                                             'targets')
+        return target_source
+
+    @classmethod
+    def add_mask_source(cls, space, source):
+        """
+        This is a recursive helper function to go
+        through the nested spaces and tuples
+        """
+        if isinstance(space, CompositeSpace):
+            if not isinstance(space, SequenceSpace):
+                source = tuple(
+                    cls.add_mask_source(component, source)
+                    for component, source in zip(space.components, source)
+                )
+            else:
+                assert isinstance(source, basestring)
+                source = (source, source + '_mask')
+        return source
 
 
 class Recurrent(Layer):
@@ -130,6 +176,8 @@ class Recurrent(Layer):
         if (state is not None) or (state_below is not None):
             if state is None:
                 state = self.fprop(state_below)
+            state, _ = state
+            state_below, _ = state_below
 
             mx = state.max(axis=0)
             mean = state.mean(axis=0)

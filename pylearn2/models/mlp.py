@@ -1190,11 +1190,11 @@ class Softmax(Layer):
         if binary_target_dim is not None:
             assert isinstance(binary_target_dim, py_integer_types)
             self._has_binary_target = True
-            self._target_space = IndexSpace(dim=binary_target_dim, 
+            self._target_space = IndexSpace(dim=binary_target_dim,
                                             max_labels=n_classes)
         else:
             self._has_binary_target = False
-    
+
         self.output_space = VectorSpace(n_classes)
         if not no_affine:
             self.b = sharedX(np.zeros((n_classes,)), name='softmax_b')
@@ -1454,6 +1454,7 @@ class Softmax(Layer):
 
             Z = T.dot(state_below, self.W) + b
 
+        Z.tag.softmax_input = self.layer_name
         rval = T.nnet.softmax(Z)
 
         for value in get_debug_values(rval):
@@ -1466,26 +1467,25 @@ class Softmax(Layer):
 
         assert hasattr(Y_hat, 'owner')
         owner = Y_hat.owner
-        assert owner is not None
-        op = owner.op
-        if isinstance(op, Print):
-           assert len(owner.inputs) == 1
-           Y_hat, = owner.inputs
-           owner = Y_hat.owner
-           op = owner.op
-        assert isinstance(op, T.nnet.Softmax)
-        z, = owner.inputs
+        z = None
+        while owner is not None:
+            if isinstance(owner.op, T.nnet.Softmax):
+                z, = owner.inputs
+                break
+            else:
+                owner = owner.inputs[0].owner
+        assert getattr(z.tag, 'softmax_input', None) == self.layer_name
         assert z.ndim == 2
 
         z = z - z.max(axis=1).dimshuffle(0, 'x')
         log_prob = z - T.log(T.exp(z).sum(axis=1).dimshuffle(0, 'x'))
         # we use sum and not mean because this is really one variable per row
-        
+
         if self._has_binary_target:
             # The following code is the equivalent of accessing log_prob by the
-            # indices in Y, but it is written such that the computation can 
+            # indices in Y, but it is written such that the computation can
             # happen on the GPU rather than CPU.
-            
+
             flat_Y = Y.flatten()
             flat_log_prob = log_prob.flatten()
             flat_indices = flat_Y + T.arange(Y.shape[0])*self.n_classes
@@ -1495,7 +1495,6 @@ class Softmax(Layer):
             log_prob_of = (Y * log_prob)
 
         return log_prob_of
-        
 
     @wraps(Layer.cost)
     def cost(self, Y, Y_hat):

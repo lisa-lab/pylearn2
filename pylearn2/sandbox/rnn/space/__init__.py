@@ -4,6 +4,7 @@ Spaces specific to the RNN framework, specifically the SequenceSpace
 from functools import wraps
 
 import numpy as np
+from theano import scan
 from theano import tensor
 
 from pylearn2 import space
@@ -107,7 +108,27 @@ class SequenceDataSpace(space.SimplyTypedSpace):
         if space == self:
             return batch
         else:
-            raise NotImplementedError
+            if not isinstance(space, SequenceDataSpace):
+                raise ValueError("Can only convert SequenceDataSpace to "
+                                 "another SequenceDataSpace, not to %s"
+                                 % space)
+            if is_numeric:
+                formatted_batch = np.transpose(np.asarray([
+                    self.space._format_as_impl(is_numeric, sample, space.space)
+                    for sample in np.transpose(batch, (1, 0, 2))
+                ]), (1, 0, 2))
+            else:
+                formatted_batch, _ = scan(
+                    fn=lambda elem: self.space._format_as_impl(is_numeric,
+                                                               elem,
+                                                               space.space),
+                    sequences=[batch]
+                )
+            return formatted_batch
+
+    def _check_sizes(self, space):
+        assert isinstance(space, SequenceDataSpace)
+        return self.space._check_sizes(space.space)
 
     @wraps(space.Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):

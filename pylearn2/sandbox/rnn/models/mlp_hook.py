@@ -63,52 +63,6 @@ class RNNWrapper(MetaLibVersion):
         dct['_requires_unmask'] = False
         return type.__new__(cls, name, bases, dct)
 
-    def __init__(cls, name, bases, dct):
-        """
-        This method overrides MLP's __init__ method. It recursively
-        goes through the spaces and sources, and for each SequenceSpace
-        it adds an extra source for the mask. This is just syntactic sugar,
-        preventing people from adding a source for each mask.
-
-        Eventually this behaviour could maybe be moved to the
-        DataSpecsMapping class. Alternatively, a subclass of MLP
-        could be written that performs this action before calling
-        its base's __init__ method.
-
-        Parameters
-        ----------
-        See https://docs.python.org/2/reference/datamodel.html#object.__new__
-        """
-        super(RNNWrapper, cls).__init__(name, bases, dct)
-        if name == 'MLP':
-            old_init = dct['__init__']
-
-            @functools.wraps(old_init)
-            def __init__(self, layers, batch_size=None, input_space=None,
-                         input_source='features', nvis=None, seed=None,
-                         layer_name=None, **kwargs):
-                def add_mask_source(input_space, input_source):
-                    """
-                    This is a recursive helper function to go
-                    through the nested spaces and tuples
-                    """
-                    if isinstance(input_space, CompositeSpace):
-                        if not isinstance(input_space, SequenceSpace):
-                            input_source = tuple(
-                                add_mask_source(component, source)
-                                for component, source
-                                in zip(input_space.components, input_source)
-                            )
-                        else:
-                            assert isinstance(input_source, basestring)
-                            input_source = (input_source,
-                                            input_source + '_mask')
-                    return input_source
-                input_source = add_mask_source(input_space, input_source)
-                return old_init(self, layers, batch_size, input_space,
-                                input_source, nvis, seed, layer_name, **kwargs)
-            cls.__init__ = __init__
-
     @classmethod
     def fprop_wrapper(cls, name, fprop):
         """
@@ -154,6 +108,57 @@ class RNNWrapper(MetaLibVersion):
                     return state
             else:  # Not RNN-friendly, but not requiring reshape
                 return fprop(self, state_below)
+        return outer
+
+    @classmethod
+    def get_layer_monitoring_channels_wrapper(cls, name,
+                                              get_layer_monitoring_channels):
+        """
+        Reshapes and unmasks the data before retrieving the monitoring
+        channels
+
+        Parameters
+        ----------
+        get_layer_monitoring_channels : method
+            The get_layer_monitoring_channels method to be wrapped
+        """
+        @functools.wraps(get_layer_monitoring_channels)
+        def outer(self, state_below=None, state=None, targets=None):
+            if self._requires_reshape and self.__class__.__name__ == name:
+                if self._requires_unmask:
+                    if state_below is not None:
+                        state_below, state_below_mask = state_below
+                    if state is not None:
+                        state, state_mask = state
+                    if targets is not None:
+                        targets, targets_mask = targets
+                if state_below is not None:
+                    state_below_shape = ([state_below.shape[0] *
+                                          state_below.shape[1]] +
+                                         [state_below.shape[i]
+                                          for i in xrange(2,
+                                                          state_below.ndim)])
+                    state_below = state_below.reshape(state_below_shape)
+                    if self._requires_unmask:
+                        state_below = state_below[
+                            state_below_mask.flatten().nonzero()
+                        ]
+                if state is not None:
+                    state_shape = ([state.shape[0] *
+                                    state.shape[1]] +
+                                   [state.shape[i]
+                                    for i in xrange(2, state.ndim)])
+                    state = state.reshape(state_shape)
+                    if self._requires_unmask:
+                        state = state[state_mask.flatten().nonzero()]
+                if targets is not None:
+                    targets = targets.reshape(state_shape)
+                    if self._requires_unmask:
+                        targets = targets[targets_mask.flatten().nonzero()]
+                return get_layer_monitoring_channels(self, state_below, state,
+                                                     targets)
+            else:  # Not RNN-friendly, but not requiring reshape
+                return get_layer_monitoring_channels(self, state_below)
         return outer
 
     @classmethod
@@ -285,10 +290,7 @@ class RNNWrapper(MetaLibVersion):
         @functools.wraps(get_output_space)
         def outer(self):
             if (not self.rnn_friendly and self._requires_reshape and
-                    not isinstance(get_output_space(self), SequenceSpace)):
-                # Since not only this class, but also the Layer class gets
-                # wrapped, we need to make sure we don't wrap the space
-                # in a SequenceSpace twice
+                    self.__class__.__name__ == name):
                 return SequenceSpace(get_output_space(self))
             else:
                 return get_output_space(self)
