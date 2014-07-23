@@ -978,8 +978,6 @@ class IndexSpace(SimplyTypedSpace):
                                  "2D, got %d dimensions for %s." % (batch.ndim,
                                                                     batch))
             if batch.shape[1] != self.dim:
-                import ipdb
-                ipdb.set_trace()
                 raise ValueError("The width of a IndexSpace batch must match "
                                  "with the space's dimension, but batch has "
                                  "shape %s and dim = %d." % (str(batch.shape),
