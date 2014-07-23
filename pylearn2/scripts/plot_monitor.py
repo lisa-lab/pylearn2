@@ -70,9 +70,9 @@ def main():
     model_paths = options.model_paths
     options_out = options.out
 
-    run(model_paths, options_out)
+    plot_monitor(model_paths, options_out)
 
-def run(model_paths=[], options_out=None, show_codes=None):
+def plot_monitor(model_paths=[], options_out=None, show_codes=None, x_axis='example'):
     if options_out is not None:
       import matplotlib
       matplotlib.use('Agg')
@@ -120,9 +120,6 @@ def run(model_paths=[], options_out=None, show_codes=None):
             codebook[code] = channel_name
             codebook['<'+channel_name+'>'] = channel_name
             sorted_codes.append(code)
-
-        x_axis = 'example'
-        print 'set x_axis to example'
 
         if len(channels.values()) == 0:
             print "there are no channels to plot"
@@ -225,6 +222,8 @@ def run(model_paths=[], options_out=None, show_codes=None):
             # end for code in codes
         else:
             final_codes ,= set(codebook.keys())
+
+        print 'set x_axis to %s' % x_axis
 
         colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
         styles = list(colors)
