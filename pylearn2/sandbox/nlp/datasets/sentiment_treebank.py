@@ -37,7 +37,7 @@ except ImportError:
     warnings.warn("Couldn't import scipy.sparse")
 
 from pylearn2.utils.string_utils import preprocess
-from pylearn2.datasets.text.text_dataset import TextDataset
+from pylearn2.sandbox.nlp.datasets.text_dataset import TextDataset
 
 
 log = logging.getLogger(__name__)
