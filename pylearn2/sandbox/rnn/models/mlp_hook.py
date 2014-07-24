@@ -152,7 +152,11 @@ class RNNWrapper(MetaLibVersion):
                     if self._requires_unmask:
                         state = state[state_mask.flatten().nonzero()]
                 if targets is not None:
-                    targets = targets.reshape(state_shape)
+                    targets_shape = ([targets.shape[0] *
+                                      targets.shape[1]] +
+                                     [targets.shape[i]
+                                      for i in xrange(2, targets.ndim)])
+                    targets = targets.reshape(targets_shape)
                     if self._requires_unmask:
                         targets = targets[targets_mask.flatten().nonzero()]
                 return get_layer_monitoring_channels(self, state_below, state,
@@ -173,8 +177,15 @@ class RNNWrapper(MetaLibVersion):
         def outer(self, Y, Y_hat):
             if self._requires_reshape:
                 if self._requires_unmask:
-                    Y, Y_mask = Y
-                    Y_hat, Y_hat_mask = Y_hat
+                    try:
+                        Y, Y_mask = Y
+                        Y_hat, Y_hat_mask = Y_hat
+                    except:
+                        log.warning("Lost the mask when wrapping cost. This "
+                                    "can happen if this function is called "
+                                    "from within another wrapped function. "
+                                    "Most likely this won't cause any problem")
+                        return cost(self, Y, Y_hat)
                 input_shape = ([Y.shape[0] * Y.shape[1]] +
                                [Y.shape[i] for i in xrange(2, Y.ndim)])
                 reshaped_Y = Y.reshape(input_shape)
@@ -291,10 +302,28 @@ class RNNWrapper(MetaLibVersion):
         @functools.wraps(get_output_space)
         def outer(self):
             if (not self.rnn_friendly and self._requires_reshape and
-                    self.__class__.__name__ == name):
+                    not isinstance(get_output_space(self), SequenceSpace)):
                 return SequenceSpace(get_output_space(self))
             else:
                 return get_output_space(self)
         return outer
 
+    @classmethod
+    def get_target_space_wrapper(cls, name, get_target_space):
+        """
+        Same thing as set_input_space_wrapper.
+
+        Parameters
+        ----------
+        get_target_space : method
+            The get_target_space method to be wrapped
+        """
+        @functools.wraps(get_target_space)
+        def outer(self):
+            if (not self.rnn_friendly and self._requires_reshape and
+                    not isinstance(get_target_space(self), SequenceSpace)):
+                return SequenceSpace(get_target_space(self))
+            else:
+                return get_target_space(self)
+        return outer
     # Wrap get_input_space?

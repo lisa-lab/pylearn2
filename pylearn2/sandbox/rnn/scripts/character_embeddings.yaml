@@ -26,16 +26,17 @@
         layer_name: 'softmax',
         n_classes: 10000,
         irange: 0.01,
+        binary_target_dim: 1,
       }
     ],
   },
   algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
     learning_rate: 0.1,
-    batch_size: 32,
+    batch_size: 4,
     monitoring_dataset: {
       valid: !obj:pylearn2.sandbox.nlp.datasets.penntree.PennTreebankSequences {
         which_set: 'valid',
-        context_len: 200,
+        context_len: 30,
         data_mode: 'words',
       },
     },
