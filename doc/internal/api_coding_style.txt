@@ -1,0 +1,750 @@
+.. _api_coding_style:
+
+=========================
+ Coding Style Guidelines
+=========================
+
+Main Goals
+==========
+
+    * Code should be compatible with Python 2.4 and above (using 2to3 for
+      conversion to Python 3.x). This may not be possible in the short term
+      for Theano-dependent code.
+
+    * Code should be easy to read, understand and update by developers and
+      users.
+
+    * Code should be well-documented and well-tested.
+
+Python Coding Guidelines
+========================
+
+Official Guidelines
+-------------------
+
+Source Material
+~~~~~~~~~~~~~~~
+
+The four main documents describing our Python coding guidelines are:
+    * `PEP 8 -- Style Guide for Python Code
+      <http://www.python.org/dev/peps/pep-0008>`_
+    * `Google Python Style Guide
+      <http://google-styleguide.googlecode.com/svn/trunk/pyguide.html>`_
+    * `PEP 257 -- Docstring Conventions
+      <http://www.python.org/dev/peps/pep-0257>`_
+    * `Numpy Docstring Standard
+      <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_
+
+
+However, there are a few points mentioned in those documents that we decided
+to do differently:
+
+    * Use only one space (not two) after a sentence-ending period in comments.
+
+      .. code-block:: python
+
+        # Good.
+        # This is the first sentence. It is followed by a single blank space.
+        # Bad.
+        # This is the first sentence.  It is followed by two blank spaces.
+
+    * You do not need to add an extra blank line before the closing quotes of
+      a multi-line docstring. Also, we ask that the first line of a multi-line
+      docstring should contain only the opening quotes.
+
+      .. code-block:: python
+
+        # Good.
+        """
+        This is a multi-line docstring.
+
+        Which means it has more than one line.
+        """
+
+        # Bad.
+        """This is a multi-line docstring.
+
+        Which means it has more than one line.
+
+        """
+
+    * Standard library imports can (and should) be on the same line, to avoid
+      wasting space on straighforward imports:
+
+      .. code-block:: python
+
+        # Good.
+        import os, sys, time
+        # Good when it does not fit on a single line.
+        import std_lib_module_1, std_lib_module_2, std_lib_module_3
+        import std_lib_module_4, std_lib_module_5, std_lib_module_6
+        # Bad.
+        import os
+        import sys
+        import time
+
+    * Importing class / functions from a module is allowed when these are
+      used multiple times, and no ambiguity is possible.
+
+      .. code-block:: python
+
+        # Good when Bar and Blah are used many times.
+        from foo import Bar, Blah
+        do_something_with(Bar(), Blah(), Bar(), Blah(), Bar(), Blah())
+        # Good in most situations.
+        import foo
+        do_something_with(foo.Bar(), foo.Blah())
+        # Bad.
+        from foo import *
+        from numpy import any   # Potential ambiguity with __builtin__.any
+
+Excerpts
+~~~~~~~~
+
+We emphasize here a few important topics that are found in the official
+guidelines:
+
+    * Only use ASCII characters in code files.
+
+    * Code indent must be done with four blank characters (no tabs).
+
+    * Limit lines to 79 characters.
+
+    * No trailing spaces.
+
+    * Naming conventions: ``ClassName``, ``TOP_LEVEL_CONSTANT``,
+      ``everything_else``.
+
+    * Comments should start with a capital letter (unless the first word is a
+      code identifier) and end with a period (short inline comments may skip
+      the period at the end).
+
+    * Imports should be listed in alphabetical order. It makes it easier to
+      verify that something is imported, and avoids duplicated imports.
+
+    * Use absolute imports only. This is compatible across a wider range of
+      Python versions, and avoids confusion about what is being
+      imported.
+
+    * Avoid renaming imported modules. This makes code more difficult to
+      re-use, and is not grep-friendly.
+
+      .. code-block:: python
+
+        # Good.
+        from theano import tensor
+        # Bad.
+        from theano import tensor as T
+
+    * Avoid using lists if all you care about is iterating on something. Using
+      lists:
+
+         - uses more memory (and possibly more CPU if the code may break out of
+           the iteration),
+         - can lead to ugly code when converted to Python 3 with 2to3,
+         - can have a different behavior if evaluating elements in the list has
+           side effects (if you want these side effects, make it explicit by
+           assigning the list to some variable before iterating on it).
+
+      +------------------------+------------------------+
+      | Iterative version      |    List version        |
+      +========================+========================+
+      | .. code-block:: python | .. code-block:: python |
+      |                        |                        |
+      |   my_dict.iterkeys     |   my_dict.keys         |
+      |   my_dict.itervalues   |   my_dict.values       |
+      |   my_dict.iteritems    |   my_dict.items        |
+      +------------------------+------------------------+
+      | .. code-block:: python | .. code-block:: python |
+      |                        |                        |
+      |   itertools.ifilter    |   filter               |
+      |   itertools.imap       |   map                  |
+      |   itertools.izip       |   zip                  |
+      +------------------------+------------------------+
+      | .. code-block:: python | .. code-block:: python |
+      |                        |                        |
+      |   xrange               |   range                |
+      +------------------------+------------------------+
+
+      Code example with ``map``:
+
+      .. code-block:: python
+
+        # Good.
+        for f_x in imap(f, x):
+            ...
+        all_f_x = map(f, x)
+        map(f, x)   # f has some side effect.
+        # Bad.
+        for element in map(f, x):
+            ...
+        imap(f, x)
+
+    * Generally prefer list comprehensions to ``map`` / ``filter``, as the former are
+      easier to read.
+
+      .. code-block:: python
+
+        # Good.
+        non_comments = [line.strip() for line in my_file.readlines()
+                                     if not line.startswith('#')]
+        # Bad.
+        non_comments = map(str.strip,
+                           ifilter(lambda line: not line.startswith('#'),
+                                   my_file.readlines()))
+ 
+    * Use ``in`` on container objects instead of using class-specific methods:
+      it is easier to read and may allow you to re-use your code with different
+      container types.
+
+      .. code-block:: python
+
+        # Good.
+        has_key = key in my_dict
+        has_substring = substring in my_string
+        # Bad.
+        has_key = my_dict.has_key(key)
+        has_substring = my_string.find(substring) >= 0
+
+    * Do not use mutable arguments as default values. Instead, use a helper
+      function (conditional expressions are forbidden at this point, see
+      below).
+
+      .. code-block:: python
+
+        # Good.
+        def f(array=None):
+            array = pylearn.if_none(array, [])
+            ...
+        # Bad.
+        def f(array=[]): # Dangerous if `array` is modified down the road.
+            ...
+
+    * All top-level classes should inherit from ``object``. It makes some
+      'under-the-hood' differences that can be very useful for Python black
+      magic adepts.
+
+      .. code-block:: python
+
+        # Good.
+        class MyClass(object):
+            pass
+        # Bad.
+        class MyClass:
+            pass
+
+    * Always raise an exception with ``raise MyException(args)`` where ``MyException``
+      inherits from ``Exception``. This is required for compatibility across
+      all versions of Python.
+
+      .. code-block:: python
+
+        # Good.
+        raise NotImplementedError('The Pylearn team is too lazy.')
+        # Bad.
+        raise NotImplementedError, 'The Pylearn team is too lazy.'
+        raise 'The Pylearn team is too lazy to implement this.'
+
+    * Use a leading underscore '_' in names of internal attributes / methods,
+      but avoid the double underscore '__' unless you know what you are
+      doing.
+
+
+Additional Recommendations
+--------------------------
+
+Things you should do even if they are not listed in official guidelines:
+
+    * All Python code files should start like this:
+
+      .. code-block:: python
+
+        """Module docstring as the first line, as usual."""
+
+        __authors__   = "Olivier Delalleau, Frederic Bastien, David Warde-Farley"
+        __copyright__ = "(c) 2010, Universite de Montreal"
+        __license__   = "3-clause BSD License"
+        __contact__   = "Name Of Current Guardian of this file <email@address>"
+
+    * Use ``//`` for integer division and ``/ float(...)`` if you want the
+      floating point operation (for readability and compatibility across all
+      versions of Python).
+
+      .. code-block:: python
+
+        # Good.
+        n_samples_per_split = n_samples // n_splits
+        mean_x = sum(x) / float(len(x))
+        # Bad.
+        n_samples_per_split = n_samples / n_splits
+        mean_x = sum(x) / len(x)
+
+    * If you really have to catch all exceptions, in general you should use
+      ``except Exception:`` rather than ``except:``, as the latter also catches
+      interrupts like when hitting Ctrl-C.
+
+      .. code-block:: python
+
+        # Good (assuming you *must* be catching all exceptions).
+        try:
+            someting_that_may_fail_in_unexpected_ways()
+        except Exception:
+            do_something_if_it_failed()
+        # Bad.
+        try:
+            someting_that_may_fail_in_unexpected_ways()
+        except:
+            do_something_if_it_failed()
+
+    * Use either ``try ... except`` or ``try ... finally``, but do not mix
+      ``except`` with ``finally`` (which is not supported in Python 2.4).
+      You can however embed one into the other to mimic the ``try ... except ...
+      finally`` behavior.
+
+      .. code-block:: python
+    
+        # Good.
+        try:
+            try:
+                something_that_may_fail_with_some_known_error()
+            except SomeError:
+                do_something_if_it_failed()
+        finally:
+            always_do_this_regardless_of_what_happened()
+        # Bad.
+        try:
+            something_that_may_fail_with_some_known_error()
+        except SomeError:
+            do_something_if_it_failed()
+        finally:
+            always_do_this_regardless_of_what_happened()
+
+    * No conditional expression (not supported in Python 2.4). These are
+      expressions of the form ``x = y if condition else z``.
+
+    * Do not use the ``all`` and ``any`` builtin functions (they are not supported
+      in Python 2.4). Instead, import them from ``theano.gof.python25`` (or
+      use ``numpy.all`` / ``numpy.any`` for array data).
+
+    * Do not use the ``hashlib`` module (not supported in Python 2.4). We will
+      probably provide a wrapper around it to be compatible with all Python
+      versions.
+
+    * Use ``numpy.inf`` and ``numpy.nan`` rather than
+      ``float('inf')`` / ``float('nan')`` (should be slightly more efficient even
+      if efficiency is typically not an issue here, the main goal being code
+      consistency). Also, always use ``numpy.isinf`` / ``numpy.isnan`` to
+      test infinite / NaN values. This is important because ``numpy.nan !=
+      float('nan')``.
+
+    * Whenever possible, mimic the numpy / scipy interfaces when writing code
+      similar to what can be found in these packages.
+
+    * Avoid backslashes whenever possible. They make it more
+      difficult to edit code, and they are ugly (as well as potentially
+      dangerous if there are trailing white spaces).
+
+      .. code-block:: python
+
+        # Good.
+        if (cond_1 and
+            cond_2 and
+            cond_3):
+
+            # Note that we added a blank line above to avoid confusion between
+            # conditions and the rest of the code (this would not have been
+            # needed if they were at significantly different indentation levels).
+            ... 
+        # Bad.
+        if cond_1 and \
+           cond_2 and \
+           cond_3:
+
+            ...
+
+    * When indenting multi-line statements like lists or function arguments,
+      keep elements of the same level aligned with each other.
+      The position of the first
+      element (on the same line or a new line) should be chosen depending on
+      what is easiest to read (sometimes both can be ok).
+      Other formattings may be ok depending on the specific situation, use
+      common sense and pick whichever looks best.
+
+      .. code-block:: python
+
+        # Good.
+        for my_very_long_variable_name in [my_foo, my_bar, my_love,
+                                           my_everything]:
+            ...
+        for my_very_long_variable_name in [
+                my_foo, my_bar, my_love, my_everything]:
+            ...
+        # Good iff the list needs to be frequently updated or is easier to
+        # understand when each element is on its own line.
+        for my_very_long_variable_name in [
+                my_foo,
+                my_bar,
+                my_love,
+                my_everything,
+                ]:
+            ...
+        # Good as long as it does not require more than two lines.
+        for my_very_long_variable_name in [my_foo,
+                                           my_bar]:
+            ...
+        # Bad.
+        for my_very_long_variable_name in [my_foo, my_bar, my_love,
+                my_everything]:
+            ...
+        for my_very_long_variable_name in [my_foo,
+                                           my_bar,
+                                           my_love,
+                                           my_everything]:
+            ...
+
+    * Use the ``key`` argument instead of ``cmp`` when sorting (for Python 3
+      compatibility).
+
+      .. code-block:: python
+
+        # Good.
+        my_list.sort(key=abs)
+        # Bad.
+        my_list.sort(cmp=lambda x, y: cmp(abs(x), abs(y)))
+
+    * Whenever you read / write binary files, specify it in the mode ('rb' for
+      reading, 'wb' for writing). This is important for cross-platform and
+      Python 3 compatibility (e.g. when pickling / unpickling objects).
+
+      .. code-block:: python
+
+        # Good.
+        cPickle.dump(obj, open('my_obj.pkl', 'wb', protocol=-1))
+        # Bad.
+        cPickle.dump(obj, open('my_obj.pkl', 'w', protocol=-1))
+
+    * Avoid tuple parameter unpacking as it can lead to very ugly code when
+      converting to Python 3.
+
+      .. code-block:: python
+
+        # Good.
+        def f(x, y_z):
+            y, z = y_z
+            ...
+        # Bad.
+        def f(x, (y, z)):
+            ...
+
+    * Only use ``cPickle``, not ``pickle`` (except for debugging purpose since
+      error messages from ``pickle`` are sometimes easier to understand).
+
+    * A script's only top-level code should be something like:
+
+      .. code-block:: python
+
+        if __name__ == '__main__':
+            sys.exit(main())
+
+    * Avoid isinstance(x, str) as this don't work with unicode string, use:
+
+      .. code-block:: python
+
+          isinstance(x, basestring)
+
+The ``logging`` Module vs. the ``warning`` Module
+=================================================
+
+No print statement should be used. Instead please use logging module. For mode details look at
+`here <https://github.com/lisa-lab/pylearn2/issues/41>`_.
+
+The ``logging`` Module
+----------------------
+
+A central logging facility for Python capable of logging messages of various
+categories/urgency and choosing with some granularity which messages are
+displayed/suppressed, as well as where they are displayed or written. This
+includes an ``INFO`` level for innocuous status information, a ``WARNING`` level
+for unexpected state that is still recoverable, ``DEBUG`` for detailed
+information which is only really of interest when things are going wrong, etc.
+
+In addition to the `library documentation`_, see this helpful tutorial,
+`Python Logging 101`_.
+
+.. _library documentation: http://docs.python.org/library/logging.html
+.. _Python Logging 101: http://plumberjack.blogspot.com/2009/09/python-logging-101.html
+
+The ``warning`` Module
+----------------------
+
+The ``warning`` module in the standard library and its main interface, the
+``warn()`` function, allows the programmer to issue warnings in situations where
+they wish to alert the user to some condition, but the situation is not
+urgent enough to throw an exception. By default, a warning issued at a given
+line of the code will only be displayed the first time that line is executed.
+By default, warnings are written to ``sys.stderr`` but the ``warning`` module
+contains flexible facilities for altering the defaults, redirecting, etc.
+
+Which? When?
+------------
+
+It is our feeling that the ``logging`` module's ``WARNING`` level be used to log
+warnings more meant for *internal*, *developer* consumption, to log situations
+where something unexpected happened that may be indicative of a problem but
+is several layers of abstraction below what a user of the library would
+care about.
+
+By contrast, the warning module should be used for warnings intended for user
+consumption, e.g. alerting them that their version of Pylearn is older than
+this plugin requires, so things may not work as expected, or that a given
+function/class/method is slated for deprecation in a coming release (early
+in the library's lifetime, ``DeprecationWarning`` will likely be the most common
+case). The warning message issued through this facility should avoid
+referring to Pylearn internals.
+
+Code Sample
+===========
+
+The following code sample illustrates some of the coding guidelines one should
+follow in Pylearn. This is still a work-in-progress. Feel free to improve it and
+add more!
+
+.. code-block:: python
+
+    #! /usr/env/bin python
+
+    """Sample code. Edit it as you like!"""
+
+    __authors__   = "Olivier Delalleau"
+    __copyright__ = "(c) 2010, Universite de Montreal"
+    __license__   = "3-clause BSD License"
+    __contact__   = "Olivier Delalleau <delallea@iro>"
+
+    # Standard library imports are on a single line.
+    import os, sys, time
+
+    # Third-party imports come after standard library imports, and there is
+    # only one import per line. Imports are sorted lexicographically.
+    import numpy
+    import scipy
+    import theano
+    # Individual 'from' imports come after packages.
+    from numpy import argmax
+    from theano import tensor
+    
+    # Application-specific imports come last.
+    # The absolute path should always be used.
+    from pylearn import datasets, learner
+    from pylearn.formulas import noise
+
+
+    # All exceptions inherit from Exception.
+    class PylearnError(Exception):
+        # TODO Write doc.
+        pass
+
+    # All top-level classes inherit from object.
+    class StorageExample(object):
+        # TODO Write doc.
+        pass
+    
+
+    # Two blank lines between definitions of top-level classes and functions.
+    class AwesomeLearner(learner.Learner):
+        # TODO Write doc.
+
+        def __init__(self, print_fields=None):
+            # TODO Write doc.
+            # print_fields is a list of strings whose counts found in the
+            # training set should be printed at the end of training. If None,
+            # then nothing is printed.
+            # Do not forget to call the parent class constructor.
+            super(AwesomeLearner, self).__init__()
+            # Use None instead of an empty list as default argument to
+            # print_fields to avoid issues with mutable default arguments.
+            self.print_fields = if_none(print_fields, [])
+        
+        # One blank line between method definitions.
+        def add_field(self, field):
+            # TODO Write doc.
+            # Test if something belongs to a container with `in`, not
+            # container-specific methods like `index`.
+            if field in self.print_fields:
+                # TODO Print a warning and do nothing.
+                pass
+            else:
+                # This is why using [] as default to print_fields in the
+                # constructor would have been a bad idea.
+                self.print_fields.append(field)
+
+        def train(self, dataset):
+            # TODO Write doc (store the mean of each field in the training
+            # set).
+            self.mean_fields = {}
+            count = {}
+            for sample_dict in dataset:
+                # Whenever it is enough for what you need, use iterative
+                # instead of list versions of dictionary methods.
+                for field, value in sample_dict.iteritems():
+                    # Keep line length to max 80 characters, using parentheses
+                    # instead of \ to continue long lines.
+                    self.mean_fields[field] = (self.mean_fields.get(field, 0) +
+                                               value)
+                    count[field] = count.get(field, 0) + 1
+            for field in self.mean_fields:
+                self.mean_fields[field] /= float(count[field])
+            for field in self.print_fields:
+                # Test is done with `in`, not `has_key`.
+                if field in self.sum_fields:
+                    # TODO Use log module instead.
+                    print '%s: %s' % (field, self.sum_fields[field])
+                else:
+                    # TODO Print warning.
+                    pass
+        
+        def test_error(self, dataset):
+            # TODO Write doc.
+            if not hasattr(self, 'sum_fields'):
+                # Exceptions should be raised as follows (in particular, no
+                # string exceptions!).
+                raise PylearnError('Cannot test a learner that was not '
+                                   'trained.')
+            error = 0
+            count = 0
+            for sample_dict in dataset:
+                for field, value in sample_dict.iteritems():
+                    try:
+                        # Minimize code into a try statement.
+                        mean = self.mean_fields[field]
+                    # Always specicy which kind of exception you are
+                    # intercepting with except.
+                    except KeyError:
+                        raise PylearnError(
+                            "Found in a test sample a field ('%s') that had "
+                            "never been seen in the training set." % field)
+                    error += (value - self.mean_fields[field])**2
+                    count += 1
+            # Remember to divide by a floating point number unless you
+            # explicitly want an integer division (in which case you should
+            # use //).
+            mse = error / float(count)
+            # TODO Use log module instead.
+            print 'MSE: %s' % mse
+            return mse
+            
+
+    def if_none(val_if_not_none, val_if_none):
+        # TODO Write doc.
+        if val_if_not_none is not None:
+            return val_if_not_none
+        else:
+            return val_if_none
+        
+
+    def print_subdirs_in(directory):
+        # TODO Write doc.
+        # Using list comprehension rather than filter.
+        sub_dirs = sorted([d for d in os.listdir(directory)
+                             if os.path.isdir(os.path.join(directory, d))])
+        print '%s: %s' % (directory, ' '.join(sub_dirs))
+        # A `for` loop is often easier to read than a call to `map`.
+        for d in sub_dirs:
+            print_subdirs_in(os.path.join(directory, d))
+
+
+    def main():
+        if len(sys.argv) != 2:
+            # Note: conventions on how to display script documentation and
+            # parse arguments are still to-be-determined. This is just one
+            # way to do it.
+            print("""\
+    Usage: %s <directory>
+    For the given directory and all sub-directories found inside it, print
+    the list of the directories they contain."""
+                  % os.path.basename(sys.argv[0]))
+            return 1
+        print_subdirs_in(sys.argv[1])
+        return 0
+
+
+    # Top-level executable code should be minimal.
+    if __name__ == '__main__':
+        sys.exit(main())
+    
+
+Automatic Code Verification
+===========================
+
+Tools will be available to make it easier to automatically ensure that code
+committed to Pylearn complies to above specifications. This work is not
+finalized yet, but David started a `Wiki page`_ with helpful configuration
+tips for Vim.
+
+.. _Wiki page: http://www.iro.umontreal.ca/~lisa/twiki/bin/view.cgi/Divers/VimPythonRecommendations
+
+Commit message
+==============
+
+    * A one line summary. Try to keep it short, and provide the information
+      that seems most useful to other developers: in particular the goal of
+      a change is more useful than its description (which is always
+      available through the changeset patch log). E.g. say "Improved stability
+      of cost computation" rather than "Replaced log(exp(a) + exp(b)) by
+      a * log(1 + exp(b -a)) in cost computation".
+    * If needed a blank line followed by a more detailed summary
+    * Make a commit for each logical modification
+        * This makes reviews easier to do
+        * This makes debugging easier as we can more easily pinpoint errors in 
+	  commits with hg bisect
+    * NEVER commit reformatting with functionality changes
+    * Review your change before commiting
+        * "hg diff <files>..." to see the diff you have done
+        * "hg record" allows you to select which changes to a file should be
+          committed. To enable it, put into the file ~/.hgrc:
+
+          .. code-block:: bash
+
+              [extensions]
+              hgext.record=
+
+        * hg record / diff force you to review your code, never commit without
+          running one of these two commands first
+    * Write detailed commit messages in the past tense, not present tense.
+        * Good: "Fixed Unicode bug in RSS API."
+        * Bad: "Fixes Unicode bug in RSS API."
+        * Bad: "Fixing Unicode bug in RSS API."
+    * Separate bug fixes from feature changes.
+    * When fixing a ticket, start the message with "Fixed #abc"
+        * Can make a system to change the ticket?
+    * When referencing a ticket, start the message with "Refs #abc"
+        * Can make a system to put a comment to the ticket?
+
+
+Theano
+======
+
+Theano used many standard for its docstring. I think we should consentrate on the more frequent: http://sphinx.pocoo.org/markup/desc.html#info-field-lists.
+
+UTF-8
+=====
+
+To make a file UTF-8 compatible, just add this line at the begining of the file:
+
+.. code-block:: python
+
+    # -*- coding: utf-8 -*-
+
+TODO
+====
+
+Things still missing from this document, being discussed in coding_style.txt:
+    - Proper style for C code
+    - Enforcing 100% test coverage of the code base
+    - Providing ways to add type checking for function arguments
+    - Conventions for script usage documentation and argument parsing
+    - Conventions for class / method / function documentation
+    - Guidelines for serialization-friendly code (hint: nested and lambda
+      functions, as well as instance methods, cannot be serialized, and
+      apparently there are some issues with decorators -- to be investigated).
+      
+
