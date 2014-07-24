@@ -198,7 +198,7 @@ def load(filepath, recurse_depth=0, retry=True):
     if not hasattr(obj,'yaml_src'):
         try:
             obj.yaml_src = '!pkl: "'+os.path.abspath(filepath)+'"'
-        except:
+        except Exception:
             pass
 
     return obj
@@ -411,7 +411,7 @@ def mkdir(filepath):
     """
     try:
         os.makedirs(filepath)
-    except:
+    except OSError:
         if not os.path.isdir(filepath):
             raise
 

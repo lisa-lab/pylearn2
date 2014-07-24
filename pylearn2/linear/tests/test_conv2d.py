@@ -8,7 +8,7 @@ import unittest
 try:
     scipy_available = True
     import scipy.ndimage
-except:
+except ImportError:
     scipy_available = False
 
 

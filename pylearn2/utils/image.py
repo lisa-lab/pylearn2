@@ -362,7 +362,7 @@ def load(filepath, rescale_image=True, dtype='float64'):
     try:
         ensure_Image()
         rval = Image.open(filepath)
-    except:
+    except Exception:
         reraise_as(Exception("Could not open " + filepath))
 
     numpy_rval = np.array(rval)

@@ -413,7 +413,7 @@ def try_to_import(tag_suffix):
                 modulename = '.'.join(pcomponents[:j])
                 try:
                     exec('import %s' % modulename)
-                except:
+                except Exception:
                     base_msg = 'Could not import %s' % modulename
                     if j > 1:
                         modulename = '.'.join(pcomponents[:j - 1])
@@ -437,7 +437,7 @@ def try_to_import(tag_suffix):
                    'Did you mean ' + match(field, candidates) + '? ' +
                    'Original error was ' + str(e))
 
-        except:
+        except Exception:
             warnings.warn("Attempt to decipher AttributeError failed")
             reraise_as(AttributeError('Could not evaluate %s. ' % tag_suffix +
                                       'Original error was ' + str(e)))

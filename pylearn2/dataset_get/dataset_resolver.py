@@ -86,7 +86,7 @@ class dataset_resolver:
         paths= ["/etc/pylearn/", os.environ["HOME"]+"/.local/share/pylearn/"]
         try:
             paths+=re.split(":|;",os.environ["PYLEARN2_DATA_PATH"])
-        except:
+        except Exception:
             # PYLEARN2_DATA_PATH may or mayn't be defined
             pass
 

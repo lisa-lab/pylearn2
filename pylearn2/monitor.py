@@ -1000,22 +1000,22 @@ class MonitorChannel(object):
         """
         try:
             graph_input_str = str(self.graph_input)
-        except:
+        except Exception:
             graph_input_str = '<bad graph input>'
 
         try:
             val_str = str(self.val)
-        except:
+        except Exception:
             val_str = '<bad val>'
 
         try:
             name_str = str(self.name)
-        except:
+        except Exception:
             name_str = '<bad name>'
 
         try:
             prereqs_str = str(self.prereqs)
-        except:
+        except Exception:
             prereqs_str = '<bad prereqs>'
 
         return "MonitorChannel(%s,%s,%s,%s)" % (graph_input_str,

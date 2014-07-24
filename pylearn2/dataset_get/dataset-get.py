@@ -335,7 +335,7 @@ def read_packages_sources():
                 os.path.join(user_conf_path,dataset_sources) ]
         try:
             paths+=[ os.path.join(x,dataset_sources) for x in re.split(":|;",os.environ["PYLEARN2_DATA_PATH"]) ]
-        except:
+        except Exception:
             # PYLEARN2_DATA_PATH may or mayn't be defined
             pass
 
@@ -407,7 +407,7 @@ def read_installed_packages_list():
                 os.path.join(user_conf_path,"installed.lst") ]
         try:
             paths+=[ os.path.join(x,"installed.lst") for x in re.split(":|;",os.environ["PYLEARN2_DATA_PATH"]) ]
-        except:
+        except Exception:
             # PYLEARN2_DATA_PATH may or mayn't be defined
             pass
 

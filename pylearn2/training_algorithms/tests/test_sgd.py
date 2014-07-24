@@ -622,7 +622,7 @@ def test_bad_monitoring_input_in_monitor_based_lr():
         train.main_loop()
     except ValueError as e:
         pass
-    except:
+    except Exception:
         reraise_as(AssertionError("MonitorBasedLRAdjuster takes dataset_name "
                                   "that is invalid "))
 
@@ -641,7 +641,7 @@ def test_bad_monitoring_input_in_monitor_based_lr():
         train2.main_loop()
     except ValueError as e:
         pass
-    except:
+    except Exception:
         reraise_as(AssertionError("MonitorBasedLRAdjuster takes channel_name "
                                   "that is invalid "))
 

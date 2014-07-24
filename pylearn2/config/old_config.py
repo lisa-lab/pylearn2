@@ -20,7 +20,7 @@ def load(json_file_path):
 def get_field(d, key):
     try:
         rval = d[key]
-    except:
+    except KeyError:
         reraise_as(ValueError('Could not access "'+key+'" in \n'+str(d)))
     return rval
 
@@ -42,7 +42,7 @@ def resolve(d):
 
     try:
         resolver = resolvers[tag]
-    except:
+    except KeyError:
         reraise_as(TypeError('config does not know of any object type "'+tag+'"'))
 
     return resolver(d)

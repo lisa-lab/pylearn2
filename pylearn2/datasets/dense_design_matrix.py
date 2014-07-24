@@ -1511,7 +1511,7 @@ def from_dataset(dataset, num_examples):
 
         V, y = dataset.get_batch_topo(num_examples, True)
 
-    except:
+    except TypeError:
 
         # This patches a case where control.get_load_data() is false so
         # dataset.X is None This logic should be removed whenever we implement

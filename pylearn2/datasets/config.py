@@ -22,7 +22,7 @@ def resolve(d):
 
     try:
         resolver = resolvers[t]
-    except:
+    except KeyError:
         reraise_as(TypeError('pylearn2.datasets does not know of a dataset type "'+t+'"'))
 
     return resolver(d)
