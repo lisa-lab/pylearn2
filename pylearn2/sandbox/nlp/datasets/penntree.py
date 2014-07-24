@@ -129,7 +129,7 @@ class PennTreebankSequences(VectorSpacesDataset, PennTreebank):
         Whether to shuffle the samples or go through the dataset
         linearly
     """
-    def __init__(self, which_set, context_len, data_mode, shuffle=True):
+    def __init__(self, which_set, data_mode, context_len=None, shuffle=True):
         self._load_data(which_set, context_len, data_mode)
         source = ('features', 'targets')
         space = CompositeSpace([
@@ -137,6 +137,8 @@ class PennTreebankSequences(VectorSpacesDataset, PennTreebank):
             SequenceDataSpace(IndexSpace(dim=1, max_labels=self._max_labels))
         ])
 
+        if context_len is None:
+            context_len = len(self._raw_data) - 1
         X = np.asarray(
             [self._raw_data[:-1][i * context_len:(i + 1) * context_len,
                                  np.newaxis]
