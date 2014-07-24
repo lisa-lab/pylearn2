@@ -96,9 +96,9 @@ class OneHotFormatter(object):
             raise TypeError("need an integer array for targets")
         if sparse:
             if not scipy_available:
-                raise ImportError("The converting of indices to a sparse "
-                                  "one-hot vector requires scipy to be "
-                                  "installed")
+                raise RuntimeError("The converting of indices to a sparse "
+                                   "one-hot vector requires scipy to be "
+                                   "installed")
             if mode == 'concatenate':
                 one_hot = scipy.sparse.csr_matrix(
                     (np.ones(targets.size, dtype=self._dtype),
