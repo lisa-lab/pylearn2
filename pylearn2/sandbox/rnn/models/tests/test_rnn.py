@@ -8,8 +8,8 @@ from theano import function
 from theano import tensor
 
 from pylearn2.costs.mlp import Default
-from pylearn2.models.mlp import MLP, Linear
-from pylearn2.sandbox.rnn.models.rnn import Recurrent
+from pylearn2.models.mlp import Linear
+from pylearn2.sandbox.rnn.models.rnn import Recurrent, RNN
 from pylearn2.sandbox.rnn.space import SequenceSpace
 from pylearn2.space import VectorSpace
 
@@ -27,7 +27,7 @@ class TestRNNs(unittest.TestCase):
         Use an RNN without non-linearity to create the Mersenne numbers
         (2 ** n - 1) to check whether fprop works correctly.
         """
-        rnn = MLP(input_space=SequenceSpace(VectorSpace(dim=1)),
+        rnn = RNN(input_space=SequenceSpace(VectorSpace(dim=1)),
                   layers=[Recurrent(dim=1, layer_name='recurrent',
                                     irange=0.1, indices=[-1],
                                     nonlinearity=lambda x: x)])
@@ -51,7 +51,7 @@ class TestRNNs(unittest.TestCase):
         Use an RNN to calculate Mersenne number sequences of different
         lengths and check whether the costs make sense.
         """
-        rnn = MLP(input_space=SequenceSpace(VectorSpace(dim=1)),
+        rnn = RNN(input_space=SequenceSpace(VectorSpace(dim=1)),
                   layers=[Recurrent(dim=1, layer_name='recurrent',
                                     irange=0, nonlinearity=lambda x: x),
                           Linear(dim=1, layer_name='linear', irange=0)])
@@ -93,7 +93,7 @@ class TestRNNs(unittest.TestCase):
         Testing to see whether the gradient can be calculated when using
         a 1-dimensional hidden state.
         """
-        rnn = MLP(input_space=SequenceSpace(VectorSpace(dim=1)),
+        rnn = RNN(input_space=SequenceSpace(VectorSpace(dim=1)),
                   layers=[Recurrent(dim=1, layer_name='recurrent',
                                     irange=0, nonlinearity=lambda x: x),
                           Linear(dim=1, layer_name='linear', irange=0)])
@@ -109,7 +109,7 @@ class TestRNNs(unittest.TestCase):
         """
         Testing to see whether the gradient can be calculated.
         """
-        rnn = MLP(input_space=SequenceSpace(VectorSpace(dim=1)),
+        rnn = RNN(input_space=SequenceSpace(VectorSpace(dim=1)),
                   layers=[Recurrent(dim=2, layer_name='recurrent',
                                     irange=0, nonlinearity=lambda x: x),
                           Linear(dim=1, layer_name='linear', irange=0)])

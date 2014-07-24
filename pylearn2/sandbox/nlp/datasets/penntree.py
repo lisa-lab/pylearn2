@@ -115,6 +115,7 @@ class PennTreebankNGrams(DenseDesignMatrix, PennTreebank):
 class PennTreebankSequences(VectorSpacesDataset, PennTreebank):
     """
     Loads sequences from the PennTreebank corpus.
+
     Parameters
     ----------
     which_set : {'train', 'valid', 'test'}

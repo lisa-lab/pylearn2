@@ -36,6 +36,7 @@ class RNN(MLP):
                                   input_source, nvis, seed, layer_name,
                                   **kwargs)
 
+    @wraps(MLP.get_target_source)
     def get_target_source(self):
         target_source = self.add_mask_source(self.get_target_space(),
                                              'targets')
@@ -46,6 +47,11 @@ class RNN(MLP):
         """
         This is a recursive helper function to go
         through the nested spaces and tuples
+
+        Parameters
+        ----------
+        space : Space
+        source : string
         """
         if isinstance(space, CompositeSpace):
             if not isinstance(space, SequenceSpace):
