@@ -44,6 +44,8 @@ def reraise_as(new_exc):
     ----------
     new_exc : Exception isinstance
         The new error to be raised e.g. (ValueError("New message"))
+        or a string that will be prepended to the original exception
+        message
 
     Examples
     --------
@@ -53,6 +55,9 @@ def reraise_as(new_exc):
     >>>     reraise_as(UnhandledException("Informative message"))
     """
     orig_exc_type, orig_exc_value, orig_exc_traceback = sys.exc_info()
+
+    if isinstance(new_exc, basestring):
+        new_exc = orig_exc_type(new_exc)
 
     if hasattr(new_exc, 'args') and len(new_exc.args) > 0:
         new_message = new_exc.args[0]
