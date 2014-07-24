@@ -59,8 +59,11 @@ def reraise_as(new_exc):
     if isinstance(new_exc, basestring):
         new_exc = orig_exc_type(new_exc)
 
-    if hasattr(new_exc, 'args') and len(new_exc.args) > 0:
-        new_message = new_exc.args[0]
+    if hasattr(new_exc, 'args'):
+        if len(new_exc.args) > 0:
+            new_message = new_exc.args[0]
+        else:
+            new_message = ""
         new_message += ('\n\nOriginal exception:\n\t' + orig_exc_type.__name__)
         if hasattr(orig_exc_value, 'args') and len(orig_exc_value.args) > 0:
             new_message += ': ' + orig_exc_value.args[0]
