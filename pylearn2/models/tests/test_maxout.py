@@ -405,7 +405,7 @@ class TestMaxout(unittest.TestCase):
             cuda.use('gpu')
             config.floatX = 'float32'
             try:
-                if config.mode == 'DEBUG_MODE':
+                if config.mode in ['DEBUG_MODE', 'DebugMode']:
                     train = yaml_parse.load(yaml_string_maxout_conv_c01b_cifar10_fast)
                 else:
                     train = yaml_parse.load(yaml_string_maxout_conv_c01b_cifar10)
@@ -416,13 +416,13 @@ class TestMaxout(unittest.TestCase):
             # Check that the performance is close to the expected one:
             # test_y_misclass: 0.3777000308036804
             misclass_chan = train.algorithm.monitor.channels['test_y_misclass']
-            if not config.mode == 'DEBUG_MODE':
+            if not config.mode in ['DEBUG_MODE', 'DebugMode']:
                 assert misclass_chan.val_record[-1] < 0.38, \
                     ("misclass_chan.val_record[-1] = %g" %
                      misclass_chan.val_record[-1])
             # test_y_nll: 1.0978516340255737
             nll_chan = train.algorithm.monitor.channels['test_y_nll']
-            if not config.mode == 'DEBUG_MODE':
+            if not config.mode in ['DEBUG_MODE', 'DebugMode']:
                 assert nll_chan.val_record[-1] < 1.1
         finally:
             config.floatX = old_floatX
