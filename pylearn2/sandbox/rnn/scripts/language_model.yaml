@@ -35,8 +35,8 @@
   #   ],
   # },
   algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
-    learning_rate: 0.000001,
-    learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {},
+    learning_rate: 0.1,
+    # learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {},
     batch_size: 32,
     monitoring_batch_size: 1,
     monitoring_dataset: {
@@ -51,5 +51,12 @@
       cost: !obj:pylearn2.costs.mlp.Default {}
     }
   },
+  extensions: [
+    !obj:pylearn2.training_algorithms.sgd.MonitorBasedLRAdjuster {
+      low_trigger: 1,
+      shrink_amt: 0.9,
+      channel_name: 'valid_softmax_nll',
+    }
+  ],
   save_freq: 1,
 }
