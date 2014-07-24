@@ -50,7 +50,7 @@ def preprocess(string, environ=None):
                    else os.environ[varname])
         except KeyError:
             if varname == 'PYLEARN2_DATA_PATH':
-                reraise_as(NoDataPathError)
+                reraise_as(NoDataPathError())
             if varname == 'PYLEARN2_VIEWER_COMMAND':
                 reraise_as(EnvironmentVariableError(
                     viewer_command_error_essay + environment_variable_essay)
