@@ -158,7 +158,8 @@ class RNNWrapper(MetaLibVersion):
                 return get_layer_monitoring_channels(self, state_below, state,
                                                      targets)
             else:  # Not RNN-friendly, but not requiring reshape
-                return get_layer_monitoring_channels(self, state_below)
+                return get_layer_monitoring_channels(self, state_below, state,
+                                                     targets)
         return outer
 
     @classmethod
