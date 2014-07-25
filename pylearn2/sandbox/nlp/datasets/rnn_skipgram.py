@@ -83,12 +83,12 @@ class H5RnnSkipgram(H5Shuffle):
         targets_source = tuple('target'+str(i) for i in range(len(targets_space)))
 
         spaces = [features_space] + targets_space
-        print "Space len", len(spaces)
+        #print "Space len", len(spaces)
         space = CompositeSpace(spaces)
         source = (features_source,)+ targets_source
-        print "source len", len(source)
+        #print "source len", len(source)
         self.data_specs = (space, source)
-        print self.data_specs
+        #print self.data_specs
         self._sequence_lengths = [1]*cache_size
 
         def getFeatures(indexes):
@@ -118,11 +118,15 @@ class H5RnnSkipgram(H5Shuffle):
                 #if len(seq) < 1:
                    # print "Word index", word, "Returns empty sequence", string
                 seq.append([self._eow])
-
                 return numpy.asarray(seq)
 
             for word in preX:
                 X.append(make_sequence(word))
+               # #####
+               # min_len = 100
+               # if len(X)<min_len:
+               #     min_len=len(seq)
+               # ####
             X = numpy.asarray(X)
             y = numpy.concatenate((ngrams[:,range(middle)], ngrams[:,range(middle+1,self.frame_length)]), axis=1)
             
@@ -151,7 +155,7 @@ class H5RnnSkipgram(H5Shuffle):
             lambda indexes: getTarget(5, indexes)]
         # targetFNs = [(lambda indexes: getTarget(i, indexes)) for i in range(len(targets_space))]
         self.sourceFNs = {'target'+str(i): targetFNs[i] for i in range(len(targets_space))}
-        print "sourceFNs", self.sourceFNs
+        #print "sourceFNs", self.sourceFNs
         self.sourceFNs['features'] =  getFeatures
       
     def _load_dicts(self):
