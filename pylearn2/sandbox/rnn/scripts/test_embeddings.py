@@ -5,7 +5,7 @@ from scipy.spatial import cKDTree
 from scipy.spatial.distance import cosine
 import theano as t
 
-path = '/data/lisa/exp/kimtaeho/char_embedding/rc_char_embeddings.pkl'
+path = '/data/lisa/exp/kimtaeho/char_embedding/rc_char_embeddings_small.pkl'
 embeddings_path = '/data/lisa/data/word2vec/embeddings.h5'
 chars_path = '/data/lisa/data/word2vec/char_vocab.pkl'
 _path = '/data/lisa/data/word2vec/characters.pkl'
@@ -29,7 +29,7 @@ print len(valid_chars), "valid chars"
 print len (train_chars), "train chars"
 
 # all_chars = valid_chars + train_chars
-all_chars = train_chars
+all_chars = train_chars[:100]
 print len(all_chars), "all chars"
 
 with tables.open_file(embeddings_path) as f:
@@ -80,7 +80,7 @@ def stringToArr(string):
 
 def closest(vec, n):
     words = []
-    dists = [(cosine(vec,all_embeddings[i]), i) for i in range(100000)]
+    dists = [(cosine(vec,all_embeddings[i]), i) for i in range(100)]
     for k in range(n):
         index = min(dists)[1]
         dists[index] = (float("inf"),index)
@@ -105,9 +105,9 @@ def run_string(word):
     print word, ":", close
 
 def run_index(index):
-    close = findClose(run_example(train_chars[index]))
+    close = findClose(run_example(all_chars[index]))
     print makeWord(index), ":", close
 
 if __name__ == "__main__":
-    map(run_string, ['monarch', 'democracy', 'political', 'raspberry', 'blueberry', 'accomplishment', 'applying', 'application'])
-    map(run_index, range(150, 200))
+    #map(run_string, ['monarch', 'democracy', 'political', 'raspberry', 'blueberry', 'accomplishment', 'applying', 'application'])
+    map(run_index, range(0, 10))

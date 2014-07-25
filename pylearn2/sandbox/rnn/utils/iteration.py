@@ -38,7 +38,6 @@ class SequentialSubsetIterator(iteration.SequentialSubsetIterator):
             The lengths of the sequences in the same order as indices.
         """
         # TODO This needs to be optimized a lot; very slow right now
-        print "Starting create Batches"
         seen = set()
         batches = {}
         length_addons = {}
@@ -74,7 +73,6 @@ class SequentialSubsetIterator(iteration.SequentialSubsetIterator):
         #     seen.update(batch)
         #     batches.append(batch)
         # self._batches = batches
-        print "Ended create batches"
 
     @wraps(iteration.SequentialSubsetIterator.next)
     def next(self):
