@@ -47,6 +47,15 @@ def reraise_as(new_exc):
         or a string that will be prepended to the original exception
         message
 
+    Notes
+    -----
+    Note that when reraising exceptions, the arguments of the original
+    exception are cast to strings and appended to the error message. If
+    you want to retain the original exception arguments, please use:
+
+    >>> except Exception as e:
+    >>>     reraise_as(NewException("Extra information", *e.args))
+
     Examples
     --------
     >>> try:
@@ -61,13 +70,20 @@ def reraise_as(new_exc):
 
     if hasattr(new_exc, 'args'):
         if len(new_exc.args) > 0:
-            new_message = new_exc.args[0]
+            # We add all the arguments to the message, to make sure that this
+            # information isn't lost if this exception is reraised again
+            new_message = ', '.join(str(arg) for arg in new_exc.args)
         else:
             new_message = ""
-        new_message += ('\n\nOriginal exception:\n\t' + orig_exc_type.__name__)
+        new_message += '\n\nOriginal exception:\n\t' + orig_exc_type.__name__
         if hasattr(orig_exc_value, 'args') and len(orig_exc_value.args) > 0:
-            new_message += ': ' + orig_exc_value.args[0]
+            if getattr(orig_exc_value, 'reraised', False):
+                new_message += ': ' + str(orig_exc_value.args[0])
+            else:
+                new_message += ': ' + ', '.join(str(arg)
+                                                for arg in orig_exc_value.args)
         new_exc.args = (new_message,) + new_exc.args[1:]
 
     new_exc.__cause__ = orig_exc_value
+    new_exc.reraised = True
     raise type(new_exc), new_exc, orig_exc_traceback
