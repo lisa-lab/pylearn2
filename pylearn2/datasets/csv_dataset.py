@@ -28,13 +28,15 @@ class CSVDataset(DenseDesignMatrix):
 
     Parameters
     ----------
-    path : WRITEME
-    one_hot : WRITEME
-    expect_labels : WRITEME
-    expect_headers : WRITEME
-    delimiter : WRITEME
-    start : WRITEME
-    stop : WRITEME
+    path : The path to the CSV file.
+    one_hot : Whether the target variable (i.e. "label") should be encoded as a one-hot vector.
+    expect_labels : Whether the CSV file contains a target variable in the first column.
+    expect_headers : Whether the CSV file contains column headers.
+    delimiter : The CSV file's delimiter.
+    start : The first row of the CSV file to load.
+    stop : The last row of the CSV file to load.
+    start_fraction: The fraction of rows, starting at the beginning of the file, to load.
+    end_fraction: The fraction of rows, starting at the end of the file, to load.
     """
 
     def __init__(self, 
