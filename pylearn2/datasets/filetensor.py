@@ -23,6 +23,8 @@ import logging
 
 import numpy
 
+from pylearn2.utils.exc import reraise_as
+
 logger = logging.getLogger(__name__)
 
 
@@ -278,7 +280,7 @@ def write(f, mat):
     try:
         _write_int32(f, _dtype_magic[str(mat.dtype)])
     except KeyError:
-        raise TypeError('Invalid ndarray dtype for filetensor format', mat.dtype)
+        reraise_as(TypeError('Invalid ndarray dtype for filetensor format', mat.dtype))
 
     _write_int32(f, len(mat.shape))
     shape = mat.shape

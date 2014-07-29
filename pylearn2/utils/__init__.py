@@ -18,6 +18,8 @@ cuda = None
 import numpy as np
 
 from functools import partial
+
+from pylearn2.utils.exc import reraise_as
 WRAPPER_ASSIGNMENTS = ('__module__', '__name__')
 WRAPPER_CONCATENATIONS = ('__doc__',)
 WRAPPER_UPDATES = ('__dict__',)
@@ -538,9 +540,9 @@ def update_wrapper(wrapper,
                 try:
                     index = split_stripped.index(replace_before.strip())
                 except ValueError:
-                    raise ValueError('no line equal to "%s" in wrapped '
-                                     'function\'s attribute %s' %
-                                     (replace_before, attr))
+                    reraise_as(ValueError('no line equal to "%s" in wrapped '
+                                          'function\'s attribute %s' %
+                                          (replace_before, attr)))
                 wrapped_val = '\n' + '\n'.join(split[index:])
             else:
                 wrapped_val = getattr(wrapped, attr)

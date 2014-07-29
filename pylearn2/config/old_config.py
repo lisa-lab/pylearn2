@@ -2,6 +2,8 @@ import yaml
 import inspect
 import types
 
+from pylearn2.utils.exc import reraise_as
+
 global resolvers
 
 def load(json_file_path):
@@ -18,8 +20,8 @@ def load(json_file_path):
 def get_field(d, key):
     try:
         rval = d[key]
-    except:
-        raise ValueError('Could not access "'+key+'" in \n'+str(d))
+    except KeyError:
+        reraise_as(ValueError('Could not access "'+key+'" in \n'+str(d)))
     return rval
 
 def get_str(d, key):
@@ -40,8 +42,8 @@ def resolve(d):
 
     try:
         resolver = resolvers[tag]
-    except:
-        raise TypeError('config does not know of any object type "'+tag+'"')
+    except KeyError:
+        reraise_as(TypeError('config does not know of any object type "'+tag+'"'))
 
     return resolver(d)
 

@@ -108,7 +108,7 @@ if __name__ == "__main__":
                 try:
                     delattr(orig_obj,field)
 
-                except:
+                except AttributeError:
                     #TODO: add a config flag to allow printing the following messages
                     #print "got error trying to delete "+field
                     idx += 1

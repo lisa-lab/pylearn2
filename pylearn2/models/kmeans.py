@@ -12,7 +12,7 @@ import warnings
 
 try:
     import milk
-except:
+except ImportError:
     milk = None
     warnings.warn(""" Install milk ( http://packages.python.org/milk/ )
                     It has a better k-means implementation. Falling back to

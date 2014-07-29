@@ -10,6 +10,8 @@ else:
     scipy_available = False
 from theano import tensor, config
 
+from pylearn2.utils.exc import reraise_as
+
 
 class OneHotFormatter(object):
     """
@@ -33,8 +35,8 @@ class OneHotFormatter(object):
         try:
             np.empty(max_labels)
         except (ValueError, TypeError):
-            raise ValueError("%s got bad max_labels argument '%s'" %
-                             (self.__class__.__name__, str(max_labels)))
+            reraise_as(ValueError("%s got bad max_labels argument '%s'" %
+                                  (self.__class__.__name__, str(max_labels))))
         self._max_labels = max_labels
         if dtype is None:
             self._dtype = config.floatX
@@ -42,8 +44,8 @@ class OneHotFormatter(object):
             try:
                 np.dtype(dtype)
             except TypeError:
-                raise TypeError("%s got bad dtype identifier %s" %
-                                (self.__class__.__name__, str(dtype)))
+                reraise_as(TypeError("%s got bad dtype identifier %s" %
+                                     (self.__class__.__name__, str(dtype))))
             self._dtype = dtype
 
     def format(self, targets, mode='stack', sparse=False):

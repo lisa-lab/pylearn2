@@ -18,6 +18,7 @@ from pylearn2.model_extensions.model_extension import ModelExtension
 from pylearn2.space import NullSpace
 from pylearn2.utils import function
 from pylearn2.utils import safe_zip
+from pylearn2.utils.exc import reraise_as
 from pylearn2.utils.track_version import MetaLibVersion
 
 
@@ -685,7 +686,7 @@ class Model(object):
         try:
             assert all(isinstance(n, basestring) for n in iter(names))
         except (TypeError, AssertionError):
-            raise ValueError('Invalid names argument')
+            reraise_as(ValueError('Invalid names argument'))
         # Quick check in case __init__ was never called, e.g. by a derived
         # class.
         if not hasattr(self, 'names_to_del'):

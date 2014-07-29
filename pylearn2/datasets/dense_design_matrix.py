@@ -37,6 +37,7 @@ from pylearn2.datasets.dataset import Dataset
 from pylearn2.datasets import control
 from pylearn2.space import CompositeSpace, Conv2DSpace, VectorSpace, IndexSpace
 from pylearn2.utils import safe_zip
+from pylearn2.utils.exc import reraise_as
 from pylearn2.utils.rng import make_np_rng
 from theano import config
 
@@ -914,9 +915,9 @@ class DenseDesignMatrix(Dataset):
             idx = self.rng.randint(self.X.shape[0] - batch_size + 1)
         except ValueError:
             if batch_size > self.X.shape[0]:
-                raise ValueError("Requested %d examples from a dataset "
-                                 "containing only %d." %
-                                 (batch_size, self.X.shape[0]))
+                reraise_as(ValueError("Requested %d examples from a dataset "
+                                      "containing only %d." %
+                                      (batch_size, self.X.shape[0])))
             raise
         rx = self.X[idx:idx + batch_size, :]
         if include_labels:
@@ -1510,7 +1511,7 @@ def from_dataset(dataset, num_examples):
 
         V, y = dataset.get_batch_topo(num_examples, True)
 
-    except:
+    except TypeError:
 
         # This patches a case where control.get_load_data() is false so
         # dataset.X is None This logic should be removed whenever we implement

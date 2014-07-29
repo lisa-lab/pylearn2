@@ -18,7 +18,7 @@ SAVE_PATH = os.path.dirname(os.path.realpath(__file__))
 def cleaunup(file_name):
     try:
         os.remove(os.path.join(SAVE_PATH, file_name))
-    except:
+    except OSError:
         pass
 
 

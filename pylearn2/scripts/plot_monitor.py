@@ -85,7 +85,7 @@ def main():
     for i, arg in enumerate(model_paths):
         try:
             model = serial.load(arg)
-        except:
+        except Exception:
             if arg.endswith('.yaml'):
                 print >> sys.stderr, arg + " is a yaml config file," + \
                 "you need to load a trained model."

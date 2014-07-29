@@ -23,6 +23,7 @@ import numpy as np
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_izip, wraps
 from pylearn2.utils.data_specs import is_flat_specs
+from pylearn2.utils.exc import reraise_as
 from pylearn2.utils.rng import make_np_rng
 
 # Make sure that the docstring uses restructured text list format.
@@ -791,7 +792,7 @@ class FiniteDatasetIterator(object):
                             msg = str(e) + '\nMake sure that the model and '\
                                            'dataset have been initialized with '\
                                            'correct values.'
-                            raise ValueError(msg)
+                            reraise_as(ValueError(msg))
                 else:
                     fn = (lambda batch, dspace=dspace, sp=sp, fn_=fn:
                           dspace.np_format_as(fn_(batch), sp))

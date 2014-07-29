@@ -4,6 +4,7 @@ import os
 import re
 
 from pylearn2.utils.exc import EnvironmentVariableError, NoDataPathError
+from pylearn2.utils.exc import reraise_as
 from pylearn2.utils.python26 import cmp_to_key
 from pylearn2.utils.common_strings import environment_variable_essay
 
@@ -49,14 +50,15 @@ def preprocess(string, environ=None):
                    else os.environ[varname])
         except KeyError:
             if varname == 'PYLEARN2_DATA_PATH':
-                raise NoDataPathError()
+                reraise_as(NoDataPathError())
             if varname == 'PYLEARN2_VIEWER_COMMAND':
-                raise EnvironmentVariableError(viewer_command_error_essay +
-                                               environment_variable_essay)
+                reraise_as(EnvironmentVariableError(
+                    viewer_command_error_essay + environment_variable_essay)
+                )
 
-            raise ValueError('Unrecognized environment variable "' +
-                             varname + '". Did you mean ' +
-                             match(varname, os.environ.keys()) + '?')
+            reraise_as(ValueError('Unrecognized environment variable "' +
+                                  varname + '". Did you mean ' +
+                                  match(varname, os.environ.keys()) + '?'))
 
         rval.append(val)
 

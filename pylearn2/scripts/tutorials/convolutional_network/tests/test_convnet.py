@@ -40,6 +40,6 @@ def test_convolutional_network():
 
     try:
         os.remove("{}/convolutional_network_best.pkl".format(save_path))
-    except:
+    except OSError:
         pass
 

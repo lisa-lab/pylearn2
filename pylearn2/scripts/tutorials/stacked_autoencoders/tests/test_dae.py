@@ -70,7 +70,7 @@ def test_sda():
     try:
         os.remove("{}/dae_l1.pkl".format(save_path))
         os.remove("{}/dae_l2.pkl".format(save_path))
-    except:
+    except OSError:
         pass
 
 if __name__ == '__main__':

@@ -49,7 +49,7 @@ def test():
     try:
         os.remove("{}/softmax_regression.pkl".format(save_path))
         os.remove("{}/softmax_regression_best.pkl".format(save_path))
-    except:
+    except OSError:
         pass
 
 if __name__ == '__main__':
