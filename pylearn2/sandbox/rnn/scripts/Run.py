@@ -6,16 +6,16 @@ dirname=os.path.abspath(os.path.dirname(__file__))
 
 def get_hparams(fname,train):
    
-    n_hids = 100
-    stop = 1000
-    postfix = '_Mom'
+    n_hids = 800
+    stop = 1e5
+    postfix = ''
     
     save_path = os.path.join('result/%s_'%time.strftime("%m%d"))
     #if not os.path.exists(save_path):
     #    os.makedirs(save_path)
     save_path += fname \
         +'_'+ str(n_hids) \
-        +'_'+ str(stop) \
+        +'_'+ str(int(stop)) \
         + postfix
 
     if '.RecursiveConvolutionalLayer' in train:

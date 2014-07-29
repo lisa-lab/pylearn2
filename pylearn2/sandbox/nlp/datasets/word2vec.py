@@ -66,7 +66,6 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
             (means, stds) = cPickle.load(f)
 
         y = (y - means)/stds
-        import ipdb;ipdb.set_trace()
         source = ('features', 'targets')
         space = CompositeSpace([SequenceSpace(IndexSpace(dim=1,
                                                          max_labels=101)),
