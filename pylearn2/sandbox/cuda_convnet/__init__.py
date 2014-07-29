@@ -41,8 +41,11 @@ The copyright and licensing notice for this code is reproduced below:
  */
 
 """
+import warnings
 
 from theano.sandbox import cuda
+from theano import config
+
 
 def check_cuda(feature_name="You are using code that relies on cuda-convnet. Cuda-convnet"):
     """
@@ -56,6 +59,17 @@ def check_cuda(feature_name="You are using code that relies on cuda-convnet. Cud
                 "seem to be a GPU available. If you would like assistance making "
                 "a CPU version of convolutional maxout, contact "
                 "pylearn-dev@googlegroups.com." % feature_name)
+
+    if not hasattr(cuda.cuda_ndarray.cuda_ndarray, 'cublas_v2'):
+        warnings.warn(
+            "You are using probably a too old Theano version. That"
+            " will cause compilation crash. If so, update Theano and delete"
+            " your theano cache at %s" % config.compiledir)
+    elif not cuda.cuda_ndarray.cuda_ndarray.cublas_v2():
+        raise RuntimeError ("You are using probably a too old Theano version."
+                            " That will cause compilation crash. Update Theano"
+                            "and delete your theano cache at %s" %
+                            config.compiledir)
 
     if not cuda.cuda_enabled:
         raise RuntimeError("%s must run be with theano configured to use the GPU" % feature_name)
