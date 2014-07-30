@@ -29,6 +29,7 @@ from pylearn2.models.dbm import init_sigmoid_bias_from_marginals
 from pylearn2.space import VectorSpace, CompositeSpace, Conv2DSpace, Space
 from pylearn2.utils import is_block_gradient
 from pylearn2.utils import sharedX, safe_zip, py_integer_types, block_gradient
+from pylearn2.utils.exc import reraise_as
 from pylearn2.utils.rng import make_theano_rng
 """
 .. todo::
@@ -2786,7 +2787,7 @@ class ConvMaxPool(HiddenLayer):
             try:
                 self.output_space.validate(msg)
             except TypeError, e:
-                raise TypeError(str(type(layer_above))+".downward_message gave something that was not the right type: "+str(e))
+                reraise_as(TypeError(str(type(layer_above))+".downward_message gave something that was not the right type: "+str(e)))
         else:
             msg = None
 
@@ -3288,7 +3289,7 @@ class ConvC01B_MaxPool(HiddenLayer):
             try:
                 self.output_space.validate(msg)
             except TypeError, e:
-                raise TypeError(str(type(layer_above))+".downward_message gave something that was not the right type: "+str(e))
+                reraise_as(TypeError(str(type(layer_above))+".downward_message gave something that was not the right type: "+str(e)))
         else:
             msg = None
 

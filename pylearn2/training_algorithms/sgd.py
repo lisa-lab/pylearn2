@@ -33,6 +33,7 @@ from pylearn2.utils import safe_zip
 from pylearn2.utils import serial
 from pylearn2.utils import sharedX
 from pylearn2.utils.data_specs import DataSpecsMapping
+from pylearn2.utils.exc import reraise_as
 from pylearn2.utils.timing import log_timing
 from pylearn2.utils.rng import make_np_rng
 
@@ -598,7 +599,7 @@ class MonitorBasedLRAdjuster(TrainExtension):
                     'specify a valid monitoring channel by using either ' + \
                     'dataset_name or channel_name in the ' + \
                     'MonitorBasedLRAdjuster constructor. ' + err_input
-            raise ValueError(err_message)
+            reraise_as(ValueError(err_message))
 
         if len(v) < 1:
             if monitor.dataset is None:

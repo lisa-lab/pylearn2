@@ -2,10 +2,15 @@
 from operator import mul
 
 import numpy as np
-import scipy
-import scipy.sparse
 import theano.sparse
+if theano.sparse.enable_sparse:
+    scipy_available = True
+    import scipy.sparse
+else:
+    scipy_available = False
 from theano import tensor, config
+
+from pylearn2.utils.exc import reraise_as
 
 
 class OneHotFormatter(object):
@@ -30,8 +35,8 @@ class OneHotFormatter(object):
         try:
             np.empty(max_labels)
         except (ValueError, TypeError):
-            raise ValueError("%s got bad max_labels argument '%s'" %
-                             (self.__class__.__name__, str(max_labels)))
+            reraise_as(ValueError("%s got bad max_labels argument '%s'" %
+                                  (self.__class__.__name__, str(max_labels))))
         self._max_labels = max_labels
         if dtype is None:
             self._dtype = config.floatX
@@ -39,8 +44,8 @@ class OneHotFormatter(object):
             try:
                 np.dtype(dtype)
             except TypeError:
-                raise TypeError("%s got bad dtype identifier %s" %
-                                (self.__class__.__name__, str(dtype)))
+                reraise_as(TypeError("%s got bad dtype identifier %s" %
+                                     (self.__class__.__name__, str(dtype))))
             self._dtype = dtype
 
     def format(self, targets, mode='stack', sparse=False):
@@ -92,6 +97,10 @@ class OneHotFormatter(object):
         if 'int' not in str(targets.dtype):
             raise TypeError("need an integer array for targets")
         if sparse:
+            if not scipy_available:
+                raise RuntimeError("The converting of indices to a sparse "
+                                   "one-hot vector requires scipy to be "
+                                   "installed")
             if mode == 'concatenate':
                 one_hot = scipy.sparse.csr_matrix(
                     (np.ones(targets.size, dtype=self._dtype),

@@ -194,6 +194,15 @@ low-level exceptions like `KeyboardInterrupt`, `SystemExit`, etc. that
 inherit from `BaseException` instead. You almost certainly do not want your
 code to catch these.
 
+Don't raise a new exception, use the `reraise_as` method from
+`pylearn2.utils.exc` instead.::
+
+    except Exception:
+        reraise_as(ValueError("Informative error message here"))
+
+This retains the traceback and original error message, allowing for
+easier debugging using a tool like pdb.
+
 Are you checking to see if an argument is iterable?
 ===================================================
 In places where a list, tuple, or other iterable object (say, a deque)

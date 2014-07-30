@@ -17,6 +17,7 @@ from pylearn2.utils import safe_zip
 from pylearn2.utils import safe_union
 from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.utils.data_specs import DataSpecsMapping
+from pylearn2.utils.exc import reraise_as
 
 
 logger = logging.getLogger(__name__)
@@ -104,14 +105,12 @@ class Cost(object):
 
         try:
             cost = self.expr(model=model, data=data, **kwargs)
-        except TypeError, e:
+        except TypeError:
             # If anybody knows how to add type(self) to the exception message
             # but still preserve the stack trace, please do so
             # The current code does neither
-            e.message += " while calling " + str(type(self)) + ".expr"
-            logger.error(type(self))
-            logger.error(e.message)
-            raise e
+            message = "Error while calling " + str(type(self)) + ".expr"
+            reraise_as(TypeError(message))
 
         if cost is None:
             raise NotImplementedError(str(type(self)) +
@@ -415,10 +414,10 @@ class SumOfCosts(Cost):
                                                         **kwargs)
                 rval.update(channels)
             except TypeError:
-                logger.error('SumOfCosts.get_monitoring_channels encountered '
-                             'TypeError while calling {0}'
-                             '.get_monitoring_channels'.format(type(cost)))
-                raise
+                reraise_as(Exception('SumOfCosts.get_monitoring_channels '
+                                     'encountered TypeError while calling {0}'
+                                     '.get_monitoring_channels'.format(
+                                         type(cost))))
 
             value = cost.expr(model, cost_data, ** kwargs)
             if value is not None:

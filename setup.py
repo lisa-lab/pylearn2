@@ -1,36 +1,7 @@
-import sys
 import warnings
 from setuptools import setup, find_packages, Extension
+from setuptools.command.install import install
 import numpy
-
-if 'develop' not in sys.argv:
-    raise NotImplementedError("since Pylearn2 is under rapid, active "
-                              "development, `python setup.py install` is "
-                              "intentionally disabled to prevent other "
-                              "problems. Run `python setup.py develop` to "
-                              "install Pylearn2.")
-    # Detailed notes:
-    # This modification of setup.py is designed to prevent two problems
-    # novice users frequently encountered:
-    # 1) Novice users frequently used "git clone" to get a copy of Pylearn2,
-    # then ran setup.py install, then would use "git pull" to get a bug fix
-    # but would forget to run "setup.py install" again.
-    # 2) Novice users frequently used "sudo" to make an "installed" copy of
-    # Pylearn2, then try to use the tutorials in the "scripts" directory in
-    # the "installed" copy. Since the tutorials are then in a directory owned
-    # by root and need to create files in the local directory, some users
-    # would run the tutorials using "sudo". Besides being dangerous, this
-    # created additional problems because "sudo" does not just run the script
-    # with root privileges, it actually changes the user to root, and thus
-    # pylearn2-related environment variables configured in the user's
-    # .bashrc would no longer be available.
-    # Installing only in development mode avoids both problems because there
-    # is now only a single copy of the code and it is stored in a directory
-    # editable by the user.
-    # Note that none of the Pylearn2 installation documentation recommends
-    # using setup.py install or pip. Most of the Pylearn2 developers just
-    # obtain Pylearn2 via git clone and then add it to their PYTHONPATH
-    # manually.
 
 # Because many people neglected to run the pylearn2/utils/setup.py script
 # separately, we compile the necessary Cython extensions here but because
@@ -57,6 +28,40 @@ if cython_available:
 else:
     cmdclass = {}
     ext_modules = []
+
+
+# Inform user of setup.py develop preference
+class pylearn2_install(install):
+    def run(self):
+        print ("Because Pylearn2 is under heavy development, we generally do "
+               "not advice using the `setup.py install` command. Please "
+               "consider using the `setup.py develop` command instead for the "
+               "following reasons:\n\n1. Using `setup.py install` creates a "
+               "copy of the Pylearn2 source code in your Python installation "
+               "path. In order to update Pylearn2 afterwards you will need to "
+               "rerun `setup.py install` (!). Simply using `git pull` to "
+               "update your local copy of Pylearn2 code will not suffice. \n\n"
+               "2. When using `sudo` to install Pylearn2, all files, "
+               "including the tutorials, will be copied to a directory owned "
+               "by root. Not only is running tutorials as root unsafe, it "
+               "also means that all Pylearn2-related environment variables "
+               "which were defined for the user will be unavailable.\n\n"
+               "Pressing enter will continue the installation of Pylearn2 in "
+               "`develop` mode instead. Note that this means that you need to "
+               "keep this folder with the Pylearn2 code in its current "
+               "location. If you know what you are doing, and are very sure "
+               "that you want to install Pylearn2 using the `install` "
+               "command instead, please type `install`.\n")
+        mode = None
+        while mode not in ['', 'install', 'develop', 'cancel']:
+            if mode is not None:
+                print "Please try again"
+            mode = raw_input("Installation mode: [develop]/install/cancel: ")
+        if mode in ['', 'develop']:
+            self.distribution.run_command('develop')
+        if mode == 'install':
+            return install.run(self)
+cmdclass.update({'install': pylearn2_install})
 
 setup(
     cmdclass=cmdclass,

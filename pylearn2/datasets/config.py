@@ -1,3 +1,4 @@
+from pylearn2.utils.exc import reraise_as
 """
 .. todo::
 
@@ -21,8 +22,8 @@ def resolve(d):
 
     try:
         resolver = resolvers[t]
-    except:
-        raise TypeError('pylearn2.datasets does not know of a dataset type "'+t+'"')
+    except KeyError:
+        reraise_as(TypeError('pylearn2.datasets does not know of a dataset type "'+t+'"'))
 
     return resolver(d)
 

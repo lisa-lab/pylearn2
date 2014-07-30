@@ -168,7 +168,7 @@ while True:
             try:
                 x = int(x)
                 break
-            except:
+            except ValueError:
                 print 'Invalid input, try again'
 
     for i in xrange(x):

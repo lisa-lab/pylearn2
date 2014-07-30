@@ -33,8 +33,9 @@ class Softmax(mlp.Softmax):
     max_col_norm : WRITEME
     init_bias_target_marginals : WRITEME
     """
-    @wraps(Layer.get_monitoring_channels_from_state)
-    def get_monitoring_channels_from_state(self, state, target=None):
+    @wraps(Layer.get_layer_monitoring_channels)
+    def get_layer_monitoring_channels(self, state_below=None, state=None,
+                                      target=None):
 
         mx = state.max(axis=1)
 

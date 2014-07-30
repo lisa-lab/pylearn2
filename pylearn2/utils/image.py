@@ -22,6 +22,7 @@ except ImportError:
     Image = None
 
 from pylearn2.utils import string_utils as string
+from pylearn2.utils.exc import reraise_as
 from tempfile import mkstemp
 from multiprocessing import Process
 
@@ -134,9 +135,9 @@ def show(image):
             ensure_Image()
             image = Image.fromarray(image)
         except TypeError:
-            raise TypeError("PIL issued TypeError on ndarray of shape " +
-                            str(image.shape) + " and dtype " +
-                            str(image.dtype))
+            reraise_as(TypeError("PIL issued TypeError on ndarray of shape " +
+                                 str(image.shape) + " and dtype " +
+                                 str(image.dtype)))
 
     # Create a temporary file with the suffix '.png'.
     fd, name = mkstemp(suffix='.png')
@@ -361,8 +362,8 @@ def load(filepath, rescale_image=True, dtype='float64'):
     try:
         ensure_Image()
         rval = Image.open(filepath)
-    except:
-        raise Exception("Could not open "+filepath)
+    except Exception:
+        reraise_as(Exception("Could not open " + filepath))
 
     numpy_rval = np.array(rval)
 

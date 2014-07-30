@@ -67,11 +67,6 @@ Iteration
 .. automodule:: pylearn2.utils.iteration
     :members:
 
-Key aware
-=========
-.. automodule:: pylearn2.utils.key_aware
-    :members:
-
 Logger
 ======
 .. automodule:: pylearn2.utils.logger

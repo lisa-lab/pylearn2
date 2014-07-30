@@ -55,7 +55,7 @@ def summarize(path):
             ' hours'
         try:
             print model.monitor.get_epochs_seen(), 'epochs'
-        except:
+        except Exception:
             pass
         if hasattr(model.monitor, 'training_succeeded'):
             if model.monitor.training_succeeded:
