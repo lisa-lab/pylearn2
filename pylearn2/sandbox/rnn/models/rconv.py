@@ -1,20 +1,21 @@
+from functools import wraps
 import numpy as np
 import scipy
 
-from theano import config
-from theano import scan
-from theano import tensor
-
 from pylearn2.models.mlp import Layer
-from pylearn2.space import VectorSpace, IndexSpace
+from pylearn2.space import CompositeSpace, VectorSpace, IndexSpace
 from pylearn2.sandbox.rnn.space import SequenceSpace
 from pylearn2.utils import sharedX
+from theano import config, scan
+from theano.compat.python2x import OrderedDict
+from theano import config, scan, tensor
+
 
 class RecursiveConvolutionalLayer(Layer):
     """
         (Binary) Recursive Convolutional Layer
     """
-    def __init__(self, dim, layer_name, irange, activation = 'rect', conv_mode = 'conv'):
+    def __init__(self, dim, layer_name, irange, indices, activation = 'rect', conv_mode = 'conv'):
         self._rnn_friendly = True
         self.__dict__.update(locals())
         del self.self
@@ -22,8 +23,11 @@ class RecursiveConvolutionalLayer(Layer):
 
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
-        assert isinstance(space, SequenceSpace)
-        assert isinstance(space.space, VectorSpace)
+        if (not isinstance(space, SequenceSpace) or
+                not isinstance(space.space, VectorSpace)):
+            raise ValueError("Recurrent layer needs a SequenceSpace("
+                             "VectorSpace) as input but received  %s instead"
+                             % (space))
         self.input_space = space
         self.output_sapce = VectorSpace(dim=self.dim)
 
@@ -80,13 +84,13 @@ class RecursiveConvolutionalLayer(Layer):
                             ('U_row_norms_max', u_row_norms.max()),
                             ('U_col_norms_min', u_col_norms.min()),
                             ('U_col_norms_mean', u_col_norms.mean()),
-                            ('U_col_norms_max', u_col_norms.max())])
+                            ('U_col_norms_max', u_col_norms.max()),
                             ('GW_row_norms_min', gw_row_norms.min()),
                             ('GW_row_norms_mean', gw_row_norms.mean()),
                             ('GW_row_norms_max', gw_row_norms.max()),
                             ('GW_col_norms_min', gw_col_norms.min()),
                             ('GW_col_norms_mean', gw_col_norms.mean()),
-                            ('GW_col_norms_max', gw_col_norms.max())])
+                            ('GW_col_norms_max', gw_col_norms.max()),
                             ('GU_row_norms_min', gu_row_norms.min()),
                             ('GU_row_norms_mean', gu_row_norms.mean()),
                             ('GU_row_norms_max', gu_row_norms.max()),

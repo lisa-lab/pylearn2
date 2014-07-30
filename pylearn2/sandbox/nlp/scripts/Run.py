@@ -6,7 +6,7 @@ dirname=os.path.abspath(os.path.dirname(__file__))
 
 def get_hparams(fname,train):
    
-    n_hids = 512
+    n_hids = 1
     stop = 100
     
     save_path = os.path.join('result/%s_'%time.strftime("%m%d"))

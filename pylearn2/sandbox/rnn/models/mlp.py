@@ -37,7 +37,7 @@ class RecursiveConvolutionalLayer(mlp.Layer):
         U_hh,_,_ = scipy.linalg.svd(U_hh)
         self.U_hh = sharedX(0.9 * U_hh)
         self.U_hh.name = self.layer_name + '_U'
-        self.params = [self.U_hh]
+        self.params += [self.U_hh]
         
         # Bias
         self.b_hh = sharedX(np.zeros((self.dim,)), name=self.layer_name + '_b')
