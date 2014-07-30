@@ -258,30 +258,29 @@ we can specify a Pylearn2 experiment as follows.
 .. code-block:: yaml
 
     !obj:pylearn2.train.Train {
-        "dataset": !obj:pylearn2.datasets.npy_npz.NpyDataset &dataset {
-            "file" : 'garbage.npy' # Should be an N x 300 matrix on disk.
-        },
-        "model": !obj:pylearn2.autoencoder.DenoisingAutoencoder {
-            "nvis" : 300,
-            "nhid" : 400,
-            "irange" : 0.05,
-            "corruptor": !obj:pylearn2.corruption.BinomialCorruptor {
-                "corruption_level": 0.5,
-            },
-            "act_enc": "tanh",
-            "act_dec": null,    # Linear activation on the decoder side.
-        },
-        "algorithm": !obj:pylearn2.training_algorithms.sgd.ExhaustiveSGD {
-            "learning_rate" : 1e-3,
-            "batch_size" : 10,
-            "monitoring_batches" : 5,
-            "monitoring_dataset" : *dataset,
-            "cost" : !obj:pylearn2.costs.autoencoder.MeanSquaredReconstructionError {},
-            "termination_criterion" : !obj:pylearn2.training_algorithms.sgd.EpochCounter {
-                "max_epochs": 50,
-            },
-        },
-        "save_path": "./garbage.pkl"
+	"dataset": !obj:pylearn2.datasets.dense_design_matrix.DenseDesignMatrix &dataset {
+	    "X" : !obj:numpy.random.normal { 'size':[5,3] },
+	},
+	"model": !obj:pylearn2.models.autoencoder.DenoisingAutoencoder {
+	    "nvis" : 3,
+	    "nhid" : 4,
+	    "irange" : 0.05,
+	    "corruptor": !obj:pylearn2.corruption.BinomialCorruptor {
+		"corruption_level": 0.5,
+	    },
+	    "act_enc": "tanh",
+	    "act_dec": null,    # Linear activation on the decoder side.
+	},
+	"algorithm": !obj:pylearn2.training_algorithms.sgd.SGD {
+	    "learning_rate" : 1e-3,
+	    "batch_size" : 5,
+	    "monitoring_dataset" : *dataset,
+	    "cost" : !obj:pylearn2.costs.autoencoder.MeanSquaredReconstructionError {},
+	    "termination_criterion" : !obj:pylearn2.termination_criteria.EpochCounter {
+		"max_epochs": 1,
+	    },
+	},
+	"save_path": "./garbage.pkl"
     }
 
 This particular example (which can be found in
