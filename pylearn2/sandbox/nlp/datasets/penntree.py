@@ -100,7 +100,6 @@ class PennTreebank_NGrams(DenseDesignMatrix, PennTreebank):
         # Load data into self._data (defined in PennTreebank)
         self._load_data(which_set, context_len, data_mode)
 
-
         print self._raw_data[0:30]
         print self._data[:, :-1][:10]
         print "_____________"

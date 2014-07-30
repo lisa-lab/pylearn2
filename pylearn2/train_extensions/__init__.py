@@ -115,12 +115,30 @@ class WordRelationship(TrainExtension):
     2 - 1 + 3 and 4
     """
     
-    def __init__(self, vocab, questions, vocab_size, UNK=1, n_batches=4):
+    def __init__(self, vocab, questions, vocab_size, UNK=1, n_batches=4,
+                 use_chars=False, char_dict_path=None
+    ):
         # Load the vocabulary and binarize the questions
         with open(vocab) as f:
             vocab = cPickle.load(f)
         binarized_questions = []
         categories = []
+
+        self._use_chars = use_chars
+        if self._use_chars:
+            inv_vocab = {v:k for k,v in vocab.items()}
+            with open(char_dict_path) as f:
+                char_dict = cPickle.load(f)
+                
+            self.char_words = []
+            # Skipping UNK
+            for i in range(2, vocab_size):
+                self.char_words.append([char_dict.get(c, UNK) for c in inv_vocab[i]])
+                if UNK in self.char_words[-1]:
+                    print "Unknown"
+                else:
+                    print "Known"
+        
         with open(questions) as f:
             for i, line in enumerate(f):
                 words = line.strip().lower().split()
@@ -129,21 +147,31 @@ class WordRelationship(TrainExtension):
                     continue
                 binarized_questions.append([vocab.get(word, UNK)
                                             for word in words])
+        self.questions = np.array(binarized_questions, dtype='int32')
+        self.questions[self.questions >= vocab_size] = UNK
+        self.orig_n_questions = len(self.questions)
+        self.questions = self.questions[self.questions[:, 3] != UNK]
+        self.n_questions = len(self.questions)
+        print self.orig_n_questions - self.n_questions, "question(s) removed due to clipped vocabulary"
 	self.n_batches = n_batches
         self.categories = categories
-        self.questions = np.array(binarized_questions, dtype='int32')
-	self.questions[self.questions >= vocab_size] = UNK
-	self.orig_n_questions = len(self.questions)
-	self.questions = self.questions[self.questions[:, 3] != UNK]
-        self.n_questions = len(self.questions)
-	print self.orig_n_questions - self.n_questions, "question(s) removed due to clipped vocabulary"
-	
+
+
+    
     @functools.wraps(TrainExtension.setup)
     def setup2(self, model, dataset, algorithm):
         # Create a Theano function that takes 3 words and returns
         # the word index with the largest cosine similarity
-        word_indices = tensor.ivector('words')
-        embedding_matrix, = model.layers[0].transformer.get_params()
+        if self._use_chars:
+            print "Setting up for characters"
+            space = model.get_input_space()
+            char_indices = space.make_theano_batch(batch_size=1)
+            self.get_embedding = function([char_indices], model.layers[0].fprop(char_indices))
+            embedding_matrix = tensor.fmatrix()
+        else:
+            embedding_matrix, = model.layers[0].transformer.get_params()
+
+        word_indices = tensor.ivector('words')        
 	word_embeddings = embedding_matrix[word_indices]
         target = word_embeddings[1] - word_embeddings[0] + word_embeddings[2]
         dot_products = tensor.dot(embedding_matrix, target)
@@ -151,23 +179,46 @@ class WordRelationship(TrainExtension):
 	similarities = dot_products / norms
         most_similar = tensor.argmax(similarities)
 
-        self.most_similar = function([word_indices], most_similar)
+        if self._use_chars:
+            self.most_similar = function([word_indices, embedding_matrix], most_similar)
+            self.similarity = function([word_indices, embdding_matrix],
+                                       similarities[word_indices[3]])
 
-        # Create a Theano function that takes 4 words and calculates
-        # the similarity between B - A + C and D
+        else:    
+            self.most_similar = function([word_indices], most_similar)
 
-        self.similarity = function([word_indices],
-                                   similarities[word_indices[3]])
+            # Create a Theano function that takes 4 words and calculates
+            # the similarity between B - A + C and D
+            self.similarity = function([word_indices],
+                                       similarities[word_indices[3]])
 
     @functools.wraps(TrainExtension.on_monitor)
     def on_monitor2(self, model, dataset, algorithm):
+        if self._use_chars:
+            embedding_matrix = []
+            # Should optimize to use bigger batches
+            for example in self.char_words:
+                batch = np.asarray([np.asarray([np.asarray([char])]) for char in example])
+                batch = space.np_format_as(batch, space)
+                wordvec = fprop(batch)[0]
+                embedding_matrix.append(wordvec)
+            embedding_matrix = np.asarray(embedding_matrix)
+            print "Got an embedding matrix of len", len(embedding_matrix)
+
+
         num_correct = 0.
         sum_similarity = 0.
         #import time
 	#t0 = time.time()
-	for question in self.questions:
-            num_correct += (self.most_similar(question[:3]) == question[-1])
-            sum_similarity += self.similarity(question)
+
+        if self._use_chars:
+            for question in self.questions:
+                num_correct += (self.most_similar(question[:3], embedding_matrix) == question[-1])
+                sum_similarity += self.similarity(question, embedding_matrix)
+        else:
+            for question in self.questions:
+                num_correct += (self.most_similar(question[:3]) == question[-1])
+                sum_similarity += self.similarity(question)
         #t1 = time.time()
 	#print total
         print "Avg. cos similarity: %s" % (sum_similarity /
@@ -179,8 +230,19 @@ class WordRelationship(TrainExtension):
     def setup(self, model, dataset, algorithm):
         # Create a Theano function that takes 3 words and returns
         # the word index with the largest cosine similarity
+
+        if self._use_chars:
+            print "Setting up for characters"
+            space = model.get_input_space()
+            char_indices = space.make_theano_batch(batch_size=1)
+            mask = tensor.ivector()
+            print model
+            print model.layers[0]
+            self.get_embedding = function([char_indices, mask], model.layers[0].fprop(char_indices, mask))
+            embedding_matrix = tensor.fmatrix()
+        else:
+            embedding_matrix, = model.layers[0].transformer.get_params()
         word_indices = tensor.imatrix('words')
-        embedding_matrix, = model.layers[0].transformer.get_params()
 	word_embeddings = embedding_matrix[word_indices.flatten()].reshape((word_indices.shape[0], word_indices.shape[1],
 				embedding_matrix.shape[1])) 
         target = word_embeddings[:,1,:] - word_embeddings[:,0,:] + word_embeddings[:,2,:]
@@ -194,6 +256,20 @@ class WordRelationship(TrainExtension):
                                       similarities[tensor.arange(word_indices.shape[0]),
                                                    word_indices[:, 3]]])
 
+        if self._use_chars:
+            self.most_similar = function([word_indices, embedding_matrix],
+                                         [most_similar,
+                                          similarities[tensor.arange(word_indices.shape[0]),
+                                                       word_indices[:, 3]]])
+
+
+        else:    
+            self.most_similar = function([word_indices],
+                                         [most_similar,
+                                          similarities[tensor.arange(word_indices.shape[0]),
+                                                       word_indices[:, 3]]])
+
+
         # Create a Theano function that takes 4 words and calculates
         # the similarity between B - A + C and D
 
@@ -204,14 +280,36 @@ class WordRelationship(TrainExtension):
     def on_monitor(self, model, dataset, algorithm):
         num_correct = 0.
         sum_similarity = 0.
+        if self._use_chars:
+            embedding_matrix = []
+            # Should optimize to use bigger batches
+            space = model.get_input_space()
+            for example in self.char_words:
+                batch = np.asarray([np.asarray([np.asarray([char])]) for char in example])
+                batch = space.np_format_as(batch, space)
+                mask = [np.ones(len(example))]
+                wordvec = self.get_embedding(batch, mask)[0]
+                embedding_matrix.append(wordvec)
+            embedding_matrix = np.asarray(embedding_matrix)
+            print "Got an embedding matrix of len", len(embedding_matrix)
+
        	batches = np.asarray([i * np.floor(self.n_questions / self.n_batches) for i in np.arange(self.n_batches)]
 				+[self.n_questions])
 	#import time
 	#t0 = time.time()
-	for i in xrange(self.n_batches):
-	    most_similar, similarity = self.most_similar(self.questions[batches[i]:batches[i+1]])
-            num_correct += np.sum([most_similar == self.questions[batches[i]:batches[i+1],-1]])
-            sum_similarity += np.sum(similarity) #np.sum(self.similarity(self.questions[batches[i]:batches[i+1]]))
+        if self._use_chars:
+            for i in xrange(self.n_batches):
+                most_similar, similarity = self.most_similar(
+                    self.questions[batches[i]:batches[i+1]], embedding_matrix)
+                num_correct += np.sum([most_similar == self.questions[batches[i]:batches[i+1],-1]])
+                sum_similarity += np.sum(similarity) #np.sum(self.similarity(self.questions[batches[i]:batches[i+1]]))
+
+
+        else: 
+            for i in xrange(self.n_batches):
+                most_similar, similarity = self.most_similar(self.questions[batches[i]:batches[i+1]])
+                num_correct += np.sum([most_similar == self.questions[batches[i]:batches[i+1],-1]])
+                sum_similarity += np.sum(similarity) #np.sum(self.similarity(self.questions[batches[i]:batches[i+1]]))
         #t1 = time.time()
 	#print total
 	

@@ -361,10 +361,12 @@ class Multiplicative_Gated_Recurrent(mlp.Layer):
         # !!! Move to efficient indexing
         # proj = self.projection.project(state_below)
         #proj = self.project1(self.projection, state_below)
+
+        print "__________________________________"
         shape = state_below.shape
         state_below = state_below.reshape((state_below.shape[0]*state_below.shape[2], state_below.shape[1]))
         proj = self.projection[state_below]
-        print "proj dim", proj.ndim
+        #print "proj dim", proj.ndim
         
         h0 = tensor.alloc(np.cast[config.floatX](0),
                           shape[1],# 1, 
@@ -376,49 +378,52 @@ class Multiplicative_Gated_Recurrent(mlp.Layer):
         state_below_in = tensor.dot(proj, W_in)
         state_below_z = tensor.dot(proj, W_z)
         state_below_r = tensor.dot(proj, W_r)
-        print "h0", h0, h0.dtype, h0.type, h0.ndim
-
+        print "h0", h0, h0.dtype, h0.type, h0.ndim, h0.broadcastable
+       # print "h0[0]", h0[0], h0[0].dtype, h0[0].type, h0[0].ndim, h0[0].broadcastable
+        h0 = tensor.unbroadcast(h0, 0)
         # state_below is the new input, state_before is hidden state
         def _fprop_step(state_below, state_below_in, state_below_z, state_below_r, 
                         state_before, W_recurrent, W_in, b,
                         W_z, U_z, b_z, W_r, U_r, b_r):
-    
+            print "state before 1", state_before, state_before.dtype, state_before.type, state_before.broadcastable
+            #state_before = tensor.unbroadcast(state_before, 0)
             z = tensor.nnet.sigmoid(state_below_z + tensor.dot(state_before, U_z) + b_z)
             r = tensor.nnet.sigmoid(state_below_r + tensor.dot(state_before, U_r) + b_r)
-            print "r dim", r.type.ndim
+            #print "r dim", r.type.ndim
             #W_rec = self.project1(W_recurrent, state_below)
-            print "State below step", state_below.ndim
-            print "state before", state_before.ndim
+            print "State below step", state_below, state_below.broadcastable, state_below.ndim
+
+            print "state before 2", state_before, state_before.dtype, state_before.type, state_before.broadcastable
             W_rec = W_recurrent[state_below]
-            W_rec.name = "W_rec"
-            #b = self.project0(b,state_below)
+            
             bias = b[state_below]
-            bias.name = "bias"
             # !!! Move to efficient indexing
             #shape = (state_below.shape[0], state_below.shape[1], self.dim)
             pre_h = (
                 state_below_in + r * tensor.batched_dot(state_before, W_rec)#.reshape(shape)
                 + bias
             )
-            pre_h.name = "pre_h"
-            print "pre_h dim", pre_h.type.ndim
-            print "W_recurrent[state_below] dim", W_rec.ndim
+            print "pre_h dim", pre_h, pre_h.type.ndim
+            #print "W_recurrent[state_below] dim", W_rec, W_rec.ndim
             # print "W_rec * state before", (state_before* W_rec).ndim
 
             new_h = tensor.tanh(pre_h)
-            
+            #print "new_h", new_h
             h = z * state_before + (1. - z) * new_h
-            print "final h dim", h.ndim
-            h.name = "h"
+            print "final h dim", h, h.type, h.broadcastable, h.ndim
+            h = tensor.unbroadcast(h, 0)
             return h
 
         h, updates = scan(fn=_fprop_step, sequences=[state_below, state_below_in, state_below_z, state_below_r],
                           outputs_info=[h0], non_sequences=self.params)
+        print "h", h, h.type, h.broadcastable, h.ndim
+        #h = tensor.unbroadcast(h, 1)
         h.name = "h2"
         self._scan_updates.update(updates)
 
         assert h.ndim == 3
         rval = h[-1] 
+        print "rval", rval, rval.type, rval.broadcastable, rval.ndim
         assert rval.ndim == 2
 
         return rval

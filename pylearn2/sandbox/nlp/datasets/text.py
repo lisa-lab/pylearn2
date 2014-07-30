@@ -54,10 +54,10 @@ class TextDatasetMixin(object):
         The string to use for the unknown words. If
         not defined, return `UNK`.
         """
-        if not hasattr(self, '_unknown_word') and 0 in self.inverse_vocabulary:
-            raise NotImplementedError('This dataset does not define an index '
-                                      'for unknown words, but the default `0` '
-                                      'is already taken')
+        if not hasattr(self, '_unknown_word') and 'UNK' in self.vocabulary:
+            raise NotImplementedError('This dataset does not define a string '
+                                      'for unknown words, but the default '
+                                      '`UNK` is already taken')
         return getattr(self, '_unknown_word', 'UNK')
 
     @property

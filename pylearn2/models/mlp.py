@@ -2481,8 +2481,7 @@ class Linear(Layer):
 
     @wraps(Layer.cost_from_cost_matrix)
     def cost_from_cost_matrix(self, cost_matrix):
-
-        if(self.use_cosine_loss):
+        if self.use_cosine_loss:
             return cost_matrix.mean()
         else:
             return cost_matrix.sum(axis=1).mean()
@@ -2491,9 +2490,14 @@ class Linear(Layer):
     def cost_matrix(self, Y, Y_hat):
         if(self.use_abs_loss):
             return T.abs_(Y - Y_hat)
-        elif(self.use_cosine_loss):
-            return 1-(Y* Y_hat).sum(axis=1)/((Y.norm(2,axis=1)*Y_hat.norm(2,axis=1))+1e-8)
+        elif self.use_cosine_loss:
+            return 1-((Y*Y_hat).sum(axis=1) / 
+                      (Y.norm(2, axis=1)*Y_hat.norm(2, axis=1))) + 1e-8
         else:
+            print "Y.ndim", Y.ndim
+            print "Y_hat", Y_hat.ndim
+            rval = T.sqr(Y - Y_hat)
+            print "rval", rval.ndim
             return T.sqr(Y - Y_hat)
 
 

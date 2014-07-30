@@ -5,19 +5,18 @@ This dataset maps sequences of character indices to word embeddings.
 See: https://code.google.com/p/word2vec/
 """
 import cPickle
-import functools
+from functools import wraps
 
 import numpy as np
 import tables
 
 from pylearn2.sandbox.nlp.datasets.text import TextDatasetMixin
-from pylearn2.sandbox.rnn.space import SequenceSpace
-from pylearn2.sandbox.rnn.utils.iteration import (
-    SequentialSubsetIterator, ShuffledSequentialSubsetIterator
-)
+from pylearn2.sandbox.rnn.space import SequenceDataSpace
+from pylearn2.sandbox.rnn.utils.iteration import SequenceDatasetIterator
 from pylearn2.datasets.vector_spaces_dataset import VectorSpacesDataset
 from pylearn2.space import IndexSpace, CompositeSpace, VectorSpace
-from pylearn2.utils.iteration import FiniteDatasetIterator
+from pylearn2.utils.iteration import resolve_iterator_class
+from pylearn2.utils.rng import make_np_rng
 from pylearn2.utils.string_utils import preprocess
 
 
@@ -32,12 +31,9 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
     which_set : str
         Either `train` or `valid`
     """
-    def __init__(self, which_set, stop= None):
+    def __init__(self, which_set, stop=None):
         assert which_set in ['train', 'valid']
-
-        if stop == 'None':
-            stop = None
-        
+        self._stop = stop
         # TextDatasetMixin parameters
         self._unknown_index = 0
         self._end_of_word_index = 100
@@ -51,61 +47,49 @@ class Word2Vec(VectorSpacesDataset, TextDatasetMixin):
                                          'characters.h5')) as f:
             node = f.get_node('/characters_%s' % which_set)
             # VLArray is strange, and this seems faster than reading node[:]
-            # Format is now [batch, time, data]
-            X = np.asarray([np.append(char_sequence,self._end_of_word_index)[:, np.newaxis]
-                            for char_sequence in node[:stop]])
+            if self._stop is not None:
+                self.X = np.asarray([char_sequence[:, np.newaxis]
+                                     for char_sequence in node[:self._stop]])
+            else:
+                self.X = np.asarray([char_sequence[:, np.newaxis]
+                                     for char_sequence in node])
+            # Format is [batch, time, data]
 
-        self._sequence_lengths = [len(sequence) for sequence in X]
-        #self._sequence_lengths = None
         with tables.open_file(preprocess('${PYLEARN2_DATA_PATH}/word2vec/'
                                          'embeddings.h5')) as f:
             node = f.get_node('/embeddings_%s' % which_set)
-            y = node[:stop]
+            if self._stop is not None:
+                self.y = node[:self._stop]
+            else:
+                self.y = node[:]
 
         with open(preprocess('/data/lisatmp3/devincol/normalization.pkl')) as f:
             (means, stds) = cPickle.load(f)
 
-        y = (y - means)/stds
+        print "normalizing targets"
+        self.y = (self.y - means)/stds
+
         source = ('features', 'targets')
-        space = CompositeSpace([SequenceSpace(IndexSpace(dim=1,
-                                                         max_labels=101)),
+        space = CompositeSpace([SequenceDataSpace(IndexSpace(dim=1,
+                                                             max_labels=101)),
                                 VectorSpace(dim=300)])
-        super(Word2Vec, self).__init__(data=(X, y), data_specs=(space, source))
+        super(Word2Vec, self).__init__(data=(self.X, self.y),
+                                       data_specs=(space, source))
 
-    @functools.wraps(VectorSpacesDataset.iterator)
-    def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 topo=None, targets=None, rng=None, data_specs=None,
-                 return_tuple=False):
-        if rng is None:
-            rng = self.rng
-        if mode is None or mode == 'shuffled_sequential':
-            subset_iterator = ShuffledSequentialSubsetIterator(
-                dataset_size=self.get_num_examples(),
-                batch_size=batch_size,
-                num_batches=num_batches,
-                rng=rng,
-                sequence_lengths=self._sequence_lengths
-            )
-        elif mode == 'sequential':
-            subset_iterator = SequentialSubsetIterator(
-                dataset_size=self.get_num_examples(),
-                batch_size=batch_size,
-                num_batches=num_batches,
-                rng=None,
-                sequence_lengths=self._sequence_lengths
-            )
-        else:
-            raise ValueError('For sequential datasets only the '
-                             'SequentialSubsetIterator and '
-                             'ShuffledSequentialSubsetIterator have been '
-                             'ported, so the mode `%s` is not supported.' %
-                             (mode,))
+    def _create_subset_iterator(self, mode, batch_size=None, num_batches=None,
+                                rng=None):
+        subset_iterator = resolve_iterator_class(mode)
+        if rng is None and subset_iterator.stochastic:
+            rng = make_np_rng()
+        return subset_iterator(self.get_num_examples(), batch_size,
+                               num_batches, rng)
 
-        if data_specs is None:
-            data_specs = self.data_specs
-        return FiniteDatasetIterator(
-            dataset=self,
-            subset_iterator=subset_iterator,
-            data_specs=data_specs,
-            return_tuple=return_tuple
+    @wraps(VectorSpacesDataset.iterator)
+    def iterator(self, batch_size=None, num_batches=None, rng=None,
+                 data_specs=None, return_tuple=False, mode=None):
+        subset_iterator = self._create_subset_iterator(
+            mode=mode, batch_size=batch_size, num_batches=num_batches, rng=rng
         )
+        return SequenceDatasetIterator(self, data_specs, subset_iterator,
+                                       return_tuple=return_tuple)
+
