@@ -63,13 +63,10 @@ def check_cuda(feature_name="You are using code that relies on cuda-convnet. Cud
     if not hasattr(cuda.cuda_ndarray.cuda_ndarray, 'cublas_v2'):
         warnings.warn(
             "You are using probably a too old Theano version. That"
-            " will cause compilation crash. If so, update Theano and delete"
-            " your theano cache at %s" % config.compiledir)
+            " will cause compilation crash. If so, update Theano.")
     elif not cuda.cuda_ndarray.cuda_ndarray.cublas_v2():
-        raise RuntimeError ("You are using probably a too old Theano version."
-                            " That will cause compilation crash. Update Theano"
-                            "and delete your theano cache at %s" %
-                            config.compiledir)
+        raise RuntimeError("You are using probably a too old Theano version."
+                           " That will cause compilation crash. Update Theano")
 
     if not cuda.cuda_enabled:
         raise RuntimeError("%s must run be with theano configured to use the GPU" % feature_name)
