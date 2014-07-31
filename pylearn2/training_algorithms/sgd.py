@@ -33,6 +33,8 @@ from pylearn2.utils import safe_zip
 from pylearn2.utils import serial
 from pylearn2.utils import sharedX
 from pylearn2.utils import contains_nan
+from pylearn2.utils import contains_inf
+from pylearn2.utils import isfinite
 from pylearn2.utils.data_specs import DataSpecsMapping
 from pylearn2.utils.exc import reraise_as
 from pylearn2.utils.timing import log_timing
@@ -219,7 +221,7 @@ class SGD(TrainingAlgorithm):
             self.cost = model.get_default_cost()
 
         inf_params = [param for param in model.get_params()
-                      if np.any(np.isinf(param.get_value()))]
+                      if contains_inf(param.get_value())]
         if len(inf_params) > 0:
             raise ValueError("These params are Inf: "+str(inf_params))
         if any([contains_nan(param.get_value())
@@ -386,7 +388,7 @@ class SGD(TrainingAlgorithm):
             if update.name is None:
                 update.name = 'censor(sgd_update(' + param.name + '))'
             for update_val in get_debug_values(update):
-                if np.any(np.isinf(update_val)):
+                if contains_inf(update_val):
                     raise ValueError("debug value of %s contains infs" %
                             update.name)
                 if contains_nan(update_val):
@@ -416,7 +418,7 @@ class SGD(TrainingAlgorithm):
         # Make sure none of the parameters have bad values
         for param in self.params:
             value = param.get_value(borrow=True)
-            if contains_nan(value) or np.any(np.isinf(value)):
+            if not isfinite(value):
                 raise Exception("NaN in " + param.name)
 
         self.first = False
@@ -463,7 +465,7 @@ class SGD(TrainingAlgorithm):
         # Make sure none of the parameters have bad values
         for param in self.params:
             value = param.get_value(borrow=True)
-            if contains_nan(value) or np.any(np.isinf(value)):
+            if not isfinite(value):
                 raise Exception("NaN in " + param.name)
 
     def continue_learning(self, model):

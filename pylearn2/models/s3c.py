@@ -26,6 +26,7 @@ from pylearn2.models import Model
 from pylearn2.space import VectorSpace
 from pylearn2.utils.rng import make_np_rng
 from pylearn2.utils import contains_nan
+from pylearn2.utils import isfinite
 from pylearn2.expr.basic import (full_min,
         full_max, numpy_norms, theano_norms)
 
@@ -1516,8 +1517,7 @@ class S3C(Model, Block):
         logger.info('alpha: ({0}, {1}, {2})'.format(alpha.min(), alpha.mean(),
                                                     alpha.max()))
         W = self.W.get_value(borrow=True)
-        assert not contains_nan(W)
-        assert not np.any(np.isinf(W))
+        assert isfinite(W)
         logger.info('W: ({0}, {1}, {2})'.format(W.min(), W.mean(), W.max()))
         norms = numpy_norms(W)
         logger.info('W norms: '

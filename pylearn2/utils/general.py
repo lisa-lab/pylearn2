@@ -44,18 +44,18 @@ def is_iterable(obj):
     return True
 
 
-def contains_nan(ndarray):
+def contains_nan(arr):
     """
-    Test whether a numpy.ndarray contains any np.nan values
+    Test whether a numpy.ndarray contains any `np.nan` values.
 
     Paramaters:
     -----------
-    ndarray : np.ndarray
+    arr : np.ndarray
 
     Returns
     -------
     contains_nan : bool
-        `True` if the array contains a np.nan value, `False` otherwise.
+        `True` if the array contains any `np.nan` values, `False` otherwise.
 
     Notes
     -----
@@ -64,4 +64,53 @@ def contains_nan(ndarray):
     alternative, calling `np.any(np.isnan(ndarray))`, which requires the
     construction of a boolean array with the same shape as the input array.
     """
-    return np.isnan(np.min(ndarray))
+    return np.isnan(np.min(arr))
+
+
+def contains_inf(arr):
+    """
+    Test whether a numpy.ndarray contains any `np.inf` values.
+
+    Paramaters:
+    -----------
+    arr : np.ndarray
+
+    Returns
+    -------
+    contains_inf : bool
+        `True` if the array contains any `np.inf` values, `False` otherwise.
+
+    Notes
+    -----
+    Tests for the presence of `np.inf`'s by determining whether the
+    values returned by `np.nanmin(arr)` and `np.nanmax(arr)` are finite.
+    This approach is more memory efficient than the obvious alternative,
+    calling `np.any(np.isinf(ndarray))`, which requires the construction of a
+    boolean array with the same shape as the input array.
+    """
+    return np.isinf(np.nanmax(arr)) or np.isinf(np.nanmin(arr))
+
+
+def isfinite(arr):
+    """
+    Test whether a numpy.ndarray contains any `np.inf` or `np.nan` values.
+
+    Paramaters:
+    -----------
+    arr : np.ndarray
+
+    Returns
+    -------
+    isfinite : bool
+        `True` if the array contains no np.inf or np.nan values, `False`
+        otherwise.
+
+    Notes
+    -----
+    Tests for the presence of `np.inf` or `np.nan` values by determining
+    whether the values returned by `np.min(arr)` and `np.max(arr)` are finite.
+    This approach is more memory efficient than the obvious alternative,
+    calling `np.any(np.isfinite(ndarray))`, which requires the construction of
+    a boolean array with the same shape as the input array.
+    """
+    return np.isfinite(np.max(arr)) and np.isfinite(np.min(arr))

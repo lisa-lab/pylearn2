@@ -17,6 +17,7 @@ import theano
 from theano import tensor
 from theano.gof.op import get_debug_values
 from pylearn2.utils.rng import make_theano_rng
+from pylearn2.utils import contains_inf
 
 def stochastic_max_pool_bc01(bc01, pool_shape, pool_stride, image_shape, rng = None):
     """
@@ -71,7 +72,7 @@ def stochastic_max_pool_bc01(bc01, pool_shape, pool_stride, image_shape, rng = N
     res_c = int(numpy.floor(last_pool_c/cs)) + 1
 
     for bc01v in get_debug_values(bc01):
-        assert not numpy.any(numpy.isinf(bc01v))
+        assert not contains_inf(bc01v)
         assert bc01v.shape[2] == image_shape[0]
         assert bc01v.shape[3] == image_shape[1]
 
@@ -154,7 +155,7 @@ def weighted_max_pool_bc01(bc01, pool_shape, pool_stride, image_shape, rng = Non
     res_c = int(numpy.floor(last_pool_c/cs)) + 1
 
     for bc01v in get_debug_values(bc01):
-        assert not numpy.any(numpy.isinf(bc01v))
+        assert not contains_inf(bc01v)
         assert bc01v.shape[2] == image_shape[0]
         assert bc01v.shape[3] == image_shape[1]
 
@@ -186,5 +187,3 @@ def weighted_max_pool_bc01(bc01, pool_shape, pool_stride, image_shape, rng = Non
     res.name = 'pooled_' + name
 
     return res.reshape((batch, channel, res_r, res_c))
-
-

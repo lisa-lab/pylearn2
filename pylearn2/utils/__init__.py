@@ -6,7 +6,7 @@
 import logging
 import warnings
 
-from .general import is_iterable, contains_nan
+from .general import is_iterable, contains_nan, contains_inf, isfinite
 import theano
 # Delay import of pylearn2.config.yaml_parse and pylearn2.datasets.control
 # to avoid circular imports

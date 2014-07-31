@@ -8,7 +8,7 @@ from theano.gof.op import get_debug_values
 from theano.gof.op import debug_assert
 import numpy as np
 from theano.tensor.xlogx import xlogx
-from pylearn2.utils import contains_nan
+from pylearn2.utils import contains_nan, isfinite
 
 
 def entropy_binary_vector(P):
@@ -40,10 +40,8 @@ def entropy_binary_vector(P):
 
     debug_vals = get_debug_values(PlogP, omPlogOmP, term1, term2, rval)
     for plp, olo, t1, t2, rv in debug_vals:
-        debug_assert(not contains_nan(plp))
-        debug_assert(not np.any(np.isinf(plp)))
-        debug_assert(not contains_nan(olo))
-        debug_assert(not np.any(np.isinf(olo)))
+        debug_assert(isfinite(plp))
+        debug_assert(isfinite(olo))
 
         debug_assert(not contains_nan(t1))
         debug_assert(not contains_nan(t2))

@@ -8,7 +8,7 @@ from theano import config
 import theano
 
 from pylearn2.utils import as_floatX
-from pylearn2.utils import contains_nan
+from pylearn2.utils import isfinite
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.datasets.preprocessing import (GlobalContrastNormalization,
@@ -40,8 +40,7 @@ class testGlobalContrastNormalization:
 
         result = dataset.get_design_matrix()
 
-        assert not contains_nan(result)
-        assert not np.any(np.isinf(result))
+        assert isfinite(result)
 
     def test_unit_norm(self):
         """ Test that using std_bias = 0.0 and use_norm = True
@@ -128,8 +127,7 @@ class testLeCunLCN:
         dataset.apply_preprocessor(preprocessor)
         result = dataset.get_design_matrix()
 
-        assert not contains_nan(result)
-        assert not np.any(np.isinf(result))
+        assert isfinite(result)
 
     def test_zero_image(self):
         """
@@ -147,8 +145,7 @@ class testLeCunLCN:
         dataset.apply_preprocessor(preprocessor)
         result = dataset.get_design_matrix()
 
-        assert not contains_nan(result)
-        assert not np.any(np.isinf(result))
+        assert isfinite(result)
 
     def test_channel(self):
         """
@@ -167,8 +164,7 @@ class testLeCunLCN:
         dataset.apply_preprocessor(preprocessor)
         result = dataset.get_design_matrix()
 
-        assert not contains_nan(result)
-        assert not np.any(np.isinf(result))
+        assert isfinite(result)
 
 
 def test_rgb_yuv():
@@ -190,8 +186,7 @@ def test_rgb_yuv():
     dataset.apply_preprocessor(preprocessor)
     result = dataset.get_design_matrix()
 
-    assert not contains_nan(result)
-    assert not np.any(np.isinf(result))
+    assert isfinite(result)
 
 
 def test_zca():
