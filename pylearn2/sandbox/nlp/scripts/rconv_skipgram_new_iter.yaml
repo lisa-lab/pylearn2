@@ -21,11 +21,11 @@
     },
     target_source: ['target0', 'target1', 'target2', 'target3', 'target4', 'target5' ],
     layers: [
-      #!obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
-      #  layer_name: 'projection',
-      #  dim: &n_hids %(n_hids)i,
-      #  irange: 0.01
-      # },
+      !obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
+        layer_name: 'projection',
+        dim: &n_hids %(n_hids)i,
+        irange: 0.01
+       },
      !obj:pylearn2.sandbox.rnn.models.rconv.RecursiveConvolutionalLayer { 
         layer_name: 'rconv_layer',
         dim: *n_hids,

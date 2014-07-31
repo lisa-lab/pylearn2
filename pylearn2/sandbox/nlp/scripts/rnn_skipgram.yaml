@@ -21,7 +21,7 @@
     },
     target_source: ['target0', 'target1', 'target2', 'target3', 'target4', 'target5' ],
     layers: [
-     # !obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
+     #!obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
      #   layer_name: 'projection',
      #   dim: 256,
      #   irange: 0.01

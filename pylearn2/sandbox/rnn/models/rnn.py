@@ -882,6 +882,7 @@ class FactoredMultiplicativeRUGatedRecurrent(Recurrent):
         
     @wraps(Layer.fprop)
     def fprop(self, state_below):
+        import ipdb;ipdb.set_trace()
         state_below, mask = state_below
         shape = state_below.shape
         state_below = state_below.reshape((shape[0]*shape[2], shape[1]))
@@ -934,7 +935,7 @@ class FactoredMultiplicativeRUGatedRecurrent(Recurrent):
         )
 
         self._scan_updates.update(updates)
-
+        import ipdb;ipdb.set_trace()
         if self.indices is not None:
             if len(self.indices) > 1:
                 return [h[i] for i in self.indices]

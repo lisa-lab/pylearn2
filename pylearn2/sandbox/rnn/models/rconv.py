@@ -16,7 +16,7 @@ class RecursiveConvolutionalLayer(Layer):
         (Binary) Recursive Convolutional Layer
     """
     def __init__(self, dim, layer_name, irange, indices, activation = 'rect', conv_mode = 'conv'):
-        self._rnn_friendly = True
+        self.rnn_friendly = True
         self.__dict__.update(locals())
         del self.self
         super(RecursiveConvolutionalLayer, self).__init__()
@@ -25,11 +25,11 @@ class RecursiveConvolutionalLayer(Layer):
     def set_input_space(self, space):
         if (not isinstance(space, SequenceSpace) or
                 not isinstance(space.space, VectorSpace)):
-            raise ValueError("Recurrent layer needs a SequenceSpace("
+            raise ValueError("Rconv layer needs a SequenceSpace("
                              "VectorSpace) as input but received  %s instead"
                              % (space))
         self.input_space = space
-        self.output_sapce = VectorSpace(dim=self.dim)
+        self.output_space = VectorSpace(dim=self.dim)
 
         # Left weight matrix
         self.rng = self.mlp.rng
@@ -126,6 +126,7 @@ class RecursiveConvolutionalLayer(Layer):
         return rval
 
     def fprop(self, state_below):
+        import ipdb;ipdb.set_trace()
         state_below, mask = state_below
         
         nsteps = state_below.shape[0]
@@ -223,6 +224,7 @@ class RecursiveConvolutionalLayer(Layer):
         self.out = roots
         self.rval = roots
         self.updates =updates
+        ipdb.set_trace()
 
         if self.indices is not None:
             if len(self.indices) > 1:
