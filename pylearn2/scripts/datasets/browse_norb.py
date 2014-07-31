@@ -15,66 +15,68 @@ from pylearn2.datasets.new_norb import NORB
 from pylearn2.utils import safe_zip
 
 
+def _parse_args():
+    parser = argparse.ArgumentParser(
+        description="Browser for NORB dataset.")
+
+    parser.add_argument('--which_norb',
+                        type=str,
+                        required=True,
+                        choices=('big', 'small'),
+                        help="'Selects the (big) NORB, or the Small NORB.")
+
+    parser.add_argument('--which_set',
+                        type=str,
+                        required=True,
+                        choices=('train', 'test', 'both'),
+                        help="'train', or 'test'")
+
+    parser.add_argument('--stereo_viewer',
+                        action='store_true',
+                        help="Swaps left and right stereo images, so you "
+                        "can see them in 3D by crossing your eyes.")
+
+    result = parser.parse_args()
+
+    return result
+
+
+def _make_grid_to_short_label(dataset):
+    """
+    Returns an array x such that x[a][b] gives label index a's b'th unique
+    value. In other words, it maps label grid indices a, b to the
+    corresponding label value.
+    """
+    unique_values = [sorted(list(frozenset(column)))
+                     for column
+                     in dataset.y[:, :5].transpose()]
+
+    # If dataset contains blank images, removes the '-1' labels
+    # corresponding to blank images, since they aren't contained in the
+    # label grid.
+    category_index = dataset.label_name_to_index['category']
+    unique_categories = unique_values[category_index]
+    category_to_name = dataset.label_to_value_funcs[category_index]
+    if any(category_to_name(category) == 'blank'
+           for category in unique_categories):
+        for d in range(1, len(unique_values)):
+            assert unique_values[d][0] == -1, ("unique_values: %s" %
+                                               str(unique_values))
+            unique_values[d] = unique_values[d][1:]
+
+    return unique_values
+
+
 def main():
     """Top-level function."""
 
-    def parse_args():
-        parser = argparse.ArgumentParser(
-            description="Browser for NORB dataset.")
-
-        parser.add_argument('--which_norb',
-                            type=str,
-                            required=True,
-                            choices=('big', 'small'),
-                            help="'Selects the (big) NORB, or the Small NORB.")
-
-        parser.add_argument('--which_set',
-                            type=str,
-                            required=True,
-                            choices=('train', 'test', 'both'),
-                            help="'train', or 'test'")
-
-        parser.add_argument('--stereo_viewer',
-                            action='store_true',
-                            help="Swaps left and right stereo images, so you "
-                            "can see them in 3D by crossing your eyes.")
-
-        result = parser.parse_args()
-
-        return result
-
-    args = parse_args()
+    args = _parse_args()
 
     dataset = NORB(args.which_norb, args.which_set)
     # Indexes into the first 5 labels, which live on a 5-D grid.
     grid_indices = [0, ] * 5
 
-    def make_grid_to_short_label():
-        """
-        Returns an array x such that x[a][b] gives label index a's b'th unique
-        value. In other words, it maps label grid indices a, b to the
-        corresponding label value.
-        """
-        unique_values = [sorted(list(frozenset(column)))
-                         for column
-                         in dataset.y[:, :5].transpose()]
-
-        # If dataset contains blank images, removes the '-1' labels
-        # corresponding to blank images, since they aren't contained in the
-        # label grid.
-        category_index = dataset.label_name_to_index['category']
-        unique_categories = unique_values[category_index]
-        category_to_name = dataset.label_to_value_funcs[category_index]
-        if any(category_to_name(category) == 'blank'
-               for category in unique_categories):
-            for d in range(1, len(unique_values)):
-                assert unique_values[d][0] == -1, ("unique_values: %s" %
-                                                   str(unique_values))
-                unique_values[d] = unique_values[d][1:]
-
-        return unique_values
-
-    grid_to_short_label = make_grid_to_short_label()
+    grid_to_short_label = _make_grid_to_short_label(dataset)
 
     def make_label_to_row_indices():
         """
@@ -129,7 +131,11 @@ def main():
 
         blank_rowmask = dataset.y[:, category_index] == blank_label
         blank_labels = dataset.y[blank_rowmask, :]
-        assert(blank_rowmask.any())
+        #assert(blank_rowmask.any())
+
+        if not blank_rowmask.any():
+            return None
+
         if not numpy.all(blank_labels[0, :] == blank_labels[1:, :]):
             raise ValueError("Expected all labels of category 'blank' to have "
                              "the same value, but they differed.")
