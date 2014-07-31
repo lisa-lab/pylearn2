@@ -803,21 +803,6 @@ def get_category_value(label):
                                                   'car',
                                                   'blank'))
 
-    # name = 'category'
-    # _check_is_integral(name, label)
-
-    # if 'label_names' not in get_catgegory_value.__dict__:
-    #     get_category_value.label_names = ('animal',
-    #                                       'human',
-    #                                       'airplane',
-    #                                       'truck',
-    #                                       'car',
-    #                                       'blank')
-
-    # label_names = get_category_value.label_names
-    # _check_range(name, label, 0, len(label_names) - 1, 'category')
-    # return label_names[label]
-
 
 def _check_range_and_return(name,
                             label,
@@ -1011,4 +996,3 @@ def _check_pickling_support():
                "than 1.7, due to a bug in 1.6.x that causes memmaps "
                "to interact poorly with pickling.")
         raise NotImplementedError(msg)
-
