@@ -14,6 +14,7 @@ from theano.sandbox.cuda import nvcc_compiler
 from shared_code import this_dir
 
 import pylearn2.sandbox.cuda_convnet.pthreads
+from pylearn2.sandbox.cuda_convnet import check_cuda
 
 _logger_name = 'pylearn2.sandbox.cuda_convnet.convnet_compile'
 _logger = logging.getLogger(_logger_name)
@@ -35,6 +36,8 @@ libcuda_convnet_so = os.path.join(cuda_convnet_loc,
 
 
 def convnet_available():
+    check_cuda(check_enabled=False)
+
     # If already compiled, OK
     if convnet_available.compiled:
         _logger.debug('already compiled')

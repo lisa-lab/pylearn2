@@ -47,7 +47,8 @@ from theano.sandbox import cuda
 from theano import config
 
 
-def check_cuda(feature_name="You are using code that relies on cuda-convnet. Cuda-convnet"):
+def check_cuda(feature_name="You are using code that relies on cuda-convnet. Cuda-convnet",
+               check_enabled=True):
     """
     Call this function before sections of code that depend on the cuda_convnet module.
     It will raise a RuntimeError if the GPU is not available.
@@ -68,5 +69,5 @@ def check_cuda(feature_name="You are using code that relies on cuda-convnet. Cud
         raise RuntimeError("You are using probably a too old Theano version."
                            " That will cause compilation crash. Update Theano")
 
-    if not cuda.cuda_enabled:
+    if check_enabled and not cuda.cuda_enabled:
         raise RuntimeError("%s must run be with theano configured to use the GPU" % feature_name)
