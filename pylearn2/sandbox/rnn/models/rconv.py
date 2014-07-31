@@ -54,7 +54,7 @@ class RecursiveConvolutionalLayer(Layer):
         self.GW_hh.name, self.GU_hh.name = [ self.layer_name + '_' + param for param in ['GW', 'GU'] ]
         self.Gb_hh = sharedX(np.zeros((3,)), name=self.layer_name + '_Gb')
         
-        self.params = [self.W_hh, self.U_hh, self.b_hh, self.GW_hh, self.GU_hh, self.Gb_hh]
+        self._params = [self.W_hh, self.U_hh, self.b_hh, self.GW_hh, self.GU_hh, self.Gb_hh]
 
     @wraps(Layer.get_layer_monitoring_channels)
     def get_layer_monitoring_channels(self, state_below=None, state=None,
@@ -202,7 +202,7 @@ class RecursiveConvolutionalLayer(Layer):
                         n_steps = nsteps-1)
 
         seqlens = tensor.cast(mask.sum(axis=0), 'int64')-1
-        roots = rval[-1][-1]
+        roots = rval[-1][-1] # take new_level from [new_iter, new_level] then take last step of scan
     
         if self.conv_mode == 'conv':
             if state_below.ndim == 3:
@@ -223,10 +223,9 @@ class RecursiveConvolutionalLayer(Layer):
         self.out = roots
         self.rval = roots
         self.updates =updates
-        ipdb.set_trace()
 
         return self.out
 
     def get_params(self):
-        return self.params
+        return self._params
 

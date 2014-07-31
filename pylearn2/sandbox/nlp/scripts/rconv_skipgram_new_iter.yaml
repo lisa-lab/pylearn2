@@ -77,7 +77,7 @@
     ],
   },
   algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
-    batch_size: 32, #256,
+    batch_size: 16, #256,
     learning_rate: .0001,
     learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {},
     monitoring_dataset: {
