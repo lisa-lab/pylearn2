@@ -126,7 +126,6 @@ class RecursiveConvolutionalLayer(Layer):
         return rval
 
     def fprop(self, state_below):
-        import ipdb;ipdb.set_trace()
         state_below, mask = state_below
         
         nsteps = state_below.shape[0]
@@ -226,13 +225,7 @@ class RecursiveConvolutionalLayer(Layer):
         self.updates =updates
         ipdb.set_trace()
 
-        if self.indices is not None:
-            if len(self.indices) > 1:
-                return [self.out[i] for i in self.indices]
-            else:
-                return self.out[self.indices[0]]
-        else:
-            return (self.out, mask)
+        return self.out
 
     def get_params(self):
         return self.params
