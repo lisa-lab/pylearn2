@@ -8,8 +8,10 @@ import cPickle
 import tempfile
 from numpy.testing import assert_
 from pylearn2.config.yaml_parse import load, load_path, initialize
-from os import environ
+from os import environ, close
 from decimal import Decimal
+from tempfile import mkstemp
+from pylearn2.utils import serial
 import yaml
 
 
@@ -201,6 +203,29 @@ def test_parse_null_as_none():
              }
     }"""
     load(yamlfile)
+
+
+class DumDum(object):
+    pass
+
+
+def test_pkl_yaml_src_field():
+    """
+    Tests a regression where yaml_src wasn't getting correctly set on pkls.
+    """
+    try:
+        fd, fn = mkstemp()
+        close(fd)
+        o = DumDum()
+        o.x = ('a', 'b', 'c')
+        serial.save(fn, o)
+        yaml = '!pkl: \'' + fn + '\'\n'
+        loaded = load(yaml)
+        assert loaded.x == ('a', 'b', 'c')
+        assert loaded.yaml_src == yaml
+    finally:
+        os.remove(fn)
+
 
 if __name__ == "__main__":
     test_multi_constructor_obj()

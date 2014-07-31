@@ -70,7 +70,8 @@ class FilterActs(BaseActs):
     * filters: (input channels, filter rows, filter cols, output channels).
       Rows must be the same as cols output channels must be a multiple
       of 16. Must be C contiguous. You can enforce this by calling
-      `theano.sandbox.cuda.basic_ops.gpu_contiguous` on it.
+      `theano.sandbox.cuda.basic_ops.gpu_contiguous` on it. The number of
+      rows and columns must be the same.
     * output: (output channels, output rows, output cols, batch size)
 
     Notes

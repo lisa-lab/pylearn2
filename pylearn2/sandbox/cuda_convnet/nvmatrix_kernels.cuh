@@ -29,9 +29,7 @@
 
 #include <curand_kernel.h>
 
-#if defined(_WIN64) || defined(_WIN32)
-#define uint unsigned int
-#endif
+typedef unsigned int uint;
 
 #define NUM_BLOCKS_MAX                      65535
 
