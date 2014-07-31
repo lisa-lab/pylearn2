@@ -3,6 +3,7 @@
 
     WRITEME
 """
+import numpy as np
 
 
 def is_iterable(obj):
@@ -21,7 +22,7 @@ def is_iterable(obj):
 
     Notes
     -----
-    This test iterability by calling `iter()` and catching a `TypeError`.
+    This tests iterability by calling `iter()` and catching a `TypeError`.
     Various other ways might occur to you, but they all have flaws:
 
     * `hasattr(obj, '__len__')` will fail for objects that can be iterated
@@ -41,3 +42,26 @@ def is_iterable(obj):
     except TypeError:
         return False
     return True
+
+
+def contains_nan(ndarray):
+    """
+    Test whether a numpy.ndarray contains any np.nan values
+
+    Paramaters:
+    -----------
+    ndarray : np.ndarray
+
+    Returns
+    -------
+    contains_nan : bool
+        `True` if the array contains a np.nan value, `False` otherwise.
+
+    Notes
+    -----
+    Tests for the presence of `np.nan`'s using `np.isnan(np.min(ndarray))`.
+    This approach is faster and more memory efficient than the obvious
+    alternative, calling `np.any(np.isnan(ndarray))`, which requires the
+    construction of a boolean array with the same shape as the input array.
+    """
+    return np.isnan(np.min(ndarray))

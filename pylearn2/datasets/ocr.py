@@ -13,6 +13,8 @@ __email__ = "mirzamom@iro"
 import numpy
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils import serial
+from pylearn2.utils import contains_nan
+
 
 class OCR(dense_design_matrix.DenseDesignMatrix):
     """
@@ -76,7 +78,7 @@ class OCR(dense_design_matrix.DenseDesignMatrix):
         view_converter = dense_design_matrix.DefaultViewConverter((16, 8, 1), axes)
         super(OCR, self).__init__(X = data_x, y = data_y, view_converter = view_converter)
 
-        assert not numpy.any(numpy.isnan(self.X))
+        assert not contains_nan(self.X)
         self.fold = data_fold
 
 

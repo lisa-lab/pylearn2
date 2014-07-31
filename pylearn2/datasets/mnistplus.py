@@ -7,6 +7,7 @@ import numpy as np
 from theano import config
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
+from pylearn2.utils import contains_nan
 
 
 class MNISTPlus(dense_design_matrix.DenseDesignMatrix):
@@ -85,5 +86,5 @@ class MNISTPlus(dense_design_matrix.DenseDesignMatrix):
         # init the super class
         super(MNISTPlus, self).__init__(X = data_x, y = data_y, view_converter = view_converter)
 
-        assert not np.any(np.isnan(self.X))
+        assert not contains_nan(self.X)
 

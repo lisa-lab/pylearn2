@@ -246,6 +246,10 @@ whether you can get away with a cast.
 If you really need to, use `isinstance(foo, pylearn2.utils.py_complex_types)`.
 This checks against Python builtins as well as NumPy-defined complex types.
 
+Are you checking for the presence of NaNs?
+------------------------------------------
+If so, use `pylearn2.utils.general.contains_nan`.  It's faster and  more memory effecient than `np.any(np.isnan(X))`. 
+
 Are you creating Theano functions?
 ==================================
 If you're building Theano functions, use `pylearn2.utils.function`. This

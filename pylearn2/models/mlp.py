@@ -42,6 +42,7 @@ from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
 from pylearn2.utils import wraps
 from pylearn2.utils.data_specs import DataSpecsMapping
+from pylearn2.utils import contains_nan
 
 from pylearn2.expr.nnet import (elemwise_kl, kl, compute_precision,
                                     compute_recall, compute_f1)
@@ -3792,7 +3793,7 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
     mx.name = 'max_pool('+name+')'
 
     for mxv in get_debug_values(mx):
-        assert not np.any(np.isnan(mxv))
+        assert not contains_nan(mxv)
         assert not np.any(np.isinf(mxv))
 
     return mx
@@ -3890,7 +3891,7 @@ def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape):
     mx.name = 'max_pool('+name+')'
 
     for mxv in get_debug_values(mx):
-        assert not np.any(np.isnan(mxv))
+        assert not contains_nan(mxv)
         assert not np.any(np.isinf(mxv))
 
     return mx
@@ -3994,7 +3995,7 @@ def mean_pool(bc01, pool_shape, pool_stride, image_shape):
     mx.name = 'mean_pool('+name+')'
 
     for mxv in get_debug_values(mx):
-        assert not np.any(np.isnan(mxv))
+        assert not contains_nan(mxv)
         assert not np.any(np.isinf(mxv))
 
     return mx

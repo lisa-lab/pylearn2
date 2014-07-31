@@ -13,6 +13,7 @@ import warnings
 N = np
 from pylearn2.datasets import cache, dense_design_matrix
 from pylearn2.expr.preprocessing import global_contrast_normalize
+from pylearn2.utils import contains_nan
 
 
 class CIFAR10(dense_design_matrix.DenseDesignMatrix):
@@ -150,7 +151,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         super(CIFAR10, self).__init__(X=X, y=y, view_converter=view_converter,
                                       y_labels=self.n_classes)
 
-        assert not np.any(np.isnan(self.X))
+        assert not contains_nan(self.X)
 
         if preprocessor:
             preprocessor.apply(self)

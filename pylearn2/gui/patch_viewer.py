@@ -5,6 +5,7 @@ import numpy as np
 from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
 from pylearn2.utils.image import Image, ensure_Image
 from pylearn2.utils.image import show
+from pylearn2.utils import contains_nan
 from pylearn2.utils import py_integer_types
 import warnings
 
@@ -265,7 +266,7 @@ class PatchViewer(object):
 
         temp = patch.copy()
 
-        assert (not np.any(np.isnan(temp))) and (not np.any(np.isinf(temp)))
+        assert (not contains_nan(temp)) and (not np.any(np.isinf(temp)))
 
         if rescale:
             scale = np.abs(temp).max()
