@@ -20,7 +20,7 @@
         layer_name: 'rconv_layer',
         dim: *n_hids,
         irange: 0.01,
-        activation: 'rect'
+        activation: 'tanh'
       },
       #!obj:pylearn2.models.mlp.Tanh {
       #  layer_name: 'tanh_layer',
