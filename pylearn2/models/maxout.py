@@ -29,9 +29,9 @@ import functools
 import logging
 import numpy as np
 import warnings
-from itertools import izip
 
 from theano.compat.python2x import OrderedDict
+from theano.compat.six.moves import zip as izip
 from theano.sandbox import cuda
 from theano import tensor as T
 

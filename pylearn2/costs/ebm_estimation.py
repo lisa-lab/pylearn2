@@ -2,7 +2,6 @@
 Training costs for unsupervised learning of energy-based models
 """
 import functools
-from itertools import izip
 import logging
 import numpy as np
 import sys
@@ -10,6 +9,7 @@ import sys
 from theano.compat.python2x import OrderedDict
 from theano import scan
 import theano.tensor as T
+from theano.compat.six.moves import zip as izip
 
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 from pylearn2.utils import py_integer_types

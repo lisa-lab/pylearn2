@@ -8,10 +8,10 @@ the SGD and BGD training algorithms.
 import functools
 import logging
 import warnings
-from itertools import izip
 
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
+from theano.compat.six.moves import zip as izip
 
 from pylearn2.utils import safe_zip
 from pylearn2.utils import safe_union
