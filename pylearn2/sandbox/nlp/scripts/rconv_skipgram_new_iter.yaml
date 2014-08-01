@@ -119,6 +119,6 @@
   #       char_dict_path: '/data/lisa/data/word2vec/char_vocab.pkl',
   #     }
   #],
-  save_path: 'result/rnn_skipgram_factored.pkl',
+  save_path: %(save_path)s,
   save_freq: 1,
 }
