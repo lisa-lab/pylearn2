@@ -1488,7 +1488,7 @@ class Softmax(Layer):
         assert z.ndim == 2
 
         z = z - z.max(axis=1).dimshuffle(0, 'x')
-        log_prob = z - T.log(T.exp(z).sum(axis=1).dimshuffle(0, 'x'))
+        log_prob = z - T.log(T.exp(z).sum(axis=1).dimshuffle(0, 'x')+1e-8)
         # we use sum and not mean because this is really one variable per row
         
         if self._has_binary_target:
