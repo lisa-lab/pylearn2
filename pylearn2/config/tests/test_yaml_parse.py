@@ -228,6 +228,17 @@ def test_pkl_yaml_src_field():
         os.remove(fn)
 
 
+def test_instantiate_regression():
+    """
+    Test a case where instantiated objects were not getting correctly
+    reused across references.
+    """
+    yaml = ("{'a': &test !obj:pylearn2.config.tests.test_yaml_parse.DumDum {},"
+            " 'b': *test}")
+    obj = load(yaml)
+    assert obj['a'] is obj['b']
+
+
 if __name__ == "__main__":
     test_multi_constructor_obj()
     test_duplicate_keywords()
