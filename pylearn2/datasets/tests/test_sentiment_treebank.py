@@ -1,5 +1,5 @@
 from unittest import TestCase
-from pylearn2.datasets.text.sentiment_treebank import StanfordSentimentTreebank
+from pylearn2.sandbox.nlp.datasets.sentiment_treebank import StanfordSentimentTreebank
 
 
 class TestSentimentTreebank(TestCase):

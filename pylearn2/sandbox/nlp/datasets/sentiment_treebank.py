@@ -19,25 +19,32 @@ import csv
 import urllib2
 import zipfile
 import logging
-from collections import Counter
+import warnings
+try:
+    from collections import Counter
+except ImportError:
+    warnings.warn("Couldn't import collections.Counter")
+
 from tempfile import NamedTemporaryFile
 
 import numpy as np
+
 try:
     import scipy
-    from distutils.version import StrictVersion
-    if StrictVersion(scipy.__version__) < StrictVersion('0.13.0'):
-        raise ImportError("Scipy version has to be >= 0.13.0")
 except ImportError:
-    import warnings
     warnings.warn("Couldn't import scipy")
+
+from distutils.version import StrictVersion
+if StrictVersion(scipy.__version__) < StrictVersion('0.13.0'):
+    raise ImportError("Scipy version has to be >= 0.13.0")
+
 try:
     from scipy.sparse import coo_matrix
 except ImportError:
     warnings.warn("Couldn't import scipy.sparse")
 
 from pylearn2.utils.string_utils import preprocess
-from pylearn2.datasets.text.text_dataset import TextDataset
+from pylearn2.sandbox.nlp.datasets.text_dataset import TextDataset
 
 
 log = logging.getLogger(__name__)
@@ -183,11 +190,3 @@ class _StanfordSentimentTreebankFactory(object):
                         'Decompressing {} to {}'.format(name, cls.DATA_ROOT))
                     zfile.extract(name, cls.DATA_ROOT)
                 g.close()
-
-
-if __name__ == '__main__':
-    # This is only for test purposes
-    StanfordSentimentTreebank('all')
-    StanfordSentimentTreebank('train')
-    StanfordSentimentTreebank('test')
-    StanfordSentimentTreebank('valid')
