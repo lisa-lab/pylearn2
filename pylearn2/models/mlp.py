@@ -1275,21 +1275,22 @@ class Softmax(Layer):
         if self.no_affine:
             rval = OrderedDict()
 
-        W = self.W
+        else:
+            W = self.W
 
-        assert W.ndim == 2
+            assert W.ndim == 2
 
-        sq_W = T.sqr(W)
+            sq_W = T.sqr(W)
 
-        row_norms = T.sqrt(sq_W.sum(axis=1))
-        col_norms = T.sqrt(sq_W.sum(axis=0))
+            row_norms = T.sqrt(sq_W.sum(axis=1))
+            col_norms = T.sqrt(sq_W.sum(axis=0))
 
-        rval = OrderedDict([('row_norms_min',  row_norms.min()),
-                            ('row_norms_mean', row_norms.mean()),
-                            ('row_norms_max',  row_norms.max()),
-                            ('col_norms_min',  col_norms.min()),
-                            ('col_norms_mean', col_norms.mean()),
-                            ('col_norms_max',  col_norms.max()), ])
+            rval = OrderedDict([('row_norms_min',  row_norms.min()),
+                                ('row_norms_mean', row_norms.mean()),
+                                ('row_norms_max',  row_norms.max()),
+                                ('col_norms_min',  col_norms.min()),
+                                ('col_norms_mean', col_norms.mean()),
+                                ('col_norms_max',  col_norms.max()), ])
 
         mx = state.max(axis=1)
 
