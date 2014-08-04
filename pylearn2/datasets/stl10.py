@@ -12,6 +12,7 @@ __email__ = "pylearn-dev@googlegroups"
 import numpy as np
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
+from pylearn2.utils import contains_nan
 
 
 class STL10(dense_design_matrix.DenseDesignMatrix):
@@ -137,7 +138,7 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
             mat = self.get_design_matrix(topo)
             X[i:i+1,:] = mat
 
-        assert not np.any(np.isnan(self.X))
+        assert not contains_nan(self.X)
 
 
 def restrict(dataset, fold):

@@ -2,6 +2,7 @@ from pylearn2.models.s3c import S3C
 from pylearn2.models.s3c import E_Step_Scan
 from pylearn2.models.s3c import Grad_M_Step
 from pylearn2.models.s3c import E_Step
+from pylearn2.utils import contains_nan
 from theano import function
 import numpy as np
 import theano.tensor as T
@@ -174,7 +175,7 @@ class Test_S3C_Inference:
 
             g = grad_func(H,Mu1,i)
 
-            assert not np.any(np.isnan(g))
+            assert not contains_nan(g)
 
             g_abs_max = np.abs(g).max()
 
@@ -316,7 +317,7 @@ class Test_S3C_Inference:
 
             g = grad_func(H,Mu1)[:,i]
 
-            assert not np.any(np.isnan(g))
+            assert not contains_nan(g)
 
             g_abs_max = np.abs(g).max()
 

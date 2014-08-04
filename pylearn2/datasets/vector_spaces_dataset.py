@@ -18,6 +18,7 @@ from pylearn2.utils.iteration import (
 )
 from pylearn2.utils.data_specs import is_flat_specs
 from pylearn2.utils.rng import make_np_rng
+from pylearn2.utils import contains_nan
 
 
 class VectorSpacesDataset(Dataset):
@@ -132,7 +133,7 @@ class VectorSpacesDataset(Dataset):
         # data is organized as data_specs
         # keep self.data_specs, and convert data
         data_specs[0].np_validate(data)
-        assert not [np.any(np.isnan(X)) for X in data]
+        assert not [contains_nan(X) for X in data]
         raise NotImplementedError()
 
     def get_source(self, name):

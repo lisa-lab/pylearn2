@@ -18,6 +18,7 @@ from pylearn2.datasets.dense_design_matrix import (DenseDesignMatrix,
                                                    DefaultViewConverter)
 from pylearn2.space import CompositeSpace, VectorSpace
 from pylearn2.utils.iteration import FiniteDatasetIterator, safe_izip
+from pylearn2.utils import contains_nan
 
 
 class HDF5Dataset(DenseDesignMatrix):
@@ -213,7 +214,7 @@ class HDF5DatasetIterator(FiniteDatasetIterator):
                 this_data = data[next_index, :]
             if fn:
                 this_data = fn(this_data)
-            assert not np.any(np.isnan(this_data))
+            assert not contains_nan(this_data)
             rval.append(this_data)
         rval = tuple(rval)
         if not self._return_tuple and len(rval) == 1:
