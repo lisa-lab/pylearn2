@@ -22,6 +22,11 @@
         dim: 512,
         irange: 0.01
       },
+      !obj:pylearn2.models.mlp.Linear {
+        layer_name: 'target_projection',
+        dim: *l,
+        irange: 0.01
+      },
      !obj:pylearn2.models.mlp.CompositeLayer {
         layer_name: 'composite_layer',
         layers: 
@@ -29,36 +34,42 @@
             n_classes: *l,
             layer_name: 'h0',
             irange: 0.01,
+            no_affine: True
            # binary_target_dim: 1
           },
           !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
            n_classes: *l,
             layer_name: 'h1',
             irange: 0.01,
+            no_affine: True
            # binary_target_dim: 1
           },
           !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
             n_classes: *l,
             layer_name: 'h2',
             irange: 0.01,
+            no_affine: True
            # binary_target_dim: 1
           },
           !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
             n_classes: *l,
             layer_name: 'h3',
             irange: 0.01,
+            no_affine: True
            # binary_target_dim: 1
           },
           !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
             n_classes: *l,
             layer_name: 'h4',
             irange: 0.01,
+            no_affine: True
            # binary_target_dim: 1
           },
           !obj:pylearn2.sandbox.nlp.models.mlp.Softmax {
             n_classes: *l,
             layer_name: 'h5',
             irange: 0.01,
+            no_affine: True
            # binary_target_dim: 1
           }
         ]
