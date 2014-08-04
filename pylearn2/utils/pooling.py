@@ -8,7 +8,7 @@ try:
     import scipy.sparse
 except ImportError:
     warnings.warn("Could not import scipy")
-from itertools import izip
+from theano.compat.six.moves import zip as izip
 
 from pylearn2.utils.exc import reraise_as
 

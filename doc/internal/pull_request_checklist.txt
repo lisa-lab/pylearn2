@@ -147,8 +147,9 @@ Are you creating a sequence and then immediately iterating over it?
 
 If so, consider using the faster and more memory efficient versions.
 
-* `xrange` instead of `range`
-* `itertools.izip` instead of `zip`
+* `xrange` instead of `range`.
+* `from theano.compat.six.moves import zip as izip` instead of `zip`.
+  This import is for Python 3 compatibility.
 
 
 Are you using `zip()`/`izip()` on sequences you expect to be the same length?

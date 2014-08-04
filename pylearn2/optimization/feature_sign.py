@@ -11,9 +11,12 @@ __email__ = "wardefar@iro"
 
 __all__ = ["feature_sign_search"]
 
-from itertools import izip, count
+from itertools import count
+
 import logging
 import numpy as np
+from theano.compat.six.moves import zip as izip
+
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
