@@ -1,12 +1,13 @@
 """
-This script makes a dataset of two million approximately whitened patches, extracted at random uniformly
-from a downsampled version of the STL-10 unlabeled and train dataset.
+This script makes a dataset of two million approximately whitened patches,
+extracted at random uniformly from a downsampled version of
+the STL-10 unlabeled and train dataset.
 
-It assumes that you have already run make_downsampled_stl10.py, which downsamples the STL-10 images to
-1/3 of their original resolution.
+It assumes that you have already run make_downsampled_stl10.py,
+which downsamples the STL-10 images to 1/3 of their original resolution.
 
-This script is intended to reproduce the preprocessing used by Adam Coates et. al. in their work from
-the first half of 2011.
+This script is intended to reproduce the preprocessing used by
+Adam Coates et. al. in their work from the first half of 2011.
 """
 
 from pylearn2.utils import serial
@@ -14,58 +15,91 @@ from pylearn2.datasets import preprocessing
 from pylearn2.utils import string_utils as string
 import numpy as np
 
-data_dir = string.preprocess('${PYLEARN2_DATA_PATH}/stl10')
 
-print 'Loading STL10-10 unlabeled and train datasets...'
-downsampled_dir = data_dir + '/stl10_32x32'
+def create_output_dir(data_dir):
+    """
+    Preparation of the directory.
 
-data = serial.load(downsampled_dir + '/unlabeled.pkl')
-supplement = serial.load(downsampled_dir + '/train.pkl')
+    Parameters
+    ----------
+    data_dir: str
+        Path of the stl10 directory.
+    """
+    patch_dir = data_dir + '/stl10_patches'
+    serial.mkdir(patch_dir)
+    README = open(patch_dir + '/README', 'w')
 
-print 'Concatenating datasets...'
-data.set_design_matrix(np.concatenate((data.X,supplement.X),axis=0))
-del supplement
+    README.write("""
+    The .pkl files in this directory may be opened in python using
+    cPickle, pickle, or pylearn2.serial.load.
+
+    data.pkl contains a pylearn2 Dataset object defining an unlabeled
+    dataset of 2 million 6x6 approximately whitened, contrast-normalized
+    patches drawn uniformly at random from a downsampled (to 32x32)
+    version of the STL-10 train and unlabeled datasets.
+
+    preprocessor.pkl contains a pylearn2 Pipeline object that was used
+    to extract the patches and approximately whiten / contrast normalize
+    them. This object is necessary when extracting features for
+    supervised learning or test set classification, because the
+    extracted features must be computed using inputs that have been
+    whitened with the ZCA matrix learned and stored by this Pipeline.
+
+    They were created with the pylearn2 script make_stl10_patches.py.
+
+    All other files in this directory, including this README, were
+    created by the same script and are necessary for the other files
+    to function correctly.
+    """)
+
+    README.close()
+
+    return patch_dir
 
 
-print "Preparing output directory..."
-patch_dir = data_dir + '/stl10_patches'
-serial.mkdir( patch_dir )
-README = open(patch_dir + '/README','w')
+def save_dataset(patch_dir, dataset, name):
+    """
+    Save the newly created dataset to the given directory.
 
-README.write("""
-The .pkl files in this directory may be opened in python using
-cPickle, pickle, or pylearn2.serial.load.
+    Parameters
+    ----------
+    patch_dir: str
+        Path of the directory where to save the dataset.
+    dataset: pylearn2.datasets.Dataset
+        The dataset to save.
+    name: str
+        Name of the file to save.
+    """
+    dataset.use_design_loc(patch_dir + '/' + name + '.npy')
+    serial.save(patch_dir + '/' + name + '.pkl', dataset)
 
-data.pkl contains a pylearn2 Dataset object defining an unlabeled
-dataset of 2 million 6x6 approximately whitened, contrast-normalized
-patches drawn uniformly at random from a downsampled (to 32x32)
-version of the STL-10 train and unlabeled datasets.
+if __name__ == '__main__':
 
-preprocessor.pkl contains a pylearn2 Pipeline object that was used
-to extract the patches and approximately whiten / contrast normalize
-them. This object is necessary when extracting features for
-supervised learning or test set classification, because the
-extracted features must be computed using inputs that have been
-whitened with the ZCA matrix learned and stored by this Pipeline.
+    data_dir = string.preprocess('${PYLEARN2_DATA_PATH}/stl10')
 
-They were created with the pylearn2 script make_stl10_patches.py.
+    print 'Loading STL10-10 unlabeled and train datasets...'
+    downsampled_dir = data_dir + '/stl10_32x32'
 
-All other files in this directory, including this README, were
-created by the same script and are necessary for the other files
-to function correctly.
-""")
+    data = serial.load(downsampled_dir + '/unlabeled.pkl')
+    supplement = serial.load(downsampled_dir + '/train.pkl')
 
-README.close()
+    print 'Concatenating datasets...'
+    data.set_design_matrix(np.concatenate((data.X, supplement.X), axis=0))
+    del supplement
 
-print "Preprocessing the data..."
-pipeline = preprocessing.Pipeline()
-pipeline.items.append(preprocessing.ExtractPatches(patch_shape=(6,6),num_patches=2*1000*1000))
-pipeline.items.append(preprocessing.GlobalContrastNormalization(use_std=True, sqrt_bias=10.))
-pipeline.items.append(preprocessing.ZCA())
-data.apply_preprocessor(preprocessor = pipeline, can_fit = True)
+    print "Preparing output directory..."
+    patch_dir = create_output_dir(data_dir)
 
-data.use_design_loc(patch_dir + '/data.npy')
+    print "Preprocessing the data..."
+    patches = preprocessing.ExtractPatches(patch_shape=(6, 6),
+                                           num_patches=2*1000*1000)
+    normalization = preprocessing.GlobalContrastNormalization(use_std=True,
+                                                              sqrt_bias=10.)
+    pipeline = preprocessing.Pipeline()
+    pipeline.items.append(patches)
+    pipeline.items.append(normalization)
+    pipeline.items.append(preprocessing.ZCA())
+    data.apply_preprocessor(preprocessor=pipeline, can_fit=True)
 
-serial.save(patch_dir + '/data.pkl',data)
-
-serial.save(patch_dir + '/preprocessor.pkl',pipeline)
+    save_dataset(patch_dir, data, 'data')
+    serial.save(patch_dir + '/preprocessor.pkl', pipeline)
