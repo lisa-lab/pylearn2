@@ -19,13 +19,14 @@ __email__ = "mkg alum mit edu (@..)"
 
 
 import os
+import copy
 import gzip
 import bz2
 import warnings
 import functools
 import numpy
 import theano
-from pylearn2.utils import safe_zip
+from pylearn2.utils import safe_zip, string_utils
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.space import VectorSpace, Conv2DSpace, CompositeSpace
 
@@ -40,24 +41,28 @@ class NORB(DenseDesignMatrix):
     Parameters
     ----------
 
-    X: design matrix of uint8s. Each row contains the pixels of a
-       stereo image pair (grayscale).
+    X : ndarray
+    Design matrix. Each row contains the pixels of a grayscale stereo image
+    pair.
 
-    y: design matrix of int32s. Each row contains the labels for the
-       corresponding row in X.
+    y : ndarray
+    Design matrix of int32s. Each row contains the labels for the
+    corresponding row in X.
 
-    label_index_to_name: Maps column indices of y to the name of that
-                         label (e.g. 'category', 'instance', etc).
+    label_index_to_name : tuple
+    Maps column indices of y to the name of that label (e.g. 'category',
+    'instance', etc).
 
-    label_name_to_index: maps label names (e.g. 'category') to the
-                         corresponding column index in label.y.
+    label_name_to_index : dict
+    Maps label names (e.g. 'category') to the corresponding column index in
+    label.y.
 
-    label_to_value_funcs: a tuple of functions that map label values
-                          to the physical values they represent (for example,
-                          elevation angle in degrees).
+    label_to_value_funcs : tuple
+    A tuple of functions that map label values to the physical values they
+    represent (for example, elevation angle in degrees).
     """
 
-    def __init__(self, which_norb, which_set):
+    def __init__(self, which_norb, which_set, image_dtype='uint8'):
         """
         Reads the specified NORB dataset from a memmap cache.
         Creates this cache first, if necessary.
@@ -65,16 +70,24 @@ class NORB(DenseDesignMatrix):
         Parameters
         ----------
 
-        which_norb: str
+        which_norb : str
             Valid values: 'big' or 'small'.
             Chooses between the (big) 'NORB dataset', and the 'Small NORB
             dataset'.
 
-        which_set: str
+        which_set : str
             Valid values: 'test', 'train', or 'both'.
             Chooses between the testing set or the training set. If 'both',
             the two datasets will be stacked together (testing data in the
             first N rows, then training data).
+
+        image_dtype : str, or numpy.dtype
+            The dtype to store image data as in the memmap cache.
+            Default is uint8, which is what the original NORB files use.
+
+        X_memmap_info, y_memmap_info : dict
+            Constructor arguments for the memmaps self.X and self.y, used
+            during pickling/unpickling.
         """
 
         if which_norb not in ('big', 'small'):
@@ -84,6 +97,9 @@ class NORB(DenseDesignMatrix):
         if which_set not in ('test', 'train', 'both'):
             raise ValueError("Expected which_set argument to be either 'test' "
                              "or 'train', not '%s'." % str(which_set))
+
+        # This will check that dtype is a legitimate dtype string.
+        image_dtype = numpy.dtype(image_dtype)
 
         # Maps column indices of self.y to the label type it contains.
         # Names taken from http://www.cs.nyu.edu/~ylclab/data/norb-v1.0/
@@ -108,121 +124,20 @@ class NORB(DenseDesignMatrix):
         for index, name in enumerate(self.label_index_to_name):
             self.label_name_to_index[name] = index
 
-        def get_label_to_value_funcs():
-            """
-            Returns a tuple of functions that map label values (int32's) to the
-            actual physical values they represent (e.g. angles in
-            degrees). Labels with no such physical interpretation
-            (e.g. instance label) are returned unchanged.
-
-            These are useful when presenting labels to a human reader.
-
-            Often these ufuncs will just return the int unchanged.
-            In the big NORB dataset, images can contain no object. Many
-            label types will then have a 'physical value' of None.
-            """
-
-            def check_is_integral(label):
-                if not numpy.issubdtype(type(label), numpy.integer):
-                    raise TypeError("Expected an integral dtype, not %s" %
-                                    type(label))
-
-            def check_range(label, min_label, max_label, name):
-                if label < min_label or label > max_label:
-                    raise ValueError("Expected %s label to be between %d "
-                                     "and %d inclusive, , but got %s" %
-                                     (name, min_label, max_label, str(label)))
-
-            def make_array_func(label_name, array):
-                def result(label):
-                    check_is_integral(label)
-                    check_range(label,
-                                min_label=0,
-                                max_label=len(array) - 1,
-                                name=label_name)
-                    return array[label]
-
-                return result
-
-            def get_category(label):
-                check_is_integral(label)
-                check_range(label, 0, 5, 'category')
-
-                return category_names[label]
-
-            def make_identity_func(name,
-                                   min_label,
-                                   max_label,
-                                   none_label=None):
-                def result(label):
-                    check_is_integral(label)
-                    check_range(label, min_label, max_label, name)
-                    if label == none_label:
-                        return None
-                    else:
-                        return label
-
-                return result
-
-            def get_elevation(label):
-                check_is_integral(label)
-                check_range(label, -1, 8, 'elevation')
-
-                if label == -1:
-                    return None
-                else:
-                    return label * 5 + 30
-
-            def get_azimuth(label):
-                check_is_integral(label)
-                if label == -1:
-                    return None
-                else:
-                    if (label / 2) * 2 != label or label < 0 or label > 34:
-                        raise ValueError("Expected azimuth to be an even "
-                                         "number between 0 and 34 inclusive, "
-                                         "or -1, but got %s instead." %
-                                         str(label))
-
-                    return label * 10
-
-            category_names = ['animal', 'human', 'airplane', 'truck', 'car']
-            if which_norb == 'big':
-                category_names.append('blank')
-
-            result = (make_array_func('category', category_names),
-                      make_identity_func('instance',
-                                         min_label=-1,
-                                         max_label=9,
-                                         none_label=-1),
-                      get_elevation,
-                      get_azimuth,
-                      make_identity_func('lighting',
-                                         min_label=-1,
-                                         max_label=5,
-                                         none_label=-1))
-
-            if which_norb == 'big':
-                result = result + (make_identity_func('horizontal shift',
-                                                      min_label=-5,
-                                                      max_label=5),
-                                   make_identity_func('vertical shift',
-                                                      min_label=-5,
-                                                      max_label=5),
-                                   make_identity_func('lumination change',
-                                                      min_label=-19,
-                                                      max_label=19),
-                                   make_array_func('contrast change',
-                                                   (0.8, 1.3)),
-                                   make_array_func('scale change',
-                                                   (0.78, 1.0)),
-                                   make_identity_func('rotation change',
-                                                      min_label=-4,
-                                                      max_label=4))
-
-            return result  # ends get_label_to_value_maps()
-
-        self.label_to_value_funcs = get_label_to_value_funcs()
+        # self.label_to_value_funcs = _get_label_to_value_funcs(which_norb)
+        self.label_to_value_funcs = (get_category_value,
+                                     get_instance_value,
+                                     get_elevation_value,
+                                     get_azimuth_value,
+                                     get_lighting_value)
+        if which_norb == 'big':
+            self.label_to_value_funcs = (self.label_to_value_funcs +
+                                         (get_horizontal_shift_value,
+                                          get_vertical_shift_value,
+                                          get_lumination_change_value,
+                                          get_contrast_change_value,
+                                          get_scale_change_value,
+                                          get_rotation_change_value))
 
         # The size of one side of the image
         image_length = 96 if which_norb == 'small' else 108
@@ -251,11 +166,11 @@ class NORB(DenseDesignMatrix):
                 Parameters
                 ----------
 
-                norb_file_path: str
+                norb_file_path : str
                   A NORB file from which to read.
                   Can be uncompressed (*.mat) or compressed (*.mat.gz).
 
-                debug: bool
+                debug : bool
                   Set to True if you want debug printfs.
                 """
 
@@ -360,7 +275,6 @@ class NORB(DenseDesignMatrix):
             for norb_file in norb_files:
                 print "copying NORB file %s" % os.path.split(norb_file)[1]
                 norb_data = read_norb_file(norb_file)
-                assert norb_data.dtype == output.dtype
                 norb_data = norb_data.reshape(-1, output.shape[1])
                 end_row = row_index + norb_data.shape[0]
                 output[row_index:end_row, :] = norb_data
@@ -376,14 +290,27 @@ class NORB(DenseDesignMatrix):
             training_set_size = 291600
             testing_set_size = 58320
 
-        def load_images(which_norb, which_set):
+        def load_images(which_norb, which_set, dtype):
             """
             Reads image data from memmap disk cache, if available. If not, then
             first builds the memmap file from the NORB files.
+
+            Parameters
+            ----------
+            which_norb : str
+            'big' or 'small'.
+
+            which_set : str
+            'test', 'train', or 'both'.
+
+            dtype : numpy.dtype
+            The dtype of the image memmap cache file. If a
+            cache of this dtype doesn't exist, it will be created.
             """
 
-            memmap_path = get_memmap_path(which_norb, 'images')
-            dtype = numpy.dtype('uint8')
+            assert type(dtype) == numpy.dtype
+
+            memmap_path = get_memmap_path(which_norb, 'images_%s' % str(dtype))
             row_size = 2 * (image_length ** 2)
             shape = (training_set_size + testing_set_size, row_size)
 
@@ -487,12 +414,13 @@ class NORB(DenseDesignMatrix):
 
         norb_dir = get_norb_dir(which_norb)
 
-        def get_memmap_path(which_norb, images_or_labels):
+        def get_memmap_path(which_norb, file_basename):
             assert which_norb in ('big', 'small')
-            assert images_or_labels in ('images', 'labels')
+            assert (file_basename == 'labels' or
+                    file_basename.startswith('images')), file_basename
+
             memmap_dir = os.path.join(norb_dir, 'memmaps_of_original')
-            template = os.path.join(memmap_dir, "%s.npy")
-            return template % images_or_labels
+            return os.path.join(memmap_dir, "%s.npy" % file_basename)
 
         def get_norb_file_paths(which_norb, which_set, norb_file_type):
             """
@@ -545,16 +473,26 @@ class NORB(DenseDesignMatrix):
             axes = ('b', 's', 0, 1, 'c')
             return StereoViewConverter(datum_shape, axes)
 
-        super(NORB, self).__init__(
-            X=load_images(which_norb, which_set),
-            y=load_labels(which_norb, which_set),
-            view_converter=make_view_converter(which_norb, which_set))
+        images = load_images(which_norb, which_set, image_dtype)
+        labels = load_labels(which_norb, which_set)
+        view_converter = make_view_converter(which_norb, which_set)
+
+        super(NORB, self).__init__(X=images,
+                                   y=labels,
+                                   view_converter=view_converter)
+
+        # Needed for pickling / unpickling.
+        # These are set during pickling, by __getstate__()
+        self.X_memmap_info = None
+        self.y_memmap_info = None
 
     @functools.wraps(DenseDesignMatrix.get_topological_view)
     def get_topological_view(self, mat=None, single_tensor=True):
         result = super(NORB, self).get_topological_view(mat)
 
-        if single_tensor:
+        if 's' not in self.view_converter.axes:
+            return result
+        elif single_tensor:
             warnings.warn("The single_tensor argument is True by default to "
                           "maintain backwards compatibility. This argument "
                           "will be removed, and the behavior will become that "
@@ -577,6 +515,98 @@ class NORB(DenseDesignMatrix):
 
         return result
 
+    def __getstate__(self):
+        """
+        Support method for pickling. Returns the complete state of this object
+        as a dictionary, which is then pickled.
+
+        This state does not include the memmaps' contents. Rather, it includes
+        enough info to find the memmap and re-load it from disk in the same
+        state.
+        """
+        _check_pickling_support()
+
+        result = copy.copy(self.__dict__)
+
+        assert isinstance(self.X, numpy.memmap), ("Expected X to be a memmap, "
+                                                  "but it was a %s." %
+                                                  str(type(self.X)))
+        assert isinstance(self.y, numpy.memmap), ("Expected y to be a memmap, "
+                                                  "but it was a %s." %
+                                                  str(type(self.y)))
+
+        # We don't want to pickle the memmaps; they're already on disk.
+        del result['X']
+        del result['y']
+
+        # Replace memmaps with their constructor arguments
+        def get_memmap_info(memmap):
+            assert isinstance(memmap, numpy.memmap)
+
+            if not isinstance(memmap.filename, str):
+                raise ValueError("Expected memmap.filename to be a str; "
+                                 "instead got a %s, %s" %
+                                 (type(memmap.filename), str(memmap.filename)))
+
+            result = {}
+
+            def get_relative_path(full_path):
+                """
+                Returns the relative path to the PYLEARN2_DATA_PATH.
+                """
+                data_dir = string_utils.preprocess('${PYLEARN2_DATA_PATH}')
+
+                if not memmap.filename.startswith(data_dir):
+                    raise ValueError("Expected memmap.filename to start with "
+                                     "the PYLEARN2_DATA_PATH (%s). Instead it "
+                                     "was %s." % (data_dir, memmap.filename))
+
+                return os.path.relpath(full_path, data_dir)
+
+            return {'filename': get_relative_path(memmap.filename),
+                    'dtype': memmap.dtype,
+                    'shape': memmap.shape,
+                    'offset': memmap.offset,
+                    'mode': memmap.mode}
+
+        result['X_info'] = get_memmap_info(self.X)
+        result['y_info'] = get_memmap_info(self.y)
+
+        return result
+
+    def __setstate__(self, state):
+        """
+        Support method for unpickling. Takes a 'state' dictionary and
+        interprets it in order to set this object's fields.
+        """
+        _check_pickling_support()
+
+        X_info = state['X_info']
+        y_info = state['y_info']
+        del state['X_info']
+        del state['y_info']
+
+        self.__dict__.update(state)
+
+        def load_memmap_from_info(info):
+            # Converts filename from relative to absolute path.
+            data_dir = string_utils.preprocess('${PYLEARN2_DATA_PATH}')
+            info['filename'] = os.path.join(data_dir, info['filename'])
+
+            shape = info['shape']
+            offset = info['offset']
+
+            if offset == 0:
+                del info['offset']
+                return numpy.memmap(**info)
+            else:
+                del info['shape']
+                result = numpy.memmap(**info)
+                return result.reshape(shape)
+
+        self.X = load_memmap_from_info(X_info)
+        self.y = load_memmap_from_info(y_info)
+
 
 class StereoViewConverter(object):
     """
@@ -586,7 +616,7 @@ class StereoViewConverter(object):
 
     Parameters
     ----------
-    shape: tuple
+    shape : tuple
     See doc for __init__'s <shape> parameter.
     """
 
@@ -639,7 +669,8 @@ class StereoViewConverter(object):
             conv2d_axes.remove('s')
             return Conv2DSpace(shape=image_shape,
                                num_channels=shape[shape_axes.index('c')],
-                               axes=conv2d_axes)
+                               axes=conv2d_axes,
+                               dtype=None)
 
         conv2d_space = make_conv2d_space(shape, axes)
         self.topo_space = CompositeSpace((conv2d_space, conv2d_space))
@@ -652,10 +683,10 @@ class StereoViewConverter(object):
         Parameters
         ----------
 
-        batch: ndarray
+        batch : ndarray
         The batch to format
 
-        space: a pylearn2.space.Space
+        space : a pylearn2.space.Space
         The target space to format to.
         """
         return self.storage_space.np_format_as(batch, space)
@@ -667,7 +698,7 @@ class StereoViewConverter(object):
         Parameters
         ----------
 
-        design_mat: ndarray
+        design_mat : ndarray
         """
         return self.storage_space.np_format_as(design_mat, self.topo_space)
 
@@ -678,7 +709,7 @@ class StereoViewConverter(object):
         Parameters
         ----------
 
-        design_mat: ndarray
+        design_mat : ndarray
         """
         return self.design_mat_to_topo_view(design_mat)
 
@@ -689,7 +720,7 @@ class StereoViewConverter(object):
         Parameters
         ----------
 
-        topo_batch: ndarray
+        topo_batch : ndarray
         """
         return self.topo_space.np_format_as(topo_batch, self.storage_space)
 
@@ -712,7 +743,7 @@ class StereoViewConverter(object):
         Parameters
         ----------
 
-        axes: tuple
+        axes : tuple
         Must have length 5, must contain 'b', 's', 0, 1, 'c'.
         """
         axes = tuple(axes)
@@ -743,3 +774,225 @@ class StereoViewConverter(object):
             self.shape = new_shape
 
         self.axes = axes
+
+
+def _check_is_integral(name, label):
+    if not numpy.issubdtype(type(label), numpy.integer):
+        raise TypeError("Expected %s label to be an integral dtype, not %s" %
+                        (name, type(label)))
+
+
+def _check_range(name, label, min_label, max_label):
+    if label < min_label or label > max_label:
+        raise ValueError("Expected %s label to be between %d "
+                         "and %d inclusive, , but got %s" %
+                         (name, min_label, max_label, str(label)))
+
+
+def _get_array_element(name, label, array):
+    _check_is_integral(name, label)
+    _check_range(name, label, 0, len(array) - 1)
+    return array[label]
+
+
+def get_category_value(label):
+    return _get_array_element('category', label, ('animal',
+                                                  'human',
+                                                  'airplane',
+                                                  'truck',
+                                                  'car',
+                                                  'blank'))
+
+
+def _check_range_and_return(name,
+                            label,
+                            min_label,
+                            max_label,
+                            none_label=None):
+    _check_is_integral(name, label)
+    _check_range(name, label, min_label, max_label)
+    return None if label == none_label else label
+
+
+def get_instance_value(label):
+    return _check_range_and_return('instance', label, -1, 9, -1)
+
+
+def get_elevation_value(label):
+    name = 'elevation'
+    _check_is_integral(name, label)
+    _check_range(name, label, -1, 8)
+
+    if label == -1:
+        return None
+    else:
+        return label * 5 + 30
+
+
+def get_azimuth_value(label):
+    _check_is_integral('azimuth', label)
+    if label == -1:
+        return None
+    else:
+        if (label / 2) * 2 != label or label < 0 or label > 34:
+            raise ValueError("Expected azimuth to be an even "
+                             "number between 0 and 34 inclusive, "
+                             "or -1, but got %s instead." %
+                             str(label))
+
+        return label * 10
+
+
+def get_lighting_value(label):
+    return _check_range_and_return('lighting', label, -1, 5, -1)
+
+
+def get_horizontal_shift_value(label):
+    return _check_range_and_return('horizontal shift', label, -5, 5)
+
+
+def get_vertical_shift_value(label):
+    return _check_range_and_return('vertical shift', label, -5, 5)
+
+
+def get_lumination_change_value(label):
+    return _check_range_and_return('lumination_change', label, -19, 19)
+
+
+def get_contrast_change_value(label):
+    return _get_array_element('contrast change', label, (0.8, 1.3))
+
+
+def get_scale_change_value(label):
+    return _get_array_element('scale change', label, (0.78, 1.0))
+
+
+def get_rotation_change_value(label):
+    return _check_range_and_return('rotation change', label, -4, 4)
+
+
+def _get_label_to_value_funcs(which_norb):
+    """
+    Returns a tuple of functions that map label values (int32's) to the
+    actual physical values they represent (e.g. angles in
+    degrees). Labels with no such physical interpretation
+    (e.g. instance label) are returned unchanged.
+
+    These are useful when presenting labels to a human reader.
+
+    Often these ufuncs will just return the int unchanged.
+    In the big NORB dataset, images can contain no object. Many
+    label types will then have a 'physical value' of None.
+    """
+
+    def check_is_integral(label):
+        if not numpy.issubdtype(type(label), numpy.integer):
+            raise TypeError("Expected an integral dtype, not %s" %
+                            type(label))
+
+    def check_range(label, min_label, max_label, name):
+        if label < min_label or label > max_label:
+            raise ValueError("Expected %s label to be between %d "
+                             "and %d inclusive, , but got %s" %
+                             (name, min_label, max_label, str(label)))
+
+    def make_array_func(label_name, array):
+        def result(label):
+            check_is_integral(label)
+            check_range(label,
+                        min_label=0,
+                        max_label=len(array) - 1,
+                        name=label_name)
+            return array[label]
+
+        return result
+
+    def get_category(label):
+        check_is_integral(label)
+        check_range(label, 0, 5, 'category')
+
+        return category_names[label]
+
+    def make_identity_func(name,
+                           min_label,
+                           max_label,
+                           none_label=None):
+        def result(label):
+            check_is_integral(label)
+            check_range(label, min_label, max_label, name)
+            if label == none_label:
+                return None
+            else:
+                return label
+
+        return result
+
+    def get_elevation(label):
+        check_is_integral(label)
+        check_range(label, -1, 8, 'elevation')
+
+        if label == -1:
+            return None
+        else:
+            return label * 5 + 30
+
+    def get_azimuth(label):
+        check_is_integral(label)
+        if label == -1:
+            return None
+        else:
+            if (label / 2) * 2 != label or label < 0 or label > 34:
+                raise ValueError("Expected azimuth to be an even "
+                                 "number between 0 and 34 inclusive, "
+                                 "or -1, but got %s instead." %
+                                 str(label))
+
+            return label * 10
+
+    category_names = ['animal', 'human', 'airplane', 'truck', 'car']
+    if which_norb == 'big':
+        category_names.append('blank')
+
+    result = (make_array_func('category', category_names),
+              make_identity_func('instance',
+                                 min_label=-1,
+                                 max_label=9,
+                                 none_label=-1),
+              get_elevation,
+              get_azimuth,
+              make_identity_func('lighting',
+                                 min_label=-1,
+                                 max_label=5,
+                                 none_label=-1))
+
+    if which_norb == 'big':
+        result = result + (make_identity_func('horizontal shift',
+                                              min_label=-5,
+                                              max_label=5),
+                           make_identity_func('vertical shift',
+                                              min_label=-5,
+                                              max_label=5),
+                           make_identity_func('lumination change',
+                                              min_label=-19,
+                                              max_label=19),
+                           make_array_func('contrast change',
+                                           (0.8, 1.3)),
+                           make_array_func('scale change',
+                                           (0.78, 1.0)),
+                           make_identity_func('rotation change',
+                                              min_label=-4,
+                                              max_label=4))
+
+    return result  # ends get_label_to_value_funcs()
+
+
+def _check_pickling_support():
+    # Reads the first two components of the version number as a floating point
+    # number.
+    version = float('.'.join(numpy.version.version.split('.')[:2]))
+
+    if version < 1.7:
+        msg = ("Pickling NORB is disabled for numpy versions less "
+               "than 1.7, due to a bug in 1.6.x that causes memmaps "
+               "to interact poorly with pickling.")
+        raise NotImplementedError(msg)

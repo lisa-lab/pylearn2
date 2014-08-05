@@ -1,7 +1,7 @@
 """
 Local winner-take-all layer.
 """
-__author__ = "Da Xiao, Ian Goodfellow, Minh Ngoc Le"
+__author__ = "Xia Da, Ian Goodfellow, Minh Ngoc Le"
 
 from functools import wraps
 import numpy

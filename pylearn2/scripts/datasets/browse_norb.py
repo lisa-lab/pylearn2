@@ -15,156 +15,135 @@ from pylearn2.datasets.new_norb import NORB
 from pylearn2.utils import safe_zip
 
 
+def _parse_args():
+    parser = argparse.ArgumentParser(
+        description="Browser for NORB dataset.")
+
+    parser.add_argument('--which_norb',
+                        type=str,
+                        required=True,
+                        choices=('big', 'small'),
+                        help="'Selects the (big) NORB, or the Small NORB.")
+
+    parser.add_argument('--which_set',
+                        type=str,
+                        required=True,
+                        choices=('train', 'test', 'both'),
+                        help="'train', or 'test'")
+
+    parser.add_argument('--stereo_viewer',
+                        action='store_true',
+                        help="Swaps left and right stereo images, so you "
+                        "can see them in 3D by crossing your eyes.")
+
+    result = parser.parse_args()
+
+    return result
+
+
+def _make_grid_to_short_label(dataset):
+    """
+    Returns an array x such that x[a][b] gives label index a's b'th unique
+    value. In other words, it maps label grid indices a, b to the
+    corresponding label value.
+    """
+    unique_values = [sorted(list(frozenset(column)))
+                     for column
+                     in dataset.y[:, :5].transpose()]
+
+    # If dataset contains blank images, removes the '-1' labels
+    # corresponding to blank images, since they aren't contained in the
+    # label grid.
+    category_index = dataset.label_name_to_index['category']
+    unique_categories = unique_values[category_index]
+    category_to_name = dataset.label_to_value_funcs[category_index]
+    if any(category_to_name(category) == 'blank'
+           for category in unique_categories):
+        for d in range(1, len(unique_values)):
+            assert unique_values[d][0] == -1, ("unique_values: %s" %
+                                               str(unique_values))
+            unique_values[d] = unique_values[d][1:]
+
+    return unique_values
+
+
+def _get_blank_label(dataset):
+    """
+    Returns the label vector associated with blank images.
+
+    If dataset is a Small NORB (i.e. it has no blank images), this returns
+    None.
+    """
+
+    category_index = dataset.label_name_to_index['category']
+    category_to_name = dataset.label_to_value_funcs[category_index]
+    blank_label = 5
+
+    try:
+        blank_name = category_to_name(blank_label)
+    except ValueError:
+        # Returns None if there is no 'blank' category (e.g. if we're using
+        # the small NORB dataset.
+        return None
+
+    assert blank_name == 'blank'
+
+    blank_rowmask = dataset.y[:, category_index] == blank_label
+    blank_labels = dataset.y[blank_rowmask, :]
+    #assert(blank_rowmask.any())
+
+    if not blank_rowmask.any():
+        return None
+
+    if not numpy.all(blank_labels[0, :] == blank_labels[1:, :]):
+        raise ValueError("Expected all labels of category 'blank' to have "
+                         "the same value, but they differed.")
+
+    return blank_labels[0, :].copy()
+
+
+def _make_label_to_row_indices(labels):
+    """
+    Returns a map from short labels (the first 5 elements of the label
+    vector) to the list of row indices of rows in the dense design matrix
+    with that label.
+
+    For Small NORB, all unique short labels have exactly one row index.
+
+    For big NORB, a short label can have 0-N row indices.
+    """
+    result = {}
+
+    for row_index, label in enumerate(labels):
+
+        short_label = tuple(label[:5])
+        if result.get(short_label, None) is None:
+            result[short_label] = []
+
+        result[short_label].append(row_index)
+
+    return result
+
+
 def main():
     """Top-level function."""
 
-    def parse_args():
-        parser = argparse.ArgumentParser(
-            description="Browser for NORB dataset.")
-
-        parser.add_argument('--which_norb',
-                            type=str,
-                            required=True,
-                            choices=('big', 'small'),
-                            help="'Selects the (big) NORB, or the Small NORB.")
-
-        parser.add_argument('--which_set',
-                            type=str,
-                            required=True,
-                            choices=('train', 'test', 'both'),
-                            help="'train', or 'test'")
-
-        parser.add_argument('--stereo_viewer',
-                            action='store_true',
-                            help="Swaps left and right stereo images, so you "
-                            "can see them in 3D by crossing your eyes.")
-
-        result = parser.parse_args()
-
-        return result
-
-    args = parse_args()
+    args = _parse_args()
 
     dataset = NORB(args.which_norb, args.which_set)
     # Indexes into the first 5 labels, which live on a 5-D grid.
     grid_indices = [0, ] * 5
 
-    def make_grid_to_short_label():
-        """
-        Returns an array x such that x[a][b] gives label index a's b'th unique
-        value. In other words, it maps label grid indices a, b to the
-        corresponding label value.
-        """
-        unique_values = [sorted(list(frozenset(column)))
-                         for column
-                         in dataset.y[:, :5].transpose()]
-
-        # If dataset contains blank images, removes the '-1' labels
-        # corresponding to blank images, since they aren't contained in the
-        # label grid.
-        category_index = dataset.label_name_to_index['category']
-        unique_categories = unique_values[category_index]
-        category_to_name = dataset.label_to_value_funcs[category_index]
-        if any(category_to_name(category) == 'blank'
-               for category in unique_categories):
-            for d in range(1, len(unique_values)):
-                assert unique_values[d][0] == -1, ("unique_values: %s" %
-                                                   str(unique_values))
-                unique_values[d] = unique_values[d][1:]
-
-        return unique_values
-
-    grid_to_short_label = make_grid_to_short_label()
-
-    def make_label_to_row_indices():
-        """
-        Returns a map from short labels (the first 5 elements of the label
-        vector) to the list of row indices of rows in the dense design matrix
-        with that label.
-
-        For Small NORB, all unique short labels have exactly one row index.
-
-        For big NORB, a short label can have 0-N row indices.
-        """
-        result = {}
-
-        for row_index, label in enumerate(dataset.y):
-
-            short_label = tuple(label[:5])
-            if result.get(short_label, None) is None:
-                result[short_label] = []
-
-            result[short_label].append(row_index)
-
-        return result
+    grid_to_short_label = _make_grid_to_short_label(dataset)
 
     # Maps 5-D label vector to a list of row indices for dataset.X, dataset.y
     # that have those labels.
-    label_to_row_indices = make_label_to_row_indices()
+    label_to_row_indices = _make_label_to_row_indices(dataset.y)
 
     # Indexes into the row index lists returned by label_to_row_indices.
     object_image_index = [0, ]
     blank_image_index = [0, ]
-
-    def get_blank_label(dataset):
-        """
-        Returns the label vector associated with blank images.
-
-        If dataset is a Small NORB (i.e. it has no blank images), this returns
-        None.
-        """
-
-        category_index = dataset.label_name_to_index['category']
-        category_to_name = dataset.label_to_value_funcs[category_index]
-        blank_label = 5
-
-        try:
-            blank_name = category_to_name(blank_label)
-        except ValueError:
-            # Returns None if there is no 'blank' category (e.g. if we're using
-            # the small NORB dataset.
-            return None
-
-        assert blank_name == 'blank'
-
-        blank_rowmask = dataset.y[:, category_index] == blank_label
-        blank_labels = dataset.y[blank_rowmask, :]
-        assert(blank_rowmask.any())
-        if not numpy.all(blank_labels[0, :] == blank_labels[1:, :]):
-            raise ValueError("Expected all labels of category 'blank' to have "
-                             "the same value, but they differed.")
-
-        return blank_labels[0, :].copy()
-
-    blank_label = get_blank_label(dataset)
-
-    def is_blank(grid_indices):
-        assert len(grid_indices) == 5
-        assert all(x >= 0 for x in grid_indices)
-
-        ci = dataset.label_name_to_index['category']  # category index
-        category = grid_to_short_label[ci][grid_indices[ci]]
-        category_name = dataset.label_to_value_funcs[ci](category)
-        return category_name == 'blank'
-
-    def get_short_label(grid_indices):
-        """
-        Returns the first 5 elements of the label vector pointed to by
-        grid_indices. We use the first 5, since they're the labels used by
-        both the 'big' and Small NORB datasets.
-        """
-
-        # Need to special-case the 'blank' category, since it lies outside of
-        # the grid.
-        if is_blank(grid_indices):   # will never happen with SmallNORB
-            return tuple(blank_label[:5])
-        else:
-            return tuple(grid_to_short_label[i][g]
-                         for i, g in enumerate(grid_indices))
-
-    def get_row_indices(grid_indices):
-        short_label = get_short_label(grid_indices)
-        return label_to_row_indices.get(short_label, None)
+    blank_label = _get_blank_label(dataset)
 
     # Index into grid_indices currently being edited
     grid_dimension = [0, ]
@@ -194,6 +173,34 @@ def main():
         image_ax.set_title(caption)
 
     text_axes.set_frame_on(False)  # Hides background of text_axes
+
+    def is_blank(grid_indices):
+        assert len(grid_indices) == 5
+        assert all(x >= 0 for x in grid_indices)
+
+        ci = dataset.label_name_to_index['category']  # category index
+        category = grid_to_short_label[ci][grid_indices[ci]]
+        category_name = dataset.label_to_value_funcs[ci](category)
+        return category_name == 'blank'
+
+    def get_short_label(grid_indices):
+        """
+        Returns the first 5 elements of the label vector pointed to by
+        grid_indices. We use the first 5, since they're the labels used by
+        both the 'big' and Small NORB datasets.
+        """
+
+        # Need to special-case the 'blank' category, since it lies outside of
+        # the grid.
+        if is_blank(grid_indices):   # won't happen with SmallNORB
+            return tuple(blank_label[:5])
+        else:
+            return tuple(grid_to_short_label[i][g]
+                         for i, g in enumerate(grid_indices))
+
+    def get_row_indices(grid_indices):
+        short_label = get_short_label(grid_indices)
+        return label_to_row_indices.get(short_label, None)
 
     def redraw(redraw_text, redraw_images):
         row_indices = get_row_indices(grid_indices)

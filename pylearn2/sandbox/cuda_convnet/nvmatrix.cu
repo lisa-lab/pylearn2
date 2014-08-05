@@ -31,7 +31,7 @@
 #include <set>
 #include <vector>
 #include <assert.h>
-#include <cublas.h>
+#include <cublas_v2.h>
 #include <cutil_inline.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -59,7 +59,7 @@ pthread_mutex_t* NVMatrix::makeMutex() {
 }
 
 NVMatrix::NVMatrix(const CudaNdarray * view,
-		int numRows, int numCols, const char * msg)
+                int numRows, int numCols, const char * msg)
 {
     if (!CudaNdarray_is_c_contiguous(view))
     {
@@ -80,14 +80,14 @@ NVMatrix::NVMatrix(const CudaNdarray * view,
     }
     if (total != numRows * numCols)
     {
-	    fprintf(stderr, "NVMatrix asked to make a view of a CudaNdarray with %d elements",total);
-	    fprintf(stderr, " but told to arrange these in a %d x %d rectangle (of total size %d).\n",
-			    numRows, numCols, numRows * numCols);
-	    fprintf(stderr, "CudaNdarray dims: ");
-	    for (int i = 0; i < view->nd; i++)
-		    fprintf(stderr, "%d ", dims[i]);
-	    fprintf(stderr, "\n");
-	    assert(false);
+            fprintf(stderr, "NVMatrix asked to make a view of a CudaNdarray with %d elements",total);
+            fprintf(stderr, " but told to arrange these in a %d x %d rectangle (of total size %d).\n",
+                            numRows, numCols, numRows * numCols);
+            fprintf(stderr, "CudaNdarray dims: ");
+            for (int i = 0; i < view->nd; i++)
+                    fprintf(stderr, "%d ", dims[i]);
+            fprintf(stderr, "\n");
+            assert(false);
     }
 
     //Make the view
@@ -109,8 +109,12 @@ void NVMatrix::_init(int numRows, int numCols, int stride, bool isTrans) {
     _isTrans = isTrans;
     _devData = NULL;
     if (_numElements > 0) {
-        cublasAlloc(_numElements, sizeof(float), (void**) &_devData);
-        checkCublasError("!!!! device memory allocation error\n");
+        cudaError_t err = cudaMalloc((void**) &_devData,
+                                     _numElements * sizeof(float));
+        if (cudaSuccess != err){
+          fprintf(stderr, "!!!! device memory allocation error\n", NULL);
+            exit(EXIT_FAILURE);
+      }
     }
     _stride = stride < 0 ? getLeadingDim() : stride;
 }
@@ -171,8 +175,8 @@ NVMatrix::NVMatrix(float* devData, int numRows, int numCols, int stride, bool is
 
 NVMatrix::~NVMatrix() {
     if(_ownsData && _numElements > 0) {
-	// This line was modified by Ian Goodfellow to use device_free
-	// so that theano may keep track of device memory usage
+        // This line was modified by Ian Goodfellow to use device_free
+        // so that theano may keep track of device memory usage
         int status = device_free(_devData);
         if (status != 0) {
             fprintf(stderr, "!!!! memory free error\n");
@@ -251,10 +255,14 @@ void NVMatrix::rightMult(const NVMatrix &b, float scaleAB, NVMatrix &target) con
     if(_numRows % 64 != 0 || _numCols % 64 != 0 || b.getNumCols() % 64 != 0) {
         WARN("Matrix dimensions not divisible by 64 -- cublasSgemm performance may suffer.");
     }
-    cublasSgemm(getTransChar(), b.getTransChar(), _numRows, b.getNumCols(), _numCols,
-                scaleAB, _devData, getLeadingDim(), b.getDevData(), b.getLeadingDim(),
-                0, target.getDevData(), getNumRows());
-    checkCublasError("cublasSgemm failed");
+    cublasStatus_t err;
+    float zero = 0;
+    err = cublasSgemm(handle, getTransOp(), b.getTransOp(),
+                      _numRows, b.getNumCols(), _numCols,
+                      &scaleAB, _devData, getLeadingDim(), b.getDevData(),
+                      b.getLeadingDim(),
+                      &zero, target.getDevData(), getNumRows());
+    checkCublasError(err, "cublasSgemm failed");
 //    cudaThreadSynchronize();
 }
 
@@ -283,10 +291,13 @@ void NVMatrix::addProduct(const NVMatrix& a, const NVMatrix &b, float scaleThis,
     if(a.getNumRows() % 64 != 0 || a.getNumCols() % 64 != 0 || b.getNumCols() % 64 != 0) {
         WARN("Matrix dimensions not divisible by 64 -- cublasSgemm performance may suffer.");
     }
-    cublasSgemm(a.getTransChar(), b.getTransChar(), a.getNumRows(), b.getNumCols(), a.getNumCols(),
-                scaleAB, a.getDevData(), a.getLeadingDim(), b.getDevData(), b.getLeadingDim(),
-                scaleThis, _devData, getLeadingDim());
-    checkCublasError("cublasSgemm failed");
+    cublasStatus_t err;
+    err = cublasSgemm(handle, a.getTransOp(), b.getTransOp(),
+                      a.getNumRows(), b.getNumCols(), a.getNumCols(),
+                      &scaleAB, a.getDevData(), a.getLeadingDim(),
+                      b.getDevData(), b.getLeadingDim(),
+                      &scaleThis, _devData, getLeadingDim());
+    checkCublasError(err, "cublasSgemm failed");
 //    cudaThreadSynchronize();
 }
 
@@ -528,7 +539,7 @@ bool NVMatrix::resize(int numRows, int numCols) {
         if (_numElements != numRows * numCols) {
             assert(_ownsData); // assert moved here by Ian Goodfellow
             if (_numElements > 0) { // free old memory
-		        // This line was modified by Ian Goodfellow to use device_free so theano may track device memory usage accurately
+                        // This line was modified by Ian Goodfellow to use device_free so theano may track device memory usage accurately
                 int status = device_free(_devData);
                 if (status != 0) {
                     fprintf(stderr, "!!!! memory free error: %X\n", status);
@@ -536,11 +547,12 @@ bool NVMatrix::resize(int numRows, int numCols) {
                 }
             }
             if (numRows * numCols > 0) { // allocate new memory
-                cublasStatus status = cublasAlloc(numCols * numRows, sizeof(float), (void**) &_devData);
-                if (status != CUBLAS_STATUS_SUCCESS) {
-                    fprintf(stderr, "!!!! device memory allocation error\n");
-                    exit(EXIT_FAILURE);
-                }
+              cudaError_t status = cudaMalloc((void**) &_devData,
+                                              numCols * numRows * sizeof(float));
+              if (status != cudaSuccess) {
+                fprintf(stderr, "!!!! device memory allocation error\n");
+                exit(EXIT_FAILURE);
+              }
             } else {
                 _devData = NULL;
             }
