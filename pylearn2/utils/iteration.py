@@ -20,6 +20,7 @@ import functools
 import inspect
 import numpy as np
 
+from pylearn2.sandbox.rnn.space import SequenceSpace
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_izip, wraps
 from pylearn2.utils.data_specs import is_flat_specs
@@ -741,9 +742,7 @@ class FiniteDatasetIterator(object):
             dataset_sub_spaces = dataset_space.components
         assert len(dataset_source) == len(dataset_sub_spaces)
 
-        all_data = self._dataset.get_data()
-        if not isinstance(all_data, tuple):
-            all_data = (all_data,)
+        
 
         space, source = data_specs
         if not isinstance(source, tuple):
@@ -753,10 +752,16 @@ class FiniteDatasetIterator(object):
         else:
             sub_spaces = space.components
         assert len(source) == len(sub_spaces)
-
-        self._raw_data = tuple(all_data[dataset_source.index(s)]
-                               for s in source)
+        
+        if not hasattr(self._dataset, 'get'):
+        
+            all_data = self._dataset.get_data()
+            if not isinstance(all_data, tuple):
+                all_data = (all_data,)
+            self._raw_data = tuple(all_data[dataset_source.index(s)]
+                                   for s in source)
         self._source = source
+        self._space = sub_spaces
 
         if convert is None:
             self._convert = [None for s in source]
@@ -764,9 +769,11 @@ class FiniteDatasetIterator(object):
             assert len(convert) == len(source)
             self._convert = convert
 
-        for i, (so, sp, dt) in enumerate(safe_izip(source,
-                                                   sub_spaces,
-                                                   self._raw_data)):
+        for i, (so, sp #, dt
+            ) in enumerate(safe_izip(source,
+                                     sub_spaces,
+                                     #self._raw_data
+                                 )):
             idx = dataset_source.index(so)
             dspace = dataset_sub_spaces[idx]
 
@@ -825,12 +832,34 @@ class FiniteDatasetIterator(object):
         # TODO: handle fancy-index copies by allocating a buffer and
         # using np.take()
 
+        # If the dataset is incompatible with the new interface, fall back to
+        # the old one
+        if hasattr(self._dataset, 'get'):
+            raw_data = self._next(next_index)
+        else:
+            raw_data = self._fallback_next(next_index)
+
         rval = tuple(
-            fn(data[next_index]) if fn else data[next_index]
+            fn(raw_data) if fn else raw_data
             for data, fn in safe_izip(self._raw_data, self._convert))
         if not self._return_tuple and len(rval) == 1:
             rval, = rval
         return rval
+
+    def _next(self, next_index):
+        return tuple(
+            fn(batch) if fn else batch for batch, fn in
+            safe_izip(self._dataset.get(self._source, next_index),
+                      self._convert)
+        )
+
+    def _fallback_next(self, next_index):
+        # TODO: handle fancy-index copies by allocating a buffer and
+        # using np.take()
+        return tuple(
+            fn(data[next_index]) if fn else data[next_index]
+            for data, fn in safe_izip(self._raw_data, self._convert)
+        )
 
     @property
     @wraps(SubsetIterator.batch_size, assigned=(), updated=())

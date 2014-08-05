@@ -1,0 +1,58 @@
+!obj:pylearn2.train.Train {
+  dataset: !obj:pylearn2.sandbox.nlp.datasets.word2vec.Word2Vec {
+    which_set: 'train',
+    stop: &stop %(stop)i,
+  },
+  model: !obj:pylearn2.models.mlp.MLP {
+    input_space: !obj:pylearn2.sandbox.rnn.space.SequenceSpace {
+      space: !obj:pylearn2.space.IndexSpace {
+        dim: 1,
+        max_labels: 101,
+      },
+    },
+    layers: [
+      !obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
+        layer_name: 'projection_layer',
+        dim: &n_hids %(n_hids)i,
+        irange: 0.01,
+      },
+      !obj:pylearn2.sandbox.rnn.models.mlp.RecursiveConvolutionalLayer {
+        layer_name: 'rconv_layer',
+        dim: *n_hids,
+        irange: 0.01,
+        activation: 'tanh'
+      },
+      #!obj:pylearn2.models.mlp.Tanh {
+      #  layer_name: 'tanh_layer',
+      #  dim: 300,
+      #  irange: 0.01,
+      #},
+      !obj:pylearn2.models.mlp.Linear {
+        layer_name: 'linear_layer',
+        dim: 300,
+        irange: 0.01,
+        use_cosine_loss: True
+      }
+    ],
+  },
+  algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+    learning_rate: .2,
+    #learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+    #    init_momentum: 0.95,
+    #    },
+    learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {},
+    batch_size: 32,
+    monitoring_dataset: {
+      valid: !obj:pylearn2.sandbox.nlp.datasets.word2vec.Word2Vec {
+        which_set: 'valid',
+        stop: *stop
+      },
+      train: !obj:pylearn2.sandbox.nlp.datasets.word2vec.Word2Vec {
+        which_set: 'train',
+        stop: *stop
+      },
+    },
+  },
+  save_path: %(save_path)s, 
+  save_freq: 1,
+}

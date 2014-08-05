@@ -1495,4 +1495,4 @@ def test_uneven_batch_size():
 
 
 if __name__ == '__main__':
-    test_monitor_based_lr()
+    test_linear_decay()

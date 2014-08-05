@@ -53,6 +53,8 @@ from pylearn2.expr.nnet import (elemwise_kl, kl, compute_precision,
 from pylearn2.costs.mlp import L1WeightDecay as _L1WD
 from pylearn2.costs.mlp import WeightDecay as _WD
 
+from pylearn2.sandbox.rnn.models.mlp_hook import RNNWrapper
+
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +94,8 @@ class Layer(Model):
     Block interface were upgraded to be that flexible, then we could make this
     a block.
     """
+    # This enables RNN compatibility
+    __metaclass__ = RNNWrapper
 
 
     # When applying dropout to a layer's input, use this for masked values.
@@ -418,6 +422,9 @@ class MLP(Layer):
         MLP accepts. The structure should match that of input_space. The
         default is 'features'. Note that this argument is ignored when
         the MLP is nested.
+    target_source : string or (nested) tuple of strings, optional
+        A (nested) tuple of strings specifiying the target sources this
+        MLP outputs. The default is 'target'.
     layer_name : name of the MLP layer. Should be None if the MLP is
         not part of another MLP.
     seed : WRITEME
@@ -426,7 +433,7 @@ class MLP(Layer):
     """
 
     def __init__(self, layers, batch_size=None, input_space=None,
-                 input_source='features', nvis=None, seed=None,
+                 input_source='features', target_source='targets', nvis=None, seed=None,
                  layer_name=None, **kwargs):
         super(MLP, self).__init__(**kwargs)
 
@@ -455,6 +462,7 @@ class MLP(Layer):
         self.force_batch_size = batch_size
 
         self._input_source = input_source
+        self._target_source = target_source
 
         if input_space is not None or nvis is not None:
             self._nested = False
@@ -493,6 +501,12 @@ class MLP(Layer):
     def input_source(self):
         assert not self._nested, "A nested MLP does not have an input source"
         return self._input_source
+
+    @property
+    def target_source(self):
+        assert not self._nested, "A nested MLP does not have a target source"
+        return self._target_source
+
 
     def setup_rng(self):
         """
@@ -1236,21 +1250,22 @@ class Softmax(Layer):
         if self.no_affine:
             return OrderedDict()
 
-        W = self.W
+        else:
+            W = self.W
 
-        assert W.ndim == 2
+            assert W.ndim == 2
 
-        sq_W = T.sqr(W)
+            sq_W = T.sqr(W)
 
-        row_norms = T.sqrt(sq_W.sum(axis=1))
-        col_norms = T.sqrt(sq_W.sum(axis=0))
+            row_norms = T.sqrt(sq_W.sum(axis=1))
+            col_norms = T.sqrt(sq_W.sum(axis=0))
 
-        return OrderedDict([('row_norms_min',  row_norms.min()),
-                            ('row_norms_mean', row_norms.mean()),
-                            ('row_norms_max',  row_norms.max()),
-                            ('col_norms_min',  col_norms.min()),
-                            ('col_norms_mean', col_norms.mean()),
-                            ('col_norms_max',  col_norms.max()), ])
+            return OrderedDict([('row_norms_min',  row_norms.min()),
+                                ('row_norms_mean', row_norms.mean()),
+                                ('row_norms_max',  row_norms.max()),
+                                ('col_norms_min',  col_norms.min()),
+                                ('col_norms_mean', col_norms.mean()),
+                                ('col_norms_max',  col_norms.max()), ])
 
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
@@ -1264,21 +1279,22 @@ class Softmax(Layer):
         if self.no_affine:
             rval = OrderedDict()
 
-        W = self.W
+        else:
+            W = self.W
 
-        assert W.ndim == 2
+            assert W.ndim == 2
 
-        sq_W = T.sqr(W)
+            sq_W = T.sqr(W)
 
-        row_norms = T.sqrt(sq_W.sum(axis=1))
-        col_norms = T.sqrt(sq_W.sum(axis=0))
+            row_norms = T.sqrt(sq_W.sum(axis=1))
+            col_norms = T.sqrt(sq_W.sum(axis=0))
 
-        rval = OrderedDict([('row_norms_min',  row_norms.min()),
-                            ('row_norms_mean', row_norms.mean()),
-                            ('row_norms_max',  row_norms.max()),
-                            ('col_norms_min',  col_norms.min()),
-                            ('col_norms_mean', col_norms.mean()),
-                            ('col_norms_max',  col_norms.max()), ])
+            rval = OrderedDict([('row_norms_min',  row_norms.min()),
+                                ('row_norms_mean', row_norms.mean()),
+                                ('row_norms_max',  row_norms.max()),
+                                ('col_norms_min',  col_norms.min()),
+                                ('col_norms_mean', col_norms.mean()),
+                                ('col_norms_max',  col_norms.max()), ])
 
         mx = state.max(axis=1)
 
@@ -1304,21 +1320,22 @@ class Softmax(Layer):
         if self.no_affine:
             rval = OrderedDict()
 
-        W = self.W
+        else:
+            W = self.W
 
-        assert W.ndim == 2
+            assert W.ndim == 2
 
-        sq_W = T.sqr(W)
+            sq_W = T.sqr(W)
 
-        row_norms = T.sqrt(sq_W.sum(axis=1))
-        col_norms = T.sqrt(sq_W.sum(axis=0))
+            row_norms = T.sqrt(sq_W.sum(axis=1))
+            col_norms = T.sqrt(sq_W.sum(axis=0))
 
-        rval = OrderedDict([('row_norms_min',  row_norms.min()),
-                            ('row_norms_mean', row_norms.mean()),
-                            ('row_norms_max',  row_norms.max()),
-                            ('col_norms_min',  col_norms.min()),
-                            ('col_norms_mean', col_norms.mean()),
-                            ('col_norms_max',  col_norms.max()), ])
+            rval = OrderedDict([('row_norms_min',  row_norms.min()),
+                                ('row_norms_mean', row_norms.mean()),
+                                ('row_norms_max',  row_norms.max()),
+                                ('col_norms_min',  col_norms.min()),
+                                ('col_norms_mean', col_norms.mean()),
+                                ('col_norms_max',  col_norms.max()), ])
 
         if (state_below is not None) or (state is not None):
             if state is None:
@@ -1477,7 +1494,7 @@ class Softmax(Layer):
         assert z.ndim == 2
 
         z = z - z.max(axis=1).dimshuffle(0, 'x')
-        log_prob = z - T.log(T.exp(z).sum(axis=1).dimshuffle(0, 'x'))
+        log_prob = z - T.log(T.exp(z).sum(axis=1).dimshuffle(0, 'x')+1e-8)
         # we use sum and not mean because this is really one variable per row
         
         if self._has_binary_target:
@@ -1507,7 +1524,6 @@ class Softmax(Layer):
 
     @wraps(Layer.cost_matrix)
     def cost_matrix(self, Y, Y_hat):
-
         log_prob_of = self._cost(Y, Y_hat)
         if self._has_binary_target:
             flat_Y = Y.flatten()
@@ -2064,6 +2080,7 @@ class Linear(Layer):
                  softmax_columns=None,
                  copy_input=None,
                  use_abs_loss=False,
+                 use_cosine_loss=False,
                  use_bias=True):
 
         if copy_input is not None:
@@ -2470,15 +2487,23 @@ class Linear(Layer):
 
     @wraps(Layer.cost_from_cost_matrix)
     def cost_from_cost_matrix(self, cost_matrix):
-
-        return cost_matrix.sum(axis=1).mean()
+        if self.use_cosine_loss:
+            return cost_matrix.mean()
+        else:
+            return cost_matrix.sum(axis=1).mean()
 
     @wraps(Layer.cost_matrix)
     def cost_matrix(self, Y, Y_hat):
-
         if(self.use_abs_loss):
             return T.abs_(Y - Y_hat)
+        elif self.use_cosine_loss:
+            return 1-((Y*Y_hat).sum(axis=1) / 
+                      (Y.norm(2, axis=1)*Y_hat.norm(2, axis=1))) + 1e-8
         else:
+            print "Y.ndim", Y.ndim
+            print "Y_hat", Y_hat.ndim
+            rval = T.sqr(Y - Y_hat)
+            print "rval", rval.ndim
             return T.sqr(Y - Y_hat)
 
 
