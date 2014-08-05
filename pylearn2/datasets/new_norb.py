@@ -29,7 +29,7 @@ import theano
 from pylearn2.utils import safe_zip, string_utils
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.space import VectorSpace, Conv2DSpace, CompositeSpace
-
+from pylearn2.datasets.filetensor import read_header
 
 class NORB(DenseDesignMatrix):
     """
@@ -191,73 +191,33 @@ class NORB(DenseDesignMatrix):
 
                 def readNums(file_handle, num_type, count):
                     """
-                    Reads 4 bytes from file, returns it as a 32-bit integer.
+                    Reads some numbers from a file and returns them as a
+                    numpy.ndarray.
+
+                    Parameters
+                    ----------
+
+                    file_handle : file handle
+                      The file handle from which to read the numbers.
+
+                    num_type : str, numpy.dtype
+                      The dtype of the numbers.
+
+                    count : int
+                      Reads off this many numbers.
                     """
                     num_bytes = count * numpy.dtype(num_type).itemsize
                     string = file_handle.read(num_bytes)
                     return numpy.fromstring(string, dtype=num_type)
 
-                def readHeader(file_handle, debug=False, from_gzip=None):
-                    """
-                    parameters
-                    ----------
+                (elem_type,
+                 elem_size,
+                 _num_dims,
+                 shape,
+                 num_elems) = read_header(file_handle, debug)
+                del _num_dims
 
-                    file_handle : file or gzip.GzipFile
-                    An open file handle.
-
-
-                    from_gzip : bool or None
-                    If None determine the type of file handle.
-
-                    returns : tuple
-                    (data type, element size, shape)
-                    """
-
-                    if from_gzip is None:
-                        from_gzip = isinstance(file_handle,
-                                               (gzip.GzipFile, bz2.BZ2File))
-
-                    key_to_type = {0x1E3D4C51: ('float32', 4),
-                                   # what is a packed matrix?
-                                   # 0x1E3D4C52: ('packed matrix', 0),
-                                   0x1E3D4C53: ('float64', 8),
-                                   0x1E3D4C54: ('int32', 4),
-                                   0x1E3D4C55: ('uint8', 1),
-                                   0x1E3D4C56: ('int16', 2)}
-
-                    type_key = readNums(file_handle, 'int32', 1)[0]
-                    elem_type, elem_size = key_to_type[type_key]
-                    if debug:
-                        print "header's type key, type, type size: ", \
-                            type_key, elem_type, elem_size
-                    if elem_type == 'packed matrix':
-                        raise NotImplementedError("'packed matrix' dtype "
-                                                  "not supported")
-
-                    num_dims = readNums(file_handle, 'int32', 1)[0]
-                    if debug:
-                        print ('# of dimensions, according to header: %d' %
-                               num_dims)
-
-                    read_count = max(num_dims, 3)
-
-                    if from_gzip:
-                        shape = readNums(file_handle, 'int32', read_count)
-                    else:
-                        shape = numpy.fromfile(file_handle,
-                                               dtype='int32',
-                                               count=read_count)
-                    shape = shape[:num_dims]
-
-                    if debug:
-                        print 'Tensor shape, as listed in header:', shape
-
-                    return elem_type, elem_size, shape
-
-                elem_type, elem_size, shape = readHeader(file_handle, debug)
                 beginning = file_handle.tell()
-
-                num_elems = numpy.prod(shape)
 
                 result = None
                 if isinstance(file_handle, (gzip.GzipFile, bz2.BZ2File)):
