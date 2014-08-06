@@ -125,7 +125,6 @@ class NORB(DenseDesignMatrix):
         for index, name in enumerate(self.label_index_to_name):
             self.label_name_to_index[name] = index
 
-        # self.label_to_value_funcs = _get_label_to_value_funcs(which_norb)
         self.label_to_value_funcs = (get_category_value,
                                      get_instance_value,
                                      get_elevation_value,
@@ -449,15 +448,40 @@ class NORB(DenseDesignMatrix):
 
     @functools.wraps(DenseDesignMatrix.get_topological_view)
     def get_topological_view(self, mat=None, single_tensor=True):
+        """
+        Return a topological view.
+
+        Parameters:
+        -----------
+        mat : ndarray
+          A design matrix of images, one per row.
+
+        single_tensor : bool
+          If True, returns a single tensor. If False, returns separate
+          tensors for the left and right stereo images.
+
+        returns : ndarray, tuple
+          If single_tensor is True, returns ndarray.
+          Else, returns the tuple (left_images, right_images).
+        """
+
+        # Get topo view from view converter.
         result = super(NORB, self).get_topological_view(mat)
 
-        if 's' not in self.view_converter.axes:
-            return result
-        elif single_tensor:
-            warnings.warn("The single_tensor argument is True by default to "
-                          "maintain backwards compatibility. This argument "
-                          "will be removed, and the behavior will become that "
-                          "of single_tensor=False, as of August 2014.")
+        # If single_tensor is True, merge the left and right image tensors
+        # into a single stereo tensor.
+        if single_tensor:
+            # Check that the view_converter has a stereo axis, and that it
+            # returned a tuple (left_images, right_images)
+            if 's' not in self.view_converter.axes:
+                raise ValueError('self.view_converter.axes must contain "s" '
+                                 '(stereo image index) in order to split the '
+                                 'images into left and right images. Instead, '
+                                 'the axes were %s.'
+                                 % str(self.view_converter.axes))
+            assert isinstance(result, tuple)
+            assert len(result) == 2
+
             axes = list(self.view_converter.axes)
             s_index = axes.index('s')
             assert axes.index('b') == 0
@@ -469,10 +493,6 @@ class NORB(DenseDesignMatrix):
 
             result = tuple(t.reshape(mono_shape) for t in result)
             result = numpy.concatenate(result, axis=s_index)
-        else:
-            warnings.warn("The single_tensor argument will be removed on "
-                          "August 2014. The behavior will be the same as "
-                          "single_tensor=False.")
 
         return result
 
@@ -594,8 +614,8 @@ class StereoViewConverter(object):
 
         axes : tuple
           A tuple of the following elements in any order:
-            'b'  batch axis)
-            's'  stereo axis)
+            'b'  batch axis
+            's'  stereo axis
              0   image axis 0 (row)
              1   image axis 1 (column)
             'c'  channel axis
@@ -795,7 +815,7 @@ def get_azimuth_value(label):
     if label == -1:
         return None
     else:
-        if (label / 2) * 2 != label or label < 0 or label > 34:
+        if (label % 2) != 0 or label < 0 or label > 34:
             raise ValueError("Expected azimuth to be an even "
                              "number between 0 and 34 inclusive, "
                              "or -1, but got %s instead." %
@@ -830,121 +850,6 @@ def get_scale_change_value(label):
 
 def get_rotation_change_value(label):
     return _check_range_and_return('rotation change', label, -4, 4)
-
-
-def _get_label_to_value_funcs(which_norb):
-    """
-    Returns a tuple of functions that map label values (int32's) to the
-    actual physical values they represent (e.g. angles in
-    degrees). Labels with no such physical interpretation
-    (e.g. instance label) are returned unchanged.
-
-    These are useful when presenting labels to a human reader.
-
-    Often these ufuncs will just return the int unchanged.
-    In the big NORB dataset, images can contain no object. Many
-    label types will then have a 'physical value' of None.
-    """
-
-    def check_is_integral(label):
-        if not numpy.issubdtype(type(label), numpy.integer):
-            raise TypeError("Expected an integral dtype, not %s" %
-                            type(label))
-
-    def check_range(label, min_label, max_label, name):
-        if label < min_label or label > max_label:
-            raise ValueError("Expected %s label to be between %d "
-                             "and %d inclusive, , but got %s" %
-                             (name, min_label, max_label, str(label)))
-
-    def make_array_func(label_name, array):
-        def result(label):
-            check_is_integral(label)
-            check_range(label,
-                        min_label=0,
-                        max_label=len(array) - 1,
-                        name=label_name)
-            return array[label]
-
-        return result
-
-    def get_category(label):
-        check_is_integral(label)
-        check_range(label, 0, 5, 'category')
-
-        return category_names[label]
-
-    def make_identity_func(name,
-                           min_label,
-                           max_label,
-                           none_label=None):
-        def result(label):
-            check_is_integral(label)
-            check_range(label, min_label, max_label, name)
-            if label == none_label:
-                return None
-            else:
-                return label
-
-        return result
-
-    def get_elevation(label):
-        check_is_integral(label)
-        check_range(label, -1, 8, 'elevation')
-
-        if label == -1:
-            return None
-        else:
-            return label * 5 + 30
-
-    def get_azimuth(label):
-        check_is_integral(label)
-        if label == -1:
-            return None
-        else:
-            if (label / 2) * 2 != label or label < 0 or label > 34:
-                raise ValueError("Expected azimuth to be an even "
-                                 "number between 0 and 34 inclusive, "
-                                 "or -1, but got %s instead." %
-                                 str(label))
-
-            return label * 10
-
-    category_names = ['animal', 'human', 'airplane', 'truck', 'car']
-    if which_norb == 'big':
-        category_names.append('blank')
-
-    result = (make_array_func('category', category_names),
-              make_identity_func('instance',
-                                 min_label=-1,
-                                 max_label=9,
-                                 none_label=-1),
-              get_elevation,
-              get_azimuth,
-              make_identity_func('lighting',
-                                 min_label=-1,
-                                 max_label=5,
-                                 none_label=-1))
-
-    if which_norb == 'big':
-        result = result + (make_identity_func('horizontal shift',
-                                              min_label=-5,
-                                              max_label=5),
-                           make_identity_func('vertical shift',
-                                              min_label=-5,
-                                              max_label=5),
-                           make_identity_func('lumination change',
-                                              min_label=-19,
-                                              max_label=19),
-                           make_array_func('contrast change',
-                                           (0.8, 1.3)),
-                           make_array_func('scale change',
-                                           (0.78, 1.0)),
-                           make_identity_func('rotation change',
-                                              min_label=-4,
-                                              max_label=4))
-
-    return result  # ends get_label_to_value_funcs()
 
 
 def _check_pickling_support():
