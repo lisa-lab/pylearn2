@@ -19,11 +19,13 @@ class ArangeDataset(DenseDesignMatrix):
     Parameters
     ----------
     num_examples : WRITEME
+    To see the other parameters, look at the DenseDesignMatrix class
+    documentation
     """
-    def __init__(self, num_examples):
+    def __init__(self, num_examples, *args, **kwargs):
         X = np.zeros((num_examples, 1))
         X[:, 0] = np.arange(num_examples)
-        super(ArangeDataset, self).__init__(X)
+        super(ArangeDataset, self).__init__(X, *args, **kwargs)
 
 
 def random_dense_design_matrix(rng, num_examples, dim, num_classes):
