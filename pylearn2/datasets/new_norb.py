@@ -31,6 +31,7 @@ from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.space import VectorSpace, Conv2DSpace, CompositeSpace
 from pylearn2.datasets.filetensor import read_header
 
+
 class NORB(DenseDesignMatrix):
     """
     A DenseDesignMatrix loaded with SmallNORB or NORB data.
