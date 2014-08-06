@@ -23,7 +23,8 @@ import warnings
 try:
     from collections import Counter
 except ImportError:
-    warnings.warn("Couldn't import collections.Counter")
+    warnings.warn("Couldn't import collections.Counter. "
+                  "StanfordSentimentTreebank is not available for use.")
 
 from tempfile import NamedTemporaryFile
 
@@ -36,7 +37,8 @@ except ImportError:
 
 from distutils.version import StrictVersion
 if StrictVersion(scipy.__version__) < StrictVersion('0.13.0'):
-    raise ImportError("Scipy version has to be >= 0.13.0")
+    warnings.warn("Scipy version is < 0.13.0."
+                  "StanfordSentimentTreebank is not available for use.")
 
 try:
     from scipy.sparse import coo_matrix
