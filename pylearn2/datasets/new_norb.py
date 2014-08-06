@@ -447,7 +447,7 @@ class NORB(DenseDesignMatrix):
         self.y_memmap_info = None
 
     @functools.wraps(DenseDesignMatrix.get_topological_view)
-    def get_topological_view(self, mat=None, single_tensor=True):
+    def get_topological_view(self, mat=None, single_tensor=False):
         """
         Return a topological view.
 
