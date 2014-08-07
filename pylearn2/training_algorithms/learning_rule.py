@@ -3,6 +3,7 @@ A module containing different learning rules for use with the SGD training
 algorithm.
 """
 import numpy as np
+import warnings
 
 from theano import config
 from theano import tensor as T
@@ -11,6 +12,7 @@ from theano.compat.python2x import OrderedDict
 from pylearn2.space import NullSpace
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.utils import sharedX
+from pylearn2.utils import wraps
 
 
 class LearningRule():
@@ -72,7 +74,7 @@ class LearningRule():
                                        lr_scalers.get(param, 1.) * grad)
         """
         raise NotImplementedError(str(type(self)) + " does not implement "
-                "get_updates.")
+                                  "get_updates.")
 
 
 class Momentum(LearningRule):
@@ -119,7 +121,7 @@ class Momentum(LearningRule):
             assert param.dtype == inc.dtype
             assert grad.dtype == param.dtype
             if param.name is not None:
-                inc.name = 'inc_'+param.name
+                inc.name = 'inc_' + param.name
             updated_inc = self.momentum * inc -\
                 learning_rate * lr_scalers.get(param, 1.) * grad
             assert updated_inc.dtype == inc.dtype
@@ -182,7 +184,7 @@ class MomentumAdjustor(TrainExtension):
             alpha = 0.
         if alpha > 1.:
             alpha = 1.
-        return self._init_momentum * (1.-alpha)+alpha*self.final_momentum
+        return self._init_momentum * (1 - alpha) + alpha * self.final_momentum
 
 
 class AdaDelta(LearningRule):
@@ -231,8 +233,8 @@ class AdaDelta(LearningRule):
 
             # Accumulate gradient
             new_mean_squared_grad = \
-                    self.decay * mean_square_grad +\
-                    (1 - self.decay) * T.sqr(grads[param])
+                self.decay * mean_square_grad + \
+                (1 - self.decay) * T.sqr(grads[param])
 
             # Compute update
             epsilon = lr_scalers.get(param, 1.) * learning_rate
@@ -242,8 +244,8 @@ class AdaDelta(LearningRule):
 
             # Accumulate updates
             new_mean_square_dx = \
-                    self.decay * mean_square_dx + \
-                    (1 - self.decay) * T.sqr(delta_x_t)
+                self.decay * mean_square_dx + \
+                (1 - self.decay) * T.sqr(delta_x_t)
 
             # Apply update
             updates[mean_square_grad] = new_mean_squared_grad
@@ -251,6 +253,7 @@ class AdaDelta(LearningRule):
             updates[param] = param + delta_x_t
 
         return updates
+
 
 class RMSProp(LearningRule):
     """
@@ -263,31 +266,64 @@ class RMSProp(LearningRule):
         Decay constant similar to that used in AdaDelta and Momentum methods.
     max_scaling: float, optional
         Restrict the RMSProp gradient scaling coefficient to values
-        below `max_scaling`. 
+        below `max_scaling`.
+
+    Notes
+    -----
+    An instance of this LearningRule should only be used with one
+    TrainingAlgorithm, and its get_updates method should be called
+    only once. This is required in order to make the monitoring
+    channels correctly report the moving averages.
     """
 
     def __init__(self, decay=0.9, max_scaling=1e5):
         assert 0. <= decay < 1.
-        assert max_scaling > 0 
+        assert max_scaling > 0
         self.decay = sharedX(decay, 'decay')
         self.epsilon = 1. / max_scaling
+        self.mean_square_grads = []
 
+    @wraps(LearningRule.add_channels_to_monitor)
     def add_channels_to_monitor(self, monitor, monitoring_dataset):
         """
-        .. todo::
-
-            WRITEME
+        The channels added are the min, mean, and max of the
+        mean_square_grad of each parameter.
         """
-        # TODO: add channels worth monitoring
+
+        channel_mapping = {
+            '_min': T.min,
+            '_max': T.max,
+            '_mean': T.mean
+        }
+
+        for mean_square_grad in self.mean_square_grads:
+            for suffix, op in channel_mapping.items():
+                monitor.add_channel(
+                    name=(mean_square_grad.name + suffix),
+                    ipt=None,
+                    val=op(mean_square_grad),
+                    data_specs=(NullSpace(), ''),
+                    dataset=monitoring_dataset)
         return
 
+    @wraps(LearningRule.get_updates)
     def get_updates(self, learning_rate, grads, lr_scalers=None):
         """
-        .. todo::
-
-            WRITEME
+        Notes
+        -----
+        This method has the side effect of storing the moving average
+        of the square gradient in self.mean_square_grads. This is
+        necessary in order for the monitoring channels to be able
+        to track the value of these moving averages.
+        Therefore, this method should only get called once for each
+        instance of RMSProp.
         """
-        updates = OrderedDict()    
+        if self.mean_square_grads:
+            warnings.warn("Calling get_updates more than once on an instance "
+                          "of RMSProp may make monitored values incorrect.")
+            self.mean_square_grads = []
+
+        updates = OrderedDict()
         for param in grads:
 
             # mean_squared_grad := E[g^2]_{t-1}
@@ -296,15 +332,20 @@ class RMSProp(LearningRule):
             if param.name is not None:
                 mean_square_grad.name = 'mean_square_grad_' + param.name
 
+            # Store that variable in self.mean_square_grads, so we can
+            # monitor it.
+            self.mean_square_grads.append(mean_square_grad)
+
             # Accumulate gradient
             new_mean_squared_grad = \
-                    self.decay * mean_square_grad +\
-                    (1 - self.decay) * T.sqr(grads[param])
+                self.decay * mean_square_grad + \
+                (1 - self.decay) * T.sqr(grads[param])
 
             # Compute update
             scaled_lr = lr_scalers.get(param, 1.) * learning_rate
             rms_grad_t = T.sqrt(new_mean_squared_grad)
-            delta_x_t = - scaled_lr * grads[param] / T.maximum(rms_grad_t, self.epsilon)
+            rms_grad_t = T.maximum(rms_grad_t, self.epsilon)
+            delta_x_t = - scaled_lr * grads[param] / rms_grad_t
 
             # Apply update
             updates[mean_square_grad] = new_mean_squared_grad

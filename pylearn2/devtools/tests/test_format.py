@@ -168,7 +168,6 @@ whitelist_pep8 = [
     "blocks.py",
     "training_algorithms/tests/test_bgd.py",
     "training_algorithms/tests/test_default.py",
-    "training_algorithms/learning_rule.py",
     "training_algorithms/bgd.py",
     "training_algorithms/default.py",
     "training_algorithms/training_algorithm.py",
