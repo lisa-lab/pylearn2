@@ -1409,24 +1409,21 @@ class DefaultViewConverter(object):
             WRITEME
         """
 
-        V = V.transpose(self.axes.index('b'),
-                        self.axes.index(0),
-                        self.axes.index(1),
-                        self.axes.index('c'))
+        tensor_shape = V.shape
 
-        num_channels = self.shape[-1]
-        if np.any(np.asarray(self.shape) != np.asarray(V.shape[1:])):
-            raise ValueError('View converter for views of shape batch size '
-                             'followed by ' + str(self.shape) +
-                             ' given tensor of shape ' + str(V.shape))
-        batch_size = V.shape[0]
+        tensor_axes = ('b', 'c', 0, 1)
+        V = V.transpose([self.axes.index(axis) for axis in tensor_axes])
+        batch_size, num_channels = V.shape[:2]
 
-        rval = np.zeros((batch_size, self.pixels_per_channel * num_channels),
-                        dtype=V.dtype)
+        # (2, 3, 1) == (tensor_axes.index(axis) for axis in (0, 1, 'c'))
+        batch_shape = np.array([V.shape[index] for index in (2, 3, 1)])
 
-        for i in xrange(num_channels):
-            ppc = self.pixels_per_channel
-            rval[:, i * ppc:(i + 1) * ppc] = V[..., i].reshape(batch_size, ppc)
+        if np.any(np.asarray(self.shape) != batch_shape):
+            raise ValueError('View converter for views of shape ' +
+                             str([batch_size] + self.shape) +
+                             ' given tensor of shape ' + str(tensor_shape))
+
+        rval = V.reshape((batch_size, self.pixels_per_channel * num_channels))
         assert rval.dtype == V.dtype
 
         return rval
