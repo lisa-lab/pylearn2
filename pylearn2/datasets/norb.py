@@ -136,7 +136,7 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
     # shifted the pixel values from [0:255] by subtracting 127.5. Seems like a
     # form of preprocessing, which might be better implemented separately using
     # the Preprocess class.
-    def __init__(self, which_set, multi_target=False):
+    def __init__(self, which_set, multi_target=False, stop=None):
         """
         parameters
         ----------
@@ -156,7 +156,8 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
         self.which_set = which_set
 
-        subtensor = None
+        subtensor = slice(0, stop) if stop is not None else None
+
 
         X = SmallNORB.load(which_set, 'dat', subtensor=subtensor)
 

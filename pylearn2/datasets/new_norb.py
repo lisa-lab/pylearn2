@@ -61,6 +61,10 @@ class NORB(DenseDesignMatrix):
     label_to_value_funcs : tuple
     A tuple of functions that map label values to the physical values they
     represent (for example, elevation angle in degrees).
+
+    X_memmap_info, y_memmap_info : dict
+        Constructor arguments for the memmaps self.X and self.y, used
+        during pickling/unpickling.
     """
 
     def __init__(self, which_norb, which_set, image_dtype='uint8'):
@@ -85,10 +89,6 @@ class NORB(DenseDesignMatrix):
         image_dtype : str, or numpy.dtype
             The dtype to store image data as in the memmap cache.
             Default is uint8, which is what the original NORB files use.
-
-        X_memmap_info, y_memmap_info : dict
-            Constructor arguments for the memmaps self.X and self.y, used
-            during pickling/unpickling.
         """
 
         if which_norb not in ('big', 'small'):
@@ -141,17 +141,6 @@ class NORB(DenseDesignMatrix):
 
         # The size of one side of the image
         image_length = 96 if which_norb == 'small' else 108
-
-        def get_num_rows(which_norb, which_set):
-            if which_norb == 'small':
-                return 24300
-            else:
-                num_rows_per_file = 29160
-                num_files = 2 if which_set == 'test' else 10
-                return num_rows_per_file * num_files
-
-        # Number of data rows
-        num_rows = get_num_rows(which_norb, which_set)
 
         def read_norb_files(norb_files, output):
             """
@@ -247,8 +236,9 @@ class NORB(DenseDesignMatrix):
             testing_set_size = 24300
         else:
             assert which_norb == 'big'
-            training_set_size = 291600
-            testing_set_size = 58320
+            num_rows_per_file = 29160
+            training_set_size = num_rows_per_file * 10
+            testing_set_size = num_rows_per_file * 2
 
         def load_images(which_norb, which_set, dtype):
             """
