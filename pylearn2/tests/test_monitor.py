@@ -2,7 +2,6 @@ import numpy as np
 import warnings
 
 from theano.compat import exc_message
-from theano.compat.python2x import OrderedDict
 from theano import shared
 from theano import tensor as T
 
@@ -590,8 +589,7 @@ def test_extra_costs():
     except AssertionError, e:
         pass
 
-    extra_costs = OrderedDict()
-    extra_costs['Cost'] = model.get_default_cost()
+    extra_costs ={'Cost': model.get_default_cost()}
     try:
         monitor.setup(dataset, model.get_default_cost(), 1, extra_costs=extra_costs)
     except NotImplementedError, e:
