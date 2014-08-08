@@ -1,7 +1,9 @@
 import numpy as np
 import warnings
+from nose.tools import assert_raises
 
 from theano.compat import exc_message
+from theano.compat.python2x import OrderedDict
 from theano import shared
 from theano import tensor as T
 
@@ -584,14 +586,14 @@ def test_extra_costs():
     dataset = DummyDataset(num_examples=2, num_features=num_features)
     monitor = Monitor.get_monitor(model)
     extra_costs = [model.get_default_cost()]
-    try:
-        monitor.setup(dataset, model.get_default_cost(), 1, extra_costs=extra_costs)
-    except AssertionError, e:
-        pass
+    assert_raises(AssertionError, monitor.setup, dataset, 
+                  model.get_default_cost(), 1, extra_costs=extra_costs)
 
-    extra_costs ={'Cost': model.get_default_cost()}
+    extra_costs = OrderedDict()
+    extra_costs['Cost'] = model.get_default_cost()
     try:
-        monitor.setup(dataset, model.get_default_cost(), 1, extra_costs=extra_costs)
+        monitor.setup(dataset, model.get_default_cost(), 1, 
+                      extra_costs=extra_costs)
     except NotImplementedError, e:
         return
     assert False
