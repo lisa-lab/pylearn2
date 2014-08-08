@@ -4,7 +4,7 @@
 Datasets introduced in:
 
   Recursive Deep Models for Semantic Compositionality Over a Sentiment Treebank.
-  Richard Socher, ASlexPerelygin, Jean Wu, Jason Chuang, Christopher Manning, 
+  Richard Socher, ASlexPerelygin, Jean Wu, Jason Chuang, Christopher Manning,
   Andrew Ng and Christopher Potts. Conference on Empirical Methods in Natural
   Language Processing (EMNLP 2013).
 """
@@ -75,25 +75,24 @@ class StanfordSentimentTreebank(TextDataset):
         return _StanfordSentimentTreebankFactory.sents
 
 
+def _get_DATA_ROOT():
+    result = None
+    try:
+        result = preprocess('${PYLEARN2_DATA_PATH}')
+    except NoDataPathError:
+        warnings.warn("Can't find PYLEARN2_DATA_PATH, the dataset is not "
+                        "available.")
+    return result
+
 class _StanfordSentimentTreebankFactory(object):
     """ Helper to load Stanford Sentiment Treebank """
     ORIGIN_URL = 'http://nlp.stanford.edu/~socherr/stanfordSentimentTreebank.zip'
-    DATA_ROOT = get_DATA_ROOT()
+    DATA_ROOT = _get_DATA_ROOT()
     DATA_PATH = os.path.join(DATA_ROOT, 'stanfordSentimentTreebank')
     SET_MAP = {'all': 0, 'train': 1, 'valid': 3, 'test': 2}
     SET_SIZE = {'all': 11855, 'train': 8544, 'valid': 1101, 'test': 2210}
 
     sents, sparse_sents, scores, splits, vocabulary = None, None, None, None, None
-
-    @staticmethod
-    def get_DATA_ROOT():
-        result = None
-        try:
-            result = preprocess('${PYLEARN2_DATA_PATH}')
-        except NoDataPathError:
-            warnings.warn("Can't find PYLEARN2_DATA_PATH, the dataset is not "
-                          "available.")
-        return result
 
     @classmethod
     def get(cls, which_set):
