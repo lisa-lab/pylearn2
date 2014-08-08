@@ -62,7 +62,7 @@ def _read_int32(f):
     s_array = numpy.fromstring(s, dtype='int32')
     return s_array.item()
 
-def _read_header(f, debug=False, fromgzip=None):
+def read_header(f, debug=False, fromgzip=None):
     """
     Parameters
     ----------
@@ -159,7 +159,7 @@ class arraylike(object):
             WRITEME
         """
         self.f = f
-        self.magic_t, self.elsize, self.ndim, self.dim, self.dim_size = _read_header(f,debug)
+        self.magic_t, self.elsize, self.ndim, self.dim, self.dim_size = read_header(f,debug)
         self.f_start = f.tell()
 
         if rank <= self.ndim:
@@ -237,7 +237,7 @@ def read(f, subtensor=None, debug=False):
     y : ndarray
         Data read from disk
     """
-    magic_t, elsize, ndim, dim, dim_size = _read_header(f,debug)
+    magic_t, elsize, ndim, dim, dim_size = read_header(f,debug)
     f_start = f.tell()
 
     rval = None

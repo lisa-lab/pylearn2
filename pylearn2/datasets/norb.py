@@ -23,6 +23,7 @@ import gzip
 import logging
 import os
 import warnings
+import exceptions
 
 import numpy
 import theano
@@ -32,8 +33,14 @@ from pylearn2.datasets import dense_design_matrix
 from pylearn2.datasets.cache import datasetCache
 from pylearn2.space import VectorSpace, Conv2DSpace, CompositeSpace
 
+from pylearn2.datasets.new_norb import StereoViewConverter
 
 logger = logging.getLogger(__name__)
+
+warnings.warn("Using deprecated module pylearn2.datasets.norb. "
+              "This will be replaced with pylearn2.datasets.new_norb in "
+              "December 2014. Users are encouraged to switch to that "
+              "module now.", exceptions.DeprecationWarning)
 
 
 class SmallNORB(dense_design_matrix.DenseDesignMatrix):
@@ -130,13 +137,27 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
     # form of preprocessing, which might be better implemented separately using
     # the Preprocess class.
     def __init__(self, which_set, multi_target=False, stop=None):
+        """
+        parameters
+        ----------
+
+        which_set : str
+            Must be 'train' or 'test'.
+
+        multi_target : bool
+            If False, each label is an integer labeling the image catergory. If
+            True, each label is a vector: [category, instance, lighting,
+            elevation, azimuth]. All labels are given as integers. Use the
+            categories, elevation_degrees, and azimuth_degrees arrays to map
+            from these integers to actual values.
+        """
+
         assert which_set in ['train', 'test']
 
         self.which_set = which_set
 
-        subtensor = None
-        if stop:
-            subtensor = slice(0, stop)
+        subtensor = slice(0, stop) if stop is not None else None
+
 
         X = SmallNORB.load(which_set, 'dat', subtensor=subtensor)
 
@@ -148,12 +169,12 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
         X = theano._asarray(X, theano.config.floatX)
 
         # Formats data as rows in a matrix, for DenseDesignMatrix
-        X = X.reshape(-1, 2*numpy.prod(self.original_image_shape))
+        X = X.reshape(-1, 2 * numpy.prod(self.original_image_shape))
 
         # This is uint8
         y = SmallNORB.load(which_set, 'cat', subtensor=subtensor)
         if multi_target:
-            y_extra = SmallNORB.load(which_set, 'info')
+            y_extra = SmallNORB.load(which_set, 'info', subtensor=subtensor)
             y = numpy.hstack((y[:, numpy.newaxis], y_extra))
 
         datum_shape = ((2, ) +  # two stereo images
@@ -335,7 +356,7 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
             shape = (num_image_pairs, ) + self.view_converter.shape
 
             # inserts a singleton dimension where the 's' dimesion will be
-            mono_shape = shape[:s_index] + (1, ) + shape[(s_index+1):]
+            mono_shape = shape[:s_index] + (1, ) + shape[(s_index + 1):]
 
             for i, res in enumerate(result):
                 logger.info("result {0} shape: {1}".format(i, str(res.shape)))
@@ -348,142 +369,3 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                           "single_tensor=False.")
 
         return result
-
-
-class StereoViewConverter(object):
-    """
-    Converts stereo image data between two formats:
-
-    #. A dense design matrix, one stereo pair per row (`VectorSpace`)
-    #. An image pair (`CompositeSpace` of two `Conv2DSpace`)
-
-    The arguments describe how the data is laid out in the design matrix.
-
-    Parameters
-    ----------
-    shape: tuple
-        A tuple of 4 ints, describing the shape of each datum. This is the size
-        of each axis in `<axes>`, excluding the `b` axis.
-    axes : tuple
-        Tuple of the following elements in any order:
-
-        * 'b' : batch axis
-        * 's' : stereo axis
-        *  0  : image axis 0 (row)
-        *  1  : image axis 1 (column)
-        * 'c' : channel axis
-    """
-    def __init__(self, shape, axes=None):
-        shape = tuple(shape)
-
-        if not all(isinstance(s, int) for s in shape):
-            raise TypeError("Shape must be a tuple/list of ints")
-
-        if len(shape) != 4:
-            raise ValueError("Shape array needs to be of length 4, got %s." %
-                             shape)
-
-        datum_axes = list(axes)
-        datum_axes.remove('b')
-        if shape[datum_axes.index('s')] != 2:
-            raise ValueError("Expected 's' axis to have size 2, got %d.\n"
-                             "  axes:       %s\n"
-                             "  shape:      %s" %
-                             (shape[datum_axes.index('s')],
-                              axes,
-                              shape))
-        self.shape = shape
-        self.set_axes(axes)
-
-        def make_conv2d_space(shape, axes):
-            shape_axes = list(axes)
-            shape_axes.remove('b')
-            image_shape = tuple(shape[shape_axes.index(axis)]
-                                for axis in (0, 1))
-            conv2d_axes = list(axes)
-            conv2d_axes.remove('s')
-            return Conv2DSpace(shape=image_shape,
-                               num_channels=shape[shape_axes.index('c')],
-                               axes=conv2d_axes)
-
-        conv2d_space = make_conv2d_space(shape, axes)
-        self.topo_space = CompositeSpace((conv2d_space, conv2d_space))
-        self.storage_space = VectorSpace(dim=numpy.prod(shape))
-
-    def get_formatted_batch(self, batch, space):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        return self.storage_space.np_format_as(batch, space)
-
-    def design_mat_to_topo_view(self, design_mat):
-        """
-        Called by DenseDesignMatrix.get_formatted_view(), get_batch_topo()
-        """
-        return self.storage_space.np_format_as(design_mat, self.topo_space)
-
-    def design_mat_to_weights_view(self, design_mat):
-        """
-        Called by DenseDesignMatrix.get_weights_view()
-        """
-        return self.design_mat_to_topo_view(design_mat)
-
-    def topo_view_to_design_mat(self, topo_batch):
-        """
-        Used by `DenseDesignMatrix.set_topological_view()` and
-        `DenseDesignMatrix.get_design_mat()`.
-        """
-        return self.topo_space.np_format_as(topo_batch, self.storage_space)
-
-    def view_shape(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        return self.shape
-
-    def weights_view_shape(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        return self.view_shape()
-
-    def set_axes(self, axes):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        axes = tuple(axes)
-
-        if len(axes) != 5:
-            raise ValueError("Axes must have 5 elements; got %s" % str(axes))
-
-        for required_axis in ('b', 's', 0, 1, 'c'):
-            if required_axis not in axes:
-                raise ValueError("Axes must contain 'b', 's', 0, 1, and 'c'. "
-                                 "Got %s." % str(axes))
-
-        if axes.index('b') != 0:
-            raise ValueError("The 'b' axis must come first (axes = %s)." %
-                             str(axes))
-
-        def get_batchless_axes(axes):
-            axes = list(axes)
-            axes.remove('b')
-            return tuple(axes)
-
-        if hasattr(self, 'axes'):
-            # Reorders the shape vector to match the new axis ordering.
-            assert hasattr(self, 'shape')
-            old_axes = get_batchless_axes(self.axes)
-            new_axes = get_batchless_axes(axes)
-            new_shape = tuple(self.shape[old_axes.index(a)] for a in new_axes)
-            self.shape = new_shape
-
-        self.axes = axes
