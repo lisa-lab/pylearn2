@@ -786,7 +786,7 @@ class Monitor(object):
             will appear as the `objective` channel. Its
             `get_monitoring_channels` method will also be used to
             supply other channels.
-        extra_costs : OrderedDict, optional
+        extra_costs : dict, optional
             A dictionary mapping channel names to Cost objects.
             Their value will appear as the specified channel name.
             They will also provide more monitoring channels via their
@@ -811,7 +811,7 @@ class Monitor(object):
         if extra_costs is None:
             costs = {}
         else:
-            assert isinstance(extra_costs, OrderedDict)
+            assert isinstance(extra_costs, dict)
             costs = extra_costs
         assert '' not in costs
         costs[''] = cost
