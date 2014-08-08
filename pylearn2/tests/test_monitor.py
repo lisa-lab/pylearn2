@@ -2,9 +2,11 @@ import numpy as np
 import warnings
 
 from theano.compat import exc_message
+from theano.compat.python2x import OrderedDict
 from theano import shared
 from theano import tensor as T
 
+from pylearn2.costs.cost import Cost
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.models.model import Model
 from pylearn2.models.s3c import S3C, E_Step, Grad_M_Step
@@ -26,6 +28,9 @@ from pylearn2.testing.prereqs import ReadVerifyPrereq
 class DummyModel(Model):
     def  __init__(self, num_features):
         self.input_space = VectorSpace(num_features)
+
+    def get_default_cost(self):
+        return Cost()
 
 
 class DummyDataset(DenseDesignMatrix):
@@ -571,6 +576,27 @@ def test_transfer_experience():
     assert monitor.get_epochs_seen() == 1
 
 
+def test_extra_costs():
+
+    # Makes sure Monitor.setup checks type of extra_costs
+
+    num_features = 3
+    model = DummyModel(num_features=num_features)
+    dataset = DummyDataset(num_examples=2, num_features=num_features)
+    monitor = Monitor.get_monitor(model)
+    extra_costs = [model.get_default_cost()]
+    try:
+        monitor.setup(dataset, model.get_default_cost(), 1, extra_costs=extra_costs)
+    except AssertionError, e:
+        pass
+
+    extra_costs = OrderedDict()
+    extra_costs['Cost'] = model.get_default_cost()
+    try:
+        monitor.setup(dataset, model.get_default_cost(), 1, extra_costs=extra_costs)
+    except NotImplementedError, e:
+        return
+    assert False
 
 
 if __name__ == '__main__':
