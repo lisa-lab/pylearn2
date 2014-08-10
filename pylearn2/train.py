@@ -52,18 +52,15 @@ class Train(object):
         If `True`, will save the model to save_path even if there is
         already something there. Otherwise, will raise an error if the
         `save_path` is already occupied.
-    log_monitors : list, optional
-        If set, it will compute and log only the monitor channels passed.
     """
 
     def __init__(self, dataset, model, algorithm=None, save_path=None,
-                 save_freq=0, extensions=None, allow_overwrite=True, log_monitors=None):
+                 save_freq=0, extensions=None, allow_overwrite=True):
         self.allow_overwrite = allow_overwrite
         self.first_save = True
         self.dataset = dataset
         self.model = model
         self.algorithm = algorithm
-        self.log_monitors = log_monitors
         if save_path is not None:
             if save_freq == 0:
                 warnings.warn('save_path specified but save_freq is 0 '
@@ -129,7 +126,6 @@ class Train(object):
         # enforce constraints after each step of learning. Here we
         # make sure the constraints are enforced from the start.
         self.model.enforce_constraints()
-        self.model.monitor.set_monitors(self.log_monitors)
 
     def main_loop(self, time_budget=None):
         """

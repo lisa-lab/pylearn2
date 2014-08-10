@@ -68,7 +68,6 @@ class Monitor(object):
         # Initialize self._nested_data_specs, self._data_specs_mapping,
         # and self._flat_data_specs
         self._build_data_specs()
-        self.set_monitors(self.log_monitors)
 
     def _build_data_specs(self):
         """
@@ -115,7 +114,7 @@ class Monitor(object):
             self._dirty = True
             self.theano_function_mode = mode
 
-    def set_monitors(self, monitorsList):
+    def set_channels(self, monitorsList):
         """
         Set the monitoring channels to compute and log.
 
@@ -712,6 +711,7 @@ class Monitor(object):
         self.channels[name] = MonitorChannel(ipt, val, name, data_specs,
                                              dataset, prereqs)
         self._dirty = True
+        self.log_monitors.append(name)
 
     def _sanity_check(self):
         """

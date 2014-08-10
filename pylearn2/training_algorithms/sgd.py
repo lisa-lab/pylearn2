@@ -155,7 +155,9 @@ class SGD(TrainingAlgorithm):
         using them.
     seed : valid argument to np.random.RandomState, optional
         The seed used for the random number generate to be passed to the
-        training dataset iterator (if any)
+        training dataset iterator (if any).
+    monitoring_channels : list, optional
+        If set, it will compute and log only the monitor channels passed.
     """
     def __init__(self, learning_rate, cost=None, batch_size=None,
                  monitoring_batch_size=None, monitoring_batches=None,
@@ -165,7 +167,7 @@ class SGD(TrainingAlgorithm):
                  set_batch_size = False,
                  train_iteration_mode = None, batches_per_iter=None,
                  theano_function_mode = None, monitoring_costs=None,
-                 seed=[2012, 10, 5]):
+                 seed=[2012, 10, 5], monitoring_channels=None):
 
         if isinstance(cost, (list, tuple, set)):
             raise TypeError("SGD no longer supports using collections of " +
@@ -207,6 +209,7 @@ class SGD(TrainingAlgorithm):
         self.rng = make_np_rng(seed, which_method=["randn","randint"])
         self.theano_function_mode = theano_function_mode
         self.monitoring_costs = monitoring_costs
+        self.monitoring_channels = monitoring_channels
 
     def setup(self, model, dataset):
         """
@@ -403,6 +406,7 @@ class SGD(TrainingAlgorithm):
                                        on_unused_input='ignore',
                                        mode=self.theano_function_mode)
         self.params = params
+        self.monitor.set_channels(self.monitoring_channels)
 
     def train(self, dataset):
         """
