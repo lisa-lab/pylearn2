@@ -31,7 +31,7 @@ class CSVDataset(DenseDesignMatrix):
     path : str, optional
         path of the input file. defaults to 'train.csv'
     one_hot : bool, optional
-        specifies if the target variable should be encoded with one-hot
+        DEPRECATED. specifies if the target variable should be encoded with one-hot
         encoding (where all bits are '0' except one '1'). defaults to False.
     num_outputs : int, optional
         number of target variables. defaults to 1
@@ -44,7 +44,7 @@ class CSVDataset(DenseDesignMatrix):
 
     def __init__(self, 
             path = 'train.csv',
-            one_hot = False,
+            one_hot = None,
             num_outputs = 1,
             expect_labels = True,
             expect_headers = True,
@@ -93,12 +93,12 @@ class CSVDataset(DenseDesignMatrix):
             labels = dict((x, i) for (i, x) in enumerate(labels))
 
             if self.one_hot:
-                one_hot = np.zeros((y.shape[0], len(labels)), dtype='float32')
-                for i in xrange(y.shape[0]):
-                    label = y[i]
-                    label_position = labels[label]
-                    one_hot[i,label_position] = 1.
-                y = one_hot
+                warnings.warn("the `one_hot` parameter is deprecated. To get "
+                    "one-hot encoded targets, request that they "
+                    "live in `VectorSpace` through the `data_specs` "
+                    "parameter of MNIST's iterator method. "
+                    "`one_hot` will be removed on or after "
+                    "September 20, 2014.", stacklevel=2)
 
         else:
             X = data
