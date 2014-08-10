@@ -182,8 +182,7 @@ class MonitorBasedSaveBest(TrainExtension):
         monitor = model.monitor
         channels = monitor.channels
         channel = channels[self.channel_name]
-        val_record = channel.val_record
-        new_cost = val_record[-1]
+        new_cost = channel.val_shared.get_value()
 
         if self.coeff * new_cost < self.coeff * self.best_cost:
             self.best_cost = new_cost

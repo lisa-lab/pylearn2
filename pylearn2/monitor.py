@@ -68,6 +68,7 @@ class Monitor(object):
         # Initialize self._nested_data_specs, self._data_specs_mapping,
         # and self._flat_data_specs
         self._build_data_specs()
+        self.set_monitors(self.log_monitors)
 
     def _build_data_specs(self):
         """
