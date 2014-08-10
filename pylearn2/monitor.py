@@ -63,6 +63,7 @@ class Monitor(object):
         self.names_to_del = ['theano_function_mode']
         self.t0 = time.time()
         self.theano_function_mode = None
+        self.log_monitors = []
 
         # Initialize self._nested_data_specs, self._data_specs_mapping,
         # and self._flat_data_specs
@@ -112,6 +113,23 @@ class Monitor(object):
         if self.theano_function_mode != mode:
             self._dirty = True
             self.theano_function_mode = mode
+
+    def set_monitors(self, monitorsList):
+        """
+        Set the monitoring channels to compute and log.
+
+        Parameters
+        ----------
+        monitorsList : list
+            List of channels to monitor.
+        """
+        if monitorsList:
+            if not set(monitorsList).issubset(set(self.channels.keys())):
+                raise ValueError("List of log_monitors not valid")
+            self.log_monitors = monitorsList
+        else:
+            self.log_monitors =  sorted(self.channels.keys(), 
+                key=number_aware_alphabetical_key)
 
     def add_dataset(self, dataset, mode='sequential', batch_size=None,
                     num_batches=None, seed=None):
@@ -254,8 +272,7 @@ class Monitor(object):
         log.info("\tBatches seen: %d" % self._num_batches_seen)
         log.info("\tExamples seen: %d" % self._examples_seen)
         t = time.time() - self.t0
-        for channel_name in sorted(self.channels.keys(),
-                                   key=number_aware_alphabetical_key):
+        for channel_name in self.log_monitors:
             channel = self.channels[channel_name]
             channel.time_record.append(t)
             channel.batch_record.append(self._num_batches_seen)
