@@ -3,9 +3,9 @@
 A simple general csv dataset wrapper for pylearn2.
 Can do automatic one-hot encoding based on labels present in a file.
 """
-__authors__ = "Zygmunt Zając"
+__authors__ = ["Zygmunt Zając", "Marco De Nadai"]
 __copyright__ = "Copyright 2013, Zygmunt Zając"
-__credits__ = ["Zygmunt Zając"]
+__credits__ = ["Zygmunt Zając", "Marco De Nadai"]
 __license__ = "3-clause BSD"
 __maintainer__ = "?"
 __email__ = "zygmunt@fastml.com"
@@ -28,16 +28,24 @@ class CSVDataset(DenseDesignMatrix):
 
     Parameters
     ----------
-    path : WRITEME
-    one_hot : WRITEME
+    path : str, optional
+        path of the input file. defaults to 'train.csv'
+    one_hot : bool, optional
+        specifies if the target variable should be encoded with one-hot
+        encoding (where all bits are '0' except one '1'). defaults to False.
+    num_outputs : int, optional
+        number of target variables. defaults to 1
     expect_labels : WRITEME
-    expect_headers : WRITEME
-    delimiter : WRITEME
+    expect_headers : bool, optional
+        specifies if the input file has headers. defaults to True
+    delimiter : str, optional
+        delimiter of the CSV file. defaults to ','
     """
 
     def __init__(self, 
             path = 'train.csv',
             one_hot = False,
+            num_outputs = 1,
             expect_labels = True,
             expect_headers = True,
             delimiter = ','):
@@ -75,8 +83,9 @@ class CSVDataset(DenseDesignMatrix):
             data = np.loadtxt(self.path, delimiter = self.delimiter)
         
         if self.expect_labels:
-            y = data[:,0]
-            X = data[:,1:]
+            y = data[:,:num_outputs]
+            X = data[:,num_outputs:]
+            y = y.reshape((len(y), num_outputs))
             
             # get unique labels and map them to one-hot positions
             labels = np.unique(y)
