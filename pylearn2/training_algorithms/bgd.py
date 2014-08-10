@@ -95,7 +95,8 @@ class BGD(TrainingAlgorithm):
                  reset_alpha=True, conjugate=False, min_init_alpha=.001,
                  reset_conjugate=True, line_search_mode=None,
                  verbose_optimization=False, scale_step=1.,
-                 theano_function_mode=None, init_alpha=None, seed=None, ):
+                 theano_function_mode=None, init_alpha=None, seed=None, 
+                 monitoring_channels=None):
 
         self.__dict__.update(locals())
         del self.self
