@@ -44,7 +44,7 @@ class CSVDataset(DenseDesignMatrix):
 
     def __init__(self, 
             path = 'train.csv',
-            one_hot = None,
+            one_hot = False,
             num_outputs = 1,
             expect_labels = True,
             expect_headers = True,
@@ -99,6 +99,12 @@ class CSVDataset(DenseDesignMatrix):
                     "parameter of MNIST's iterator method. "
                     "`one_hot` will be removed on or after "
                     "September 20, 2014.", stacklevel=2)
+                one_hot = np.zeros((y.shape[0], len(labels)), dtype='float32')
+                for i in xrange(y.shape[0]):
+                    label = y[i]
+                    label_position = labels[label]
+                    one_hot[i,label_position] = 1.
+                y = one_hot
 
         else:
             X = data
