@@ -36,6 +36,7 @@ class SoftmaxModel(Model):
     algorithm what kind of space the features live in
     """
     def __init__(self, dim):
+        super(SoftmaxModel, self).__init__()
         self.dim = dim
         rng = np.random.RandomState([2014, 4, 22])
         self.P = sharedX(rng.uniform(-1., 1., (dim,)))
