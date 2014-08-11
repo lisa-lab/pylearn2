@@ -37,7 +37,9 @@ class CSVDataset(DenseDesignMatrix):
         encoding (where all bits are '0' except one '1'). defaults to False.
     num_outputs : int, optional
         number of target variables. defaults to 1
-    expect_labels : WRITEME
+    expect_labels : bool, optional
+	whether the CSV file contains a target variable in the first column.
+	defaults to True.
     expect_headers : bool, optional
         specifies if the input file has headers. defaults to True
     delimiter : str, optional
@@ -86,9 +88,8 @@ class CSVDataset(DenseDesignMatrix):
             data = np.loadtxt(self.path, delimiter = self.delimiter)
         
         if self.expect_labels:
-            y = data[:,:self.num_outputs]
+            y = data[:,0:self.num_outputs]
             X = data[:,self.num_outputs:]
-            y = y.reshape((len(y), self.num_outputs))
             
             # get unique labels and map them to one-hot positions
             labels = np.unique(y)
