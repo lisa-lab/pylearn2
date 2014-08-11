@@ -20,6 +20,7 @@ from theano.printing import var_descriptor
 
 from pylearn2.config import yaml_parse
 from pylearn2.datasets.dataset import Dataset
+from pylearn2.datasets.mnist import MNIST
 from pylearn2.space import Space, CompositeSpace, NullSpace
 from pylearn2.utils import function, sharedX, safe_zip, safe_izip
 from pylearn2.utils.iteration import is_stochastic
@@ -529,14 +530,8 @@ class Monitor(object):
         solution because it won't work with job resuming, which would
         require saving the state of the dataset's random number
         generator.
-
-        Like in the Model class, we also need to avoid saving any
-        Theano functions, so we delete everything that can be
-        regenerated with `redo_theano` by deleting the fields in
-        `self.names_to_del`
         """
 
-        # Patch old pickled monitors
         if not hasattr(self, '_datasets'):
             self._datasets = [self._dataset]
             del self._dataset
@@ -552,13 +547,13 @@ class Monitor(object):
                     try:
                         self._datasets.append(dataset.yaml_src)
                     except AttributeError:
+                        self._datasets.append(dataset) #TODO temporary fix
+                                                       #so I can test the
+                                                       #pickling feature.
                         warnings.warn('Trained model saved without ' +
                                       'indicating yaml_src')
         d = copy.copy(self.__dict__)
         self._datasets = temp
-        for name in self.names_to_del:
-            if name in d:
-                del d[name]
 
         return d
 
@@ -1034,34 +1029,8 @@ class MonitorChannel(object):
             A dictionary mapping the string names of the fields of the class
             to values appropriate for pickling.
         """
-        # We need to figure out a good way of saving the other fields. In the
-        # current setup, since there's no good way of coordinating with the
-        # model/training algorithm, the theano based fields might be invalid
-        # after a repickle. This means we can't, for instance, resume a job with
-        # monitoring after a crash. For now, to make sure no one erroneously
-        # depends on these bad values, I exclude them from the pickle.
-
-        if hasattr(self, 'val'):
-            doc = get_monitor_doc(self.val)
-        else:
-            # Hack to deal with Theano expressions not being serializable.
-            # If this is channel that has been serialized and then
-            # deserialized, the expression is gone, but we should have
-            # stored the doc
-            if hasattr(self, "doc"):
-                doc = self.doc
-            else:
-                # Support pickle files that are older than the doc system
-                doc = None
-
-        return {
-            'doc' : doc,
-            'example_record' : self.example_record,
-            'batch_record' : self.batch_record,
-            'time_record' : self.time_record,
-            'epoch_record' : self.epoch_record,
-            'val_record': self.val_record
-        }
+        d = self.__dict__.copy()
+        return d
 
     def __setstate__(self, d):
         """
@@ -1074,16 +1043,6 @@ class MonitorChannel(object):
             these fields.
         """
         self.__dict__.update(d)
-        if 'batch_record' not in d:
-            self.batch_record = [None] * len(self.val_record)
-        # Patch old pickle files that don't have the "epoch_record" field
-        if 'epoch_record' not in d:
-            # This is not necessarily correct but it is in the most common use
-            # case where you don't add monitoring channels over time.
-            self.epoch_record = range(len(self.val_record))
-        if 'time_record' not in d:
-            self.time_record = [None] * len(self.val_record)
-
 
 def push_monitor(model, name, transfer_experience=False):
     """

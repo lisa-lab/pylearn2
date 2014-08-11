@@ -66,7 +66,7 @@ def compiled_theano_function(fn):
         return func
     return property(wrapped)
 
-
+#TODO should this be deleted?
 class HasCompiledFunctions(object):
     """
     Base class/mixin that will automatically strip a `_compiled_functions`
