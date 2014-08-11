@@ -69,7 +69,7 @@ def test_adadelta():
     Make sure that learning_rule.AdaDelta obtains the same parameter values as
     with a hand-crafted AdaDelta implementation, given a dummy model and
     learning rate scaler for each parameter.
-    
+
     Reference:
     "AdaDelta: An Adaptive Learning Rate Method", Matthew D. Zeiler.
     """
@@ -124,7 +124,7 @@ def test_adadelta():
     manual = adadelta_manual(model, state)
     sgd.train(dataset=dataset)
     assert all(np.allclose(manual_param, sgd_param.get_value()) for manual_param,
-            sgd_param in zip(manual, model.get_params()))
+               sgd_param in zip(manual, model.get_params()))
 
 def test_rmsprop():
     """
@@ -177,5 +177,4 @@ def test_rmsprop():
     manual = rmsprop_manual(model, state)
     sgd.train(dataset=dataset)
     assert all(np.allclose(manual_param, sgd_param.get_value()) for manual_param,
-            sgd_param in zip(manual, model.get_params()))
-    
+               sgd_param in zip(manual, model.get_params()))

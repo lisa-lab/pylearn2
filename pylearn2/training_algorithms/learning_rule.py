@@ -232,9 +232,8 @@ class AdaDelta(LearningRule):
                 mean_square_dx.name = 'mean_square_dx_' + param.name
 
             # Accumulate gradient
-            new_mean_squared_grad = \
-                self.decay * mean_square_grad + \
-                (1 - self.decay) * T.sqr(grads[param])
+            new_mean_squared_grad = (self.decay * mean_square_grad +
+                                     (1 - self.decay) * T.sqr(grads[param]))
 
             # Compute update
             epsilon = lr_scalers.get(param, 1.) * learning_rate
@@ -243,9 +242,8 @@ class AdaDelta(LearningRule):
             delta_x_t = - rms_dx_tm1 / rms_grad_t * grads[param]
 
             # Accumulate updates
-            new_mean_square_dx = \
-                self.decay * mean_square_dx + \
-                (1 - self.decay) * T.sqr(delta_x_t)
+            new_mean_square_dx = (self.decay * mean_square_dx +
+                                  (1 - self.decay) * T.sqr(delta_x_t))
 
             # Apply update
             updates[mean_square_grad] = new_mean_squared_grad
@@ -257,8 +255,16 @@ class AdaDelta(LearningRule):
 
 class RMSProp(LearningRule):
     """
-    Implements the RMSProp learning rule as described by Hinton in:
-    http://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf
+    Implements the RMSProp learning rule as described by Hinton in [lecture 6]
+    (http://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf)
+    of the Coursera Neural Networks for Machine Learning course.
+
+    In short, Hinton suggests "[the] magnitude of the gradient can be very
+    different for different weights and can change during learning.  This
+    makes it hard to choose a global learning rate." RMSProp solves this
+    problem by "[dividing] the learning rate for a weight by a running
+    average of the magnitudes of recent gradients for that weight."
+
 
     Parameters
     ----------
@@ -281,7 +287,7 @@ class RMSProp(LearningRule):
         assert max_scaling > 0
         self.decay = sharedX(decay, 'decay')
         self.epsilon = 1. / max_scaling
-        self.mean_square_grads = []
+        self.mean_square_grads = OrderedDict()
 
     @wraps(LearningRule.add_channels_to_monitor)
     def add_channels_to_monitor(self, monitor, monitoring_dataset):
@@ -296,7 +302,7 @@ class RMSProp(LearningRule):
             '_mean': T.mean
         }
 
-        for mean_square_grad in self.mean_square_grads:
+        for mean_square_grad in self.mean_square_grads.values():
             for suffix, op in channel_mapping.items():
                 monitor.add_channel(
                     name=(mean_square_grad.name + suffix),
@@ -312,16 +318,12 @@ class RMSProp(LearningRule):
         Notes
         -----
         This method has the side effect of storing the moving average
-        of the square gradient in self.mean_square_grads. This is
+        of the square gradient in `self.mean_square_grads`. This is
         necessary in order for the monitoring channels to be able
         to track the value of these moving averages.
         Therefore, this method should only get called once for each
         instance of RMSProp.
         """
-        if self.mean_square_grads:
-            warnings.warn("Calling get_updates more than once on an instance "
-                          "of RMSProp may make monitored values incorrect.")
-            self.mean_square_grads = []
 
         updates = OrderedDict()
         for param in grads:
@@ -329,17 +331,20 @@ class RMSProp(LearningRule):
             # mean_squared_grad := E[g^2]_{t-1}
             mean_square_grad = sharedX(param.get_value() * 0.)
 
-            if param.name is not None:
-                mean_square_grad.name = 'mean_square_grad_' + param.name
+            if param.name is None:
+                raise ValueError("Model parameters must be named.")
+            mean_square_grad.name = 'mean_square_grad_' + param.name
 
-            # Store that variable in self.mean_square_grads, so we can
-            # monitor it.
-            self.mean_square_grads.append(mean_square_grad)
+            if param.name in self.mean_square_grads:
+                warnings.warn("Calling get_updates more than once on the "
+                              "gradients of `%s` may make monitored values "
+                              "incorrect." % param.name)
+            # Store variable in self.mean_square_grads for monitoring.
+            self.mean_square_grads[param.name] = mean_square_grad
 
             # Accumulate gradient
-            new_mean_squared_grad = \
-                self.decay * mean_square_grad + \
-                (1 - self.decay) * T.sqr(grads[param])
+            new_mean_squared_grad = (self.decay * mean_square_grad +
+                                     (1 - self.decay) * T.sqr(grads[param]))
 
             # Compute update
             scaled_lr = lr_scalers.get(param, 1.) * learning_rate
