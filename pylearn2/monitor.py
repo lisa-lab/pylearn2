@@ -114,19 +114,19 @@ class Monitor(object):
             self._dirty = True
             self.theano_function_mode = mode
 
-    def set_channels(self, monitorsList):
+    def set_channels(self, monitors_list):
         """
         Set the monitoring channels to compute and log.
 
         Parameters
         ----------
-        monitorsList : list
+        monitors_list : list
             List of channels to monitor.
         """
-        if monitorsList:
-            if not set(monitorsList).issubset(set(self.channels.keys())):
+        if monitors_list:
+            if not set(monitors_list).issubset(set(self.channels.keys())):
                 raise ValueError("List of log_monitors not valid")
-            self.log_monitors = monitorsList
+            self.log_monitors = monitors_list
         else:
             self.log_monitors =  sorted(self.channels.keys(), 
                 key=number_aware_alphabetical_key)
