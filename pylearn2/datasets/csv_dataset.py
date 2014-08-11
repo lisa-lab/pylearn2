@@ -13,11 +13,13 @@ __email__ = "zygmunt@fastml.com"
 import csv
 import numpy as np
 import os
+import logging
 
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.utils import serial
 from pylearn2.utils.string_utils import preprocess
 
+log = logging.getLogger(__name__)
 
 class CSVDataset(DenseDesignMatrix):
     """
@@ -94,12 +96,12 @@ class CSVDataset(DenseDesignMatrix):
             labels = dict((x, i) for (i, x) in enumerate(labels))
 
             if self.one_hot:
-                warnings.warn("the `one_hot` parameter is deprecated. To get "
+                log.warning("the `one_hot` parameter is deprecated. To get "
                     "one-hot encoded targets, request that they "
                     "live in `VectorSpace` through the `data_specs` "
                     "parameter of MNIST's iterator method. "
                     "`one_hot` will be removed on or after "
-                    "September 20, 2014.", stacklevel=2)
+                    "September 20, 2014.")
                 one_hot = np.zeros((y.shape[0], len(labels)), dtype='float32')
                 for i in xrange(y.shape[0]):
                     label = y[i]
