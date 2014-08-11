@@ -56,6 +56,7 @@ class CSVDataset(DenseDesignMatrix):
         """
         self.path = path
         self.one_hot = one_hot
+        self.num_outputs = num_outputs
         self.expect_labels = expect_labels
         self.expect_headers = expect_headers
         self.delimiter = delimiter
@@ -83,9 +84,9 @@ class CSVDataset(DenseDesignMatrix):
             data = np.loadtxt(self.path, delimiter = self.delimiter)
         
         if self.expect_labels:
-            y = data[:,:num_outputs]
-            X = data[:,num_outputs:]
-            y = y.reshape((len(y), num_outputs))
+            y = data[:,:self.num_outputs]
+            X = data[:,self.num_outputs:]
+            y = y.reshape((len(y), self.num_outputs))
             
             # get unique labels and map them to one-hot positions
             labels = np.unique(y)
