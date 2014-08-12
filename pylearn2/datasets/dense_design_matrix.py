@@ -1358,35 +1358,39 @@ class DefaultViewConverter(object):
         """
         return self.shape
 
-    def design_mat_to_topo_view(self, X):
+    def design_mat_to_topo_view(self, design_matrix):
         """
-        .. todo::
+        Returns a topological view/copy of design matrix.
 
-            WRITEME
+        Parameters:
+        -----------
+        design_matrix: numpy.ndarray
+          A design matrix with data in rows. Data is assumed to be laid out in
+          memory according to the default axis order ('b', 0, 1, 'c')
+
+        returns: numpy.ndarray
+          A matrix with axis order given by self.axes and shape given by
+          self.shape (# of batches is inferred). This will try to return
+          a view into design_matrix if possible; otherwise it will allocate a
+          new ndarray.
         """
-        assert len(X.shape) == 2
-        batch_size = X.shape[0]
+        if len(design_matrix.shape) != 2:
+            raise ValueError("design_matrix must have 2 dimensions, but shape "
+                             "was %s." % str(design_matrix.shape))
 
-        channel_shape = [batch_size, self.shape[0], self.shape[1], 1]
-        dimshuffle_args = [('b', 0, 1, 'c').index(axis) for axis in self.axes]
-        if self.shape[-1] * self.pixels_per_channel != X.shape[1]:
-            raise ValueError('View converter with ' + str(self.shape[-1]) +
-                             ' channels and ' + str(self.pixels_per_channel) +
-                             ' pixels per channel asked to convert design'
-                             ' matrix with ' + str(X.shape[1]) + ' columns.')
+        expected_row_size = numpy.prod(self.shape)
+        if design_matrix.shape[1] != expected_row_size:
+            raise ValueError("This DefaultViewConverter's self.shape = %s, "
+                             "for a total size of %d, but the design_matrix's "
+                             "row size was different (%d)." %
+                             (str(self.shape),
+                              expected_row_size,
+                              design_matrix.shape[1]))
 
-        def get_channel(channel_index):
-            start = self.pixels_per_channel * channel_index
-            stop = self.pixels_per_channel * (channel_index + 1)
-            data = X[:, start:stop]
-            return data.reshape(*channel_shape).transpose(*dimshuffle_args)
-
-        channels = [get_channel(i) for i in xrange(self.shape[-1])]
-
-        channel_idx = self.axes.index('c')
-        rval = np.concatenate(channels, axis=channel_idx)
-        assert len(rval.shape) == len(self.shape) + 1
-        return rval
+        b01c_shape = (design_matrix.shape[0], ) + tuple(self.shape)
+        topo_array_b01c = design_matrix.reshape(b01c_shape)
+        axis_order = [('b', 0, 1, 'c').index(axis) for axis in self.axes]
+        return topo_array_b01c.transpose(*axis_order)
 
     def design_mat_to_weights_view(self, X):
         """
@@ -1402,31 +1406,36 @@ class DefaultViewConverter(object):
 
         return rval
 
-    def topo_view_to_design_mat(self, V):
+    def topo_view_to_design_mat(self, topo_array):
         """
-        .. todo::
+        Returns a design matrix view/copy of topological matrix.
 
-            WRITEME
+        Parameters:
+        -----------
+        topo_array: numpy.ndarray
+          An N-D array with axis order given by self.axes. Non-batch axes'
+          dimension sizes must agree with self.shape.
+
+        returns: numpy.ndarray
+          A design matrix with data in rows. Data, is laid out in memory
+          according to the default axis order ('b', 0, 1, 'c'). This will
+          try to return a view into topo_array if possible; otherwise it will
+          allocate a new ndarray.
         """
+        batch_axis = self.axes.find('b')
+        batchless_topo_array_shape = (topo_array.shape[:batch_axis] +
+                                      topo_array.shape[(batch_axis + 1):])
+        if tuple(batchless_topo_array_shape) != tuple(self.shape):
+            raise ValueError("non-batch axes of topo_array's shape (%s) "
+                             "are different from DefaultViewConveter's "
+                             "self.shape (%s)." %
+                             (str(batchless_topo_array_shape),
+                              str(self.shape)))
 
-        tensor_shape = V.shape
-
-        tensor_axes = ('b', 'c', 0, 1)
-        V = V.transpose([self.axes.index(axis) for axis in tensor_axes])
-        batch_size, num_channels = V.shape[:2]
-
-        # (2, 3, 1) == (tensor_axes.index(axis) for axis in (0, 1, 'c'))
-        batch_shape = np.array([V.shape[index] for index in (2, 3, 1)])
-
-        if np.any(np.asarray(self.shape) != batch_shape):
-            raise ValueError('View converter for views of shape ' +
-                             str([batch_size] + self.shape) +
-                             ' given tensor of shape ' + str(tensor_shape))
-
-        rval = V.reshape((batch_size, self.pixels_per_channel * num_channels))
-        assert rval.dtype == V.dtype
-
-        return rval
+        axis_order = [('b', 0, 1, 'c').index(axis) for axis in self.axes]
+        topo_array_b01c = topo_array.transpose(*axis_order)
+        row_size = numpy.prod(topo_array_b01c.shape[1:])
+        return topo_array.reshape((topo_array_b01c.shape[0], row_size))
 
     def get_formatted_batch(self, batch, dspace):
         """
