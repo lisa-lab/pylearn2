@@ -1378,7 +1378,7 @@ class DefaultViewConverter(object):
             raise ValueError("design_matrix must have 2 dimensions, but shape "
                              "was %s." % str(design_matrix.shape))
 
-        expected_row_size = numpy.prod(self.shape)
+        expected_row_size = np.prod(self.shape)
         if design_matrix.shape[1] != expected_row_size:
             raise ValueError("This DefaultViewConverter's self.shape = %s, "
                              "for a total size of %d, but the design_matrix's "
@@ -1422,7 +1422,7 @@ class DefaultViewConverter(object):
           try to return a view into topo_array if possible; otherwise it will
           allocate a new ndarray.
         """
-        batch_axis = self.axes.find('b')
+        batch_axis = self.axes.index('b')
         batchless_topo_array_shape = (topo_array.shape[:batch_axis] +
                                       topo_array.shape[(batch_axis + 1):])
         if tuple(batchless_topo_array_shape) != tuple(self.shape):
@@ -1434,7 +1434,7 @@ class DefaultViewConverter(object):
 
         axis_order = [('b', 0, 1, 'c').index(axis) for axis in self.axes]
         topo_array_b01c = topo_array.transpose(*axis_order)
-        row_size = numpy.prod(topo_array_b01c.shape[1:])
+        row_size = np.prod(topo_array_b01c.shape[1:])
         return topo_array.reshape((topo_array_b01c.shape[0], row_size))
 
     def get_formatted_batch(self, batch, dspace):
