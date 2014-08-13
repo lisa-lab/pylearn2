@@ -31,7 +31,7 @@ class DummyModel(Model):
         self.input_space = VectorSpace(num_features)
 
     def get_default_cost(self):
-        return Cost()
+        return DummyCost()
 
 
 class DummyDataset(DenseDesignMatrix):
@@ -46,6 +46,12 @@ class DummyDataset(DenseDesignMatrix):
                 "functionality. If the Monitor tries to serialize a "
                 "Dataset, that is an error.")
 
+class DummyCost(Cost):
+    def get_data_specs(self, model):
+        return (VectorSpace(1), 'dummy')
+    
+    def expr(self, model, cost_ipt):
+        return cost_ipt.sum()
 
 def test_channel_scaling_sequential():
     def channel_scaling_checker(num_examples, mode, num_batches, batch_size):
@@ -591,12 +597,8 @@ def test_extra_costs():
 
     extra_costs = OrderedDict()
     extra_costs['Cost'] = model.get_default_cost()
-    try:
-        monitor.setup(dataset, model.get_default_cost(), 1, 
-                      extra_costs=extra_costs)
-    except NotImplementedError, e:
-        return
-    assert False
+    monitor.setup(dataset, model.get_default_cost(), 1, 
+                  extra_costs=extra_costs)
 
 
 if __name__ == '__main__':
