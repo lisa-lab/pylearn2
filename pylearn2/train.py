@@ -65,7 +65,8 @@ class Train(object):
     """
 
     def __init__(self, dataset, model, algorithm=None, save_path=None,
-                 save_freq=0, extensions=None, allow_overwrite=True, chk_file='train.pickle', chk_freq=1):
+                 save_freq=0, extensions=None, allow_overwrite=True,
+                 chk_file='train.pickle', chk_freq=1):
         self.allow_overwrite = allow_overwrite
         self.first_save = True
         self.dataset = dataset
@@ -164,7 +165,8 @@ class Train(object):
         if not resuming:
             self.setup()
         if self.algorithm is None:
-            self.run_callbacks_and_monitoring()
+            if not resuming:
+                self.run_callbacks_and_monitoring()
             while True:
                 if self.chk_freq:
                     if time.time() - current_time > self.chk_freq*3600:
@@ -180,7 +182,8 @@ class Train(object):
                 self.model.monitor.report_epoch()
                 extension_continue = self.run_callbacks_and_monitoring()
                 freq = self.save_freq
-                if freq > 0 and self.model.monitor.get_epochs_seen() % freq == 0:
+                if (freq > 0 and self.model.monitor.get_epochs_seen()
+                   % freq == 0):
                     self.save()
                 continue_learning = (self.model.continue_learning() and
                                      extension_continue)
@@ -188,20 +191,21 @@ class Train(object):
                 if not continue_learning:
                     break
         else:
-            if not hasattr(self.model, 'monitor'):
-                # TODO: is this really necessary? I just put this error here
-                # to prevent an AttributeError later, but I think we could
-                # rewrite to avoid the AttributeError
-                raise RuntimeError("The algorithm is responsible for setting"
-                                   " up the Monitor, but failed to.")
-            if len(self.model.monitor._datasets) > 0:
-                # This monitoring channel keeps track of a shared variable,
-                # which does not need inputs nor data.
-                self.training_seconds.__doc__ = """\
-The number of seconds that were spent in actual training during the most
-recent epoch. This excludes seconds that were spent running callbacks for
-the extensions, computing monitoring channels, etc."""
-                if not resuming:
+            if not resuming:
+                if not hasattr(self.model, 'monitor'):
+                    # TODO: is this really necessary? I just put this error here
+                    # to prevent an AttributeError later, but I think we could
+                    # rewrite to avoid the AttributeError
+                    raise RuntimeError("The algorithm is responsible for setting"
+                                       " up the Monitor, but failed to.")
+                if len(self.model.monitor._datasets) > 0:
+                    # This monitoring channel keeps track of a shared variable,
+                    # which does not need inputs nor data.
+                    self.training_seconds.__doc__ = """\
+    The number of seconds that were spent in actual training during the most
+    recent epoch. This excludes seconds that were spent running callbacks for
+    the extensions, computing monitoring channels, etc."""
+
                     self.model.monitor.add_channel(
                         name="training_seconds_this_epoch",
                         ipt=None,
@@ -220,8 +224,8 @@ the extensions, computing monitoring channels, etc."""
                         ipt=None,
                         val=self.total_seconds,
                         data_specs=(NullSpace(), ''),
-                    dataset=self.model.monitor._datasets[0])
-            self.run_callbacks_and_monitoring()
+                        dataset=self.model.monitor._datasets[0])
+                self.run_callbacks_and_monitoring()
             while True:
                 if self.chk_freq:
                     if time.time() - current_time > self.chk_freq*3600:
@@ -244,8 +248,9 @@ the extensions, computing monitoring channels, etc."""
                                          "continues.")
                     self.model.monitor.report_epoch()
                     extension_continue = self.run_callbacks_and_monitoring()
-                    if self.save_freq > 0 and \
-                       self.model.monitor.get_epochs_seen() % self.save_freq == 0:
+                    if (self.save_freq > 0 and
+                       self.model.monitor.get_epochs_seen() % self.save_freq
+                       == 0):
                         self.save()
                 continue_learning = (
                     self.algorithm.continue_learning(self.model) and
@@ -321,15 +326,22 @@ the extensions, computing monitoring channels, etc."""
                         self.first_save = False
 
     @staticmethod
-    def resume(chk_file, dataset_path=None):
+    def resume(chk_file):
+        """
+        Resume training
+
+        Parameters
+        ----------
+        chk_file: TODO
+        """
         if chk_file is not None and os.path.exists(chk_file):
             with log_timing(log, 'Loading data from ' + chk_file):
                 with open(chk_file, 'r') as f:
                     train = cPickle.load(f)
-                    if dataset_path is not None:
-                        pass
-                    return train
 
+                    # make a mapping from the dataset paths to the dataset
+                    # objects
+                    return train
 
 
 class SerializationGuard(object):

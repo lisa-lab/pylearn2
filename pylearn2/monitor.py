@@ -536,25 +536,7 @@ class Monitor(object):
             self._datasets = [self._dataset]
             del self._dataset
 
-        temp = self._datasets
-
-        if self._datasets:
-            self._datasets = []
-            for dataset in temp:
-                if isinstance(dataset, basestring):
-                    self._datasets.append(dataset)
-                else:
-                    try:
-                        self._datasets.append(dataset.yaml_src)
-                    except AttributeError:
-                        self._datasets.append(dataset) #TODO temporary fix
-                                                       #so I can test the
-                                                       #pickling feature.
-                        warnings.warn('Trained model saved without ' +
-                                      'indicating yaml_src')
         d = copy.copy(self.__dict__)
-        self._datasets = temp
-
         return d
 
     def __setstate__(self, d):
@@ -1044,6 +1026,7 @@ class MonitorChannel(object):
         """
         self.__dict__.update(d)
 
+
 def push_monitor(model, name, transfer_experience=False):
     """
     When you load a model in a yaml file and you want to store its
@@ -1106,6 +1089,7 @@ def read_channel(model, channel_name, monitor_name='monitor'):
         The last value recorded in this monitoring channel
     """
     return getattr(model, monitor_name).channels[channel_name].val_record[-1]
+
 
 def get_channel(model, dataset, channel, cost, batch_size):
     """
