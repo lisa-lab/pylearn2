@@ -1331,10 +1331,26 @@ class DefaultViewConverter(object):
 
     Parameters
     ----------
-    shape : WRITEME
-    axes : WRITEME
+    shape : list
+      [num_rows, num_cols, channels]
+    axes : tuple
+      The axis ordering to use in topological views of the data. Must be some
+      permutation of ('b', 0, 1, 'c'). Default: ('b', 0, 1, 'c')
+    pixels_per_channel : int
+      The number of pixels per channel (the product of the sizes of all
+      dimensions other than channel).
     """
     def __init__(self, shape, axes=('b', 0, 1, 'c')):
+        """
+        Parameters
+        ----------
+        shape : list
+          [num_rows, num_cols, channels]
+        axes : tuple
+          The axis ordering to use in topological views of the data. Must be
+          some permutation of ('b', 0, 1, 'c'). Default: ('b', 0, 1, 'c')
+        """
+
         self.shape = shape
         self.pixels_per_channel = 1
         for dim in self.shape[:-1]:
@@ -1422,15 +1438,16 @@ class DefaultViewConverter(object):
           try to return a view into topo_array if possible; otherwise it will
           allocate a new ndarray.
         """
-        batch_axis = self.axes.index('b')
-        batchless_topo_array_shape = (topo_array.shape[:batch_axis] +
-                                      topo_array.shape[(batch_axis + 1):])
-        if tuple(batchless_topo_array_shape) != tuple(self.shape):
-            raise ValueError("non-batch axes of topo_array's shape (%s) "
-                             "are different from DefaultViewConveter's "
-                             "self.shape (%s)." %
-                             (str(batchless_topo_array_shape),
-                              str(self.shape)))
+        for shape_elem, axis in safe_zip(self.shape, (0, 1, 'c')):
+            if topo_array.shape[self.axes.index(axis)] != shape_elem:
+                raise ValueError(
+                    "topo_array's %s axis has a different size "
+                    "(%d) from the corresponding size (%d) in "
+                    "self.shape.\n"
+                    "  self.shape:       %s (uses standard axis order: 0, 1, "
+                    "'c')\n"
+                    "  self.axes:        %s\n"
+                    "  topo_array.shape: %s (should be in self.axes' order)")
 
         axis_order = [('b', 0, 1, 'c').index(axis) for axis in self.axes]
         topo_array_b01c = topo_array.transpose(*axis_order)
