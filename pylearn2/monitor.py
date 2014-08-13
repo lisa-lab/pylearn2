@@ -2,6 +2,8 @@
 The module defining the Monitor and MonitorChannel objects used for
 tracking the changes in values of various quantities throughout training
 """
+from pylearn2.datasets import DenseDesignMatrix
+
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -20,6 +22,7 @@ from theano.printing import var_descriptor
 
 from pylearn2.config import yaml_parse
 from pylearn2.datasets.dataset import Dataset
+from pylearn2.datasets.mnist import MNIST
 from pylearn2.space import Space, CompositeSpace, NullSpace
 from pylearn2.utils import function, sharedX, safe_zip, safe_izip
 from pylearn2.utils.exc import reraise_as
@@ -530,11 +533,6 @@ class Monitor(object):
         solution because it won't work with job resuming, which would
         require saving the state of the dataset's random number
         generator.
-
-        Like in the Model class, we also need to avoid saving any
-        Theano functions, so we delete everything that can be
-        regenerated with `redo_theano` by deleting the fields in
-        `self.names_to_del`
         """
 
         # Patch old pickled monitors
@@ -542,25 +540,33 @@ class Monitor(object):
             self._datasets = [self._dataset]
             del self._dataset
 
-        temp = self._datasets
+        # verify if the datasets only store pointers when pickled
+        datasets_pickled_as_pointers = all([type(dataset)==DenseDesignMatrix
+                                            for dataset in self._datasets])
 
-        if self._datasets:
-            self._datasets = []
-            for dataset in temp:
-                if isinstance(dataset, basestring):
-                    self._datasets.append(dataset)
-                else:
-                    try:
-                        self._datasets.append(dataset.yaml_src)
-                    except AttributeError:
-                        warnings.warn('Trained model saved without ' +
-                                      'indicating yaml_src')
+        if not datasets_pickled_as_pointers:
+            temp = self._datasets
+
+            if self._datasets:
+                self._datasets = []
+                for dataset in temp:
+                    if isinstance(dataset, basestring):
+                        self._datasets.append(dataset)
+                    else:
+                        try:
+                            self._datasets.append(dataset.yaml_src)
+                        except AttributeError:
+                            warnings.warn('Trained model saved without ' +
+                                          'indicating yaml_src')
+
         d = copy.copy(self.__dict__)
-        self._datasets = temp
-        for name in self.names_to_del:
-            if name in d:
-                del d[name]
 
+        if not datasets_pickled_as_pointers:
+            self._datasets = temp
+            for name in self.names_to_del:
+                if name in d:
+                    del d[name]
+        
         return d
 
     def __setstate__(self, d):
@@ -1036,34 +1042,39 @@ class MonitorChannel(object):
             A dictionary mapping the string names of the fields of the class
             to values appropriate for pickling.
         """
-        # We need to figure out a good way of saving the other fields. In the
-        # current setup, since there's no good way of coordinating with the
-        # model/training algorithm, the theano based fields might be invalid
-        # after a repickle. This means we can't, for instance, resume a job with
-        # monitoring after a crash. For now, to make sure no one erroneously
-        # depends on these bad values, I exclude them from the pickle.
-
-        if hasattr(self, 'val'):
-            doc = get_monitor_doc(self.val)
+        if (hasattr(self, 'dataset') and
+                type(self.dataset) == DenseDesignMatrix):
+            d = self.__dict__.copy()
+            return d
         else:
-            # Hack to deal with Theano expressions not being serializable.
-            # If this is channel that has been serialized and then
-            # deserialized, the expression is gone, but we should have
-            # stored the doc
-            if hasattr(self, "doc"):
-                doc = self.doc
-            else:
-                # Support pickle files that are older than the doc system
-                doc = None
+            # We need to figure out a good way of saving the other fields. In the
+            # current setup, since there's no good way of coordinating with the
+            # model/training algorithm, the theano based fields might be invalid
+            # after a repickle. This means we can't, for instance, resume a job with
+            # monitoring after a crash. For now, to make sure no one erroneously
+            # depends on these bad values, I exclude them from the pickle.
 
-        return {
-            'doc' : doc,
-            'example_record' : self.example_record,
-            'batch_record' : self.batch_record,
-            'time_record' : self.time_record,
-            'epoch_record' : self.epoch_record,
-            'val_record': self.val_record
-        }
+            if hasattr(self, 'val'):
+                doc = get_monitor_doc(self.val)
+            else:
+                # Hack to deal with Theano expressions not being serializable.
+                # If this is channel that has been serialized and then
+                # deserialized, the expression is gone, but we should have
+                # stored the doc
+                if hasattr(self, "doc"):
+                    doc = self.doc
+                else:
+                    # Support pickle files that are older than the doc system
+                    doc = None
+
+            return {
+                'doc' : doc,
+                'example_record': self.example_record,
+                'batch_record': self.batch_record,
+                'time_record': self.time_record,
+                'epoch_record': self.epoch_record,
+                'val_record': self.val_record
+            }
 
     def __setstate__(self, d):
         """
@@ -1150,6 +1161,7 @@ def read_channel(model, channel_name, monitor_name='monitor'):
     """
     return getattr(model, monitor_name).channels[channel_name].val_record[-1]
 
+
 def get_channel(model, dataset, channel, cost, batch_size):
     """
     Make a temporary monitor and return the value of a channel in it.
@@ -1214,3 +1226,4 @@ _err_no_data = "You tried to add a channel to a Monitor that has no dataset."
 _err_ambig_data = ("You added a channel to a Monitor that has multiple " +
                    "datasets, and did not specify which dataset to use it " +
                    "with.")
+

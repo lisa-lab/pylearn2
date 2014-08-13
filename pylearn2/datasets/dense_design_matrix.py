@@ -32,6 +32,7 @@ import copy
 # everywhere.
 tables = None
 
+import cPickle
 
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.datasets import control
@@ -171,7 +172,8 @@ class DenseDesignMatrix(Dataset):
     def __init__(self, X=None, topo_view=None, y=None,
                  view_converter=None, axes=('b', 0, 1, 'c'),
                  rng=_default_seed, preprocessor=None, fit_preprocessor=False,
-                 max_labels=None, X_labels=None, y_labels=None):
+                 max_labels=None, X_labels=None, y_labels=None,
+                 pickle_storage=None):
         self.X = X
         self.y = y
         self.view_converter = view_converter
@@ -251,6 +253,13 @@ class DenseDesignMatrix(Dataset):
         if preprocessor:
             preprocessor.apply(self, can_fit=fit_preprocessor)
         self.preprocessor = preprocessor
+
+        if pickle_storage:
+        # pickle the dataset into 'pickle_storage'
+            dataset_copy = copy.deepcopy(self)
+            with open(pickle_storage, 'w') as f:
+                cPickle.dump(dataset_copy, f)
+            self.pickle_storage = pickle_storage
 
     def _check_labels(self):
         """Sanity checks for X_labels and y_labels."""
@@ -435,27 +444,30 @@ class DenseDesignMatrix(Dataset):
 
             WRITEME
         """
-        rval = copy.copy(self.__dict__)
-        # TODO: Not sure this should be implemented as something a base dataset
-        # does. Perhaps as a mixin that specific datasets (i.e. CIFAR10)
-        # inherit from.
-        if self.compress:
-            rval['compress_min'] = rval['X'].min(axis=0)
-            # important not to do -= on this line, as that will modify the
-            # original object
-            rval['X'] = rval['X'] - rval['compress_min']
-            rval['compress_max'] = rval['X'].max(axis=0)
-            rval['compress_max'][rval['compress_max'] == 0] = 1
-            rval['X'] *= 255. / rval['compress_max']
-            rval['X'] = np.cast['uint8'](rval['X'])
+        if not hasattr(self, 'pickle_storage'):
+            rval = copy.copy(self.__dict__)
+            # TODO: Not sure this should be implemented as something a base
+            # dataset does. Perhaps as a mixin that specific datasets
+            # (i.e. CIFAR10) inherit from.
+            if self.compress:
+                rval['compress_min'] = rval['X'].min(axis=0)
+                # important not to do -= on this line, as that will modify the
+                # original object
+                rval['X'] = rval['X'] - rval['compress_min']
+                rval['compress_max'] = rval['X'].max(axis=0)
+                rval['compress_max'][rval['compress_max'] == 0] = 1
+                rval['X'] *= 255. / rval['compress_max']
+                rval['X'] = np.cast['uint8'](rval['X'])
 
-        if self.design_loc is not None:
-            # TODO: Get rid of this logic, use custom array-aware picklers
-            # (joblib, custom pylearn2 serialization format).
-            np.save(self.design_loc, rval['X'])
-            del rval['X']
+            if self.design_loc is not None:
+                # TODO: Get rid of this logic, use custom array-aware picklers
+                # (joblib, custom pylearn2 serialization format).
+                np.save(self.design_loc, rval['X'])
+                del rval['X']
 
-        return rval
+            return rval
+        else:
+            return {'pickle_storage': self.pickle_storage}
 
     def __setstate__(self, d):
         """
@@ -463,60 +475,67 @@ class DenseDesignMatrix(Dataset):
 
             WRITEME
         """
-        if d['design_loc'] is not None:
-            if control.get_load_data():
-                fname = cache.datasetCache.cache_file(d['design_loc'])
-                d['X'] = np.load(fname)
-            else:
-                d['X'] = None
+        if not 'pickle_storage' in d:
+            if d['design_loc'] is not None:
+                if control.get_load_data():
+                    fname = cache.datasetCache.cache_file(d['design_loc'])
+                    d['X'] = np.load(fname)
+                else:
+                    d['X'] = None
 
-        if d['compress']:
-            X = d['X']
-            mx = d['compress_max']
-            mn = d['compress_min']
-            del d['compress_max']
-            del d['compress_min']
-            d['X'] = 0
-            self.__dict__.update(d)
-            if X is not None:
-                self.X = np.cast['float32'](X) * mx / 255. + mn
+            if d['compress']:
+                X = d['X']
+                mx = d['compress_max']
+                mn = d['compress_min']
+                del d['compress_max']
+                del d['compress_min']
+                d['X'] = 0
+                self.__dict__.update(d)
+                if X is not None:
+                    self.X = np.cast['float32'](X) * mx / 255. + mn
+                else:
+                    self.X = None
             else:
-                self.X = None
+                self.__dict__.update(d)
+
+            # To be able to unpickle older data after the addition of
+            # the data_specs mechanism
+            if not all(m in d for m in ('data_specs', 'X_space',
+                                        '_iter_data_specs', 'X_topo_space')):
+                X_space = VectorSpace(dim=self.X.shape[1])
+                X_source = 'features'
+                if self.y is None:
+                    space = X_space
+                    source = X_source
+                else:
+                    y_space = VectorSpace(dim=self.y.shape[-1])
+                    y_source = 'targets'
+
+                    space = CompositeSpace((X_space, y_space))
+                    source = (X_source, y_source)
+
+                self.data_specs = (space, source)
+                self.X_space = X_space
+                self._iter_data_specs = (X_space, X_source)
+
+                view_converter = d.get('view_converter', None)
+                if view_converter is not None:
+                    # Get the topo_space from the view_converter
+                    if not hasattr(view_converter, 'topo_space'):
+                        raise NotImplementedError("Not able to get a "
+                                                  "topo_space from this "
+                                                  "converter: %s"
+                                                  % view_converter)
+
+                    # self.X_topo_space stores a "default" topological space
+                    # that will be used only when self.iterator is called
+                    # without a data_specs, and with "topo=True", which is
+                    # deprecated.
+                    self.X_topo_space = view_converter.topo_space
         else:
-            self.__dict__.update(d)
-
-        # To be able to unpickle older data after the addition of
-        # the data_specs mechanism
-        if not all(m in d for m in ('data_specs', 'X_space',
-                                    '_iter_data_specs', 'X_topo_space')):
-            X_space = VectorSpace(dim=self.X.shape[1])
-            X_source = 'features'
-            if self.y is None:
-                space = X_space
-                source = X_source
-            else:
-                y_space = VectorSpace(dim=self.y.shape[-1])
-                y_source = 'targets'
-
-                space = CompositeSpace((X_space, y_space))
-                source = (X_source, y_source)
-
-            self.data_specs = (space, source)
-            self.X_space = X_space
-            self._iter_data_specs = (X_space, X_source)
-
-            view_converter = d.get('view_converter', None)
-            if view_converter is not None:
-                # Get the topo_space from the view_converter
-                if not hasattr(view_converter, 'topo_space'):
-                    raise NotImplementedError("Not able to get a topo_space "
-                                              "from this converter: %s"
-                                              % view_converter)
-
-                # self.X_topo_space stores a "default" topological space that
-                # will be used only when self.iterator is called without a
-                # data_specs, and with "topo=True", which is deprecated.
-                self.X_topo_space = view_converter.topo_space
+            with open(d['pickle_storage'], 'r') as f:
+                origin_dataset = cPickle.load(f)
+                self.__dict__.update(origin_dataset.__dict__)
 
     def _apply_holdout(self, _mode="sequential", train_size=0, train_prop=0):
         """

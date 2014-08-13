@@ -608,20 +608,13 @@ class Model(object):
     def __getstate__(self):
         """
         This is the method that pickle/cPickle uses to determine what
-        portion of the model to serialize. We remove all fields listed in
-        `self.fields_to_del`. In particular, this should include all Theano
-        functions, since they do not play nice with pickling.
+        portion of the model to serialize.
         """
 
         self._disallow_censor_updates()
 
-        d = OrderedDict()
-        names_to_del = getattr(self, 'names_to_del', set())
-        names_to_keep = set(self.__dict__.keys()).difference(names_to_del)
-        for name in names_to_keep:
-            d[name] = self.__dict__[name]
-
-        return d
+        class_attrs = self.__dict__.copy()
+        return class_attrs
 
     def get_test_batch_size(self):
         """
