@@ -23,6 +23,7 @@ from pylearn2.utils.rng import make_np_rng
 
 
 class MNIST(dense_design_matrix.DenseDesignMatrix):
+
     """
     .. todo::
 
@@ -135,7 +136,8 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             topo_view -= topo_view.mean(axis=0)
 
         if shuffle:
-            self.shuffle_rng = make_np_rng(None, [1, 2, 3], which_method="shuffle")
+            self.shuffle_rng = make_np_rng(
+                None, [1, 2, 3], which_method="shuffle")
             for i in xrange(topo_view.shape[0]):
                 j = self.shuffle_rng.randint(m)
                 # Copy ensures that memory is not aliased.
@@ -143,7 +145,7 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
                 topo_view[i, :, :, :] = topo_view[j, :, :, :]
                 topo_view[j, :, :, :] = tmp
                 # Note: slicing with i:i+1 works for one_hot=True/False
-                tmp = y[i:i+1].copy()
+                tmp = y[i:i + 1].copy()
                 y[i] = y[j]
                 y[j] = tmp
 
@@ -209,6 +211,7 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
 
 
 class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
+
     """
     .. todo::
 
@@ -242,6 +245,7 @@ class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
 
         view_converter = dense_design_matrix.DefaultViewConverter((28, 28, 1))
 
-        super(MNIST_rotated_background, self).__init__(X=X, y=y, view_converter=view_converter)
+        super(MNIST_rotated_background, self).__init__(
+            X=X, y=y, view_converter=view_converter)
 
         assert not N.any(N.isnan(self.X))

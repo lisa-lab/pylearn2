@@ -13,6 +13,7 @@ from pylearn2.datasets.cache import datasetCache
 
 
 class NORBSmall(dense_design_matrix.DenseDesignMatrix):
+
     """
     A pylearn2 dataset object for the small NORB dataset (v1.0).
 
@@ -57,7 +58,7 @@ class NORBSmall(dense_design_matrix.DenseDesignMatrix):
 
         # put things in pylearn2's DenseDesignMatrix format
         X = numpy.cast['float32'](X)
-        X = X.reshape(-1, 2*96*96)
+        X = X.reshape(-1, 2 * 96 * 96)
 
         # this is uint8
         y = NORBSmall.load(which_set, 'cat')
@@ -75,6 +76,7 @@ class NORBSmall(dense_design_matrix.DenseDesignMatrix):
 
 
 class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
+
     """
     .. todo::
 

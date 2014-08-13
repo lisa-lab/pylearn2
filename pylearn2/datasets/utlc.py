@@ -1,5 +1,6 @@
 """
-Utility functions to load data from the UTLC challenge (Unsupervised Transfer Learning).
+Utility functions to load data from the UTLC challenge (Unsupervised Transfer
+Learning).
 
 The user should use the load_ndarray_dataset or load_sparse_dataset function
 See the file ${PYLEARN2_DATA_PATH}/UTLC/README for details on the datasets.
@@ -20,34 +21,43 @@ from pylearn2.utils.rng import make_np_rng
 def load_ndarray_dataset(name, normalize=True, transfer=False,
                          normalize_on_the_fly=False, randomize_valid=False,
                          randomize_test=False):
-    """ 
-    Load the train,valid,test data for the dataset `name` and return it in ndarray format.
+    """
+    Load the train,valid,test data for the dataset `name` and return it in
+    ndarray format.
 
-    We suppose the data was created with ift6266h11/pretraitement/to_npy.py that
-    shuffle the train. So the train should already be shuffled.
+    We suppose the data was created with ift6266h11/pretraitement/to_npy.py
+    that shuffle the train. So the train should already be shuffled.
 
     Parameters
     ----------
     name : 'avicenna', 'harry', 'rita', 'sylvester' or 'ule'
         Which dataset to load
+
     normalize : bool
         If True, we normalize the train dataset before returning it
+
     transfer : bool
         If True also return the transfer labels
+
     normalize_on_the_fly : bool
-        If True, we return a Theano Variable that will give as output the normalized 
-        value. If the user only take a subtensor of that variable, Theano optimization
-        should make that we will only have in memory the subtensor portion that is 
-        computed in normalized form. We store the original data in shared memory in 
-        its original dtype. This is usefull to have the original data in its original
-        dtype in memory to same memory. Especialy usefull to be able to use rita and
-        harry with 1G per jobs.
+        If True, we return a Theano Variable that will give as output the
+        normalized value. If the user only take a subtensor of that variable,
+        Theano optimization should make that we will only have in memory the
+        subtensor portion that is computed in normalized form. We store the
+        original data in shared memory in its original dtype. This is usefull
+        to have the original data in its original dtype in memory to same
+        memory. Especialy usefull to be able to use rita and harry with 1G per
+        jobs.
+
     randomize_valid : bool
-        Do we randomize the order of the valid set?  We always use the same random order
-        If False, return in the same order as downloaded on the web
+        Do we randomize the order of the valid set?  We always use the same
+        random order If False, return in the same order as downloaded on the
+        web
+
     randomize_test : bool
-        Do we randomize the order of the test set?  We always use the same random order
-        If False, return in the same order as downloaded on the web
+        Do we randomize the order of the test set?  We always use the same
+        random order If False, return in the same order as downloaded on the
+        web
 
     Returns
     -------
@@ -55,32 +65,35 @@ def load_ndarray_dataset(name, normalize=True, transfer=False,
         Datasets returned if transfer = False
     train, valid, test, transfer : ndarrays
         Datasets returned if transfer = False
-    
-    """
-    assert not (normalize and normalize_on_the_fly), "Can't normalize in 2 way at the same time!"
 
-    assert name in ['avicenna','harry','rita','sylvester','ule']
-    common = os.path.join(preprocess('${PYLEARN2_DATA_PATH}'),'UTLC','filetensor',name+'_')
-    trname,vname,tename = [common+subset+'.ft' for subset in ['train','valid','test']]
+    """
+    assert not (normalize and normalize_on_the_fly), \
+        "Can't normalize in 2 way at the same time!"
+
+    assert name in ['avicenna', 'harry', 'rita', 'sylvester', 'ule']
+    common = os.path.join(
+        preprocess('${PYLEARN2_DATA_PATH}'), 'UTLC', 'filetensor', name + '_')
+    trname, vname, tename = [
+        common + subset + '.ft' for subset in ['train', 'valid', 'test']]
 
     train = load_filetensor(trname)
     valid = load_filetensor(vname)
     test = load_filetensor(tename)
     if randomize_valid:
-        rng = make_np_rng(None, [1,2,3,4], which_method='permutation')
+        rng = make_np_rng(None, [1, 2, 3, 4], which_method='permutation')
         perm = rng.permutation(valid.shape[0])
         valid = valid[perm]
     if randomize_test:
-        rng = make_np_rng(None, [1,2,3,4], which_method='permutation')
+        rng = make_np_rng(None, [1, 2, 3, 4], which_method='permutation')
         perm = rng.permutation(test.shape[0])
         test = test[perm]
 
     if normalize or normalize_on_the_fly:
         if normalize_on_the_fly:
             # Shared variables of the original type
-            train = theano.shared(train, borrow=True, name=name+"_train")
-            valid = theano.shared(valid, borrow=True, name=name+"_valid")
-            test = theano.shared(test, borrow=True, name=name+"_test")
+            train = theano.shared(train, borrow=True, name=name + "_train")
+            valid = theano.shared(valid, borrow=True, name=name + "_valid")
+            test = theano.shared(test, borrow=True, name=name + "_test")
             # Symbolic variables cast into floatX
             train = theano.tensor.cast(train, theano.config.floatX)
             valid = theano.tensor.cast(valid, theano.config.floatX)
@@ -108,7 +121,7 @@ def load_ndarray_dataset(name, normalize=True, transfer=False,
             valid /= train_std
             test /= train_std
         elif name == "harry":
-            std = 0.69336046033925791#train.std()slow to compute
+            std = 0.69336046033925791  # train.std()slow to compute
             train /= std
             valid /= std
             test /= std
@@ -118,45 +131,58 @@ def load_ndarray_dataset(name, normalize=True, transfer=False,
             valid /= v
             test /= v
         else:
-            raise Exception("This dataset don't have its normalization defined")
+            raise Exception(
+                "This dataset don't have its normalization defined")
     if transfer:
         transfer = load_ndarray_transfer(name)
         return train, valid, test, transfer
     else:
         return train, valid, test
 
+
 def load_sparse_dataset(name, normalize=True, transfer=False,
                         randomize_valid=False,
                         randomize_test=False):
-    """ 
-    Load the train,valid,test data for the dataset `name` and return it in sparse format.
+    """
+    Load the train,valid,test data for the dataset `name` and return it in
+    sparse format.
 
-    We suppose the data was created with ift6266h11/pretraitement/to_npy.py that
-    shuffle the train. So the train should already be shuffled.
+    We suppose the data was created with ift6266h11/pretraitement/to_npy.py
+    that shuffle the train. So the train should already be shuffled.
 
     name : 'avicenna', 'harry', 'rita', 'sylvester' or 'ule'
         Which dataset to load
+
     normalize : bool
         If True, we normalize the train dataset before returning it
-    transfer : 
+
+    transfer :
         If True also return the transfer label
+
     randomize_valid : bool
-        Do we randomize the order of the valid set?  We always use the same random order
-        If False, return in the same order as downloaded on the web
+        Do we randomize the order of the valid set?  We always use the same
+        random order If False, return in the same order as downloaded on the
+        web
+
     randomize_test : bool
-        Do we randomize the order of the test set?  We always use the same random order
-        If False, return in the same order as downloaded on the web
+        Do we randomize the order of the test set?  We always use the same
+        random order If False, return in the same order as downloaded on the
+        web
 
     Returns
     -------
     train, valid, test : ndarrays
         Datasets returned if transfer = False
+
     train, valid, test, transfer : ndarrays
         Datasets returned if transfer = False
+
     """
-    assert name in ['harry','terry','ule']
-    common = os.path.join(preprocess('${PYLEARN2_DATA_PATH}'),'UTLC','sparse',name+'_')
-    trname,vname,tename = [common+subset+'.npy' for subset in ['train','valid','test']]
+    assert name in ['harry', 'terry', 'ule']
+    common = os.path.join(
+        preprocess('${PYLEARN2_DATA_PATH}'), 'UTLC', 'sparse', name + '_')
+    trname, vname, tename = [
+        common + subset + '.npy' for subset in ['train', 'valid', 'test']]
 
     train = load_sparse(trname)
     valid = load_sparse(vname)
@@ -165,11 +191,11 @@ def load_sparse_dataset(name, normalize=True, transfer=False,
     # Data should already be in csr format that support
     # this type of indexing.
     if randomize_valid:
-        rng = make_np_rng(None, [1,2,3,4], which_method='permutation')
+        rng = make_np_rng(None, [1, 2, 3, 4], which_method='permutation')
         perm = rng.permutation(valid.shape[0])
         valid = valid[perm]
     if randomize_test:
-        rng = make_np_rng(None, [1,2,3,4], which_method='permutation')
+        rng = make_np_rng(None, [1, 2, 3, 4], which_method='permutation')
         perm = rng.permutation(test.shape[0])
         test = test[perm]
 
@@ -182,7 +208,7 @@ def load_sparse_dataset(name, normalize=True, transfer=False,
             train = train.astype(theano.config.floatX)
             valid = valid.astype(theano.config.floatX)
             test = test.astype(theano.config.floatX)
-            std = 0.69336046033925791#train.std()slow to compute
+            std = 0.69336046033925791  # train.std()slow to compute
             train = (train) / std
             valid = (valid) / std
             test = (test) / std
@@ -194,18 +220,23 @@ def load_sparse_dataset(name, normalize=True, transfer=False,
             valid = (valid) / 300
             test = (test) / 300
         else:
-            raise Exception("This dataset don't have its normalization defined")
+            raise Exception(
+                "This dataset don't have its normalization defined")
     if transfer:
-        fname = os.path.join(preprocess("${PYLEARN2_DATA_PATH}"), "UTLC", "filetensor", name+"_transfer.ft")
+        fname = os.path.join(preprocess("${PYLEARN2_DATA_PATH}"),
+                             "UTLC",
+                             "filetensor",
+                             name + "_transfer.ft")
         transfer = load_filetensor(fname)
         return train, valid, test, transfer
     else:
         return train, valid, test
 
+
 def load_ndarray_transfer(name):
     """
     Load the transfer labels for the training set of data set `name`.
-        
+
     Parameters
     ----------
     name : 'avicenna', 'harry', 'rita', 'sylvester' or 'ule'
@@ -216,15 +247,19 @@ def load_ndarray_transfer(name):
     transfer : ndarray
         Transfer dataset loaded
     """
-    assert name in ['avicenna','harry','rita','sylvester','terry','ule']
-    
-    fname = os.path.join(preprocess('${PYLEARN2_DATA_PATH}'), 'UTLC', 'filetensor', name+'_transfer.ft')
+    assert name in ['avicenna', 'harry', 'rita', 'sylvester', 'terry', 'ule']
+
+    fname = os.path.join(preprocess('${PYLEARN2_DATA_PATH}'),
+                         'UTLC',
+                         'filetensor', name + '_transfer.ft')
     transfer = load_filetensor(fname)
     return transfer
 
+
 def load_ndarray_label(name):
-    """ Load the train,valid,test label data for the dataset `name` and return it in ndarray format.
-        This is only available for the toy dataset ule.
+    """
+    Load the train,valid,test label data for the dataset `name` and return it
+    in ndarray format.  This is only available for the toy dataset ule.
 
     Parameters
     ----------
@@ -235,16 +270,20 @@ def load_ndarray_label(name):
     -------
     train_l. valid_l, test_l : ndarray
         Label data loaded
+
     """
     assert name in ['ule']
 
-    common_path = os.path.join(preprocess('${PYLEARN2_DATA_PATH}'), 'UTLC', 'filetensor', name+'_')
-    trname,vname,tename = [common_path+subset+'.tf' for subset in ['trainl','validl','testl']]
+    common_path = os.path.join(
+        preprocess('${PYLEARN2_DATA_PATH}'), 'UTLC', 'filetensor', name + '_')
+    trname, vname, tename = [common_path + subset + '.tf'
+                             for subset in ['trainl', 'validl', 'testl']]
 
     trainl = load_filetensor(trname)
     validl = load_filetensor(vname)
     testl = load_filetensor(tename)
     return trainl, validl, testl
+
 
 def load_filetensor(fname):
     """
@@ -255,7 +294,7 @@ def load_filetensor(fname):
     f = None
     try:
         if not os.path.exists(fname):
-            fname = fname+'.gz'
+            fname = fname + '.gz'
             f = gzip.open(fname)
         elif fname.endswith('.gz'):
             f = gzip.open(fname)
@@ -268,6 +307,7 @@ def load_filetensor(fname):
 
     return d
 
+
 def load_sparse(fname):
     """
     .. todo::
@@ -277,7 +317,7 @@ def load_sparse(fname):
     f = None
     try:
         if not os.path.exists(fname):
-            fname = fname+'.gz'
+            fname = fname + '.gz'
             f = gzip.open(fname)
         elif fname.endswith('.gz'):
             f = gzip.open(fname)

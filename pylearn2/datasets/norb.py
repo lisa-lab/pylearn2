@@ -44,6 +44,7 @@ warnings.warn("Using deprecated module pylearn2.datasets.norb. "
 
 
 class SmallNORB(dense_design_matrix.DenseDesignMatrix):
+
     """
     An interface to the small NORB dataset.
 
@@ -157,7 +158,6 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
         self.which_set = which_set
 
         subtensor = slice(0, stop) if stop is not None else None
-
 
         X = SmallNORB.load(which_set, 'dat', subtensor=subtensor)
 
@@ -308,7 +308,7 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                     "Subtensors on gzip files are not implemented."
                 result = readNums(file_handle,
                                   elem_type,
-                                  num_elems*elem_size).reshape(shape)
+                                  num_elems * elem_size).reshape(shape)
             elif subtensor is None:
                 result = numpy.fromfile(file_handle,
                                         dtype=elem_type,
@@ -319,7 +319,8 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                                               subtensor.step)
                 if subtensor.start not in (None, 0):
                     bytes_per_row = numpy.prod(shape[1:]) * elem_size
-                    file_handle.seek(beginning+subtensor.start * bytes_per_row)
+                    file_handle.seek(
+                        beginning + subtensor.start * bytes_per_row)
                 shape[0] = min(shape[0], subtensor.stop) - subtensor.start
                 num_elems = numpy.prod(shape)
                 result = numpy.fromfile(file_handle,
