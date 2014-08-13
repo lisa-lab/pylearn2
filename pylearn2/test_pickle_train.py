@@ -72,19 +72,25 @@ def test_save_train():
     new_termination_criteria = EpochCounter(max_epochs=15)
     pickled_data.algorithm.termination_criterion = new_termination_criteria
     pickled_data.main_loop(resuming=True)
-    assert (pickled_data.model.monitor.channels['train_y_nll'].val_record[:epochs_pickled]
-            == train.model.monitor.channels['train_y_nll'].val_record[:epochs_pickled])
+    assert (pickled_data.model.monitor.channels['train_y_nll'].
+            val_record[:epochs_pickled]
+            == train.model.monitor.channels['train_y_nll'].
+            val_record[:epochs_pickled])
     assert (len(pickled_data.model.monitor.channels['train_y_nll'].val_record)
             > len(train.model.monitor.channels['train_y_nll'].val_record))
 
     #verify resume feature work no matter how many time we stop and resume
     new_termination_criteria_1 = EpochCounter(max_epochs=7)
     new_termination_criteria_2 = EpochCounter(max_epochs=8)
-    pickled_data_copy.algorithm.termination_criterion = new_termination_criteria_1
+    pickled_data_copy.algorithm.termination_criterion =\
+        new_termination_criteria_1
     pickled_data_copy.main_loop(resuming=True)
     pickled_data_copy = Train.resume(pickled_file_path)
-    pickled_data_copy.algorithm.termination_criterion = new_termination_criteria_2
+    pickled_data_copy.algorithm.termination_criterion =\
+        new_termination_criteria_2
     pickled_data_copy.main_loop(resuming=True)
     epochs_pickled = pickled_data_copy.model.monitor._epochs_seen
-    assert (pickled_data_copy.model.monitor.channels['train_y_nll'].val_record[:epochs_pickled]
-            == pickled_data.model.monitor.channels['train_y_nll'].val_record[:epochs_pickled])
+    assert (pickled_data_copy.model.monitor.channels['train_y_nll'].
+            val_record[:epochs_pickled]
+            == pickled_data.model.monitor.channels['train_y_nll'].
+            val_record[:epochs_pickled])

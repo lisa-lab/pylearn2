@@ -2,6 +2,8 @@
 The module defining the Monitor and MonitorChannel objects used for
 tracking the changes in values of various quantities throughout training
 """
+from pylearn2.datasets import DenseDesignMatrix
+
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -532,11 +534,38 @@ class Monitor(object):
         generator.
         """
 
+        # Patch old pickled monitors
         if not hasattr(self, '_datasets'):
             self._datasets = [self._dataset]
             del self._dataset
 
+        # verify if the datasets only store pointers when pickled
+        datasets_pickled_as_pointers = all([type(dataset)==DenseDesignMatrix
+                                            for dataset in self._datasets])
+
+        if not datasets_pickled_as_pointers:
+            temp = self._datasets
+
+            if self._datasets:
+                self._datasets = []
+                for dataset in temp:
+                    if isinstance(dataset, basestring):
+                        self._datasets.append(dataset)
+                    else:
+                        try:
+                            self._datasets.append(dataset.yaml_src)
+                        except AttributeError:
+                            warnings.warn('Trained model saved without ' +
+                                          'indicating yaml_src')
+
         d = copy.copy(self.__dict__)
+
+        if not datasets_pickled_as_pointers:
+            self._datasets = temp
+            for name in self.names_to_del:
+                if name in d:
+                    del d[name]
+        
         return d
 
     def __setstate__(self, d):
@@ -1011,8 +1040,39 @@ class MonitorChannel(object):
             A dictionary mapping the string names of the fields of the class
             to values appropriate for pickling.
         """
-        d = self.__dict__.copy()
-        return d
+        if (hasattr(self, 'dataset') and
+                type(self.dataset) == DenseDesignMatrix):
+            d = self.__dict__.copy()
+            return d
+        else:
+            # We need to figure out a good way of saving the other fields. In the
+            # current setup, since there's no good way of coordinating with the
+            # model/training algorithm, the theano based fields might be invalid
+            # after a repickle. This means we can't, for instance, resume a job with
+            # monitoring after a crash. For now, to make sure no one erroneously
+            # depends on these bad values, I exclude them from the pickle.
+
+            if hasattr(self, 'val'):
+                doc = get_monitor_doc(self.val)
+            else:
+                # Hack to deal with Theano expressions not being serializable.
+                # If this is channel that has been serialized and then
+                # deserialized, the expression is gone, but we should have
+                # stored the doc
+                if hasattr(self, "doc"):
+                    doc = self.doc
+                else:
+                    # Support pickle files that are older than the doc system
+                    doc = None
+
+            return {
+                'doc' : doc,
+                'example_record': self.example_record,
+                'batch_record': self.batch_record,
+                'time_record': self.time_record,
+                'epoch_record': self.epoch_record,
+                'val_record': self.val_record
+            }
 
     def __setstate__(self, d):
         """
@@ -1025,6 +1085,15 @@ class MonitorChannel(object):
             these fields.
         """
         self.__dict__.update(d)
+        if 'batch_record' not in d:
+            self.batch_record = [None] * len(self.val_record)
+        # Patch old pickle files that don't have the "epoch_record" field
+        if 'epoch_record' not in d:
+            # This is not necessarily correct but it is in the most common use
+            # case where you don't add monitoring channels over time.
+            self.epoch_record = range(len(self.val_record))
+        if 'time_record' not in d:
+            self.time_record = [None] * len(self.val_record)
 
 
 def push_monitor(model, name, transfer_experience=False):
@@ -1155,3 +1224,4 @@ _err_no_data = "You tried to add a channel to a Monitor that has no dataset."
 _err_ambig_data = ("You added a channel to a Monitor that has multiple " +
                    "datasets, and did not specify which dataset to use it " +
                    "with.")
+

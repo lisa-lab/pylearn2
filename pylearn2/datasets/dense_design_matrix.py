@@ -170,7 +170,8 @@ class DenseDesignMatrix(Dataset):
     def __init__(self, X=None, topo_view=None, y=None,
                  view_converter=None, axes=('b', 0, 1, 'c'),
                  rng=_default_seed, preprocessor=None, fit_preprocessor=False,
-                 max_labels=None, X_labels=None, y_labels=None, pickle_storage=None):
+                 max_labels=None, X_labels=None, y_labels=None,
+                 pickle_storage=None):
         self.X = X
         self.y = y
         self.view_converter = view_converter
@@ -257,8 +258,6 @@ class DenseDesignMatrix(Dataset):
             with open(pickle_storage, 'w') as f:
                 cPickle.dump(dataset_copy, f)
             self.pickle_storage = pickle_storage
-
-
 
     def _check_labels(self):
         """Sanity checks for X_labels and y_labels."""
@@ -445,9 +444,9 @@ class DenseDesignMatrix(Dataset):
         """
         if not hasattr(self, 'pickle_storage'):
             rval = copy.copy(self.__dict__)
-            # TODO: Not sure this should be implemented as something a base dataset
-            # does. Perhaps as a mixin that specific datasets (i.e. CIFAR10)
-            # inherit from.
+            # TODO: Not sure this should be implemented as something a base
+            # dataset does. Perhaps as a mixin that specific datasets
+            # (i.e. CIFAR10) inherit from.
             if self.compress:
                 rval['compress_min'] = rval['X'].min(axis=0)
                 # important not to do -= on this line, as that will modify the
@@ -521,13 +520,15 @@ class DenseDesignMatrix(Dataset):
                 if view_converter is not None:
                     # Get the topo_space from the view_converter
                     if not hasattr(view_converter, 'topo_space'):
-                        raise NotImplementedError("Not able to get a topo_space "
-                                                  "from this converter: %s"
+                        raise NotImplementedError("Not able to get a "
+                                                  "topo_space from this "
+                                                  "converter: %s"
                                                   % view_converter)
 
-                    # self.X_topo_space stores a "default" topological space that
-                    # will be used only when self.iterator is called without a
-                    # data_specs, and with "topo=True", which is deprecated.
+                    # self.X_topo_space stores a "default" topological space
+                    # that will be used only when self.iterator is called
+                    # without a data_specs, and with "topo=True", which is
+                    # deprecated.
                     self.X_topo_space = view_converter.topo_space
         else:
             with open(d['pickle_storage'], 'r') as f:

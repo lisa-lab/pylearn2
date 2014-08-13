@@ -193,11 +193,12 @@ class Train(object):
         else:
             if not resuming:
                 if not hasattr(self.model, 'monitor'):
-                    # TODO: is this really necessary? I just put this error here
-                    # to prevent an AttributeError later, but I think we could
-                    # rewrite to avoid the AttributeError
-                    raise RuntimeError("The algorithm is responsible for setting"
-                                       " up the Monitor, but failed to.")
+                    # TODO: is this really necessary? I just put this erro
+                    # here to prevent an AttributeError later, but I think
+                    # we could rewrite to avoid the AttributeError
+                    raise RuntimeError("The algorithm is responsible for"
+                                       " setting up the Monitor, but failed"
+                                       " to.")
                 if len(self.model.monitor._datasets) > 0:
                     # This monitoring channel keeps track of a shared variable,
                     # which does not need inputs nor data.
