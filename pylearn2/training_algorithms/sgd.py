@@ -149,8 +149,9 @@ class SGD(TrainingAlgorithm):
         things like check for NaNs at every step, or record md5 digests
         of all computations performed by the update function to help
         isolate problems with nondeterminism.
-    monitoring_costs : list, optional
-        a list of Cost instances. The Monitor will also include all
+    monitoring_costs : OrderedDict, optional
+        A dictionary of Cost instances. Keys should be string containing
+        the name of the cost. The Monitor will also include all
         channels defined by these Costs, even though we don't train
         using them.
     seed : valid argument to np.random.RandomState, optional
