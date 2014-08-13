@@ -13,6 +13,7 @@ from pylearn2.utils.common_strings import environment_variable_essay
 
 
 class NotInstalledError(Exception):
+
     """
     Exception raised when a dataset appears not to be installed.
     This is different from an individual file missing within a dataset,

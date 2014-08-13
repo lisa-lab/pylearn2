@@ -17,6 +17,7 @@ from pylearn2.utils import contains_nan
 
 
 class OCR(dense_design_matrix.DenseDesignMatrix):
+
     """
     OCR dataset
 
@@ -29,9 +30,9 @@ class OCR(dense_design_matrix.DenseDesignMatrix):
         Neural Computation, August 2012
     """
 
-    data_split = {"train" : 32152, "valid" : 10000, "test" : 10000 }
+    data_split = {"train": 32152, "valid": 10000, "test": 10000}
 
-    def __init__(self, which_set, one_hot = False, axes=['b', 0, 1, 'c']):
+    def __init__(self, which_set, one_hot=False, axes=['b', 0, 1, 'c']):
         """
         .. todo::
 
@@ -41,7 +42,8 @@ class OCR(dense_design_matrix.DenseDesignMatrix):
 
         assert which_set in self.data_split.keys()
 
-        path = serial.preprocess("${PYLEARN2_DATA_PATH}/ocr_letters/letter.data")
+        path = serial.preprocess(
+            "${PYLEARN2_DATA_PATH}/ocr_letters/letter.data")
         with open(path, 'r') as data_f:
             data = data_f.readlines()
             data = [line.split("\t") for line in data]
@@ -56,11 +58,13 @@ class OCR(dense_design_matrix.DenseDesignMatrix):
         if which_set == 'train':
             split = slice(0, self.data_split['train'])
         elif which_set == 'valid':
-            split = slice(self.data_split['train'], self.data_split['train'] + \
-                    self.data_split['valid'])
+            split = slice(self.data_split['train'], self.data_split['train'] +
+                          self.data_split['valid'])
         elif which_set == 'test':
-            split = slice(self.data_split['train'] + self.data_split['valid'], \
-                    self.data_split['train'] + self.data_split['valid'] + self.data_split['test'])
+            split = slice(self.data_split['train'] + self.data_split['valid'],
+                          (self.data_split['train'] +
+                           self.data_split['valid'] +
+                           self.data_split['test']))
 
         data_x = numpy.asarray(data_x[split])
         data_y = numpy.asarray(data_y[split])
@@ -70,17 +74,19 @@ class OCR(dense_design_matrix.DenseDesignMatrix):
 
         self.one_hot = one_hot
         if one_hot:
-            one_hot = numpy.zeros((data_y.shape[0], len(letters)), dtype = 'float32')
+            one_hot = numpy.zeros(
+                (data_y.shape[0], len(letters)), dtype='float32')
             for i in xrange(data_y.shape[0]):
                 one_hot[i, data_y[i]] = 1.
             data_y = one_hot
 
-        view_converter = dense_design_matrix.DefaultViewConverter((16, 8, 1), axes)
-        super(OCR, self).__init__(X = data_x, y = data_y, view_converter = view_converter)
+        view_converter = dense_design_matrix.DefaultViewConverter(
+            (16, 8, 1), axes)
+        super(OCR, self).__init__(
+            X=data_x, y=data_y, view_converter=view_converter)
 
         assert not contains_nan(self.X)
         self.fold = data_fold
-
 
     def get_test_set(self):
         """
@@ -88,5 +94,4 @@ class OCR(dense_design_matrix.DenseDesignMatrix):
 
             WRITEME
         """
-        return OCR('test', one_hot = self.one_hot)
-
+        return OCR('test', one_hot=self.one_hot)

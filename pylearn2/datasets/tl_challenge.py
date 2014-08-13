@@ -11,6 +11,7 @@ from pylearn2.utils.string_utils import preprocess
 
 
 class TL_Challenge(dense_design_matrix.DenseDesignMatrix):
+
     """
     .. todo::
 
@@ -42,7 +43,7 @@ class TL_Challenge(dense_design_matrix.DenseDesignMatrix):
         path = cache.datasetCache.cache_file(remote_path)
         X = N.fromfile(path, dtype=N.uint8, sep=' ')
 
-        X = X.reshape(X.shape[0]/(32*32*3), 32*32*3, order='F')
+        X = X.reshape(X.shape[0] / (32 * 32 * 3), 32 * 32 * 3, order='F')
 
         assert X.max() == 255
         assert X.min() == 0
@@ -73,26 +74,26 @@ class TL_Challenge(dense_design_matrix.DenseDesignMatrix):
             self.y_fine = N.fromfile(labels_path, dtype=N.uint8, sep=' ')
             assert len(self.y_fine.shape) == 1
             assert self.y_fine.shape[0] == X.shape[0]
-            #0 :  aquatic_mammals
-            #1 :  fish
-            #2 :  flowers
+            # 0 :  aquatic_mammals
+            # 1 :  fish
+            # 2 :  flowers
             FOOD_CONTAINER = 3
             FRUIT = 4
-            #5 :  household_electrical_devices
+            # 5 :  household_electrical_devices
             FURNITURE = 6
             INSECTS = 7
-            #8 :  large_carnivores
-            #9 :  large_man-made_outdoor_things
-            #10 :  large_natural_outdoor_scenes
+            # 8 :  large_carnivores
+            # 9 :  large_man-made_outdoor_things
+            # 10 :  large_natural_outdoor_scenes
             LARGE_OMNIVORES_HERBIVORES = 11
             MEDIUM_MAMMAL = 12
-            #13 :  non-insect_invertebrates
-            #14 :  people
-            #15 :  reptiles
-            #16 :  small_mammals
-            #17 :  trees
-            #18 :  vehicles_1
-            #19 :  vehicles_2
+            # 13 :  non-insect_invertebrates
+            # 14 :  people
+            # 15 :  reptiles
+            # 16 :  small_mammals
+            # 17 :  trees
+            # 18 :  vehicles_1
+            # 19 :  vehicles_2
 
             self.y_coarse = self.y_fine.copy()
             self.y_coarse[self.y_coarse == 100] = INSECTS

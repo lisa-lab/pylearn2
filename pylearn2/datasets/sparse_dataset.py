@@ -28,6 +28,7 @@ from pylearn2.utils.iteration import (
 
 
 class SparseDataset(Dataset):
+
     """
     SparseDataset is a class for representing datasets that can be
     stored as a sparse matrix.
@@ -183,7 +184,7 @@ class SparseDataset(Dataset):
         try:
             mini_batch = self.X[indx]
         except IndexError, e:
-            reraise_as(ValueError("Index out of range"+str(e)))
+            reraise_as(ValueError("Index out of range" + str(e)))
             # the ind of minibatch goes beyond the boundary
         return mini_batch
 

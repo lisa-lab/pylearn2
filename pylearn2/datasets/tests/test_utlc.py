@@ -51,7 +51,7 @@ def test_all_sparse_utlc():
         mi = min(0, mi)
         ma = max(0, ma)
         su = train.data.sum()
-        mean = float(su)/nb_elem
+        mean = float(su) / nb_elem
         print name, "dtype, max, min, mean, nb non-zero, nb element, %sparse"
         print train.dtype, ma, mi, mean, train.nnz,
         print nb_elem, (nb_elem - float(train.nnz)) / nb_elem

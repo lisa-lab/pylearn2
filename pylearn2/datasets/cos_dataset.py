@@ -11,6 +11,7 @@ from pylearn2.utils.rng import make_np_rng
 
 
 class CosDataset(object):
+
     """
     Makes a dataset that streams randomly generated 2D examples.
     The first coordinate is sampled from a uniform distribution.
@@ -45,7 +46,7 @@ class CosDataset(object):
         .. todo::
 
             WRITEME properly
-        
+
         This dataset can generate an infinite amount of examples.
         This function gives the pdf from which the examples are drawn.
         """
@@ -63,9 +64,10 @@ class CosDataset(object):
         .. todo::
 
             WRITEME properly
-        
+
         This dataset can generate an infinite amount of examples.
-        This function gives the energy function for the distribution from which the examples are drawn.
+        This function gives the energy function for the distribution from
+        which the examples are drawn.
         """
         x = X[:, 0]
         y = X[:, 1]
@@ -80,7 +82,7 @@ class CosDataset(object):
         .. todo::
 
             WRITEME properly
-        
+
         This dataset can generate an infinite amount of examples.
         This function gives the pdf from which the examples are drawn.
         """
@@ -142,7 +144,7 @@ class CosDataset(object):
             WRITEME
         """
         x = N.cast[config.floatX](self.rng.uniform(self.min_x, self.max_x,
-                                            (batch_size, 1)))
+                                                   (batch_size, 1)))
         y = N.cos(x) + (N.cast[config.floatX](self.rng.randn(*x.shape)) *
                         self.std)
         rval = N.hstack((x, y))

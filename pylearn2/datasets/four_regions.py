@@ -67,6 +67,7 @@ def _four_regions_labels(points):
 
 
 class FourRegions(DenseDesignMatrix):
+
     """
     Constructs a dataset based on the four regions
     benchmark by sampling random uniform points in [-1, 1]^2
