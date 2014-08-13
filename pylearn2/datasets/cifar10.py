@@ -17,6 +17,7 @@ from pylearn2.utils import contains_nan
 
 
 class CIFAR10(dense_design_matrix.DenseDesignMatrix):
+
     """
     .. todo::
 
@@ -63,7 +64,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
         # prepare loading
         fnames = ['data_batch_%i' % i for i in range(1, 6)]
-        lenx = N.ceil((ntrain + nvalid) / 10000.)*10000
+        lenx = N.ceil((ntrain + nvalid) / 10000.) * 10000
         x = N.zeros((lenx, self.img_size), dtype=dtype)
         y = N.zeros((lenx, 1), dtype=dtype)
 
@@ -71,8 +72,8 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         nloaded = 0
         for i, fname in enumerate(fnames):
             data = CIFAR10._unpickle(fname)
-            x[i*10000:(i+1)*10000, :] = data['data']
-            y[i*10000:(i+1)*10000, 0] = data['labels']
+            x[i * 10000:(i + 1) * 10000, :] = data['data']
+            y[i * 10000:(i + 1) * 10000, 0] = data['labels']
             nloaded += 10000
             if nloaded >= ntrain + nvalid + ntest:
                 break
@@ -253,7 +254,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         fname = os.path.join(string_utils.preprocess('${PYLEARN2_DATA_PATH}'),
                              'cifar10', 'cifar-10-batches-py', file)
         if not os.path.exists(fname):
-            raise IOError(fname+" was not found. You probably need to "
+            raise IOError(fname + " was not found. You probably need to "
                           "download the CIFAR-10 dataset by using the "
                           "download script in "
                           "pylearn2/scripts/datasets/download_cifar10.sh "

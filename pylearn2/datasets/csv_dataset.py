@@ -104,7 +104,7 @@ class CSVDataset(DenseDesignMatrix):
 
         self.path = preprocess(self.path)
         X, y = self._load_data()
-        
+
         super(CSVDataset, self).__init__(X=X, y=y)
 
     def _load_data(self):
@@ -114,11 +114,11 @@ class CSVDataset(DenseDesignMatrix):
             WRITEME
         """
         assert self.path.endswith('.csv')
-    
+
         if self.expect_headers:
-            data = np.loadtxt(self.path, delimiter = self.delimiter, skiprows = 1)
+            data = np.loadtxt(self.path, delimiter=self.delimiter, skiprows=1)
         else:
-            data = np.loadtxt(self.path, delimiter = self.delimiter)
+            data = np.loadtxt(self.path, delimiter=self.delimiter)
 
         def take_subset(X, y):
             if self.start_fraction is not None:
@@ -151,7 +151,7 @@ class CSVDataset(DenseDesignMatrix):
                 for i in xrange(y.shape[0]):
                     label = y[i]
                     label_position = labels[label]
-                    one_hot[i,label_position] = 1.
+                    one_hot[i, label_position] = 1.
                 y = one_hot
             else:
                 if self.task == 'regression':

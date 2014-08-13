@@ -33,6 +33,7 @@ from pylearn2.datasets.filetensor import read_header
 
 
 class NORB(DenseDesignMatrix):
+
     """
     A DenseDesignMatrix loaded with SmallNORB or NORB data.
 
@@ -580,6 +581,7 @@ class NORB(DenseDesignMatrix):
 
 
 class StereoViewConverter(object):
+
     """
     Converts stereo image data between two formats:
       A) A dense design matrix, one stereo pair per row (VectorSpace)
