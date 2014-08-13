@@ -29,6 +29,7 @@ class CSVDataset(DenseDesignMatrix):
     Parameters
     ----------
     path : The path to the CSV file.
+    task : The type of task in which the dataset will be used -- either "classification" or "regression".  The task determines the shape of the target variable.  For classification, it is a vector; for regression, a matrix.
     one_hot : Whether the target variable (i.e. "label") should be encoded as a one-hot vector.
     expect_labels : Whether the CSV file contains a target variable in the first column.
     expect_headers : Whether the CSV file contains column headers.
@@ -41,6 +42,7 @@ class CSVDataset(DenseDesignMatrix):
 
     def __init__(self, 
             path = 'train.csv',
+            task = 'classification',
             one_hot = False,
             expect_labels = True,
             expect_headers = True,
@@ -55,6 +57,7 @@ class CSVDataset(DenseDesignMatrix):
             WRITEME
         """
         self.path = path
+        self.task = task
         self.one_hot = one_hot
         self.expect_labels = expect_labels
         self.expect_headers = expect_headers
@@ -66,10 +69,14 @@ class CSVDataset(DenseDesignMatrix):
         
         self.view_converter = None
 
+        if task not in ['classification', 'regression']:
+            raise ValueError('task must be either "classification" or "regression"; ' +
+                    ' got ' + str(task))
+
         if start_fraction is not None:
             if end_fraction is not None:
                 raise ValueError("Use start_fraction or end_fraction, " +
-                        " just not both.")
+                        " not both.")
             if start_fraction <= 0:
                 raise ValueError("start_fraction should be > 0")
 
@@ -82,8 +89,6 @@ class CSVDataset(DenseDesignMatrix):
 
             if end_fraction >= 1:
                 raise ValueError("end_fraction should be < 1")
-
-
 
         if start is not None:
             if start_fraction is not None or end_fraction is not None:
@@ -127,14 +132,9 @@ class CSVDataset(DenseDesignMatrix):
                 X = X[subset_start:, ]
                 y = y[subset_start:]
             elif self.start is not None:
-                if self.stop is None:
-                    X = X[self.start:, ]
-                    if y is not None:
-                        y = y[self.start:]
-                else:
-                    X = X[self.start:self.stop, ]
-                    if y is not None:
-                        y = y[self.start:self.stop]
+                X = X[self.start:self.stop, ]
+                if y is not None:
+                    y = y[self.start:self.stop]
 
             return X, y
         
@@ -154,7 +154,8 @@ class CSVDataset(DenseDesignMatrix):
                     one_hot[i,label_position] = 1.
                 y = one_hot
             else:
-                y = y.reshape((y.shape[0], 1))
+                if self.task == 'regression':
+                    y = y.reshape((y.shape[0], 1))
 
         else:
             X = data
