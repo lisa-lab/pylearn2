@@ -6,6 +6,7 @@ import numpy as np
 
 from theano import config
 from theano import tensor as T
+from theano import map
 
 from theano.compat.python2x import OrderedDict
 from pylearn2.space import NullSpace
@@ -252,3 +253,83 @@ class AdaDelta(LearningRule):
 
         return updates
 
+
+class RPROP(LearningRule):
+    def __init__(
+        self,
+        decrease_rate=0.5,
+        increase_rate=1.2,
+        min_rate=1e-6,
+        max_rate=50
+    ):
+        self.decrease_rate = sharedX(decrease_rate, 'decrease_rate')
+        self.increase_rate = sharedX(increase_rate, 'increase_rate')
+        self.min_rate = min_rate
+        self.max_rate = max_rate
+
+    def add_channels_to_monitor(self, monitor, monitoring_dataset):
+        monitor.add_channel(
+            'rprop_decrease_rate',
+            ipt=None,
+            val=self.decrease_rate,
+            dataset=monitoring_dataset,
+            data_specs=(NullSpace(), '')
+        )
+        monitor.add_channel(
+            'rprop_increase_rate',
+            ipt=None,
+            val=self.increase_rate,
+            dataset=monitoring_dataset,
+            data_specs=(NullSpace(), '')
+        )
+
+    def get_updates(self, learning_rate, grads, lr_scalers=None):
+        updates = OrderedDict()
+
+        for param, grad in grads.iteritems():
+            # Created required shared variables
+            lr = lr_scalers.get(param, learning_rate.get_value())
+            delta = sharedX(
+                np.zeros_like(param.get_value()) + lr,
+                borrow=True
+            )
+            previous_grad = sharedX(
+                np.zeros_like(param.get_value()),
+                borrow=True
+            )
+
+            # Name variables according to the parameter name
+            if param.name is not None:
+                delta.name = 'delta_'+param.name
+                previous_grad.name = 'previous_grad_'+param.name
+
+            temp = grad*previous_grad
+            delta_inc = T.clip(
+                T.switch(
+                    T.eq(temp, 0.),
+                    delta,
+                    T.switch(
+                        T.lt(temp, 0.),
+                        delta*self.decrease_rate,
+                        delta*self.increase_rate
+                    )
+                ),
+                self.min_rate,
+                self.max_rate
+            )
+
+            previous_grad_inc = T.switch(
+                T.gt(temp, 0.),
+                grad,
+                T.zeros_like(grad)
+            )
+
+            # Calculate updates of parameters
+            updated_inc = -delta*T.sgn(grad)
+
+            # Compile the updates
+            updates[param] = param + updated_inc
+            updates[delta] = delta_inc
+            updates[previous_grad] = previous_grad_inc
+
+        return updates
