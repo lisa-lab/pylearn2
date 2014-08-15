@@ -54,12 +54,12 @@ class DummyDataset(DenseDesignMatrix):
         super(DummyDataset, self).__init__(X=X, view_converter=vc, axes=axes)
 
 
-# def _hash_array(arr):
-#     h = hashlib.sha1(arr.copy())
-#     return h.hexdigest()
-
 def _hash_array(arr):
-    return str(arr)
+    h = hashlib.sha1(arr.copy())
+    return h.hexdigest()
+
+# def _hash_array(arr):
+#     return str(arr)
 
 
 def test_window_flip_coverage():
@@ -109,11 +109,6 @@ def check_window_flip_coverage_C01B(flip, use_old_c01b=False):
     for b in xrange(topo.shape[-1]):
         hashed = _hash_array(curr_topo[..., b])
         assert_contains(ref_win[b], hashed)
-        # try:
-        #     assert_contains(ref_win[b], hashed)
-        # except AssertionError:
-        #     print "couldn't find subwindow: \n%s" % str(hashed)
-        #     raise
         actual_win[b].add(hashed)
     while not all(len(a) == len(b) for a, b in zip(ref_win, actual_win)):
         prev_topo = curr_topo.copy()
