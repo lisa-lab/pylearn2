@@ -32,7 +32,7 @@ Each library has its own comparison:
 * `PyTables FAQ <http://www.pytables.org/moin/FAQ#HowdoesPyTablescomparewiththeh5pyproject.3F>`_
 * `h5py FAQ <http://docs.h5py.org/en/latest/faq.html#what-s-the-difference-between-h5py-and-pytables>`_
 
-One advantage of h5py over PyTables is that one can use hdf5 files made with other libraries, whereas PyTables hdf5 files are not standard. PyTables also claims to be faster than h5py and supports LZO and bzip2 compression in addition to zlib (h5py supports gzip and LZF out-of-the-box).
+One advantage of h5py over PyTables is that one can use hdf5 files made with other libraries, whereas PyTables hdf5 files are not standard. PyTables also adds some performance-enhancing features and supports LZO and bzip2 compression in addition to zlib (h5py supports gzip and LZF out-of-the-box).
 
 Known issues
 ============
