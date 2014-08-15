@@ -38,4 +38,4 @@ Known issues
 ============
 * Both hdf5 based solutions are know to crash when the data is accessed in a random order. To avoid this issue, we suggest to use one of the 'sequential' or 'batchwise_shuffled_sequential' iterator schemes.
 * Writing large amount of data to hdf5 at once is been know to result in crash. So it's advised to use mini-batches to write the data to files. Some of the prepossessing functions has mini-batch options, but not all of them.
-* Users should be aware that any changes to the data will be saved to the data on disk (the only exception is when HDF5Dataset is used with `load_all=True`).
+* Users should be aware that any changes to the data will be saved to the data on disk (except in cases where HDF5Dataset is used with `load_all=True`).
