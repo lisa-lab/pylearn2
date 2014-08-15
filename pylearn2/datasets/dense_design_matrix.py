@@ -1382,11 +1382,14 @@ class DefaultViewConverter(object):
         -----------
         design_matrix: numpy.ndarray
           A design matrix with data in rows. Data is assumed to be laid out in
-          memory according to the default axis order ('b', 0, 1, 'c')
+          memory according to the axis order ('b', 'c', 0, 1)
 
         returns: numpy.ndarray
-          A matrix with axis order given by self.axes and shape given by
-          self.shape (# of batches is inferred). This will try to return
+          A matrix with axis order given by self.axes and batch shape given by
+          self.shape (if you reordered self.shape to match self.axes, as
+          self.shape is always in 'c', 0, 1 order).
+
+          This will try to return
           a view into design_matrix if possible; otherwise it will allocate a
           new ndarray.
         """
@@ -1410,11 +1413,6 @@ class DefaultViewConverter(object):
         axis_order = [('b', 'c', 0, 1).index(axis) for axis in self.axes]
         return topo_array_bc01.transpose(*axis_order)
 
-        # b01c_shape = (design_matrix.shape[0], ) + tuple(self.shape)
-        # topo_array_b01c = design_matrix.reshape(b01c_shape)
-        # axis_order = [('b', 0, 1, 'c').index(axis) for axis in self.axes]
-        # return topo_array_b01c.transpose(*axis_order)
-
     def design_mat_to_weights_view(self, X):
         """
         .. todo::
@@ -1437,11 +1435,11 @@ class DefaultViewConverter(object):
         -----------
         topo_array: numpy.ndarray
           An N-D array with axis order given by self.axes. Non-batch axes'
-          dimension sizes must agree with self.shape.
+          dimension sizes must agree with corresponding sizes in self.shape.
 
         returns: numpy.ndarray
           A design matrix with data in rows. Data, is laid out in memory
-          according to the default axis order ('b', 0, 1, 'c'). This will
+          according to the default axis order ('b', 'c', 0, 1). This will
           try to return a view into topo_array if possible; otherwise it will
           allocate a new ndarray.
         """
@@ -1456,20 +1454,11 @@ class DefaultViewConverter(object):
                     "  self.axes:        %s\n"
                     "  topo_array.shape: %s (should be in self.axes' order)")
 
-        print "self.axes: %s" % str(self.axes)
-        print "before transpose, topo_array.shape: %s" % str(topo_array.shape)
         topo_array_bc01 = topo_array.transpose([self.axes.index(ax)
                                                 for ax in ('b', 'c', 0, 1)])
 
-        print ("after transpose to bc01, topo_array.shape: %s" %
-               str(topo_array_bc01.shape))
         return topo_array_bc01.reshape((topo_array_bc01.shape[0],
                                         np.prod(topo_array_bc01.shape[1:])))
-
-        # axis_order = [('b', 0, 1, 'c').index(axis) for axis in self.axes]
-        # topo_array_b01c = topo_array.transpose(*axis_order)
-        # row_size = np.prod(topo_array_b01c.shape[1:])
-        # return topo_array.reshape((topo_array_b01c.shape[0], row_size))
 
     def get_formatted_batch(self, batch, dspace):
         """

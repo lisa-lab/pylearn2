@@ -94,8 +94,14 @@ class WindowAndFlip(TrainExtension):
         Reflect images on the horizontal axis with probability
         0.5. `True` by default.
     """
-    def __init__(self, window_shape, randomize=None, randomize_once=None,
-            center=None, rng=(2013, 02, 20), pad_randomized=0, flip=True):
+    def __init__(self,
+                 window_shape,
+                 randomize=None,
+                 randomize_once=None,
+                 center=None,
+                 rng=(2013, 02, 20),
+                 pad_randomized=0,
+                 flip=True):
         self._window_shape = tuple(window_shape)
 
         # Defined in setup(). A dict that maps Datasets in self._randomize and
@@ -220,8 +226,14 @@ class WindowAndFlipC01B(WindowAndFlip):
         0.5. `True` by default.
     """
 
-    def __init__(self, window_shape, randomize=None, randomize_once=None,
-            center=None, rng=(2013, 02, 20), pad_randomized=0, flip=True):
+    def __init__(self,
+                 window_shape,
+                 randomize=None,
+                 randomize_once=None,
+                 center=None,
+                 rng=(2013, 02, 20),
+                 pad_randomized=0,
+                 flip=True):
 
         _randomize = randomize if randomize else []
         _randomize_once = randomize_once if randomize_once else []
