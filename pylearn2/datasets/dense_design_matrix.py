@@ -1336,21 +1336,8 @@ class DefaultViewConverter(object):
     axes : tuple
       The axis ordering to use in topological views of the data. Must be some
       permutation of ('b', 0, 1, 'c'). Default: ('b', 0, 1, 'c')
-    pixels_per_channel : int
-      The number of pixels per channel (the product of the sizes of all
-      dimensions other than channel).
     """
     def __init__(self, shape, axes=('b', 0, 1, 'c')):
-        """
-        Parameters
-        ----------
-        shape : list
-          [num_rows, num_cols, channels]
-        axes : tuple
-          The axis ordering to use in topological views of the data. Must be
-          some permutation of ('b', 0, 1, 'c'). Default: ('b', 0, 1, 'c')
-        """
-
         self.shape = shape
         self.pixels_per_channel = 1
         for dim in self.shape[:-1]:
