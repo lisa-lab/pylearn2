@@ -811,6 +811,7 @@ class Monitor(object):
         if extra_costs is None:
             costs = {}
         else:
+            assert isinstance(extra_costs, (OrderedDict, dict))
             costs = extra_costs
         assert '' not in costs
         costs[''] = cost
