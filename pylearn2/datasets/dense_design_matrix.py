@@ -1450,6 +1450,7 @@ class DefaultViewConverter(object):
                     "  topo_array.shape: %s (should be in self.axes' order)")
 
         axis_order = [('b', 0, 1, 'c').index(axis) for axis in self.axes]
+        #axis_order = [('b', 'c', 0, 1).index(axis) for axis in self.axes]
         topo_array_b01c = topo_array.transpose(*axis_order)
         row_size = np.prod(topo_array_b01c.shape[1:])
         return topo_array.reshape((topo_array_b01c.shape[0], row_size))
