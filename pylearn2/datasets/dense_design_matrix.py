@@ -1403,10 +1403,17 @@ class DefaultViewConverter(object):
                               expected_row_size,
                               design_matrix.shape[1]))
 
-        b01c_shape = (design_matrix.shape[0], ) + tuple(self.shape)
-        topo_array_b01c = design_matrix.reshape(b01c_shape)
-        axis_order = [('b', 0, 1, 'c').index(axis) for axis in self.axes]
-        return topo_array_b01c.transpose(*axis_order)
+        bc01_shape = tuple([design_matrix.shape[0], ] +  # num. batches
+                           # Maps the (0, 1, 'c') of self.shape to ('c', 0, 1)
+                           [self.shape[i] for i in (2, 0, 1)])
+        topo_array_bc01 = design_matrix.reshape(bc01_shape)
+        axis_order = [('b', 'c', 0, 1).index(axis) for axis in self.axes]
+        return topo_array_bc01.transpose(*axis_order)
+
+        # b01c_shape = (design_matrix.shape[0], ) + tuple(self.shape)
+        # topo_array_b01c = design_matrix.reshape(b01c_shape)
+        # axis_order = [('b', 0, 1, 'c').index(axis) for axis in self.axes]
+        # return topo_array_b01c.transpose(*axis_order)
 
     def design_mat_to_weights_view(self, X):
         """
@@ -1449,11 +1456,20 @@ class DefaultViewConverter(object):
                     "  self.axes:        %s\n"
                     "  topo_array.shape: %s (should be in self.axes' order)")
 
-        axis_order = [('b', 0, 1, 'c').index(axis) for axis in self.axes]
-        #axis_order = [('b', 'c', 0, 1).index(axis) for axis in self.axes]
-        topo_array_b01c = topo_array.transpose(*axis_order)
-        row_size = np.prod(topo_array_b01c.shape[1:])
-        return topo_array.reshape((topo_array_b01c.shape[0], row_size))
+        print "self.axes: %s" % str(self.axes)
+        print "before transpose, topo_array.shape: %s" % str(topo_array.shape)
+        topo_array_bc01 = topo_array.transpose([self.axes.index(ax)
+                                                for ax in ('b', 'c', 0, 1)])
+
+        print ("after transpose to bc01, topo_array.shape: %s" %
+               str(topo_array_bc01.shape))
+        return topo_array_bc01.reshape((topo_array_bc01.shape[0],
+                                        np.prod(topo_array_bc01.shape[1:])))
+
+        # axis_order = [('b', 0, 1, 'c').index(axis) for axis in self.axes]
+        # topo_array_b01c = topo_array.transpose(*axis_order)
+        # row_size = np.prod(topo_array_b01c.shape[1:])
+        # return topo_array.reshape((topo_array_b01c.shape[0], row_size))
 
     def get_formatted_batch(self, batch, dspace):
         """

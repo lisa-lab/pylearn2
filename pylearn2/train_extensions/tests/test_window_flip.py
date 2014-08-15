@@ -11,36 +11,36 @@ from pylearn2.datasets.dense_design_matrix import (
 from pylearn2.utils.testing import assert_equal, assert_contains, assert_
 
 
-def _make_design_matrix(layout_axes):
-    num_batches = 4
-    num_rows = 5
-    num_cols = 5
-    num_channels = 2
-    b01c_shape = (num_batches, num_rows, num_cols, num_channels)
-    b01c_axes = ('b', 0, 1, 'c')
+# def _make_design_matrix(layout_axes):
+#     num_batches = 4
+#     num_rows = 5
+#     num_cols = 5
+#     num_channels = 2
+#     b01c_shape = (num_batches, num_rows, num_cols, num_channels)
+#     b01c_axes = ('b', 0, 1, 'c')
 
-    layout_shape = [b01c_shape[b01c_axes.index(ax) for ax in layout_axes]]
+#     layout_shape = [b01c_shape[b01c_axes.index(ax) for ax in layout_axes]]
 
-    # topo = numpy.zeros(layout_shape, dtype='float32')
-    # for b in range(num_batches):
+#     # topo = numpy.zeros(layout_shape, dtype='float32')
+#     # for b in range(num_batches):
 
-    row_size = numpy.prod(b01c_shape[1:])
-    # result = numpy.array([1000
-    size = numpy_prod(b01c_shape)
-    data = numpy.arange(size, dtype='float32')
-    data = data.reshape(layout_shape)
-    for d0 in range(b01c_shape[b01c_axes.index(layout_axes[0])]):
-        for d1 in range(b01c_shape[b01c_axes.index(layout_axes[1])]):
-            for d2 in range(b01c_shape[b01c_axes.index(layout_axes[2])]):
-                for d3 in range(b01c_shape[b01c_axes.index(layout_axes[3])]):
-                    result[d0, d1, d2, d3] = d0 * 1000 + d1*100 + d2 * 10 + d3
+#     datum_size = num_rows * num_cols * num_channels
+#     # result = numpy.array([1000
+#     size = numpy_prod(b01c_shape)
+#     data = numpy.arange(size, dtype='float32')
+#     data = data.reshape(layout_shape)
+#     for d0 in range(b01c_shape[b01c_axes.index(layout_axes[0])]):
+#         for d1 in range(b01c_shape[b01c_axes.index(layout_axes[1])]):
+#             for d2 in range(b01c_shape[b01c_axes.index(layout_axes[2])]):
+#                 for d3 in range(b01c_shape[b01c_axes.index(layout_axes[3])]):
+#                     result[d0, d1, d2, d3] = d0 * 1000 + d1 * 100 + d2 * 10 + d3
 
-    return result.reshape((num_batches, row_size))
+#     return result.reshape((num_batches, row_size))
 
-    # layout_shape = numpy.zeros(4)
-    # layout_shape[layout_axes.index['b'] = num_batches
-    # b01c_shape = (num_batches, num_rows, num_cols, num_channels)
-    # layout_shape= (layout_axes.index(ax)
+#     # layout_shape = numpy.zeros(4)
+#     # layout_shape[layout_axes.index['b'] = num_batches
+#     # b01c_shape = (num_batches, num_rows, num_cols, num_channels)
+#     # layout_shape= (layout_axes.index(ax)
 
 
 class DummyDataset(DenseDesignMatrix):
@@ -49,8 +49,8 @@ class DummyDataset(DenseDesignMatrix):
         axes = list(axes)
         vc = DefaultViewConverter((5, 5, 2), axes=axes)
         rng = numpy.random.RandomState([2013, 3, 12])
-        X = _make_design_matrix(layout_axes=('b', 0, 1, 'c'))
-        # X = rng.normal(size=(4, 50)).astype('float32')
+        #X = _make_design_matrix(layout_axes=('b', 0, 1, 'c'))
+        X = rng.normal(size=(4, 50)).astype('float32')
         super(DummyDataset, self).__init__(X=X, view_converter=vc, axes=axes)
 
 
@@ -108,11 +108,12 @@ def check_window_flip_coverage_C01B(flip, use_old_c01b=False):
     assert_equal((2, 3, 3, 4), curr_topo.shape)
     for b in xrange(topo.shape[-1]):
         hashed = _hash_array(curr_topo[..., b])
-        try:
-            assert_contains(ref_win[b], hashed)
-        except AssertionError:
-            print "couldn't find subwindow: \n%s" % str(hashed)
-            raise
+        assert_contains(ref_win[b], hashed)
+        # try:
+        #     assert_contains(ref_win[b], hashed)
+        # except AssertionError:
+        #     print "couldn't find subwindow: \n%s" % str(hashed)
+        #     raise
         actual_win[b].add(hashed)
     while not all(len(a) == len(b) for a, b in zip(ref_win, actual_win)):
         prev_topo = curr_topo.copy()
