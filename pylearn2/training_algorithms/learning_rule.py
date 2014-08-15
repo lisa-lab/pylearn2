@@ -255,8 +255,8 @@ class AdaDelta(LearningRule):
 
 class RMSProp(LearningRule):
     """
-    Implements the RMSProp learning rule as described by Hinton in [lecture 6]
-    (http://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf)
+    Implements the RMSProp learning rule as described by Hinton in `lecture 6
+    <http://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf>`
     of the Coursera Neural Networks for Machine Learning course.
 
     In short, Hinton suggests "[the] magnitude of the gradient can be very
