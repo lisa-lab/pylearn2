@@ -1117,7 +1117,7 @@ class MLP(Layer):
         This is useful if cost_from_X is used in a MethodCost.
         """
         space = CompositeSpace((self.get_input_space(),
-                                self.get_output_space()))
+                                self.get_target_space()))
         source = (self.get_input_source(), self.get_target_source())
         return (space, source)
 
@@ -1190,7 +1190,7 @@ class Softmax(Layer):
                                             max_labels=n_classes)
         else:
             self._has_binary_target = False
-    
+
         self.output_space = VectorSpace(n_classes)
         if not no_affine:
             self.b = sharedX(np.zeros((n_classes,)), name='softmax_b')
