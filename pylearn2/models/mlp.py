@@ -1131,7 +1131,7 @@ class MLP(Layer):
         This is useful if cost_from_X is used in a MethodCost.
         """
         space = CompositeSpace((self.get_input_space(),
-                                self.get_output_space()))
+                                self.get_target_space()))
         source = (self.get_input_source(), self.get_target_source())
         return (space, source)
 
