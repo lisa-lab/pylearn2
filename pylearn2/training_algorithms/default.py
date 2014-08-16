@@ -34,14 +34,19 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
         If True, if `model` has a batch size but is not forced to use that
         one, the training algorithm will set the model to use `batch_size`
         instead.
-    monitoring_channels : list, optional
-        If set, it will compute and log only the monitor channels passed.
+    included_channels : iterable, optional
+        If set, only the monitor channels that match the provided pattern
+        will be computed and logged.
+    excluded_channels : iterable, optional
+        If set, the monitor channels that match the provided pattern will
+        not be computed or logged.
     """
 
     def __init__(self, batch_size=None, batches_per_iter=1000,
                  monitoring_batch_size=None, monitoring_batches=-1,
                  monitoring_dataset=None, termination_criterion=None,
-                 set_batch_size=False, monitoring_channels=None):
+                 set_batch_size=False, included_channels=None,
+                 excluded_channels=None):
         self.__dict__.update(locals())
         del self.self
         if monitoring_dataset is None:
@@ -52,7 +57,8 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
         self.monitoring_batches = monitoring_batches
         self.bSetup = False
         self.termination_criterion = termination_criterion
-        self.monitoring_channels = monitoring_channels
+        self.included_channels = included_channels
+        self.excluded_channels = excluded_channels
 
     def setup(self, model, dataset):
         """

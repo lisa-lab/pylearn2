@@ -85,8 +85,12 @@ class BGD(TrainingAlgorithm):
     theano_function_mode : WRITEME
     init_alpha : WRITEME
     seed : WRITEME
-    monitoring_channels : list, optional
-        If set, it will compute and log only the monitor channels passed.
+    included_channels : iterable, optional
+        If set, only the monitor channels that match the provided pattern
+        will be computed and logged.
+    excluded_channels : iterable, optional
+        If set, the monitor channels that match the provided pattern will
+        not be computed or logged.
     """
     def __init__(self, cost=None, batch_size=None, batches_per_iter=None,
                  updates_per_batch=10, monitoring_batch_size=None,
@@ -95,8 +99,8 @@ class BGD(TrainingAlgorithm):
                  reset_alpha=True, conjugate=False, min_init_alpha=.001,
                  reset_conjugate=True, line_search_mode=None,
                  verbose_optimization=False, scale_step=1.,
-                 theano_function_mode=None, init_alpha=None, seed=None, 
-                 monitoring_channels=None):
+                 theano_function_mode=None, init_alpha=None, seed=None,
+                 included_channels=None, excluded_channels=None):
 
         self.__dict__.update(locals())
         del self.self
@@ -111,7 +115,8 @@ class BGD(TrainingAlgorithm):
         self.termination_criterion = termination_criterion
         self.rng = make_np_rng(seed, [2012, 10, 16],
                 which_method=["randn","randint"])
-        self.monitoring_channels = monitoring_channels
+        self.included_channels = included_channels
+        self.excluded_channels = excluded_channels
 
     def setup(self, model, dataset):
         """
@@ -250,7 +255,8 @@ class BGD(TrainingAlgorithm):
 
         self.first = True
         self.bSetup = True
-        self.monitor.set_channels(self.monitoring_channels)
+        self.monitor.set_channels(included=self.included_channels,
+                                  excluded=self.excluded_channels)
 
     def train(self, dataset):
         """
