@@ -131,8 +131,8 @@ class Monitor(object):
             It works as Unix shell-style wildcards.
             Defaults to ()
         """
-        if not included: included = ('*')
-        if not excluded: excluded = ()
+        if included is None: included = ('*')
+        if excluded is None: excluded = ()
 
         pattern_groups = [included, excluded]
         channel_groups = [set(), set()]
