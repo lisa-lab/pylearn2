@@ -10,6 +10,7 @@ __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
 import copy, time, warnings, logging
+from fnmatch import filter as filter_by_pattern
 import numpy as np
 
 from theano.compat.python2x import OrderedDict
@@ -17,6 +18,7 @@ import theano.sparse
 from theano import config
 from theano import tensor as T
 from theano.printing import var_descriptor
+from theano.compat.six.moves import zip as izip
 
 from pylearn2.config import yaml_parse
 from pylearn2.datasets.dataset import Dataset
@@ -114,22 +116,35 @@ class Monitor(object):
             self._dirty = True
             self.theano_function_mode = mode
 
-    def set_channels(self, monitors_list):
+    def set_channels(self, included=None, excluded=None):
         """
         Set the monitoring channels to compute and log.
 
         Parameters
         ----------
-        monitors_list : list
-            List of channels to monitor.
+        included : iterable
+            Iterable of patterns that match channels to monitor.
+            Defaults to ('*')
+        excluded : iterable
+            Iterable of patterns that match channels to ignore.
+            Defaults to ()
         """
-        if monitors_list:
-            if not set(monitors_list).issubset(set(self.channels.keys())):
-                raise ValueError("List of log_monitors not valid")
-            self.log_monitors = monitors_list
-        else:
-            self.log_monitors =  sorted(self.channels.keys(), 
-                key=number_aware_alphabetical_key)
+
+        if not included: included = ('*')
+        if not excluded: excluded = ()
+
+        pattern_groups = [included, excluded]
+        channel_groups = [set(), set()]
+        groups = izip(pattern_groups, channel_groups)
+        channels = self.channels.keys()
+        for pattern_group, channel_group in groups:
+            for pattern in pattern_group:
+                channel_group.update(filter_by_pattern(channels, pattern))
+
+        included_channels, excluded_channels = channel_groups
+        channels = list(included_channels - excluded_channels)
+        self.log_monitors = sorted(channels,
+            key=number_aware_alphabetical_key)
 
     def add_dataset(self, dataset, mode='sequential', batch_size=None,
                     num_batches=None, seed=None):
