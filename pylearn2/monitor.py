@@ -116,7 +116,7 @@ class Monitor(object):
             self._dirty = True
             self.theano_function_mode = mode
 
-    def set_channels(self, included=('*'), excluded=()):
+    def set_channels(self, included=None, excluded=None):
         """
         Set the monitoring channels to compute and log.
 
@@ -131,6 +131,9 @@ class Monitor(object):
             It works as Unix shell-style wildcards.
             Defaults to ()
         """
+        if not included: included = ('*')
+        if not excluded: excluded = ()
+
         pattern_groups = [included, excluded]
         channel_groups = [set(), set()]
         groups = izip(pattern_groups, channel_groups)
