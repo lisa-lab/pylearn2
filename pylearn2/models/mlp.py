@@ -1142,22 +1142,35 @@ class MLP(Layer):
 
 class Softmax(Layer):
     """
-    .. todo::
-
-        WRITEME (including parameters list)
+    A layer that can apply an optional affine transformation
+    to vectorial inputs followed by a softmax nonlinearity.
 
     Parameters
     ----------
-    n_classes : WRITEME
-    layer_name : WRITEME
-    irange : WRITEME
-    istdev : WRITEME
-    sparse_init : WRITEME
-    W_lr_scale : WRITEME
-    b_lr_scale : WRITEME
-    max_row_norm : WRITEME
-    no_affine : WRITEME
-    max_col_norm : WRITEME
+    n_classes : int
+        Number of classes for softmax targets.
+    layer_name : string
+        Name of Softmax layers.
+    irange : float
+        If specified, initialized each weight randomly in 
+        U(-irange, irange).
+    istdev : float
+        If specified, initialize each weight randomly from
+        N(0,istdev).
+    sparse_init : int
+        If specified, initial sparse_init number of weights
+        for each unit from N(0,1).
+    W_lr_scale : float
+        Scale for weight learning rate.
+    b_lr_scale : float
+        Scale for bias learning rate.
+    max_row_norm : float
+        Maximum norm for a row of the weight matrix.
+    no_affine : boolean
+        If True, softmax nonlinearity is applied directly to
+        inputs.
+    max_col_norm : float
+        Maximum norm for a column of the weight matrix.
     init_bias_target_marginals : WRITEME
     binary_target_dim : int, optional
         If your targets are class labels (i.e. a binary vector) then set the
@@ -1396,7 +1409,7 @@ class Softmax(Layer):
         if not isinstance(self.input_space, Conv2DSpace):
             raise NotImplementedError()
         desired = self.W.get_value().T
-        ipt = self.desired_space.format_as(desired, self.input_space)
+        ipt = self.desired_space.np_format_as(desired, self.input_space)
         rval = Conv2DSpace.convert_numpy(ipt,
                                          self.input_space.axes,
                                          ('b', 0, 1, 'c'))
