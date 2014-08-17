@@ -1,10 +1,13 @@
 import numpy as np
 import warnings
+from nose.tools import assert_raises
 
 from theano.compat import exc_message
+from theano.compat.python2x import OrderedDict
 from theano import shared
 from theano import tensor as T
 
+from pylearn2.costs.cost import Cost
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.models.model import Model
 from pylearn2.models.s3c import S3C, E_Step, Grad_M_Step
@@ -27,6 +30,9 @@ class DummyModel(Model):
     def  __init__(self, num_features):
         self.input_space = VectorSpace(num_features)
 
+    def get_default_cost(self):
+        return DummyCost()
+
 
 class DummyDataset(DenseDesignMatrix):
     def __init__(self, num_examples, num_features):
@@ -40,6 +46,12 @@ class DummyDataset(DenseDesignMatrix):
                 "functionality. If the Monitor tries to serialize a "
                 "Dataset, that is an error.")
 
+class DummyCost(Cost):
+    def get_data_specs(self, model):
+        return (VectorSpace(1), 'dummy')
+    
+    def expr(self, model, cost_ipt):
+        return cost_ipt.sum()
 
 def test_channel_scaling_sequential():
     def channel_scaling_checker(num_examples, mode, num_batches, batch_size):
@@ -571,6 +583,22 @@ def test_transfer_experience():
     assert monitor.get_epochs_seen() == 1
 
 
+def test_extra_costs():
+
+    # Makes sure Monitor.setup checks type of extra_costs
+
+    num_features = 3
+    model = DummyModel(num_features=num_features)
+    dataset = DummyDataset(num_examples=2, num_features=num_features)
+    monitor = Monitor.get_monitor(model)
+    extra_costs = [model.get_default_cost()]
+    assert_raises(AssertionError, monitor.setup, dataset, 
+                  model.get_default_cost(), 1, extra_costs=extra_costs)
+
+    extra_costs = OrderedDict()
+    extra_costs['Cost'] = model.get_default_cost()
+    monitor.setup(dataset, model.get_default_cost(), 1, 
+                  extra_costs=extra_costs)
 
 
 if __name__ == '__main__':
