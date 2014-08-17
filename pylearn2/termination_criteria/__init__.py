@@ -10,8 +10,12 @@ __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
 import functools
+import logging
 import numpy as np
 import warnings
+
+
+log = logging.getLogger(__name__)
 
 
 class TerminationCriterion(object):
@@ -58,18 +62,27 @@ class MonitorBased(TerminationCriterion):
         The threshold factor by which we expect the channel value to have
         decreased
     N : int
-        Number of epochs to look back
+        Number of epochs to look back. 5 by default.
     channel_name : string, optional
         Name of the channel to examine. If None and the monitor
         has only one channel, this channel will be used; otherwise, an
         error will be raised.
+    logging_period : int, optional
+        Log a message when the countdown is a multiple of this value.
+        If 0, disable all logging.
     """
-    def __init__(self, prop_decrease=.01, N=5, channel_name=None):
+    def __init__(self, prop_decrease=.01, N=5, channel_name=None,
+                 logging_period=0):
         self._channel_name = channel_name
         self.prop_decrease = prop_decrease
         self.N = N
         self.countdown = N
         self.best_value = np.inf
+        self._logging_period = logging_period
+
+    @property
+    def target_value(self):
+        return (1. - self.prop_decrease) * self.best_value
 
     def continue_learning(self, model):
         """
@@ -101,8 +114,11 @@ class MonitorBased(TerminationCriterion):
         # called unless the channel value is lower than the best value times
         # the prop_decrease factor, in which case the countdown is reset to N
         # and the best value is updated
-        if v[- 1] < (1. - self.prop_decrease) * self.best_value:
+        if v[-1] < self.target_value:
             self.countdown = self.N
+            if self._logging_period > 0:
+                log.info("%s countdown reset. New best %s value: %f",
+                         self.__class__.__name__, self._channel_name, v[-1])
         else:
             self.countdown = self.countdown - 1
 
@@ -112,6 +128,14 @@ class MonitorBased(TerminationCriterion):
         # The optimization continues until the countdown has reached 0,
         # meaning that N epochs have passed without the model improving
         # enough.
+        time_to_log = (self._logging_period > 0 and
+                       self.countdown % self._logging_period == 0)
+        if time_to_log:
+            # filler = "exceeds"
+            filler = "drops below"  # TODO: change when have higher_is_better
+            log.info("Terminating in %d epochs unless %s "
+                     "%s %f", self.countdown, filler,
+                     self._channel_name, self.target_value)
         return self.countdown > 0
 
 
