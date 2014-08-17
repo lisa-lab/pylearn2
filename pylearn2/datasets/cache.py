@@ -32,6 +32,7 @@ log = logging.getLogger(__name__)
 
 
 class LocalDatasetCache:
+
     """
     A local cache for remote files for faster access and reducing
     network stress.
@@ -322,8 +323,8 @@ class LocalDatasetCache:
                 force_perm_path = force_perm_path[:-1]
             base = len(force_perm_path) - len(intermediaryFolders)
 
-        for i in range(1, len(intermediaryFolders)):
-            folderToCreate = os.path.sep.join(intermediaryFolders[:i+1])
+        for i in range(2, len(intermediaryFolders)):
+            folderToCreate = os.path.sep.join(intermediaryFolders[:i])
 
             if os.path.exists(folderToCreate):
                 continue
