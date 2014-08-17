@@ -21,37 +21,59 @@ from pylearn2.utils.string_utils import preprocess
 
 class CSVDataset(DenseDesignMatrix):
 
-    """
-    A generic class for accessing CSV files
+    """A generic class for accessing CSV files
     labels, if present, should be in the first column
     if there's no labels, set expect_labels to False
     if there's no header line in your file, set expect_headers to False
 
     Parameters
     ----------
-    path : The path to the CSV file.
-    task : The type of task in which the dataset will be used -- either "classification" or "regression".  The task determines the shape of the target variable.  For classification, it is a vector; for regression, a matrix.
-    one_hot : Whether the target variable (i.e. "label") should be encoded as a one-hot vector.
-    expect_labels : Whether the CSV file contains a target variable in the first column.
-    expect_headers : Whether the CSV file contains column headers.
-    delimiter : The CSV file's delimiter.
-    start : The first row of the CSV file to load.
-    stop : The last row of the CSV file to load.
-    start_fraction: The fraction of rows, starting at the beginning of the file, to load.
-    end_fraction: The fraction of rows, starting at the end of the file, to load.
+    path : str
+      The path to the CSV file.
+
+    task : str
+      The type of task in which the dataset will be used -- either
+      "classification" or "regression".  The task determines the shape of the
+      target variable.  For classification, it is a vector; for regression, a
+      matrix.
+
+    one_hot : bool
+      Whether the target variable (i.e. "label") should be encoded as a one-hot
+      vector.
+
+    expect_labels : bool
+      Whether the CSV file contains a target variable in the first column.
+
+    expect_headers : bool
+      Whether the CSV file contains column headers.
+
+    delimiter : bool
+      The CSV file's delimiter.
+
+    start : int
+      The first row of the CSV file to load.
+
+    stop : int
+      The last row of the CSV file to load.
+
+    start_fraction : float
+      The fraction of rows, starting at the beginning of the file, to load.
+
+    end_fraction : float
+      The fraction of rows, starting at the end of the file, to load.
     """
 
-    def __init__(self, 
-            path = 'train.csv',
-            task = 'classification',
-            one_hot = False,
-            expect_labels = True,
-            expect_headers = True,
-            delimiter = ',',
-            start = None,
-            stop = None,
-            start_fraction = None,
-            end_fraction = None):
+    def __init__(self,
+                 path='train.csv',
+                 task='classification',
+                 one_hot=False,
+                 expect_labels=True,
+                 expect_headers=True,
+                 delimiter=',',
+                 start=None,
+                 stop=None,
+                 start_fraction=None,
+                 end_fraction=None):
         """
         .. todo::
 
@@ -67,17 +89,17 @@ class CSVDataset(DenseDesignMatrix):
         self.stop = stop
         self.start_fraction = start_fraction
         self.end_fraction = end_fraction
-        
+
         self.view_converter = None
 
         if task not in ['classification', 'regression']:
-            raise ValueError('task must be either "classification" or "regression"; ' +
-                    ' got ' + str(task))
+            raise ValueError('task must be either "classification" or '
+                             '"regression"; got ' + str(task))
 
         if start_fraction is not None:
             if end_fraction is not None:
-                raise ValueError("Use start_fraction or end_fraction, " +
-                        " not both.")
+                raise ValueError("Use start_fraction or end_fraction, "
+                                 " not both.")
             if start_fraction <= 0:
                 raise ValueError("start_fraction should be > 0")
 
@@ -93,13 +115,13 @@ class CSVDataset(DenseDesignMatrix):
 
         if start is not None:
             if start_fraction is not None or end_fraction is not None:
-                raise ValueError("Use start, start_fraction, or end_fraction," +
-                        " just not together.")
+                raise ValueError("Use start, start_fraction, or end_fraction,"
+                                 " just not together.")
 
         if stop is not None:
             if start_fraction is not None or end_fraction is not None:
-                raise ValueError("Use stop, start_fraction, or end_fraction," +
-                        " just not together.")
+                raise ValueError("Use stop, start_fraction, or end_fraction,"
+                                 " just not together.")
 
         # and go
 
@@ -131,7 +153,7 @@ class CSVDataset(DenseDesignMatrix):
                 y = y[0:subset_end]
             elif self.end_fraction is not None:
                 n = X.shape[0]
-                subset_start = int((1-self.end_fraction) * n)
+                subset_start = int((1 - self.end_fraction) * n)
                 X = X[subset_start:, ]
                 y = y[subset_start:]
             elif self.start is not None:
@@ -140,11 +162,11 @@ class CSVDataset(DenseDesignMatrix):
                     y = y[self.start:self.stop]
 
             return X, y
-        
+
         if self.expect_labels:
-            y = data[:,0]
-            X = data[:,1:]
-            
+            y = data[:, 0]
+            X = data[:, 1:]
+
             # get unique labels and map them to one-hot positions
             labels = np.unique(y)
             labels = dict((x, i) for (i, x) in enumerate(labels))
