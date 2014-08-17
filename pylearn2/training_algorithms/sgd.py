@@ -956,6 +956,23 @@ class LinearDecayOverEpoch(TrainExtension):
         assert start >= 0
         assert saturate >= start
 
+    def setup(self, model, dataset, algorithm):
+        """
+        Initializes the decay schedule based on epochs_seen.
+
+        Parameters
+        ----------
+        model : pylearn2.models.Model
+            The model to which the training algorithm is applied.
+        dataset : pylearn2.datasets.Dataset
+            The dataset to which the model is applied.
+        algorithm : pylearn2.training_algorithms.TrainingAlgorithm
+            Describes how gradients should be updated.
+        """
+        monitor = Monitor.get_monitor(model)
+        self._count = monitor._epochs_seen
+        self._apply_learning_rate(algorithm)
+
     def on_monitor(self, model, dataset, algorithm):
         """
         Updates the learning rate based on the linear decay schedule.
@@ -966,12 +983,15 @@ class LinearDecayOverEpoch(TrainExtension):
         dataset : Dataset
         algorithm : WRITEME
         """
+        self._count += 1
+        self._apply_learning_rate(algorithm)
+
+    def _apply_learning_rate(self, algorithm): 
         if not self._initialized:
             self._init_lr = algorithm.learning_rate.get_value()
             self._step = ((self._init_lr - self._init_lr * self.decay_factor) /
                           (self.saturate - self.start + 1))
             self._initialized = True
-        self._count += 1
         algorithm.learning_rate.set_value(np.cast[config.floatX](
             self.current_lr()))
 
