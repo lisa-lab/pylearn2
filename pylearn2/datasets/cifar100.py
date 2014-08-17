@@ -3,11 +3,12 @@ The CIFAR-100 dataset.
 """
 import numpy as np
 N = np
-from pylearn2.datasets import dense_design_matrix
+from pylearn2.datasets.dense_design_matrix import (DenseDesignMatrix,
+                                                   DefaultViewConverter)
 from pylearn2.utils import serial
 
 
-class CIFAR100(dense_design_matrix.DenseDesignMatrix):
+class CIFAR100(DenseDesignMatrix):
     """
     The CIFAR-100 dataset.
 
@@ -85,8 +86,7 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
             assert X.shape[0] == y.shape[0]
 
         self.axes = axes
-        view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3),
-                                                                  axes)
+        view_converter = DefaultViewConverter((32, 32, 3), axes)
 
         super(CIFAR100, self).__init__(X=X, y=y, view_converter=view_converter)
 
