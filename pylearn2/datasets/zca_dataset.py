@@ -50,7 +50,7 @@ class ZCA_Dataset(DenseDesignMatrix):
     def __init__(self,
                  preprocessed_dataset,
                  preprocessor,
-                 convert_to_one_hot=True,
+                 convert_to_one_hot=None,
                  start=None,
                  stop=None,
                  axes=['b', 0, 1, 'c']):
@@ -71,18 +71,14 @@ class ZCA_Dataset(DenseDesignMatrix):
 
         self.y = preprocessed_dataset.y
         self.y_labels = preprocessed_dataset.y_labels
-        if convert_to_one_hot:
-            if not (self.y.min() == 0):
-                raise AssertionError("Expected y.min == 0 but y.min == %g" %
-                                     self.y.min())
-            nclass = self.y.max() + 1
-            y = np.zeros((self.y.shape[0], nclass), dtype='float32')
-            for i in xrange(self.y.shape[0]):
-                y[i, self.y[i]] = 1.
-            self.y = y
-            assert self.y is not None
-            space, source = self.data_specs
-            space.components[source.index('targets')].dim = nclass
+
+        if convert_to_one_hot is not None:
+            warnings.warn("the `convert_to_one_hot` parameter is deprecated. To get "
+                          "one-hot encoded targets, request that they "
+                          "live in `VectorSpace` through the `data_specs` "
+                          "parameter of dataset iterator method. "
+                          "`convert_to_one_hot` will be removed on or after "
+                          "September 20, 2014.", stacklevel=2)
 
         if control.get_load_data():
             if start is not None:
