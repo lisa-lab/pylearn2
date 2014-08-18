@@ -2,7 +2,7 @@ from itertools import product
 
 import numpy as np
 import theano
-from theano import tensor
+from theano import tensor, config
 
 from pylearn2.datasets.vector_spaces_dataset import VectorSpacesDataset
 from pylearn2.termination_criteria import EpochCounter
@@ -11,7 +11,7 @@ from pylearn2.train import Train
 from pylearn2.models.mlp import (FlattenerLayer, MLP, Linear, Softmax, Sigmoid,
                                  exhaustive_dropout_average,
                                  sampled_dropout_average, CompositeLayer)
-from pylearn2.space import VectorSpace, CompositeSpace
+from pylearn2.space import VectorSpace, CompositeSpace, Conv2DSpace
 from pylearn2.utils import is_iterable, sharedX
 
 
@@ -357,3 +357,32 @@ def test_softmax_binary_targets():
     y_vec_data[np.arange(batch_size),y_bin_data.flatten()] = 1
     np.testing.assert_allclose(cost_bin(X_data, y_bin_data), cost_vec(X_data, y_vec_data))
 
+def test_set_get_weights_Softmax():
+    """
+    Tests setting and getting weights for Softmax layer.
+    """
+    num_classes = 2
+    dim = 3
+    conv_dim = [3, 4, 5]
+
+    # VectorSpace input space
+    layer = Softmax(num_classes, 's', irange=.1)
+    softmax_mlp = MLP(layers=[layer],
+            input_space=VectorSpace(dim=dim))
+    vec_weights = np.random.randn(dim, num_classes).astype(config.floatX)
+    layer.set_weights(vec_weights)
+    assert np.allclose(layer.W.get_value(), vec_weights)
+    layer.W.set_value(vec_weights)
+    assert np.allclose(layer.get_weights(), vec_weights)
+
+    # Conv2DSpace input space
+    layer = Softmax(num_classes, 's', irange=.1)
+    softmax_mlp = MLP(layers=[layer],
+            input_space=Conv2DSpace(shape=(conv_dim[0], conv_dim[1]), 
+                                    num_channels=conv_dim[2]))
+    conv_weights = np.random.randn(conv_dim[0], conv_dim[1], conv_dim[2], 
+                                   num_classes).astype(config.floatX)
+    layer.set_weights(conv_weights.reshape(np.prod(conv_dim), num_classes))
+    assert np.allclose(layer.W.get_value(), conv_weights.reshape(np.prod(conv_dim), num_classes))
+    layer.W.set_value(conv_weights.reshape(np.prod(conv_dim), num_classes))
+    assert np.allclose(layer.get_weights_topo(), np.transpose(conv_weights, axes=(3, 0, 1, 2)))
