@@ -209,6 +209,41 @@ class SGD(TrainingAlgorithm):
         self.theano_function_mode = theano_function_mode
         self.monitoring_costs = monitoring_costs
 
+    def _setup_monitor(self):
+        """
+        Set up monitor to model the objective value, learning rate,
+        momentum (if applicable), and extra channels defined by
+        the cost.
+
+        This method must be called after `learning_rule.get_updates`,
+        since it may have an effect on `learning_rule.add_channels_to_monitor`
+        (that is currently the case for `learning_rule.RMSProp`).
+        """
+        if self.monitoring_dataset is not None:
+            if (self.monitoring_batch_size is None and
+                    self.monitoring_batches is None):
+                self.monitoring_batch_size = self.batch_size
+                self.monitoring_batches = self.batches_per_iter
+            self.monitor.setup(dataset=self.monitoring_dataset,
+                               cost=self.cost,
+                               batch_size=self.monitoring_batch_size,
+                               num_batches=self.monitoring_batches,
+                               extra_costs=self.monitoring_costs,
+                               mode=self.monitor_iteration_mode)
+            dataset_name = self.monitoring_dataset.keys()[0]
+            monitoring_dataset = self.monitoring_dataset[dataset_name]
+            #TODO: have Monitor support non-data-dependent channels
+            self.monitor.add_channel(name='learning_rate',
+                                     ipt=None,
+                                     val=self.learning_rate,
+                                     data_specs=(NullSpace(), ''),
+                                     dataset=monitoring_dataset)
+
+            if self.learning_rule:
+                self.learning_rule.add_channels_to_monitor(
+                        self.monitor,
+                        monitoring_dataset)
+
     def setup(self, model, dataset):
         """
         Compiles the theano functions needed for the train method.
@@ -302,35 +337,7 @@ class SGD(TrainingAlgorithm):
             # Concatenate the name of all tensors in theano_args !?
             cost_value.name = 'objective'
 
-        # Set up monitor to model the objective value, learning rate,
-        # momentum (if applicable), and extra channels defined by
-        # the cost
         learning_rate = self.learning_rate
-        if self.monitoring_dataset is not None:
-            if (self.monitoring_batch_size is None and
-                    self.monitoring_batches is None):
-                self.monitoring_batch_size = self.batch_size
-                self.monitoring_batches = self.batches_per_iter
-            self.monitor.setup(dataset=self.monitoring_dataset,
-                               cost=self.cost,
-                               batch_size=self.monitoring_batch_size,
-                               num_batches=self.monitoring_batches,
-                               extra_costs=self.monitoring_costs,
-                               mode=self.monitor_iteration_mode)
-            dataset_name = self.monitoring_dataset.keys()[0]
-            monitoring_dataset = self.monitoring_dataset[dataset_name]
-            #TODO: have Monitor support non-data-dependent channels
-            self.monitor.add_channel(name='learning_rate',
-                                     ipt=None,
-                                     val=learning_rate,
-                                     data_specs=(NullSpace(), ''),
-                                     dataset=monitoring_dataset)
-
-            if self.learning_rule:
-                self.learning_rule.add_channels_to_monitor(
-                        self.monitor,
-                        monitoring_dataset)
-
         params = list(model.get_params())
         assert len(params) > 0
         for i, param in enumerate(params):
@@ -396,6 +403,15 @@ class SGD(TrainingAlgorithm):
                     raise ValueError("debug value of %s contains nans" %
                             update.name)
 
+
+        # Set up monitor to model the objective value, learning rate,
+        # momentum (if applicable), and extra channels defined by
+        # the cost.
+        # We have to do that after learning_rule.get_updates has been
+        # called, since it may have an effect on
+        # learning_rule.add_channels_to_monitor (that is currently the case
+        # for AdaDelta and RMSProp).
+        self._setup_monitor()
 
         with log_timing(log, 'Compiling sgd_update'):
             self.sgd_update = function(theano_args,
