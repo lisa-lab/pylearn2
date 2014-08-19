@@ -1331,7 +1331,9 @@ class DefaultViewConverter(object):
 
     Parameters
     ----------
-    shape : WRITEME
+    shape : tuple of int
+        Dimensions and number of channels, in the `(dim1, dim2, channels)`
+        format
     axes : WRITEME
     """
     def __init__(self, shape, axes=('b', 0, 1, 'c')):
