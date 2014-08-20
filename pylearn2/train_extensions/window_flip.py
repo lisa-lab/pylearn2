@@ -27,9 +27,23 @@ __email__ = "wardefar@iro"
 
 def _zero_pad(array, amount, axes=(1, 2)):
     """
-    .. todo::
+    Returns a copy of <array> with zero-filled padding around the margins.
 
-        WRITEME
+    The new array has the same dimensions as the input array, except for
+    the dimensions given by <axes>, which are increased by 2*<amount>.
+
+    Parameters:
+    -----------
+    array: numpy.ndarray
+      The array to zero-pad.
+
+    amount: int
+      The number of zeros to append to the beginning and end of each dimension
+      in <axes>. (That axis will grow by 2*<amount>).
+
+    axes: tuple
+      The dimensions to pad. These are indices, not axis names like the 0, 1
+      in ('b', 0, 1, 'c').
     """
     if amount == 0:
         return array
@@ -80,9 +94,19 @@ class WindowAndFlip(TrainExtension):
         Reflect images on the horizontal axis with probability
         0.5. `True` by default.
     """
-    def __init__(self, window_shape, randomize=None, randomize_once=None,
-            center=None, rng=(2013, 02, 20), pad_randomized=0, flip=True):
+    def __init__(self,
+                 window_shape,
+                 randomize=None,
+                 randomize_once=None,
+                 center=None,
+                 rng=(2013, 02, 20),
+                 pad_randomized=0,
+                 flip=True):
         self._window_shape = tuple(window_shape)
+
+        # Defined in setup(). A dict that maps Datasets in self._randomize and
+        # self._randomize_once to zero-padded versions of their topological
+        # views.
         self._original = None
 
         self._randomize = randomize if randomize else []
@@ -115,11 +139,21 @@ class WindowAndFlip(TrainExtension):
         for data in self._center:
             preprocessor.apply(data)
 
+        #
         # Do the initial random windowing
+        #
+
         randomize_now = self._randomize + self._randomize_once
+
+        # maps each dataset in randomize_now to a zero-padded topological view
+        # of its data.
         self._original = dict((data,
-            _zero_pad(data.get_topological_view().astype('float32'),
-                self._pad_randomized)) for data in randomize_now)
+                               _zero_pad(data.get_topological_view().astype('float32'),
+                                         self._pad_randomized))
+                              for data in randomize_now)
+
+        # For each dataset, for each image, extract a randomly positioned and
+        # potentially horizontal-flipped window
         self.randomize_datasets(randomize_now)
 
     def randomize_datasets(self, datasets):
@@ -192,8 +226,14 @@ class WindowAndFlipC01B(WindowAndFlip):
         0.5. `True` by default.
     """
 
-    def __init__(self, window_shape, randomize=None, randomize_once=None,
-            center=None, rng=(2013, 02, 20), pad_randomized=0, flip=True):
+    def __init__(self,
+                 window_shape,
+                 randomize=None,
+                 randomize_once=None,
+                 center=None,
+                 rng=(2013, 02, 20),
+                 pad_randomized=0,
+                 flip=True):
 
         _randomize = randomize if randomize else []
         _randomize_once = randomize_once if randomize_once else []

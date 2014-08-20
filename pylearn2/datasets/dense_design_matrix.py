@@ -1331,8 +1331,11 @@ class DefaultViewConverter(object):
 
     Parameters
     ----------
-    shape : WRITEME
-    axes : WRITEME
+    shape : list
+      [num_rows, num_cols, channels]
+    axes : tuple
+      The axis ordering to use in topological views of the data. Must be some
+      permutation of ('b', 0, 1, 'c'). Default: ('b', 0, 1, 'c')
     """
     def __init__(self, shape, axes=('b', 0, 1, 'c')):
         self.shape = shape
@@ -1358,35 +1361,44 @@ class DefaultViewConverter(object):
         """
         return self.shape
 
-    def design_mat_to_topo_view(self, X):
+    def design_mat_to_topo_view(self, design_matrix):
         """
-        .. todo::
+        Returns a topological view/copy of design matrix.
 
-            WRITEME
+        Parameters:
+        -----------
+        design_matrix: numpy.ndarray
+          A design matrix with data in rows. Data is assumed to be laid out in
+          memory according to the axis order ('b', 'c', 0, 1)
+
+        returns: numpy.ndarray
+          A matrix with axis order given by self.axes and batch shape given by
+          self.shape (if you reordered self.shape to match self.axes, as
+          self.shape is always in 'c', 0, 1 order).
+
+          This will try to return
+          a view into design_matrix if possible; otherwise it will allocate a
+          new ndarray.
         """
-        assert len(X.shape) == 2
-        batch_size = X.shape[0]
+        if len(design_matrix.shape) != 2:
+            raise ValueError("design_matrix must have 2 dimensions, but shape "
+                             "was %s." % str(design_matrix.shape))
 
-        channel_shape = [batch_size, self.shape[0], self.shape[1], 1]
-        dimshuffle_args = [('b', 0, 1, 'c').index(axis) for axis in self.axes]
-        if self.shape[-1] * self.pixels_per_channel != X.shape[1]:
-            raise ValueError('View converter with ' + str(self.shape[-1]) +
-                             ' channels and ' + str(self.pixels_per_channel) +
-                             ' pixels per channel asked to convert design'
-                             ' matrix with ' + str(X.shape[1]) + ' columns.')
+        expected_row_size = np.prod(self.shape)
+        if design_matrix.shape[1] != expected_row_size:
+            raise ValueError("This DefaultViewConverter's self.shape = %s, "
+                             "for a total size of %d, but the design_matrix's "
+                             "row size was different (%d)." %
+                             (str(self.shape),
+                              expected_row_size,
+                              design_matrix.shape[1]))
 
-        def get_channel(channel_index):
-            start = self.pixels_per_channel * channel_index
-            stop = self.pixels_per_channel * (channel_index + 1)
-            data = X[:, start:stop]
-            return data.reshape(*channel_shape).transpose(*dimshuffle_args)
-
-        channels = [get_channel(i) for i in xrange(self.shape[-1])]
-
-        channel_idx = self.axes.index('c')
-        rval = np.concatenate(channels, axis=channel_idx)
-        assert len(rval.shape) == len(self.shape) + 1
-        return rval
+        bc01_shape = tuple([design_matrix.shape[0], ] +  # num. batches
+                           # Maps the (0, 1, 'c') of self.shape to ('c', 0, 1)
+                           [self.shape[i] for i in (2, 0, 1)])
+        topo_array_bc01 = design_matrix.reshape(bc01_shape)
+        axis_order = [('b', 'c', 0, 1).index(axis) for axis in self.axes]
+        return topo_array_bc01.transpose(*axis_order)
 
     def design_mat_to_weights_view(self, X):
         """
@@ -1402,31 +1414,38 @@ class DefaultViewConverter(object):
 
         return rval
 
-    def topo_view_to_design_mat(self, V):
+    def topo_view_to_design_mat(self, topo_array):
         """
-        .. todo::
+        Returns a design matrix view/copy of topological matrix.
 
-            WRITEME
+        Parameters:
+        -----------
+        topo_array: numpy.ndarray
+          An N-D array with axis order given by self.axes. Non-batch axes'
+          dimension sizes must agree with corresponding sizes in self.shape.
+
+        returns: numpy.ndarray
+          A design matrix with data in rows. Data, is laid out in memory
+          according to the default axis order ('b', 'c', 0, 1). This will
+          try to return a view into topo_array if possible; otherwise it will
+          allocate a new ndarray.
         """
+        for shape_elem, axis in safe_zip(self.shape, (0, 1, 'c')):
+            if topo_array.shape[self.axes.index(axis)] != shape_elem:
+                raise ValueError(
+                    "topo_array's %s axis has a different size "
+                    "(%d) from the corresponding size (%d) in "
+                    "self.shape.\n"
+                    "  self.shape:       %s (uses standard axis order: 0, 1, "
+                    "'c')\n"
+                    "  self.axes:        %s\n"
+                    "  topo_array.shape: %s (should be in self.axes' order)")
 
-        tensor_shape = V.shape
+        topo_array_bc01 = topo_array.transpose([self.axes.index(ax)
+                                                for ax in ('b', 'c', 0, 1)])
 
-        tensor_axes = ('b', 'c', 0, 1)
-        V = V.transpose([self.axes.index(axis) for axis in tensor_axes])
-        batch_size, num_channels = V.shape[:2]
-
-        # (2, 3, 1) == (tensor_axes.index(axis) for axis in (0, 1, 'c'))
-        batch_shape = np.array([V.shape[index] for index in (2, 3, 1)])
-
-        if np.any(np.asarray(self.shape) != batch_shape):
-            raise ValueError('View converter for views of shape ' +
-                             str([batch_size] + self.shape) +
-                             ' given tensor of shape ' + str(tensor_shape))
-
-        rval = V.reshape((batch_size, self.pixels_per_channel * num_channels))
-        assert rval.dtype == V.dtype
-
-        return rval
+        return topo_array_bc01.reshape((topo_array_bc01.shape[0],
+                                        np.prod(topo_array_bc01.shape[1:])))
 
     def get_formatted_batch(self, batch, dspace):
         """
