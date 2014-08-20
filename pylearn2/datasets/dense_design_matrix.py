@@ -1331,8 +1331,13 @@ class DefaultViewConverter(object):
 
     Parameters
     ----------
-    shape : WRITEME
-    axes : WRITEME
+    shape : tuple of int
+        Number of rows, columns and channels, in the `(rows, cols, channels)`
+        format, **no matter in which order the axes are specified**.
+    axes : tuple, optional
+        Specifies which axis corresponds to what in a batch of data. Must be a
+        permutation of `('b', 0, 1, 'c')`, where `'b'` is the batch axis, `'c'`
+        is the channel axis, `0` is the row axis and `1` is the column axis.
     """
     def __init__(self, shape, axes=('b', 0, 1, 'c')):
         self.shape = shape
