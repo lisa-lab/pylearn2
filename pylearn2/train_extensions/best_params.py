@@ -17,6 +17,8 @@ from pylearn2.train_extensions import TrainExtension
 import theano
 import theano.tensor as T
 from pylearn2.utils import serial
+from pylearn2.utils.timing import log_timing
+
 
 log = logging.getLogger(__name__)
 
@@ -196,7 +198,8 @@ class MonitorBasedSaveBest(TrainExtension):
             if self.store_best_model:
                 self.best_model = deepcopy(model)
             if self.save_path is not None:
-                serial.save(self.save_path, model, on_overwrite='backup')
+                with log_timing(log, 'Saving to ' + self.save_path):
+                    serial.save(self.save_path, model, on_overwrite='backup')
 
     def _update_tag(self, model):
         """
