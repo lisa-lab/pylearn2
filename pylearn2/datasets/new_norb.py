@@ -494,6 +494,11 @@ class NORB(DenseDesignMatrix):
         This state does not include the memmaps' contents. Rather, it includes
         enough info to find the memmap and re-load it from disk in the same
         state.
+
+        Note that pickling a NORB will set its memmaps (self.X and self.y) to
+        be read-only. This is to prevent the memmaps from accidentally being
+        edited after the save. To make them writeable again, the user must
+        explicitly call setflags(write=True) on the memmaps.
         """
         _check_pickling_support()
 
@@ -538,10 +543,21 @@ class NORB(DenseDesignMatrix):
                     'dtype': memmap.dtype,
                     'shape': memmap.shape,
                     'offset': memmap.offset,
-                    'mode': memmap.mode}
+                    # We never want to set mode to w+, even if memmap.mode
+                    # is w+. Otherwise we'll overwrite the memmap's contents
+                    # when we open it.
+                    'mode': 'r+' if memmap.mode in ('r+', 'w+') else 'r'}
 
         result['X_info'] = get_memmap_info(self.X)
         result['y_info'] = get_memmap_info(self.y)
+
+        # This prevents self.X and self.y from being accidentally written to
+        # after the save, thus unexpectedly changing the saved file. If the
+        # user really wants to, they can make the memmaps writeable again
+        # by calling setflags(write=True) on the memmaps.
+        for memmap in (self.X, self.y):
+            memmap.flush()
+            memmap.setflags(write=False)
 
         return result
 
