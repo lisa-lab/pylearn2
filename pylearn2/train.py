@@ -198,18 +198,23 @@ already been reported."""
             while True:
                 if self.exceeded_time_budget(t0, time_budget):
                     break
-                continue_learning = \
-                    self.algorithm.continue_learning(self.model)
-                extension_continue = self.run_callbacks_and_monitoring()
-                assert continue_learning in [True, False, 0, 1]
-                if not continue_learning or not extension_continue:
-                    break
 
                 with log_timing(log, None, level=logging.DEBUG,
                                 callbacks=[self.total_seconds.set_value]):
                     with log_timing(
                             log, None, final_msg='Time this epoch:',
                             callbacks=[self.training_seconds.set_value]):
+
+                        continue_learning = (
+                            self.algorithm.continue_learning(self.model)
+                        )
+                        extension_continue = (
+                            self.run_callbacks_and_monitoring()
+                        )
+                        assert continue_learning in [True, False, 0, 1]
+                        if not continue_learning or not extension_continue:
+                            break
+
                         rval = self.algorithm.train(dataset=self.dataset)
                     if rval is not None:
                         raise ValueError("TrainingAlgorithm.train should not "

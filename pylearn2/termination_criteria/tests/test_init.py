@@ -60,11 +60,11 @@ def test_epoch_counter():
     train_obj = produce_train_obj(new_epochs=False)
     train_obj.main_loop()
     test_epochs(train_obj.model.monitor.get_epochs_seen(), N)
-    # Try training while already reached max_epochs, should stop after 1 epoch
-    # on first continue_learning() call
+
+    # Return without training if the model has already reached max epochs
     train_obj = produce_train_obj(new_epochs=False, model=train_obj.model)
     train_obj.main_loop()
-    test_epochs(train_obj.model.monitor.get_epochs_seen(), N + 1)
+    test_epochs(train_obj.model.monitor.get_epochs_seen(), N)
 
     # Setting max_epochs = 0 should result in no training
     train_obj = produce_train_obj(new_epochs=True, max_epochs=0)
