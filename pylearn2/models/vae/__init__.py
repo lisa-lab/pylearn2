@@ -31,10 +31,16 @@ from pylearn2.models.model import Model
 from pylearn2.space import VectorSpace
 from pylearn2.utils import wraps, sharedX
 from pylearn2.utils.rng import make_theano_rng
-from sheldon.code.pylearn2.expr.basic import log_sum_exp
 
 theano_rng = make_theano_rng(default_seed=2341)
 pi = sharedX(numpy.pi)
+
+
+def log_sum_exp(A, axis=None):
+    A_max = T.max(A, axis=axis, keepdims=True)
+    B = T.log(T.sum(T.exp(A - A_max), axis=axis, keepdims=True)) + A_max
+    # TODO: find a cleaner way to get rid of the summed axis
+    return B.sum(axis=axis)
 
 
 class BaseVAE(Model):
