@@ -21,7 +21,7 @@ def test_epoch_counter():
 
     N = 5
 
-    def produce_train_obj(new_epochs, model=None):
+    def produce_train_obj(new_epochs, model=None, max_epochs=5):
         if model is None:
             model = MLP(layers=[Softmax(layer_name='y',
                                         n_classes=2,
@@ -34,7 +34,7 @@ def test_epoch_counter():
         dataset = DenseDesignMatrix(X=np.random.normal(size=(6, 3)),
                                     y=np.random.normal(size=(6, 2)))
 
-        epoch_counter = EpochCounter(max_epochs=N,
+        epoch_counter = EpochCounter(max_epochs=max_epochs,
                                      new_epochs=new_epochs)
 
         algorithm = SGD(batch_size=2, learning_rate=0.1,
@@ -54,14 +54,19 @@ def test_epoch_counter():
     test_epochs(train_obj.model.monitor.get_epochs_seen(), N)
     train_obj = produce_train_obj(new_epochs=True, model=train_obj.model)
     train_obj.main_loop()
-    test_epochs(train_obj.model.monitor.get_epochs_seen(), 2*N)
+    test_epochs(train_obj.model.monitor.get_epochs_seen(), 2 * N)
 
     # Tests for N max epochs
     train_obj = produce_train_obj(new_epochs=False)
     train_obj.main_loop()
     test_epochs(train_obj.model.monitor.get_epochs_seen(), N)
-    # Try training while already reached max_epochs, should stop after 1 epoch
-    # on first continue_learning() call
+
+    # Return without training if the model has already reached max epochs
     train_obj = produce_train_obj(new_epochs=False, model=train_obj.model)
     train_obj.main_loop()
-    test_epochs(train_obj.model.monitor.get_epochs_seen(), N+1)
+    test_epochs(train_obj.model.monitor.get_epochs_seen(), N)
+
+    # Setting max_epochs = 0 should result in no training
+    train_obj = produce_train_obj(new_epochs=True, max_epochs=0)
+    train_obj.main_loop()
+    test_epochs(train_obj.model.monitor.get_epochs_seen(), 0)
