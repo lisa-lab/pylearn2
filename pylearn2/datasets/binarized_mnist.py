@@ -16,7 +16,10 @@ __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
 import numpy
-from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
+from pylearn2.datasets.dense_design_matrix import (
+    DenseDesignMatrix,
+    DefaultViewConverter
+)
 from pylearn2.datasets import control
 from pylearn2.datasets import cache
 from pylearn2.utils import serial
@@ -93,7 +96,10 @@ class BinarizedMNIST(DenseDesignMatrix):
                 X[i, :] = X[j, :]
                 X[j, :] = tmp
 
-        super(BinarizedMNIST, self).__init__(X=X)
+        super(BinarizedMNIST, self).__init__(
+            X=X,
+            view_converter=DefaultViewConverter(shape=(28, 28, 1))
+        )
 
         assert not numpy.any(numpy.isnan(self.X))
 
@@ -121,7 +127,7 @@ class BinarizedMNIST(DenseDesignMatrix):
 
             WRITEME
         """
-        return N.clip(X * 2. - 1., -1., 1.)
+        return numpy.clip(X * 2. - 1., -1., 1.)
 
     def adjust_to_be_viewed_with(self, X, other, per_example=False):
         """
