@@ -361,5 +361,5 @@ class DiagonalGaussianPrior(Latent):
     def log_p_z(self, z):
         return -0.5 * (
             T.log(2 * pi * T.exp(2 * self.log_prior_sigma)) +
-            ((z - self.prior_mu) / self.prior_sigma) ** 2
+            ((z - self.prior_mu) / T.exp(self.log_prior_sigma)) ** 2
         ).sum(axis=2)
