@@ -303,6 +303,7 @@ class DiagonalGaussianPrior(Latent):
                                        name="prior_log_sigma")
         self._params = [self.W_mu_e, self.b_mu_e, self.W_sigma_e,
                         self.b_sigma_e, self.prior_mu, self.log_prior_sigma]
+        self._params += self.encoding_model.get_params()
 
     @wraps(Latent.sample_from_p_z)
     def sample_from_p_z(self, num_samples):

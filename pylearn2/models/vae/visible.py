@@ -205,6 +205,7 @@ class BinaryVisible(Visible):
         self.b_mu_d = sharedX(b_mu_d_value, name='b_mu_d')
 
         self._params = [self.W_mu_d, self.b_mu_d]
+        self._params += self.decoding_model.get_params()
 
     @wraps(Visible.sample_from_p_x_given_z)
     def sample_from_p_x_given_z(self, num_samples, theta):
@@ -271,22 +272,7 @@ class ContinuousVisible(Visible):
     def initialize_parameters(self, decoder_input_space, nvis):
         super(BinaryVisible, self).initialize_parameters(decoder_input_space,
                                                          nvis)
-        # Encoder parameters
-        W_mu_e_value = numpy.random.normal(loc=0, scale=self.isigma,
-                                           size=(self.nenc, self.nhid))
-        self.W_mu_e = sharedX(W_mu_e_value, name='W_mu_e')
-        b_mu_e_value = numpy.random.normal(loc=0, scale=self.isigma,
-                                           size=self.nhid)
-        self.b_mu_e = sharedX(b_mu_e_value, name='b_mu_e')
 
-        W_sigma_e_value = numpy.random.normal(loc=0, scale=self.isigma,
-                                              size=(self.nenc, self.nhid))
-        self.W_sigma_e = sharedX(W_sigma_e_value, name='W_sigma_e')
-        b_sigma_e_value = numpy.random.normal(loc=0, scale=self.isigma,
-                                              size=self.nhid)
-        self.b_sigma_e = sharedX(b_sigma_e_value, name='b_sigma_e')
-
-        # Decoder parameters
         W_mu_d_value = numpy.random.normal(loc=0, scale=self.isigma,
                                            size=(self.ndec, self.nvis))
         self.W_mu_d = sharedX(W_mu_d_value, name='W_mu_d')
@@ -299,23 +285,10 @@ class ContinuousVisible(Visible):
                                                size=self.nvis)
         self.b_mu_d = sharedX(b_mu_d_value, name='b_mu_d')
 
-        W_sigma_d_value = numpy.random.normal(loc=0, scale=self.isigma,
-                                              size=(self.ndec, self.nvis))
-        self.W_sigma_d = sharedX(W_sigma_d_value, name='W_sigma_d')
-        b_sigma_d_value = numpy.random.normal(loc=0, scale=self.isigma,
-                                              size=self.nvis)
-        self.b_sigma_d = sharedX(b_sigma_d_value, name='b_sigma_d')
         self.log_sigma_d = sharedX(1.0, name='log_sigma_d')
 
-        self._params.extend([self.W_mu_e, self.b_mu_e, self.W_sigma_e,
-                                 self.b_sigma_e, self.W_mu_d, self.b_mu_d,
-                                 self.W_sigma_d, self.b_sigma_d,
-                                 self.log_sigma_d])
-        self._encoding_parameters.extend([self.W_mu_e, self.b_mu_e,
-                                          self.W_sigma_e, self.b_sigma_e])
-        self._decoding_parameters.extend([self.W_mu_d, self.b_mu_d,
-                                          self.W_sigma_d, self.b_sigma_d,
-                                          self.log_sigma_d])
+        self._params = [self.W_mu_d, self.b_mu_d, self.log_sigma_d]
+        self._params += self.decoding_model.get_params()
 
     @wraps(Visible.sample_from_p_x_given_z)
     def sample_from_p_x_given_z(self, num_samples, theta):
