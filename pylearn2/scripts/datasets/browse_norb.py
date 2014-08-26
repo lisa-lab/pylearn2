@@ -348,8 +348,8 @@ def main():
 
         figure.canvas.draw()
 
-    default_status_text = ("mouseover image%s for pixel values" %
-                           "" if len(image_axes) == 1 else "s")
+    default_status_text = ("mouseover image%s for pixel values" % ""
+                           if len(image_axes)==1 else "s")
     status_text = figure.text(0.1, 0.1, default_status_text)
 
     def on_mouse_motion(event):
