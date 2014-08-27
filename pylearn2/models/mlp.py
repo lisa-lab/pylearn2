@@ -2081,7 +2081,8 @@ class Linear(Layer):
 
         if copy_input is not None:
             raise AssertionError("The copy_input option had a bug and has "
-                    "been removed from the library.")
+                    "been removed from the library. The copy_input parameter to the function and this "
+                    "error message may be removed after December 27, 2014.")
 
         super(Linear, self).__init__()
 
