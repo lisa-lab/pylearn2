@@ -1151,9 +1151,8 @@ class Softmax(Layer):
         Number of classes for softmax targets.
     layer_name : string
         Name of Softmax layers.
-    irange : float
-        If specified, initialized each weight randomly in 
-        U(-irange, irange).
+    irange : float, optional
+        Initializes each weight randomly in U(-irange, irange)
     istdev : float
         If specified, initialize each weight randomly from
         N(0,istdev).
@@ -1583,7 +1582,8 @@ class SoftmaxPool(Layer):
     detector_layer_dim : WRITEME
     layer_name : WRITEME
     pool_size : WRITEME
-    irange : WRITEME
+    irange : float, optional
+        Initializes each weight randomly in U(-irange, irange)
     sparse_init : WRITEME
     sparse_stdev : WRITEME
     include_prob : float, optional
@@ -2016,7 +2016,8 @@ class Linear(Layer):
         The number of elements in the output of the layer.
     layer_name : str
         The name of the layer. All layers in an MLP must have a unique name.
-    irange : WRITEME
+    irange : float, optional
+        Initializes each weight randomly in U(-irange, irange)
     istdev : WRITEME
     sparse_init : WRITEME
     sparse_stdev : WRITEME
@@ -2047,14 +2048,19 @@ class Linear(Layer):
     softmax_columns : DEPRECATED
     copy_input : REMOVED
     use_abs_loss : bool, optional
-        If True, the cost function will be mean absolute error rather
-        than mean squared error.
-        You can think of mean squared error as fitting a Gaussian
+        DEPRECATED
+        Use loss_function='MAE', instead.
+    loss_function: str, optional
+        Possible values: 'MSE', 'MAE', 'MLSE'
+        * MSE: Mean Squared Error, the default cost function
+        * MAE: Mean Absolute Error. You can think of mean squared error as fitting a Gaussian
         distribution with variance 1, or as learning to predict the mean
-        of the data.
-        You can think of mean absolute error as fitting a Laplace
+        of the data. You can think of mean absolute error as fitting a Laplace
         distribution with variance 1, or as learning to predict the
         median of the data.
+        * MLSE: Mean Log Squared Error, a Robust cost function. Useful in presence of outliers
+        K. Liano. Robust error measure for supervised neural network learning with outliers. Neural Networks,
+        IEEE Transactions on, 7(1):246{250, 1996.
     use_bias : bool, optional
         If False, does not add the bias term to the output.
     """
@@ -2076,7 +2082,8 @@ class Linear(Layer):
                  min_col_norm=None,
                  softmax_columns=None,
                  copy_input=None,
-                 use_abs_loss=False,
+                 use_abs_loss=None,
+                 loss_function=None,
                  use_bias=True):
 
         if copy_input is not None:
@@ -2089,7 +2096,7 @@ class Linear(Layer):
             softmax_columns = False
         else:
             warnings.warn("The softmax_columns argument is deprecated, and "
-                    "will be removed on or after 2014-08-27.", stacklevel=2)
+                          "will be removed on or after 2014-08-27.", stacklevel=2)
 
         if use_bias and init_bias is None:
             init_bias = 0.
@@ -2103,6 +2110,28 @@ class Linear(Layer):
         else:
             assert b_lr_scale is None
             init_bias is None
+
+        if use_abs_loss is None and loss_function is None:
+            self.loss_function = 'MSE'
+        else:
+            if use_abs_loss is not None:
+                if loss_function is not None:
+                    raise ValueError("The use_abs_loss parameter is deprecated, you should not specify it, and use "
+                                     "`loss_function` instead. `use_abs_loss` will be removed on or after December 27, "
+                                     "2014.")
+                else:
+                    if use_abs_loss:
+                        self.loss_function = 'MAE'
+                        warnings.warn("the `use_abs_loss` parameter is deprecated. Use the `loss_function='MAE'` "
+                                      "parameter instead. `use_abs_loss` will be removed on or after December 27, "
+                                      "2014.", stacklevel=2)
+
+                    if not use_abs_loss:
+                        self.loss_function = 'MSE'
+                        warnings.warn("the `use_abs_loss` parameter is deprecated. Use the `loss_function='MSE'` "
+                                      "parameter instead. `use_abs_loss` will be removed on or after December 27, "
+                                      "2014.", stacklevel=2)
+
 
     @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
@@ -2489,10 +2518,16 @@ class Linear(Layer):
     @wraps(Layer.cost_matrix)
     def cost_matrix(self, Y, Y_hat):
 
-        if(self.use_abs_loss):
-            return T.abs_(Y - Y_hat)
-        else:
+        if self.loss_function == 'MSE':
             return T.sqr(Y - Y_hat)
+        elif self.loss_function == 'MAE':
+            return T.abs_(Y - Y_hat)
+        elif self.loss_function == 'MLSE':
+            return T.log(1+0.5*T.sqr(Y - Y_hat))
+        else:
+            raise ValueError("Loss function '%s' not supported. "
+                             "Allowed values are 'MSE', 'MAE' and 'MLSE'." % self.loss_function
+            )
 
 
 class Tanh(Linear):
@@ -3601,9 +3636,8 @@ class ConvRectifiedLinear(ConvElemwise):
     layer_name : str
         A name for this layer that will be prepended to monitoring channels
         related to this layer.
-    irange : float
-        if specified, initializes each weight randomly in
-        U(-irange, irange)
+    irange : float, optional
+        Initializes each weight randomly in U(-irange, irange)
     border_mode : str
         A string indicating the size of the output:
 
