@@ -290,7 +290,8 @@ class ContinuousVisible(Visible):
     @wraps(Visible.sample_from_p_x_given_z)
     def sample_from_p_x_given_z(self, num_samples, theta):
         (mu_d, log_sigma_d) = theta
-        return theano_rng.normal(avg=mu_d,
+        return theano_rng.normal(size=mu_d.shape,
+                                 avg=mu_d,
                                  std=T.exp(log_sigma_d),
                                  dtype=theano.config.floatX)
 

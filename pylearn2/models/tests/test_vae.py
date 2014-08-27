@@ -88,7 +88,8 @@ def test_continuous_visible():
     vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
     X = T.matrix('X')
     lower_bound = vae.log_likelihood_lower_bound(X, num_samples=10)
-    f = theano.function(inputs=[X], outputs=lower_bound)
+    z = vae.sample(num_samples=10, return_sample_means=False)
+    f = theano.function(inputs=[X], outputs=[lower_bound, z])
     rng = make_np_rng(default_seed=11223)
     f(rng.uniform(size=(10, 10)))
 
