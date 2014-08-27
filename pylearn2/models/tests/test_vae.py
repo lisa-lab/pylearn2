@@ -4,7 +4,7 @@ from pylearn2.config import yaml_parse
 from pylearn2.models.mlp import MLP
 from pylearn2.models.mlp import Linear, ConvRectifiedLinear
 from pylearn2.models.vae import VAE
-from pylearn2.models.vae.visible import BinaryVisible
+from pylearn2.models.vae.visible import BinaryVisible, ContinuousVisible
 from pylearn2.models.vae.latent import DiagonalGaussianPrior
 from pylearn2.space import Conv2DSpace
 from pylearn2.utils.rng import make_np_rng
@@ -73,6 +73,24 @@ def test_convolutional_compatible():
     f = theano.function(inputs=[X], outputs=lower_bound)
     rng = make_np_rng(default_seed=11223)
     f(rng.uniform(size=(10, 16)))
+
+
+def test_continuous_visible():
+    """
+    ContinuousVisible works without crashing
+    """
+    encoding_model = MLP(nvis=10, layers=[Linear(layer_name='h', dim=10,
+                                                 irange=0.01)])
+    decoding_model = MLP(nvis=5, layers=[Linear(layer_name='h', dim=10,
+                                                irange=0.01)])
+    visible = ContinuousVisible(decoding_model=decoding_model)
+    latent = DiagonalGaussianPrior(encoding_model=encoding_model)
+    vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
+    X = T.matrix('X')
+    lower_bound = vae.log_likelihood_lower_bound(X, num_samples=10)
+    f = theano.function(inputs=[X], outputs=lower_bound)
+    rng = make_np_rng(default_seed=11223)
+    f(rng.uniform(size=(10, 10)))
 
 
 def test_VAE_cost():

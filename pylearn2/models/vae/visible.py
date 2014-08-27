@@ -270,19 +270,16 @@ class ContinuousVisible(Visible):
 
     @wraps(Visible.initialize_parameters)
     def initialize_parameters(self, decoder_input_space, nvis):
-        super(BinaryVisible, self).initialize_parameters(decoder_input_space,
-                                                         nvis)
+        super(ContinuousVisible, self).initialize_parameters(
+            decoder_input_space=decoder_input_space,
+            nvis=nvis
+        )
 
         W_mu_d_value = numpy.random.normal(loc=0, scale=self.isigma,
                                            size=(self.ndec, self.nvis))
         self.W_mu_d = sharedX(W_mu_d_value, name='W_mu_d')
-        if self.data_mean is not None:
-            b_mu_d_value = inverse_sigmoid_numpy(
-                numpy.clip(self.data_mean.get_value(), 1e-7, 1-1e-7)
-            )
-        else:
-            b_mu_d_value = numpy.random.normal(loc=0, scale=self.isigma,
-                                               size=self.nvis)
+        b_mu_d_value = numpy.random.normal(loc=0, scale=self.isigma,
+                                           size=self.nvis)
         self.b_mu_d = sharedX(b_mu_d_value, name='b_mu_d')
 
         self.log_sigma_d = sharedX(1.0, name='log_sigma_d')
