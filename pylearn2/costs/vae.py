@@ -15,14 +15,23 @@ from pylearn2.utils import wraps
 class VAECriterion(DefaultDataSpecsMixin, Cost):
     """
     Variational autoencoder criterion
+
+    Parameters
+    ----------
+    num_samples : int
+        Number of posterior samples
     """
     supervised = False
+
+    def __init__(self, num_samples):
+        assert num_samples >= 1
+        self.num_samples = int(num_samples)
 
     @wraps(Cost.expr)
     def expr(self, model, data, **kwargs):
         space, sources = self.get_data_specs(model)
         space.validate(data)
-        return -model.log_likelihood_lower_bound(data).mean()
+        return -model.log_likelihood_lower_bound(data, self.num_samples).mean()
 
 
 class ImportanceSamplingCriterion(DefaultDataSpecsMixin, Cost):

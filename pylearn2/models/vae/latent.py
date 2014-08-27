@@ -43,8 +43,7 @@ class Latent(object):
         An MLP representing the recognition network, whose output will be used
         to compute :math:`q_\\phi(\\mathbf{z} \\mid \\mathbf{x})`
     """
-    def __init__(self, encoding_model, num_samples=1):
-        self.num_samples = num_samples
+    def __init__(self, encoding_model):
         self.encoding_model = encoding_model
         self.nenc = encoding_model.get_output_space().get_total_dimension()
 
@@ -272,9 +271,8 @@ class DiagonalGaussianPrior(Latent):
         Standard deviation on the zero-mean distribution from which parameters
         initialized by the model itself will be drawn. Defaults to 0.01.
     """
-    def __init__(self, encoding_model, num_samples=1, isigma=0.01):
-        super(DiagonalGaussianPrior, self).__init__(encoding_model,
-                                                    num_samples)
+    def __init__(self, encoding_model, isigma=0.01):
+        super(DiagonalGaussianPrior, self).__init__(encoding_model)
         self.isigma = isigma
 
     @wraps(Latent.initialize_parameters)

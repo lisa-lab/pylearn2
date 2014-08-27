@@ -19,11 +19,10 @@ def test_one_sample_allowed():
     decoding_model = MLP(nvis=5, layers=[Linear(layer_name='h', dim=10,
                                                 irange=0.01)])
     visible = BinaryVisible(decoding_model=decoding_model)
-    latent = DiagonalGaussianPrior(encoding_model=encoding_model,
-                                   num_samples=1)
+    latent = DiagonalGaussianPrior(encoding_model=encoding_model)
     vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
     X = T.matrix('X')
-    lower_bound = vae.log_likelihood_lower_bound(X)
+    lower_bound = vae.log_likelihood_lower_bound(X, num_samples=10)
     f = theano.function(inputs=[X], outputs=lower_bound)
     rng = make_np_rng(default_seed=11223)
     f(rng.uniform(size=(10, 10)))
@@ -38,11 +37,10 @@ def test_multiple_samples_allowed():
     decoding_model = MLP(nvis=5, layers=[Linear(layer_name='h', dim=10,
                                                 irange=0.01)])
     visible = BinaryVisible(decoding_model=decoding_model)
-    latent = DiagonalGaussianPrior(encoding_model=encoding_model,
-                                   num_samples=10)
+    latent = DiagonalGaussianPrior(encoding_model=encoding_model)
     vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
     X = T.matrix('X')
-    lower_bound = vae.log_likelihood_lower_bound(X)
+    lower_bound = vae.log_likelihood_lower_bound(X, num_samples=10)
     f = theano.function(inputs=[X], outputs=lower_bound)
     rng = make_np_rng(default_seed=11223)
     f(rng.uniform(size=(10, 10)))
@@ -68,11 +66,10 @@ def test_convolutional_compatible():
     decoding_model = MLP(nvis=5, layers=[Linear(layer_name='h', dim=16,
                                                 irange=0.01)])
     visible = BinaryVisible(decoding_model=decoding_model)
-    latent = DiagonalGaussianPrior(encoding_model=encoding_model,
-                                   num_samples=10)
+    latent = DiagonalGaussianPrior(encoding_model=encoding_model)
     vae = VAE(nvis=16, visible=visible, latent=latent, nhid=5)
     X = T.matrix('X')
-    lower_bound = vae.log_likelihood_lower_bound(X)
+    lower_bound = vae.log_likelihood_lower_bound(X, num_samples=10)
     f = theano.function(inputs=[X], outputs=lower_bound)
     rng = make_np_rng(default_seed=11223)
     f(rng.uniform(size=(10, 16)))
@@ -126,7 +123,9 @@ def test_VAE_cost():
             monitoring_dataset: {
                 'train' : *train,
             },
-            cost: !obj:pylearn2.costs.vae.VAECriterion {},
+            cost: !obj:pylearn2.costs.vae.VAECriterion {
+                num_samples: 2,
+            },
             termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
                 max_epochs: 2
             },

@@ -174,7 +174,7 @@ class VAE(Model):
         else:
             return reconstructed_X
 
-    def log_likelihood_lower_bound(self, X):
+    def log_likelihood_lower_bound(self, X, num_samples):
         """
         Computes the VAE lower-bound on the marginal log-likelihood of X.
 
@@ -196,7 +196,7 @@ class VAE(Model):
             mean = self.data_mean
         Y = X - mean
         # Sample noise
-        epsilon_shape = (self.latent.num_samples, Y.shape[0], self.nhid)
+        epsilon_shape = (num_samples, Y.shape[0], self.nhid)
         epsilon = self.latent.sample_from_epsilon(shape=epsilon_shape)
         # Encode q(z | x) parameters
         phi = self.latent.encode_phi(Y)
