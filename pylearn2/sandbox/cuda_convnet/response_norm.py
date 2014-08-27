@@ -48,7 +48,9 @@ The copyright and licensing notice for this code is reproduced below:
 import theano
 from theano.sandbox.cuda import CudaNdarrayType
 from theano.sandbox.cuda.basic_ops import as_cuda_ndarray_variable
+from theano.sandbox.cuda.basic_ops import gpu_contiguous
 from theano.gof import Apply, local_optimizer, TopoOptimizer
+
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 from .code_templates import (
     contiguity_check, dimension_check, output_same_shape,
@@ -222,6 +224,10 @@ class CrossMapNorm(BaseActs):
         acts, denoms = self(images)
         dout, _ = dout  # Ignore the gradient on "denoms"
         dout = as_cuda_ndarray_variable(dout)
+
+        # dout must be contiguous, but it isn't always so, depending
+        # of what is done on output of this node.
+        dout = gpu_contiguous(dout)
         grad_op = CrossMapNormUndo(self._size_f, self._add_scale,
                                    self._pow_scale, self._blocked,
                                    inplace=False)
