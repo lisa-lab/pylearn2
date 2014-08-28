@@ -120,7 +120,7 @@ class DBMSampler(Block):
         layer_to_chains[self.dbm.visible_layer] = inputs
 
         layer_to_clamp = OrderedDict([(self.dbm.visible_layer, True)])
-        layer_to_chains = self.dbm.mcmc_steps(layer_to_chains, self.theano_rng,
+        layer_to_chains = self.dbm.sampling_procedure.sample(layer_to_chains, self.theano_rng,
                                               layer_to_clamp=layer_to_clamp,
                                               num_steps=1)
 
