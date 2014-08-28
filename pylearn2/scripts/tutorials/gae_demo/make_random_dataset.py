@@ -4,18 +4,20 @@
 # to show that the gating models do not depend on the
 # content but only on the relations.
 
+import itertools
 import numpy
 from pylearn2.datasets import preprocessing
 from pylearn2.utils import serial
 from pylearn2.datasets import dense_design_matrix
-import itertools
+from pylearn2.utils.rng import make_np_rng
 
 
 class ImagePairs(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, X, y=None):
         super(ImagePairs, self).__init__(X=X, y=y)
 
-if __name__ == '__main__':
+
+def generate(opc):
     # A bigger image is used to avoid empty pixels in the
     # borders.
     dim = 19  # outer square
@@ -25,8 +27,8 @@ if __name__ == '__main__':
     im1 = numpy.zeros((total, reg, reg, 1), dtype='float32')
     im2 = numpy.zeros((total, reg, reg, 1), dtype='float32')
     Y = numpy.zeros((total, 1), dtype='uint8')
-    # Define the desired transformation between views
-    transformation = 'shifts'
+    rng = make_np_rng(9001, [1, 2, 3], which_method="uniform")
+    transformation = opc
 
     if transformation == 'shifts':
         # Shifts
@@ -35,10 +37,10 @@ if __name__ == '__main__':
         shifts = list(itertools.product(range(-3, 4), range(-3, 4)))
         t = 0
         while t < total:
-            x = numpy.random.uniform(0, 1, (dim, dim))
+            x = rng.uniform(0, 1, (dim, dim))
             x = numpy.ceil(x*255)
             im_x = x[3:16, 3:16][:, :, None]
-            ind = numpy.random.randint(0, len(shifts))
+            ind = rng.randint(0, len(shifts))
             Y[t] = ind
             txy = shifts[ind]
             tx, ty = txy
@@ -55,10 +57,10 @@ if __name__ == '__main__':
         angs = numpy.linspace(0, 359, 90)
         t = 0
         while t < total:
-            x = numpy.random.uniform(0, 1, (dim, dim))
+            x = rng.uniform(0, 1, (dim, dim))
             x = numpy.ceil(x*255)
             im_x = x[3:16, 3:16][:, :, None]
-            ind = numpy.random.randint(0, len(angs))
+            ind = rng.randint(0, len(angs))
             Y[t] = ind
             ang = angs[ind]
             y = numpy.asarray(Image.fromarray(x).rotate(ang))
@@ -90,6 +92,10 @@ if __name__ == '__main__':
 
     print "Saving"
     train = ImagePairs(X=X, y=Y)
-    train.use_design_loc('train_desing.npy')
+    train.use_design_loc('train_design.npy')
     serial.save('train_preprocessed.pkl', train)
     print "Done"
+
+if __name__ == '__main__':
+    # Define the desired transformation between views
+    generate('shifts')  # shifts or rotations

@@ -19,8 +19,7 @@ def train_yaml(yaml_file):
 def train(yaml_file_path, save_path, opc):
 
     yaml = open("{0}/gae_random.yaml".format(yaml_file_path), 'r').read()
-    params = {'transformation': opc,
-              'max_epochs': 5,
+    params = {'max_epochs': 3,
               'batch_size': 100,
               'recepF': 13,
               'train_data': 'train_preprocessed.pkl',
@@ -44,7 +43,8 @@ def test_gae(opc):
 
     try:
         os.remove("{0}/gae_169_50.pkl".format(save_path))
-        os.remove("{0}/train_design.pkl".format(save_path))
+        os.remove("{0}/gae_169_50_best.pkl".format(save_path))
+        os.remove("{0}/train_design.npy".format(save_path))
         os.remove("{0}/train_preprocessed.pkl".format(save_path))
     except OSError:
         pass

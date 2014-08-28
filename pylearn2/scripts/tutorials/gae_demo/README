@@ -46,7 +46,4 @@ model was trained with shifts you should see the Fourier components
 learned, and in case of rotations you should see their log-polar version.
 At the moment, the model can only display the correct arrangement
 of filters when the number of factors have an exact square root.
-
-
-
-
+The model also supports color images.
