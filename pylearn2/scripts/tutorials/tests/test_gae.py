@@ -16,7 +16,7 @@ def train_yaml(yaml_file):
     train.main_loop()
 
 
-def train(yaml_file_path, save_path, opc):
+def train(yaml_file_path, save_path):
 
     yaml = open("{0}/gae_random.yaml".format(yaml_file_path), 'r').read()
     params = {'max_epochs': 3,
@@ -33,22 +33,21 @@ def train(yaml_file_path, save_path, opc):
     train_yaml(yaml)
 
 
-def test_gae(opc):
-    generate(opc)
+def test_gae():
+    generate('shifts')
     yaml_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                   '../gae_demo'))
     save_path = os.path.dirname(os.path.realpath(__file__))
 
-    train(yaml_file_path, save_path, opc)
+    train(yaml_file_path, save_path)
 
     try:
-        os.remove("{0}/gae_169_50.pkl".format(save_path))
-        os.remove("{0}/gae_169_50_best.pkl".format(save_path))
-        os.remove("{0}/train_design.npy".format(save_path))
-        os.remove("{0}/train_preprocessed.pkl".format(save_path))
+        os.remove("{}/gae_169_50.pkl".format(save_path))
+        os.remove("{}/gae_169_50_best.pkl".format(save_path))
+        os.remove("{}/train_design.npy".format(save_path))
+        os.remove("{}/train_preprocessed.pkl".format(save_path))
     except OSError:
         pass
 
 if __name__ == '__main__':
-    test_gae('shifts')
-    test_gae('rotations')
+    test_gae()
