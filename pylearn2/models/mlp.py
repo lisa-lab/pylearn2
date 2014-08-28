@@ -2048,23 +2048,16 @@ class Linear(Layer):
     copy_input : REMOVED
     use_abs_loss : bool, optional
         DEPRECATED
-        If True, the cost function will be mean absolute error rather
-        than mean squared error.
-        You can think of mean squared error as fitting a Gaussian
-        distribution with variance 1, or as learning to predict the mean
-        of the data.
-        You can think of mean absolute error as fitting a Laplace
-        distribution with variance 1, or as learning to predict the
-        median of the data.
+        Use loss_function='MAE', instead.
     loss_function: str, optional
-        Possible values: 'MSE', 'MAE', 'LMLS'
-        MSE: the default cost function
-        MAE: You can think of mean squared error as fitting a Gaussian
+        Possible values: 'MSE', 'MAE', 'MLSE'
+        * MSE: Mean Squared Error, the default cost function
+        * MAE: Mean Absolute Error. You can think of mean squared error as fitting a Gaussian
         distribution with variance 1, or as learning to predict the mean
         of the data. You can think of mean absolute error as fitting a Laplace
         distribution with variance 1, or as learning to predict the
         median of the data.
-        LMLS: Robust cost function. Useful in presence of outliers
+        * MLSE: Mean Log Squared Error, a Robust cost function. Useful in presence of outliers
         K. Liano. Robust error measure for supervised neural network learning with outliers. Neural Networks,
         IEEE Transactions on, 7(1):246{250, 1996.
     use_bias : bool, optional
@@ -2097,6 +2090,12 @@ class Linear(Layer):
 
         super(Linear, self).__init__()
 
+        if softmax_columns is None:
+            softmax_columns = False
+        else:
+            warnings.warn("The softmax_columns argument is deprecated, and "
+                          "will be removed on or after 2014-08-27.", stacklevel=2)
+
         if use_bias and init_bias is None:
             init_bias = 0.
 
@@ -2109,9 +2108,6 @@ class Linear(Layer):
         else:
             assert b_lr_scale is None
             init_bias is None
-
-        if loss_function not in ['MSE', 'MAE', 'LMLS']:
-            raise ValueError("the specified loss function is not implemented")
 
         if use_abs_loss:
             warnings.warn("the `use_abs_loss` parameter is deprecated. Use the `loss_function` parameter instead. "
@@ -2278,6 +2274,11 @@ class Linear(Layer):
 
         W = W.get_value()
 
+        if self.softmax_columns:
+            P = np.exp(W)
+            Z = np.exp(W).sum(axis=0)
+            rval = P / Z
+            return rval
         return W
 
     @wraps(Layer.set_weights)
@@ -2458,9 +2459,19 @@ class Linear(Layer):
             state_below = self.input_space.format_as(state_below,
                                                      self.desired_space)
 
-        z = self.transformer.lmul(state_below)
-        if self.use_bias:
-            z += self.b
+        # Support old pickle files
+        if self.softmax_columns:
+            W, = self.transformer.get_params()
+            W = W.T
+            W = T.nnet.softmax(W)
+            W = W.T
+            z = T.dot(state_below, W)
+            if self.use_bias:
+                z += self.b
+        else:
+            z = self.transformer.lmul(state_below)
+            if self.use_bias:
+                z += self.b
 
         if self.layer_name is not None:
             z.name = self.layer_name + '_z'
@@ -2489,8 +2500,10 @@ class Linear(Layer):
             return T.sqr(Y - Y_hat)
         elif self.use_abs_loss or self.loss_function == 'MAE':
             return T.abs_(Y - Y_hat)
-        else:
+        if self.loss_function == 'MLSE':
             return T.log(1+0.5*T.sqr(Y - Y_hat))
+        else:
+            raise ValueError("Loss function '%s' not supported" % self.loss_function)
 
 
 class Tanh(Linear):
