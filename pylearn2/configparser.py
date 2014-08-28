@@ -149,7 +149,7 @@ def AddPylearnConfigVar(name, doc, configparam, root=pylearn2_config, in_c_key=T
     AddConfigVar(name, doc, configparam, root, in_c_key)
 
 
-def SemicolonParam(default, is_valid=None, allow_override=True):
+(default, is_valid=None, allow_override=True):
     return TypedParam(default, str, is_valid, allow_override=allow_override)
 
 PYLEARN2_FLAGS = os.getenv("PYLEARN2_FLAGS", "")
