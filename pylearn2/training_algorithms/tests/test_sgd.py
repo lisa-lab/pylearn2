@@ -16,12 +16,12 @@ from pylearn2.testing.cost import CallbackCost, SumOfParams
 from pylearn2.testing.datasets import ArangeDataset
 from pylearn2.train import Train
 from pylearn2.training_algorithms.sgd import (ExponentialDecay,
-                                              MomentumAdjustor,
                                               PolyakAveraging,
                                               LinearDecay,
                                               LinearDecayOverEpoch,
                                               MonitorBasedLRAdjuster,
                                               SGD)
+from pylearn2.training_algorithms.learning_rule import Momentum
 from pylearn2.utils.iteration import _iteration_schemes
 from pylearn2.utils import safe_izip, safe_union, sharedX
 from pylearn2.utils.exc import reraise_as
@@ -1186,7 +1186,7 @@ def test_determinism_2():
                              model=model,
                              algorithm=algorithm,
                              extensions=[PolyakAveraging(start=0),
-                                         MomentumAdjustor(final_momentum=.9,
+                                         Momentum(final_momentum=.9,
                                                           start=1,
                                                           saturate=5), ],
                              save_freq=0)

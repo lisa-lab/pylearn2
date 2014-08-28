@@ -91,7 +91,7 @@ class Momentum(LearningRule):
     ----------
     init_momentum : float
         Initial value for the momentum coefficient. It remains fixed during
-        training unless used with a `training_algorithms.sgd.MomentumAdjustor`
+        training unless used with a `training_algorithms.learning_rule.Momentum`
         extension.
     """
 
