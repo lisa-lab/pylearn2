@@ -2045,6 +2045,7 @@ class Linear(Layer):
     max_row_norm : WRITEME
     max_col_norm : WRITEME
     min_col_norm : WRITEME
+    softmax_columns : DEPRECATED
     copy_input : REMOVED
     use_abs_loss : bool, optional
         DEPRECATED
@@ -2079,6 +2080,7 @@ class Linear(Layer):
                  max_row_norm=None,
                  max_col_norm=None,
                  min_col_norm=None,
+                 softmax_columns=None,
                  copy_input=None,
                  use_abs_loss=False,
                  loss_function='MSE',
@@ -2460,6 +2462,9 @@ class Linear(Layer):
                                                      self.desired_space)
 
         # Support old pickle files
+        if not hasattr(self, 'softmax_columns'):
+            self.softmax_columns = False
+
         if self.softmax_columns:
             W, = self.transformer.get_params()
             W = W.T
