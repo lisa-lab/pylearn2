@@ -151,4 +151,4 @@ class BinarizedMNIST(DenseDesignMatrix):
         args['stop'] = None
         args['fit_preprocessor'] = args['fit_test_preprocessor']
         args['fit_test_preprocessor'] = None
-        return MNIST(**args)
+        return BinarizedMNIST(**args)
