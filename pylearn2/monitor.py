@@ -11,13 +11,17 @@ __email__ = "pylearn-dev@googlegroups"
 
 import copy, time, warnings, logging
 import numpy as np
+from fnmatch import filter as filter_by_pattern
+import string
 
 from theano.compat.python2x import OrderedDict
 import theano.sparse
 from theano import config
 from theano import tensor as T
 from theano.printing import var_descriptor
+from theano.compat.six.moves import zip as izip
 
+from pylearn2 import pylearn2_config
 from pylearn2.config import yaml_parse
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.space import Space, CompositeSpace, NullSpace
@@ -63,6 +67,7 @@ class Monitor(object):
         self.names_to_del = ['theano_function_mode']
         self.t0 = time.time()
         self.theano_function_mode = None
+        self.log_monitors = []
 
         # Initialize self._nested_data_specs, self._data_specs_mapping,
         # and self._flat_data_specs
@@ -112,6 +117,27 @@ class Monitor(object):
         if self.theano_function_mode != mode:
             self._dirty = True
             self.theano_function_mode = mode
+
+    def set_channels(self, included=None, excluded=None):
+        """
+        Set the monitoring channels to compute and log.
+
+        """
+        channels_include = string.split(pylearn2_config.channels_include, ';')
+        channels_exclude = string.split(pylearn2_config.channels_exclude, ';')
+
+        pattern_groups = [set(channels_include), set(channels_exclude)]
+        channel_groups = [set(), set()]
+        groups = izip(pattern_groups, channel_groups)
+        channels = self.channels.keys()
+        for pattern_group, channel_group in groups:
+            for pattern in pattern_group:
+                channel_group.update(filter_by_pattern(channels, pattern))
+
+        included_channels, excluded_channels = channel_groups
+        channels = list(included_channels - excluded_channels)
+        self.log_monitors = sorted(channels, key=number_aware_alphabetical_key)
+
 
     def add_dataset(self, dataset, mode='sequential', batch_size=None,
                     num_batches=None, seed=None):
@@ -254,8 +280,7 @@ class Monitor(object):
         log.info("\tBatches seen: %d" % self._num_batches_seen)
         log.info("\tExamples seen: %d" % self._examples_seen)
         t = time.time() - self.t0
-        for channel_name in sorted(self.channels.keys(),
-                                   key=number_aware_alphabetical_key):
+        for channel_name in self.log_monitors:
             channel = self.channels[channel_name]
             channel.time_record.append(t)
             channel.batch_record.append(self._num_batches_seen)
@@ -271,6 +296,7 @@ class Monitor(object):
                 val_str = '%.3e' % val
 
             log.info("\t%s: %s" % (channel_name, val_str))
+
 
     def run_prereqs(self, data, dataset):
         """
@@ -694,6 +720,7 @@ class Monitor(object):
         self.channels[name] = MonitorChannel(ipt, val, name, data_specs,
                                              dataset, prereqs)
         self._dirty = True
+        self.log_monitors.append(name)
 
     def _sanity_check(self):
         """

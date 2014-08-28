@@ -128,6 +128,7 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
 
         self.first = True
         self.bSetup = True
+        self.monitor.set_channels()
 
     @functools.wraps(TrainingAlgorithm.train)
     def train(self, dataset):

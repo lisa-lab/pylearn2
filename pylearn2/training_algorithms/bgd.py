@@ -246,6 +246,7 @@ class BGD(TrainingAlgorithm):
 
         self.first = True
         self.bSetup = True
+        self.monitor.set_channels()
 
     def train(self, dataset):
         """
