@@ -8,6 +8,7 @@ from pylearn2.models.vae.visible import BinaryVisible, ContinuousVisible
 from pylearn2.models.vae.latent import DiagonalGaussianPrior
 from pylearn2.space import Conv2DSpace
 from pylearn2.utils.rng import make_np_rng
+from pylearn2.utils import as_floatX
 
 
 def test_one_sample_allowed():
@@ -25,7 +26,7 @@ def test_one_sample_allowed():
     lower_bound = vae.log_likelihood_lower_bound(X, num_samples=10)
     f = theano.function(inputs=[X], outputs=lower_bound)
     rng = make_np_rng(default_seed=11223)
-    f(rng.uniform(size=(10, 10)))
+    f(as_floatX(rng.uniform(size=(10, 10))))
 
 
 def test_multiple_samples_allowed():
@@ -43,7 +44,7 @@ def test_multiple_samples_allowed():
     lower_bound = vae.log_likelihood_lower_bound(X, num_samples=10)
     f = theano.function(inputs=[X], outputs=lower_bound)
     rng = make_np_rng(default_seed=11223)
-    f(rng.uniform(size=(10, 10)))
+    f(as_floatX(rng.uniform(size=(10, 10))))
 
 
 def test_convolutional_compatible():
@@ -72,7 +73,7 @@ def test_convolutional_compatible():
     lower_bound = vae.log_likelihood_lower_bound(X, num_samples=10)
     f = theano.function(inputs=[X], outputs=lower_bound)
     rng = make_np_rng(default_seed=11223)
-    f(rng.uniform(size=(10, 16)))
+    f(as_floatX(rng.uniform(size=(10, 16))))
 
 
 def test_continuous_visible():
@@ -91,7 +92,7 @@ def test_continuous_visible():
     z = vae.sample(num_samples=10, return_sample_means=False)
     f = theano.function(inputs=[X], outputs=[lower_bound, z])
     rng = make_np_rng(default_seed=11223)
-    f(rng.uniform(size=(10, 10)))
+    f(as_floatX(rng.uniform(size=(10, 10))))
 
 
 def test_VAE_cost():
