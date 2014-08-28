@@ -93,15 +93,30 @@ class Momentum(LearningRule):
         Initial value for the momentum coefficient. It remains fixed during
         training unless used with a `training_algorithms.sgd.MomentumAdjustor`
         extension.
+    nesterov_momentum: bool
+        Use the accelerated momentum technique described in:
+        "Advances in Optimizing Recurrent Networks", Yoshua Bengio, et al.
+
     """
 
-    def __init__(self, init_momentum):
+    def __init__(self, init_momentum, nesterov_momentum=False):
         assert init_momentum >= 0.
         assert init_momentum < 1.
         self.momentum = sharedX(init_momentum, 'momentum')
+        self.nesterov_momentum = nesterov_momentum
 
     def add_channels_to_monitor(self, monitor, monitoring_dataset):
-        """Activates monitoring of the momentum."""
+        """
+        Activates monitoring of the momentum.
+
+        Parameters
+        ----------
+        monitor : pylearn2.monitor.Monitor
+            Monitor object, to which the rule should register additional
+            monitoring channels.
+        monitoring_dataset : pylearn2.datasets.dataset.Dataset or dict
+            Dataset instance or dictionary whose values are Dataset objects.
+        """
         monitor.add_channel(
             name='momentum',
             ipt=None,
@@ -112,21 +127,37 @@ class Momentum(LearningRule):
     def get_updates(self, learning_rate, grads, lr_scalers=None):
         """
         Provides the updates for learning with gradient descent + momentum.
+
+        Parameters
+        ----------
+        learning_rate : float
+            Learning rate coefficient.
+        grads : dict
+            A dictionary mapping from the model's parameters to their
+            gradients.
+        lr_scalers : dict
+            A dictionary mapping from the model's parameters to a learning
+            rate multiplier.
         """
 
         updates = OrderedDict()
 
         for (param, grad) in grads.iteritems():
-            inc = sharedX(param.get_value() * 0.)
-            assert param.dtype == inc.dtype
+            vel = sharedX(param.get_value() * 0.)
+            assert param.dtype == vel.dtype
             assert grad.dtype == param.dtype
             if param.name is not None:
-                inc.name = 'inc_' + param.name
-            updated_inc = self.momentum * inc -\
-                learning_rate * lr_scalers.get(param, 1.) * grad
-            assert updated_inc.dtype == inc.dtype
-            updates[inc] = updated_inc
-            updates[param] = param + updated_inc
+                vel.name = 'vel_' + param.name
+
+            scaled_lr = learning_rate * lr_scalers.get(param, 1.)
+            updates[vel] = self.momentum * vel - scaled_lr * grad
+
+            inc = updates[vel]
+            if self.nesterov_momentum:
+                inc = self.momentum * inc - scaled_lr * grad
+
+            assert inc.dtype == vel.dtype
+            updates[param] = param + inc
 
         return updates
 
@@ -155,7 +186,18 @@ class MomentumAdjustor(TrainExtension):
         self._count = 0
 
     def on_monitor(self, model, dataset, algorithm):
-        """Updates the momentum according to the linear schedule."""
+        """
+        Updates the momentum according to the linear schedule.
+
+        Parameters
+        ----------
+        model : pylearn2.models.Model
+            The model to which the training algorithm is applied.
+        dataset : pylearn2.datasets.Dataset
+            The dataset to which the model is applied.
+        algorithm : pylearn2.training_algorithms.TrainingAlgorithm
+            Describes how gradients should be updated.
+        """
         if hasattr(algorithm, 'learning_rule'):
             momentum = algorithm.learning_rule.momentum
         else:
@@ -209,6 +251,14 @@ class AdaDelta(LearningRule):
         .. todo::
 
             WRITEME
+
+        Parameters
+        ----------
+        monitor : pylearn2.monitor.Monitor
+            Monitor object, to which the rule should register additional
+            monitoring channels.
+        monitoring_dataset : pylearn2.datasets.dataset.Dataset or dict
+            Dataset instance or dictionary whose values are Dataset objects.
         """
         # TODO: add channels worth monitoring
         return
@@ -218,6 +268,17 @@ class AdaDelta(LearningRule):
         .. todo::
 
             WRITEME
+
+        Parameters
+        ----------
+        learning_rate : float
+            Learning rate coefficient.
+        grads : dict
+            A dictionary mapping from the model's parameters to their
+            gradients.
+        lr_scalers : dict
+            A dictionary mapping from the model's parameters to a learning
+            rate multiplier.
         """
         updates = OrderedDict()
         for param in grads.keys():
@@ -232,8 +293,10 @@ class AdaDelta(LearningRule):
                 mean_square_dx.name = 'mean_square_dx_' + param.name
 
             # Accumulate gradient
-            new_mean_squared_grad = (self.decay * mean_square_grad +
-                                     (1 - self.decay) * T.sqr(grads[param]))
+            new_mean_squared_grad = (
+                self.decay * mean_square_grad +
+                (1 - self.decay) * T.sqr(grads[param])
+            )
 
             # Compute update
             epsilon = lr_scalers.get(param, 1.) * learning_rate
@@ -242,8 +305,10 @@ class AdaDelta(LearningRule):
             delta_x_t = - rms_dx_tm1 / rms_grad_t * grads[param]
 
             # Accumulate updates
-            new_mean_square_dx = (self.decay * mean_square_dx +
-                                  (1 - self.decay) * T.sqr(delta_x_t))
+            new_mean_square_dx = (
+                self.decay * mean_square_dx +
+                (1 - self.decay) * T.sqr(delta_x_t)
+            )
 
             # Apply update
             updates[mean_square_grad] = new_mean_squared_grad

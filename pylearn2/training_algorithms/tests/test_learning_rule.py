@@ -20,23 +20,25 @@ from pylearn2.utils import sharedX
 from test_sgd import DummyCost, DummyModel
 
 
+# used by all learning rule tests
+scales = [.01, .02, .05, 1., 5.]
+shapes = [(1,), (9,), (8, 7), (6, 5, 4), (3, 2, 2, 2)]
+learning_rate = .001
+
+
 def test_momentum():
     """
     Make sure that learning_rule.Momentum obtains the same parameter values as
     with a hand-crafted sgd w/ momentum implementation, given a dummy model and
     learning rate scaler for each parameter.
     """
+
     # We include a cost other than SumOfParams so that data is actually
     # queried from the training set, and the expected number of updates
     # are applied.
     cost = SumOfCosts([SumOfParams(), (0., DummyCost())])
-
-    scales = [.01, .02, .05, 1., 5.]
-    shapes = [(1,), (9,), (8, 7), (6, 5, 4), (3, 2, 2, 2)]
-
     model = DummyModel(shapes, lr_scalers=scales)
     dataset = ArangeDataset(1)
-    learning_rate = .001
     momentum = 0.5
 
     sgd = SGD(cost=cost,
@@ -53,8 +55,8 @@ def test_momentum():
     sgd.train(dataset=dataset)
 
     assert all(np.allclose(manual_param, sgd_param.get_value())
-               for manual_param, sgd_param in
-               izip(manual, model.get_params()))
+               for manual_param, sgd_param
+               in izip(manual, model.get_params()))
 
     manual = [param - learning_rate * scale + i * momentum
               for param, scale, i in izip(manual, scales, inc)]
@@ -62,8 +64,55 @@ def test_momentum():
     sgd.train(dataset=dataset)
 
     assert all(np.allclose(manual_param, sgd_param.get_value())
-               for manual_param, sgd_param in
-               izip(manual, model.get_params()))
+               for manual_param, sgd_param
+               in izip(manual, model.get_params()))
+
+
+def test_nesterov_momentum():
+    """
+    Make sure that learning_rule.Momentum obtains the same parameter values as
+    with a hand-crafted sgd w/ momentum implementation, given a dummy model and
+    learning rate scaler for each parameter.
+    """
+
+    # We include a cost other than SumOfParams so that data is actually
+    # queried from the training set, and the expected number of updates
+    # are applied.
+    cost = SumOfCosts([SumOfParams(), (0., DummyCost())])
+    model = DummyModel(shapes, lr_scalers=scales)
+    dataset = ArangeDataset(1)
+    momentum = 0.5
+
+    sgd = SGD(cost=cost,
+              learning_rate=learning_rate,
+              learning_rule=Momentum(momentum, nesterov_momentum=True),
+              batch_size=1)
+
+    sgd.setup(model=model, dataset=dataset)
+
+    manual = [param.get_value() for param in model.get_params()]
+    vel = [-learning_rate * scale for scale in scales]
+    updates = [-learning_rate * scale + v * momentum
+               for scale, v in izip(scales, vel)]
+    manual = [param + update for param, update in izip(manual, updates)]
+
+    sgd.train(dataset=dataset)
+
+    assert all(np.allclose(manual_param, sgd_param.get_value())
+               for manual_param, sgd_param
+               in izip(manual, model.get_params()))
+
+    vel = [-learning_rate * scale + i * momentum
+           for scale, i in izip(scales, vel)]
+    updates = [-learning_rate * scale + v * momentum
+               for scale, v in izip(scales, vel)]
+    manual = [param + update for param, update in izip(manual, updates)]
+
+    sgd.train(dataset=dataset)
+
+    assert all(np.allclose(manual_param, sgd_param.get_value())
+               for manual_param, sgd_param
+               in izip(manual, model.get_params()))
 
 
 def test_adadelta():
@@ -80,13 +129,8 @@ def test_adadelta():
     # queried from the training set, and the expected number of updates
     # are applied.
     cost = SumOfCosts([SumOfOneHalfParamsSquared(), (0., DummyCost())])
-
-    scales = [.01, .02, .05, 1., 5.]
-    shapes = [(1,), (9,), (8, 7), (6, 5, 4), (3, 2, 2, 2)]
-
     model = DummyModel(shapes, lr_scalers=scales)
     dataset = ArangeDataset(1)
-    learning_rate = .001
     decay = 0.95
 
     sgd = SGD(cost=cost,
@@ -113,7 +157,7 @@ def test_adadelta():
             pstate['g2'] = decay * pstate['g2'] + (1 - decay) * param_val ** 2
             rms_g_t = np.sqrt(pstate['g2'] + scale * learning_rate)
             rms_dx_tm1 = np.sqrt(pstate['dx2'] + scale * learning_rate)
-            dx_t = - rms_dx_tm1 / rms_g_t * param_val
+            dx_t = -rms_dx_tm1 / rms_g_t * param_val
             pstate['dx2'] = decay * pstate['dx2'] + (1 - decay) * dx_t ** 2
             rval += [param_val + dx_t]
         return rval
@@ -121,8 +165,8 @@ def test_adadelta():
     manual = adadelta_manual(model, state)
     sgd.train(dataset=dataset)
     assert all(np.allclose(manual_param, sgd_param.get_value())
-               for manual_param, sgd_param in
-               izip(manual, model.get_params()))
+               for manual_param, sgd_param
+               in izip(manual, model.get_params()))
 
     manual = adadelta_manual(model, state)
     sgd.train(dataset=dataset)
@@ -182,5 +226,5 @@ def test_rmsprop():
     manual = rmsprop_manual(model, state)
     sgd.train(dataset=dataset)
     assert all(np.allclose(manual_param, sgd_param.get_value())
-               for manual_param, sgd_param in
-               izip(manual, model.get_params()))
+               for manual_param, sgd_param
+               in izip(manual, model.get_params()))

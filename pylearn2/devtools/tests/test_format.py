@@ -13,7 +13,6 @@ from pylearn2.devtools.tests.pep8.pep8 import StyleGuide
 
 whitelist_pep8 = [
     "rbm_tools.py",
-    "training_algorithms/tests/test_learning_rule.py",
     "distributions/mnd.py",
     "models/sparse_autoencoder.py",
     "models/tests/test_dbm.py",
@@ -310,7 +309,6 @@ whitelist_docstrings = [
     'training_algorithms/tests/test_bgd.py',
     'training_algorithms/tests/test_sgd.py',
     'training_algorithms/tests/test_default.py',
-    'training_algorithms/learning_rule.py',
     'training_algorithms/bgd.py',
     'training_algorithms/default.py',
     'training_algorithms/training_algorithm.py',
