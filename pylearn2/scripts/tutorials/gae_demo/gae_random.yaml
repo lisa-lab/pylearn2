@@ -41,10 +41,10 @@
         },
         !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
              channel_name: 'train_objective',
-             save_path: "gae_%(nfac)s_%(nmap)s_best.pkl"
+             save_path: "%(save_path)s/gae_%(nfac)s_%(nmap)s_best.pkl"
         }
     ],
     allow_overwrite: True,
-    save_path: "gae_%(nfac)s_%(nmap)s.pkl",
+    save_path: "%(save_path)s/gae_%(nfac)s_%(nmap)s.pkl",
     save_freq : 10
 }

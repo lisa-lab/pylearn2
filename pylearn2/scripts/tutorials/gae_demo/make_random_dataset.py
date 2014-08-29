@@ -92,8 +92,10 @@ def generate(opc):
 
     print "Saving"
     train = ImagePairs(X=X, y=Y)
-    train.use_design_loc('train_design.npy')
-    serial.save('train_preprocessed.pkl', train)
+    import os
+    save_path = os.path.dirname(os.path.realpath(__file__))
+    train.use_design_loc(os.path.join(save_path, 'train_design.npy'))
+    serial.save(os.path.join(save_path, 'train_preprocessed.pkl'), train)
     print "Done"
 
 if __name__ == '__main__':

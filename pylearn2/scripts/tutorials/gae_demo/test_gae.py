@@ -19,10 +19,12 @@ def train_yaml(yaml_file):
 def train(yaml_file_path, save_path):
 
     yaml = open("{0}/gae_random.yaml".format(yaml_file_path), 'r').read()
-    params = {'max_epochs': 3,
+    data = os.path.join(save_path, 'train_preprocessed.pkl')
+    params = {'save_path': save_path,
+              'max_epochs': 3,
               'batch_size': 100,
               'recepF': 13,
-              'train_data': 'train_preprocessed.pkl',
+              'train_data': data,
               'nvisX': 169,
               'nvisY': 169,
               'nfac': 169,
@@ -47,7 +49,7 @@ def test_gae():
         os.remove("{0}/train_design.npy".format(save_path))
         os.remove("{0}/train_preprocessed.pkl".format(save_path))
     except OSError:
-        pass
+        print "F not found"
 
 if __name__ == '__main__':
     test_gae()
