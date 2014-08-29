@@ -29,7 +29,7 @@ class SymmetricMSRE(SymmetricCost):
 class NormalizedSymmetricMSRE(SymmetricCost):
     """
     Do not use this function to train, only to monitor the
-    percentage of reconstruction achieved when training on
+    average percentage of reconstruction achieved when training on
     real valued data.
     """
     @staticmethod
