@@ -63,7 +63,9 @@ class GatedAutoencoder(Block, Model):
     """
     def __init__(self, nvisX, nvisY, nmap, recepF, act_enc,
                  act_dec, color=True, irange=1e-3, rng=9001):
-        super(GatedAutoencoder, self).__init__()
+        # super(GatedAutoencoder, self).__init__()
+        Block.__init__(self)
+        Model.__init__(self)
         assert nvisX > 0, "Number of visible units must be non-negative"
         assert nvisY > 0, "Number of visible units must be non-negative"
         assert nmap > 0, "Number of mapping units must be positive"
