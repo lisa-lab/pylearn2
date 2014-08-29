@@ -6,7 +6,7 @@ import os
 
 from pylearn2.testing import no_debug_mode
 from pylearn2.config import yaml_parse
-from pylearn2.scripts.tutorials.gae_demo.make_random_dataset import generate
+from make_random_dataset import generate
 
 
 @no_debug_mode
@@ -42,10 +42,10 @@ def test_gae():
     train(yaml_file_path, save_path)
 
     try:
-        os.remove("{}/gae_169_50.pkl".format(save_path))
-        os.remove("{}/gae_169_50_best.pkl".format(save_path))
-        os.remove("{}/train_design.npy".format(save_path))
-        os.remove("{}/train_preprocessed.pkl".format(save_path))
+        os.remove("{0}/gae_169_50.pkl".format(save_path))
+        os.remove("{0}/gae_169_50_best.pkl".format(save_path))
+        os.remove("{0}/train_design.npy".format(save_path))
+        os.remove("{0}/train_preprocessed.pkl".format(save_path))
     except OSError:
         pass
 
