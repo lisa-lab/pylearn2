@@ -69,6 +69,7 @@ class GatedAutoencoder(Block, Model):
         assert nvisX > 0, "Number of visible units must be non-negative"
         assert nvisY > 0, "Number of visible units must be non-negative"
         assert nmap > 0, "Number of mapping units must be positive"
+        assert len(recepF) == 2, "Size of the window must be 2-dim"
 
         self.input_space = VectorSpace((nvisX + nvisY))
         self.output_space = VectorSpace(nmap)
