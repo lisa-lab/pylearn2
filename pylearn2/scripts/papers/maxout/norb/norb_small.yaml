@@ -5,25 +5,28 @@
       axes: ['c', 0, 1, 'b']
     },
     model: !obj:pylearn2.models.mlp.MLP {
-        batch_size: 42, # cuda-convnet only optimized for multiples of 128. See: http://deeplearning.net/software/pylearn2/library/alex.html
+        batch_size: 10, # cuda-convnet only optimized for multiples of 128. See: http://deeplearning.net/software/pylearn2/library/alex.html
         #42,  # norb image vectors are 3x the size cifar ones. Batch size was 128 for cifar, so we use 128/3 = 42 1/3 ~= 42
         layers: [# Input: 96 x 96 x 1        
                  !obj:pylearn2.models.maxout.MaxoutConvC01B {
                      layer_name: 'h0',
-                     pad: 3, #4, # this should be half of the kernel size
+                     pad: 0, #3, #4, # this should be half of the kernel size
                      tied_b: 1,
                      W_lr_scale: .05,
                      b_lr_scale: .05,
                      num_channels: 96, #192, #96,
-                     num_pieces: 2,
-                     kernel_shape: [6, 6], # [8, 8],
-                     pool_shape: [24, 24],  # [12, 12]. was [4, 4] for cifar 10, but NORB images are 3x as tall and wide.
-                     pool_stride: [6, 6],  # was [2, 2] for cifar10, but NORB images are 3x as tall and wide.
+                     num_pieces: 1,
+                     min_zero: True,
+                     kernel_shape: [8, 8], #[6, 6], # [8, 8],
+                     kernel_stride: [2, 2], 
+                     pool_shape: [4, 4], #[12, 12], #[24, 24],  # [12, 12]. was [4, 4] for cifar 10, but NORB images are 3x as tall and wide.
+                     pool_stride: [2, 2],  # was [2, 2] for cifar10, but NORB images are 3x as tall and wide.
                      irange: &common_irange .05,  # .005, .01
                      max_kernel_norm: .9,
-                     partial_sum: 97,  # was 33 for cifar10. Seems to be (image_height or image_width) + 1.
+                     # partial_sum: 97,  # was 33 for cifar10. Seems to be (image
+#                     _height or image_width) + 1.
                  },
-                 # Input: 14 x 14 x 96
+                 # Input: 22 x 22 x 96
                  !obj:pylearn2.models.maxout.MaxoutConvC01B {
                      layer_name: 'h1',
                      pad: 3,  # weird that this is 3, not kernel_shape/2
@@ -31,15 +34,16 @@
                      W_lr_scale: .05,
                      b_lr_scale: .05,
                      num_channels: 192, #384, #192,
-                     num_pieces: 2,
+                     num_pieces: 1,
+                     min_zero: True,
                      kernel_shape: [6, 6], # [8, 8]
-                     pool_shape: [8, 8], # [4, 4],
+                     pool_shape: [4, 4], #[8, 8], # [4, 4],
                      pool_stride: [2, 2],
                      irange: *common_irange,
                      max_kernel_norm: 1.9365,
-                     partial_sum: 15, #17, # 15
+                     # partial_sum: 23, #17, # 15
                  },
-                 # Input: 5 x 5 x 192
+                 # Input: 11 x 11 x 192
                  !obj:pylearn2.models.maxout.MaxoutConvC01B {
                      pad: 3,
                      layer_name: 'h2',
@@ -47,8 +51,25 @@
                      W_lr_scale: .05,
                      b_lr_scale: .05,
                      num_channels: 192, #384, #192,  #when we use a bigger value here, we may want to specify partial_sum, to be more memory efficient
-                     num_pieces: 2,
-                     kernel_shape: [5, 5],
+                     num_pieces: 1,
+                     min_zero: True,
+                     kernel_shape: [6, 6], #[5, 5],
+                     pool_shape: [4, 4],#[2, 2],
+                     pool_stride: [2, 2],
+                     irange: *common_irange,
+                     max_kernel_norm: 1.9365,
+                 },
+                 # Input: 5 x 5 x 192
+                 !obj:pylearn2.models.maxout.MaxoutConvC01B {
+                     pad: 2,
+                     layer_name: 'h3',
+                     tied_b: 1,
+                     W_lr_scale: .05,
+                     b_lr_scale: .05,
+                     num_channels: 192, #384, #192,  #when we use a bigger value here, we may want to specify partial_sum, to be more memory efficient
+                     num_pieces: 1,
+                     min_zero: True,
+                     kernel_shape: [5, 5], #[6, 6], #[5, 5],
                      pool_shape: [4, 4],#[2, 2],
                      pool_stride: [2, 2],
                      irange: *common_irange,
@@ -56,10 +77,11 @@
                  },
                  # Input: 3x3x192
                  !obj:pylearn2.models.maxout.Maxout {
-                    layer_name: 'h3',
+                    layer_name: 'h4',
                     irange: *common_irange,
                     num_units: 500, #2500, #500,
-                    num_pieces: 5,
+                    num_pieces: 1,
+                    min_zero: True, 
                     max_col_norm: 1.9
                  },
                  # Input: 500
