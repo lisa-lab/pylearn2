@@ -3,10 +3,10 @@ import numpy as np
 
 import theano.tensor as T
 from theano.tests import disturb_mem
+from theano.tests.record import Record, RecordMode
 import warnings
 
 from pylearn2.costs.cost import Cost, SumOfCosts, DefaultDataSpecsMixin
-from pylearn2.devtools.record import Record, RecordMode
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.models.model import Model
 from pylearn2.monitor import Monitor
@@ -21,7 +21,8 @@ from pylearn2.training_algorithms.sgd import (ExponentialDecay,
                                               LinearDecayOverEpoch,
                                               MonitorBasedLRAdjuster,
                                               SGD)
-from pylearn2.training_algorithms.learning_rule import Momentum
+from pylearn2.training_algorithms.learning_rule import (Momentum,
+                                              MomentumAdjustor)
 from pylearn2.utils.iteration import _iteration_schemes
 from pylearn2.utils import safe_izip, safe_union, sharedX
 from pylearn2.utils.exc import reraise_as
@@ -1172,7 +1173,7 @@ def test_determinism_2():
                              model=model,
                              algorithm=algorithm,
                              extensions=[PolyakAveraging(start=0),
-                                         Momentum(final_momentum=.9,
+                                         MomentumAdjustor(final_momentum=.9,
                                                           start=1,
                                                           saturate=5), ],
                              save_freq=0)
