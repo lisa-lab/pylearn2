@@ -154,7 +154,6 @@ def test_sgd_unspec_num_mon_batch():
                     monitoring_dataset=dataset,
                     termination_criterion=None,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     algorithm.setup(dataset=dataset, model=model)
@@ -232,7 +231,6 @@ def test_sgd_sup():
                     monitoring_dataset=monitoring_dataset,
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     train = Train(dataset,
@@ -285,7 +283,6 @@ def test_sgd_unsup():
                     monitoring_dataset=monitoring_dataset,
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     train = Train(dataset,
@@ -371,7 +368,6 @@ def test_linear_decay():
                     monitoring_dataset=monitoring_dataset,
                     termination_criterion=termination_criterion,
                     update_callbacks=[linear_decay, lr_tracker],
-                    init_momentum=None,
                     set_batch_size=False)
 
     train = Train(dataset,
@@ -445,7 +441,6 @@ def test_linear_decay_over_epoch():
                     monitoring_dataset=monitoring_dataset,
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     start = 5
@@ -535,7 +530,6 @@ def test_monitor_based_lr():
                         monitoring_dataset=monitoring_dataset,
                         termination_criterion=termination_criterion,
                         update_callbacks=None,
-                        init_momentum=None,
                         set_batch_size=False)
 
         monitor_lr = MonitorBasedLRAdjuster(high_trigger=high_trigger,
@@ -604,7 +598,6 @@ def test_bad_monitoring_input_in_monitor_based_lr():
                     monitoring_dataset=monitoring_dataset,
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     # testing for bad dataset_name input
@@ -690,7 +683,6 @@ def testing_multiple_datasets_in_monitor_based_lr():
                                         'test': monitoring_test},
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     monitor_lr = MonitorBasedLRAdjuster()
@@ -755,7 +747,6 @@ def testing_multiple_datasets_with_specified_dataset_in_monitor_based_lr():
                     monitoring_dataset=monitoring_dataset,
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     dataset_name = monitoring_dataset.keys()[0]
@@ -809,7 +800,6 @@ def test_sgd_topo():
                     monitoring_dataset=monitoring_dataset,
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     train = Train(dataset,
@@ -867,7 +857,6 @@ def test_sgd_no_mon():
                     monitoring_dataset=None,
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     train = Train(dataset,
@@ -922,7 +911,6 @@ def test_reject_mon_batch_without_mon():
                         monitoring_batches=3,
                         monitoring_dataset=None,
                         update_callbacks=None,
-                        init_momentum=None,
                         set_batch_size=False)
     except ValueError:
         return
@@ -971,7 +959,6 @@ def test_sgd_sequential():
                     monitoring_dataset=None,
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     algorithm.setup(dataset=dataset, model=model)
@@ -1026,7 +1013,6 @@ def test_determinism():
                             monitoring_dataset=None,
                             termination_criterion=termination_criterion,
                             update_callbacks=None,
-                            init_momentum=None,
                             set_batch_size=False)
 
             algorithm.setup(dataset=dataset, model=model)
@@ -1173,8 +1159,8 @@ def test_determinism_2():
 
         algorithm = SGD(cost=cost,
                         batch_size=batch_size,
-                        init_momentum=.5,
                         learning_rate=1e-3,
+                        learning_rule=Momentum(init_momentum=.5),
                         monitoring_dataset={'train': train, 'valid': valid},
                         update_callbacks=[ExponentialDecay(decay_factor=2.,
                                                            min_lr=.0001)],
@@ -1240,7 +1226,6 @@ def test_lr_scalers():
 
     sgd = SGD(cost=cost,
               learning_rate=learning_rate,
-              init_momentum=0.,
               batch_size=1)
 
     sgd.setup(model=model, dataset=dataset)
@@ -1286,7 +1271,7 @@ def test_lr_scalers_momentum():
 
     sgd = SGD(cost=cost,
               learning_rate=learning_rate,
-              init_momentum=momentum,
+              learning_rule=Momentum(init_momentum=momentum),
               batch_size=1)
 
     sgd.setup(model=model, dataset=dataset)
