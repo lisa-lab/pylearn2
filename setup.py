@@ -55,7 +55,7 @@ class pylearn2_install(install):
         mode = None
         while mode not in ['', 'install', 'develop', 'cancel']:
             if mode is not None:
-                print "Please try again"
+                print("Please try again")
             mode = raw_input("Installation mode: [develop]/install/cancel: ")
         if mode in ['', 'develop']:
             self.distribution.run_command('develop')
