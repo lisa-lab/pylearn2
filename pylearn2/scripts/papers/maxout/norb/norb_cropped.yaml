@@ -1,0 +1,177 @@
+!obj:pylearn2.train.Train {
+    dataset: &train !obj:pylearn2.scripts.papers.maxout.norb.load_norb_instance_dataset {
+      dataset_path: "${PYLEARN2_DATA_PATH}/norb/instance_recognition/left_02_01/lcn-7-cropped96_train.pkl",
+      label_format: "obj_onehot",
+      axes: ['c', 0, 1, 'b']
+    },
+    model: !obj:pylearn2.models.mlp.MLP {
+        batch_size: 10, # cuda-convnet only optimized for multiples of 128. See: http://deeplearning.net/software/pylearn2/library/alex.html
+        #42,  # norb image vectors are 3x the size cifar ones. Batch size was 128 for cifar, so we use 128/3 = 42 1/3 ~= 42
+        layers: [# Input: 96 x 96 x 1        
+                 !obj:pylearn2.models.maxout.MaxoutConvC01B {
+                     layer_name: 'h0',
+                     pad: 0, #3, #4, # this should be half of the kernel size
+                     tied_b: 1,
+                     W_lr_scale: .05,
+                     b_lr_scale: .05,
+                     num_channels: 96, #192, #96,
+                     num_pieces: 1,
+                     min_zero: True,
+                     kernel_shape: [8, 8], #[6, 6], # [8, 8],
+                     kernel_stride: [2, 2], 
+                     pool_shape: [4, 4], #[12, 12], #[24, 24],  # [12, 12]. was [4, 4] for cifar 10, but NORB images are 3x as tall and wide.
+                     pool_stride: [2, 2],  # was [2, 2] for cifar10, but NORB images are 3x as tall and wide.
+                     irange: &common_irange .05,  # .005, .01
+                     max_kernel_norm: .9,
+                     # partial_sum: 97,  # was 33 for cifar10. Seems to be (image
+#                     _height or image_width) + 1.
+                 },
+                 # Input: 22 x 22 x 96
+                 !obj:pylearn2.models.maxout.MaxoutConvC01B {
+                     layer_name: 'h1',
+                     pad: 3,  # weird that this is 3, not kernel_shape/2
+                     tied_b: 1,
+                     W_lr_scale: .05,
+                     b_lr_scale: .05,
+                     num_channels: 192, #384, #192,
+                     num_pieces: 1,
+                     min_zero: True,
+                     kernel_shape: [6, 6], # [8, 8]
+                     pool_shape: [4, 4], #[8, 8], # [4, 4],
+                     pool_stride: [2, 2],
+                     irange: *common_irange,
+                     max_kernel_norm: 1.9365,
+                     # partial_sum: 23, #17, # 15
+                 },
+                 # Input: 11 x 11 x 192
+                 !obj:pylearn2.models.maxout.MaxoutConvC01B {
+                     pad: 3,
+                     layer_name: 'h2',
+                     tied_b: 1,
+                     W_lr_scale: .05,
+                     b_lr_scale: .05,
+                     num_channels: 192, #384, #192,  #when we use a bigger value here, we may want to specify partial_sum, to be more memory efficient
+                     num_pieces: 1,
+                     min_zero: True,
+                     kernel_shape: [6, 6], #[5, 5],
+                     pool_shape: [4, 4],#[2, 2],
+                     pool_stride: [2, 2],
+                     irange: *common_irange,
+                     max_kernel_norm: 1.9365,
+                 },
+                 # Input: 5 x 5 x 192
+                 !obj:pylearn2.models.maxout.MaxoutConvC01B {
+                     pad: 2,
+                     layer_name: 'h3',
+                     tied_b: 1,
+                     W_lr_scale: .05,
+                     b_lr_scale: .05,
+                     num_channels: 192, #384, #192,  #when we use a bigger value here, we may want to specify partial_sum, to be more memory efficient
+                     num_pieces: 1,
+                     min_zero: True,
+                     kernel_shape: [5, 5], #[6, 6], #[5, 5],
+                     pool_shape: [4, 4],#[2, 2],
+                     pool_stride: [2, 2],
+                     irange: *common_irange,
+                     max_kernel_norm: 1.9365,
+                 },
+                 # Input: 3x3x192
+                 !obj:pylearn2.models.maxout.Maxout {
+                    layer_name: 'h4',
+                    irange: *common_irange,
+                    num_units: 500, #2500, #500,
+                    num_pieces: 1,
+                    min_zero: True, 
+                    max_col_norm: 1.9
+                 },
+                 # Input: 500
+                 !obj:pylearn2.models.mlp.Softmax {
+                     max_col_norm: 1.9365,
+                     layer_name: 'y',
+                     n_classes: 50,
+                     irange: *common_irange
+                 }
+                 # Output: 50
+                ],
+        input_space: !obj:pylearn2.space.Conv2DSpace {
+            shape: &window_shape [96, 96],
+            num_channels: 1,
+            axes: ['c', 0, 1, 'b'],
+        },
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        learning_rate: .04, #.17, #.01, # .04, #.08, #.17, #.08,  # .17
+        init_momentum: .5,
+        train_iteration_mode: 'even_sequential',
+        monitor_iteration_mode: 'even_sequential',
+        monitoring_dataset:
+        {
+        # this feels cheaty: using the test set as validation. maxout's cifar10.yaml does it, but the real thing to do is probably split the test set into two, and use one for validation and the other for testing?
+          'valid' : !obj:pylearn2.scripts.papers.maxout.norb.load_norb_instance_dataset {
+            dataset_path: "${PYLEARN2_DATA_PATH}/norb/instance_recognition/left_02_01/lcn-7-cropped96_test.pkl",
+            label_format: "obj_onehot",
+            axes: ['c', 0, 1, 'b']
+            },
+          'test' : &valid !obj:pylearn2.scripts.papers.maxout.norb.load_norb_instance_dataset {
+            dataset_path: "${PYLEARN2_DATA_PATH}/norb/instance_recognition/left_02_01/lcn-7-cropped96_test.pkl",
+            label_format: "obj_onehot",
+            axes: ['c', 0, 1, 'b']
+            },
+        },
+
+        # monitoring_dataset:
+        #     {
+        #         'test' : &valid !obj:pylearn2.datasets.zca_dataset.ZCA_Dataset {
+        # preprocessed_dataset: !pkl: "${PYLEARN2_DATA_PATH}/norb_small/instance_recognition/small_norb_02_00_test.pkl",
+        # preprocessor: !pkl: "${PYLEARN2_DATA_PATH}/norb_small/instance_recognition/small_norb_02_00_preprocessor.pkl",
+        # axes: ['c', 0, 1, 'b']
+        #                   },
+        #     },
+        cost: !obj:pylearn2.costs.mlp.dropout.Dropout {
+            input_include_probs: { 'h0' : .8 },
+            input_scales: { 'h0' : 1. }
+        },
+        termination_criterion: !obj:pylearn2.termination_criteria.And {
+            criteria: [
+                !obj:pylearn2.termination_criteria.MonitorBased {
+                    channel_name: "valid_y_misclass",
+                    prop_decrease: 0.01, # 0.,
+                    N: 20 # 100
+                },
+                !obj:pylearn2.termination_criteria.EpochCounter {
+                    max_epochs: &max_num_epochs 300 # 474, 100
+                }
+            ]
+        },
+    },
+    extensions: [
+        !obj:pylearn2.training_algorithms.sgd.MomentumAdjustor {
+            start: 1,
+            saturate: 50, #*max_num_epochs, # 250,
+            final_momentum: .65
+        },
+        !obj:pylearn2.training_algorithms.sgd.LinearDecayOverEpoch {
+            start: 1,  # start decaying on this epoch
+            saturate: *max_num_epochs, # 500,
+            decay_factor: .01  # final learning rate = initial rate times this.
+        },
+        # !obj:pylearn2.train_extensions.window_flip.WindowAndFlipC01B {
+        #     pad_randomized: 8,
+        #     window_shape: *window_shape,
+        #     randomize: [ *train],
+        #     center: [ *valid ]
+        # },
+        !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
+            channel_name: 'valid_y_misclass',
+            save_path: 'norb_maxout_experiments/${PYLEARN2_TRAIN_FILE_FULL_STEM}_best.pkl'
+        }
+        # ,
+        # !obj:pylearn2.train_extensions.EpochLogger {
+        #   output_dir : "epoch_snapshots",
+        #   save_models : False,
+        #   save_images : True
+        # }
+    ],
+    save_path: "norb_maxout_experiments/${PYLEARN2_TRAIN_FILE_FULL_STEM}.pkl",
+    save_freq: 1
+}
