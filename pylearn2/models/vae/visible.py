@@ -69,6 +69,30 @@ class Visible(object):
         """
         pass
 
+    def get_vae(self):
+        """
+        Returns the VAE that this `Visible` instance belongs to, or None
+        if it has not been assigned to a VAE yet.
+        """
+        if hasattr(self, 'vae'):
+            return self.vae
+        else:
+            return None
+
+    def set_vae(self, vae):
+        """
+        Assigns this `Visible` instance to a VAE.
+
+        Parameters
+        ----------
+        vae : pylearn2.models.vae.VAE
+            VAE to assign to
+        """
+        if self.get_vae() is not None:
+            raise RuntimeError("this `Visible` instance already belongs to "
+                               "another VAE")
+        self.vae = vae
+
     def initialize_parameters(self, decoder_input_space, nvis):
         """
         Initialize model parameters.

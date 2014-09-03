@@ -64,6 +64,9 @@ class VAE(Model):
         self.__dict__.update(locals())
         del self.self
 
+        self.visible.set_vae(self)
+        self.latent.set_vae(self)
+
         if self.data_mean is not None:
             self.data_mean = sharedX(self.data_mean)
         if self.data_std is not None:
