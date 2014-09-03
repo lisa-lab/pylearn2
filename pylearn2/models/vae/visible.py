@@ -19,8 +19,8 @@ __email__ = "pylearn-dev@googlegroups"
 import numpy
 import theano
 import theano.tensor as T
-from pylearn2.expr.nnet import inverse_sigmoid_numpy
-from pylearn2.space import VectorSpace
+from theano.compat.python2x import OrderedDict
+from pylearn2.space import VectorSpace, NullSpace
 from pylearn2.utils.rng import make_theano_rng
 from pylearn2.utils import wraps, sharedX
 
@@ -42,6 +42,32 @@ class Visible(object):
     def __init__(self, decoding_model):
         self.decoding_model = decoding_model
         self.ndec = decoding_model.get_output_space().get_total_dimension()
+
+    def get_monitoring_data_specs(self):
+        """
+        Get the data_specs describing the data for get_monitoring_channels.
+
+        By default, nothing is requested for computing monitoring channels.
+        """
+        return (NullSpace(), '')
+
+    def get_monitoring_channels(self, data):
+        """
+        Get monitoring channels for this visible component.
+
+        By default, no monitoring channel is computed.
+        """
+        space, source = self.get_monitoring_data_specs()
+        space.validate(data)
+        return OrderedDict()
+
+    def modify_updates(self, updates):
+        """
+        Modifies the parameters before a learning update is applied.
+
+        By default, does nothing.
+        """
+        pass
 
     def initialize_parameters(self, decoder_input_space, nvis):
         """

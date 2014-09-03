@@ -20,9 +20,10 @@ __email__ = "pylearn-dev@googlegroups"
 
 import numpy
 import theano.tensor as T
+from theano.compat.python2x import OrderedDict
 from pylearn2.models.model import Model
-from pylearn2.space import VectorSpace
-from pylearn2.utils import wraps, sharedX
+from pylearn2.space import CompositeSpace, VectorSpace
+from pylearn2.utils import wraps, sharedX, safe_update
 from pylearn2.utils.rng import make_theano_rng
 
 theano_rng = make_theano_rng(default_seed=2341)
@@ -85,6 +86,35 @@ class VAE(Model):
         self._encoding_params = self.latent.get_params()
         self._decoding_params = self.visible.get_params()
         self._params = self._encoding_params + self._decoding_params
+
+    @wraps(Model.get_monitoring_data_specs)
+    def get_monitoring_data_specs(self):
+        vspace, vsource = self.visible.get_monitoring_data_specs()
+        lspace, lsource = self.latent.get_monitoring_data_specs()
+        return CompositeSpace([vspace, lspace]), (vsource, lsource)
+
+    @wraps(Model.get_monitoring_channels)
+    def get_monitoring_channels(self, data):
+        space, source = self.get_monitoring_data_specs()
+        space.validate(data)
+        vdata, ldata = data
+        vchannels = self.visible.get_monitoring_channels(vdata)
+        lchannels = self.latent.get_monitoring_channels(ldata)
+        rval = OrderedDict()
+        safe_update(rval, vchannels)
+        safe_update(rval, lchannels)
+        return rval
+
+    @wraps(Model._modify_updates)
+    def _modify_updates(self, updates):
+        self.visible.modify_updates(updates)
+        self.latent.modify_updates(updates)
+
+    @wraps(Model.get_weights)
+    def get_weights(self):
+        # TODO: This choice is arbitrary. It's something that's useful to
+        # visualize, but is it the most intuitive choice?
+        return self.visible.get_weights()
 
     def get_decoding_params(self):
         """
@@ -276,9 +306,3 @@ class VAE(Model):
             log_p_z + log_p_x_z - log_q_z_x,
             axis=0
         ) - T.log(num_samples)
-
-    @wraps(Model.get_weights)
-    def get_weights(self):
-        # TODO: This choice is arbitrary. It's something that's useful to
-        # visualize, but is it the most intuitive choice?
-        return self.visible.get_weights()
