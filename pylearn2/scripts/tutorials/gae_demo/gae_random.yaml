@@ -1,6 +1,6 @@
 !obj:pylearn2.train.Train {
     dataset: &train !pkl: "%(train_data)s",
-    model: !obj:pylearn2.models.gatedautoencoder.FactoredGatedAutoencoder {
+    model: !obj:pylearn2.models.gated_autoencoder.FactoredGatedAutoencoder {
         nvisX : %(nvisX)i,
         nvisY : %(nvisY)i,
         nfac : %(nfac)i,
@@ -13,7 +13,7 @@
     },
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
         learning_rate : %(lr)f,
-        cost : !obj:pylearn2.costs.gatedautoencoder.SymmetricMSRE {},
+        cost : !obj:pylearn2.costs.gated_autoencoder.SymmetricMSRE {},
         batch_size : %(batch_size)i,
         termination_criterion: !obj:pylearn2.termination_criteria.And {
             criteria: [
@@ -30,7 +30,7 @@
             init_momentum: 0.5
         },
         monitoring_costs : {
-            'Normalized' : !obj:pylearn2.costs.gatedautoencoder.NormalizedSymmetricMSRE {},
+            'Normalized' : !obj:pylearn2.costs.gated_autoencoder.NormalizedSymmetricMSRE {},
         },
     },
     extensions: [

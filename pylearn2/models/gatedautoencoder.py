@@ -23,8 +23,8 @@ from pylearn2.utils.rng import make_np_rng, make_theano_rng
 from pylearn2.models import Model
 from pylearn2.blocks import Block
 from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
-
-SMALL = 0.000001
+from pylearn2.utils import is_iterable
+from pylearn2.utils import wraps
 
 
 class GatedAutoencoder(Block, Model):
@@ -69,6 +69,7 @@ class GatedAutoencoder(Block, Model):
         assert nvisX > 0, "Number of visible units must be non-negative"
         assert nvisY > 0, "Number of visible units must be non-negative"
         assert nmap > 0, "Number of mapping units must be positive"
+        assert is_iterable(recepF), "recepF must be iterable"
         assert len(recepF) == 2, "Size of the window must be 2-dim"
 
         self.input_space = VectorSpace((nvisX + nvisY))
@@ -93,11 +94,6 @@ class GatedAutoencoder(Block, Model):
         self.s_rng = make_theano_rng(seed, which_method="uniform")
 
         def _resolve_callable(conf, conf_attr):
-            """
-            .. todo::
-
-                WRITEME
-            """
             if conf[conf_attr] is None or conf[conf_attr] == "linear":
                 return None
             # If it's a callable, use it directly.
@@ -119,9 +115,7 @@ class GatedAutoencoder(Block, Model):
 
     def _initialize_mapbias(self):
         """
-        .. todo::
-
-            WRITEME
+        Initialize the biases of the mapping units.
         """
         self.mapbias = sharedX(
             numpy.zeros(self.nmap),
@@ -131,9 +125,7 @@ class GatedAutoencoder(Block, Model):
 
     def _initialize_visbiasX(self, nvisX):
         """
-        .. todo::
-
-            WRITEME
+        Initialize the biases of the first set of visible units.
         """
         self.visbiasX = sharedX(
             numpy.zeros(nvisX),
@@ -143,9 +135,7 @@ class GatedAutoencoder(Block, Model):
 
     def _initialize_visbiasY(self, nvisY):
         """
-        .. todo::
-
-            WRITEME
+        Initialize the biases of the second set of visible units.
         """
         self.visbiasY = sharedX(
             numpy.zeros(nvisY),
@@ -163,8 +153,34 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
 
     Parameters
     ----------
+    nvisX : int
+        Number of visible units in the first image.
+    nvisY : int
+        Number of visible units in the second image.
     nfac : int
         Number of factors used to project the images.
+    nmap : int
+        Number of mappings units.
+    recepF: tuple
+        Size of the receptive field of the images.
+    color : bool
+        If the images are grayscale or color
+    act_enc : callable or string
+        Activation function (elementwise nonlinearity) to use for the
+        encoder. Strings (e.g. 'tanh' or 'sigmoid') will be looked up as
+        functions in `theano.tensor.nnet` and `theano.tensor`. Use `None`
+        for linear units.
+    act_dec : callable or string
+        Activation function (elementwise nonlinearity) to use for the
+        decoder. Strings (e.g. 'tanh' or 'sigmoid') will be looked up as
+        functions in `theano.tensor.nnet` and `theano.tensor`. Use `None`
+        for linear units.
+    irange : float, optional
+        Width of the initial range around 0 from which to sample initial
+        values for the weights.
+    rng : RandomState object or seed, optional
+        NumPy random number generator object (or seed to create one) used
+        to initialize the model parameters.
     """
 
     def __init__(self, nvisX, nvisY, nfac, nmap, recepF, act_enc,
@@ -317,6 +333,12 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
     def reconstructX(self, inputs):
         """
         Reconstruction of input x.
+
+        Parameters
+        ----------
+        inputs : tensor_like
+            Theano symbolic (or list thereof) representing the input
+            minibatch(es) to be encoded
         """
         if self.act_dec is None:
             act_dec = lambda x: x
@@ -327,6 +349,12 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
     def reconstructY(self, inputs):
         """
         Reconstruction of input y.
+
+        Parameters
+        ----------
+        inputs : tensor_like
+            Theano symbolic (or list thereof) representing the input
+            minibatch(es) to be encoded
         """
         if self.act_dec is None:
             act_dec = lambda x: x
@@ -335,6 +363,17 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
         return act_dec(self.decodeY(inputs))
 
     def reconstructXY(self, inputs):
+        """
+        Reconstruction of both images.
+
+        Parameters
+        ----------
+        inputs : tensor_like
+            Theano symbolic (or list thereof) representing the input
+            minibatch(es) to be encoded. Assumed to be 2-tensors, with the
+            first dimension indexing training examples and the second
+            indexing the two data dimensions (X, Y).
+        """
         return (self.reconstructX(inputs),
                 self.reconstructY(inputs))
 
@@ -345,35 +384,28 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
         """
         return self.encode(inputs)
 
+    @wraps(GatedAutoencoder._modify_updates)
     def _modify_updates(self, updates):
         """
         The filters have to be normalized in each update to
         increase their stability.
         """
-        def inplacemult(x, v):
-            x[:, :] *= v
-            return x
-
-        def inplacesubtract(x, v):
-            x[:, :] -= v
-            return x
-
-        nwxf = (self.wxf.get_value().std(0) + SMALL)[numpy.newaxis, :]
-        nwyf = (self.wyf.get_value().std(0) + SMALL)[numpy.newaxis, :]
+        wxf = self.wxf
+        wyf = self.wyf
+        wxf_updated = updates[wxf]
+        wyf_updated = updates[wyf]
+        nwxf = (wxf_updated.std(0) + 0.000001)[numpy.newaxis, :]
+        nwyf = (wyf_updated.std(0) + 0.000001)[numpy.newaxis, :]
         meannxf = nwxf.mean()
         meannyf = nwyf.mean()
-        wxf = self.wxf.get_value(borrow=True)
-        wyf = self.wyf.get_value(borrow=True)
-        # CENTER FILTERS
-        center = True
-        if center:
-            self.wxf.set_value(inplacesubtract(
-                wxf, wxf.mean(0)[numpy.newaxis, :]), borrow=True)
-            self.wyf.set_value(inplacesubtract(
-                wyf, wyf.mean(0)[numpy.newaxis, :]), borrow=True)
-        # FIX STANDARD DEVIATION
-        self.wxf.set_value(inplacemult(wxf, meannxf/nwxf), borrow=True)
-        self.wyf.set_value(inplacemult(wyf, meannyf/nwyf), borrow=True)
+        # Center filters
+        centered_wxf = wxf_updated - wxf_updated.mean(0)
+        centered_wyf = wyf_updated - wyf_updated.mean(0)
+        # Fix standard deviation
+        wxf_updated = centered_wxf*(meannxf/nwxf)
+        wyf_updated = centered_wyf*(meannyf/nwyf)
+        updates[wxf] = wxf_updated
+        updates[wyf] = wyf_updated
 
     def get_weights_topo(self):
         """
@@ -419,6 +451,12 @@ class DenoisingFactoredGatedAutoencoder(FactoredGatedAutoencoder):
     """
     A denoising gated autoencoder learns a relations between images by
     reconstructing a noisy version of them.
+
+    Parameters
+    ----------
+    corruptor : object
+        Instance of a corruptor object to use for corrupting the
+        inputs.
     """
     def __init__(self, corruptor, nvisX, nvisY, nfac, nmap, recepF,
                  act_enc, act_dec, color=True, irange=1e-3, rng=9001):
@@ -436,9 +474,12 @@ class DenoisingFactoredGatedAutoencoder(FactoredGatedAutoencoder):
             )
         self.corruptor = corruptor
 
+    @wraps(FactoredGatedAutoencoder.reconstructXY)
     def reconstructXY(self, inputs):
         """
-        Corrupted reconstructions
+        Notes
+        -----
+        Reconstructions from corrupted data.
         """
         corrupted = self.corruptor(inputs)
         return (self.reconstructX(corrupted),
