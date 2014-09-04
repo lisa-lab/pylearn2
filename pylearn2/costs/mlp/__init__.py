@@ -93,18 +93,21 @@ class WeightDecay(NullDataSpecsMixin, Cost):
             try:
                 return layer.get_weight_decay(coeff)
             except NotImplementedError:
-                if coef == 0.:
+                if coeff == 0.:
                     return 0.
                 else:
                     reraise_as(NotImplementedError(str(type(layer)) +
-                                                   " does not implement get_weight_decay."))
+                                                   " does not implement "
+                                                   "get_weight_decay."))
 
         if isinstance(self.coeffs, list):
             warnings.warn("Coefficients should be given as a dictionary "
                           "with layer names as key. The support of "
-                          "coefficients as list would be deprecated from 03/06/2015")
+                          "coefficients as list would be deprecated from "
+                          "03/06/2015")
             layer_costs = [wrapped_layer_cost(layer, coeff)
-                           for layer, coeff in safe_izip(model.layers, self.coeffs)]
+                           for layer, coeff in safe_izip(model.layers,
+                                                         self.coeffs)]
             layer_costs = [cost for cost in layer_costs if cost != 0.]
         else:
             layer_costs = []
@@ -177,9 +180,11 @@ class L1WeightDecay(NullDataSpecsMixin, Cost):
         if isinstance(self.coeffs, list):
             warnings.warn("Coefficients should be given as a dictionary "
                           "with layer names as key. The support of "
-                          "coefficients as list would be deprecated from 03/06/2015")
+                          "coefficients as list would be deprecated "
+                          "from 03/06/2015")
             layer_costs = [layer.get_l1_weight_decay(coeff)
-                           for layer, coeff in safe_izip(model.layers, self.coeffs)]
+                           for layer, coeff in safe_izip(model.layers,
+                                                         self.coeffs)]
             layer_costs = [cost for cost in layer_costs if cost != 0.]
 
         else:
