@@ -1,3 +1,11 @@
+import cStringIO
+import numpy as np
+
+import theano.tensor as T
+from theano import shared
+from theano.tests.record import Record, RecordMode
+from theano.tests import disturb_mem
+
 from pylearn2.train import Train
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.models.model import Model
@@ -6,19 +14,13 @@ from pylearn2.utils import sharedX
 from pylearn2.training_algorithms.bgd import BGD
 from pylearn2.termination_criteria import EpochCounter
 from pylearn2.costs.cost import Cost
-import theano.tensor as T
-import numpy as np
-import cStringIO
-from pylearn2.devtools.record import Record
-from pylearn2.devtools.record import RecordMode
-from theano.tests import disturb_mem
 from pylearn2.utils import safe_union
 from pylearn2.utils import safe_izip
 from pylearn2.utils.data_specs import DataSpecsMapping
-from theano import shared
 from pylearn2.utils import function
 from pylearn2.costs.cost import FixedVarDescr
 from pylearn2.costs.cost import SumOfCosts
+
 
 class SoftmaxModel(Model):
     """A dummy model used for testing.

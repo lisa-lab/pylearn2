@@ -2058,7 +2058,6 @@ class Linear(Layer):
     max_row_norm : WRITEME
     max_col_norm : WRITEME
     min_col_norm : WRITEME
-    softmax_columns : DEPRECATED
     copy_input : REMOVED
     use_abs_loss : bool, optional
         If True, the cost function will be mean absolute error rather
@@ -2088,22 +2087,16 @@ class Linear(Layer):
                  max_row_norm=None,
                  max_col_norm=None,
                  min_col_norm=None,
-                 softmax_columns=None,
                  copy_input=None,
                  use_abs_loss=False,
                  use_bias=True):
 
         if copy_input is not None:
             raise AssertionError("The copy_input option had a bug and has "
-                    "been removed from the library.")
+                    "been removed from the library. The copy_input parameter to the function and this "
+                    "error message may be removed after December 27, 2014.")
 
         super(Linear, self).__init__()
-
-        if softmax_columns is None:
-            softmax_columns = False
-        else:
-            warnings.warn("The softmax_columns argument is deprecated, and "
-                    "will be removed on or after 2014-08-27.", stacklevel=2)
 
         if use_bias and init_bias is None:
             init_bias = 0.
@@ -2278,11 +2271,6 @@ class Linear(Layer):
 
         W = W.get_value()
 
-        if self.softmax_columns:
-            P = np.exp(W)
-            Z = np.exp(W).sum(axis=0)
-            rval = P / Z
-            return rval
         return W
 
     @wraps(Layer.set_weights)
@@ -2463,22 +2451,9 @@ class Linear(Layer):
             state_below = self.input_space.format_as(state_below,
                                                      self.desired_space)
 
-        # Support old pickle files
-        if not hasattr(self, 'softmax_columns'):
-            self.softmax_columns = False
-
-        if self.softmax_columns:
-            W, = self.transformer.get_params()
-            W = W.T
-            W = T.nnet.softmax(W)
-            W = W.T
-            z = T.dot(state_below, W)
-            if self.use_bias:
-                z += self.b
-        else:
-            z = self.transformer.lmul(state_below)
-            if self.use_bias:
-                z += self.b
+        z = self.transformer.lmul(state_below)
+        if self.use_bias:
+            z += self.b
 
         if self.layer_name is not None:
             z.name = self.layer_name + '_z'

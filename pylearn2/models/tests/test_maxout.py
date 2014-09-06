@@ -88,7 +88,9 @@ esign_matrix {
         algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
             batch_size: 6,
             learning_rate: .1,
-            init_momentum: .5,
+            learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+                init_momentum: .5
+            },
             monitoring_dataset:
                 {
                     'train' : *train
@@ -189,7 +191,9 @@ ical_dense_design_matrix {
         },
         algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
             learning_rate: .05,
-            init_momentum: .5,
+            learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+                init_momentum: .5
+            },
             monitoring_dataset:
                 {
                     'train': *train
@@ -264,7 +268,9 @@ yaml_string_maxout_conv_c01b_cifar10 = """
         algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
             batch_size: 100,
             learning_rate: .01,
-            init_momentum: .9,
+            learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+                init_momentum: .9
+            },
             monitoring_dataset:
                 {
                     'valid' : !obj:pylearn2.datasets.cifar10.CIFAR10 {
@@ -337,7 +343,9 @@ yaml_string_maxout_conv_c01b_cifar10_fast = """
         algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
             batch_size: 100,
             learning_rate: .01,
-            init_momentum: .9,
+            learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+                init_momentum: .9
+            },
             monitoring_dataset:
                 {
                     'valid' : !obj:pylearn2.datasets.cifar10.CIFAR10 {

@@ -112,8 +112,7 @@ def test_sigmoid_layer_misclass_reporting():
                                       monitor_style='classification')])
     target = theano.tensor.matrix(dtype=theano.config.floatX)
     batch = theano.tensor.matrix(dtype=theano.config.floatX)
-    rval = mlp.layers[0].get_monitoring_channels_from_state(mlp.fprop(batch),
-                                                            target)
+    rval = mlp.layers[0].get_layer_monitoring_channels(state=mlp.fprop(batch), targets=target)
 
     f = theano.function([batch, target], [tensor.gt(mlp.fprop(batch), 0.5),
                                           rval['misclass']],

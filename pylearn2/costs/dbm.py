@@ -315,7 +315,7 @@ class BaseCD(Cost):
                 return x.zeros_like()
             layer_to_pos_samples[layer] = recurse_zeros(mf_state)
 
-        layer_to_pos_samples = model.mcmc_steps(
+        layer_to_pos_samples = model.sampling_procedure.sample(
             layer_to_state=layer_to_pos_samples,
             layer_to_clamp=layer_to_clamp,
             num_steps=self.num_gibbs_steps,
@@ -711,12 +711,12 @@ class VariationalCD(DefaultDataSpecsMixin, BaseCD):
         # state of the chains
         # We first initialize the chain by clamping the visible layer and the
         # target layer (if it exists)
-        layer_to_chains = model.mcmc_steps(layer_to_chains,
+        layer_to_chains = model.sampling_procedure.sample(layer_to_chains,
                                            self.theano_rng,
                                            layer_to_clamp=layer_to_clamp,
                                            num_steps=1)
         # We then do the required mcmc steps
-        layer_to_chains = model.mcmc_steps(layer_to_chains,
+        layer_to_chains = model.sampling_procedure.sample(layer_to_chains,
                                            self.theano_rng,
                                            num_steps=self.num_gibbs_steps)
 
