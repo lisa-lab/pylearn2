@@ -395,10 +395,9 @@ class NeuralNet(Model):
     def __init__(self, layers, inputs={}, batch_size=None, input_space=None,
                  input_source='features', nvis=None, seed=None, **kwargs):
         super(NeuralNet, self).__init__(**kwargs)
-        import ipdb
-        ipdb.set_trace()
 
         self.seed = seed
+        self.setup_rng()
 
         # Perform some basic validation on the `layers` argument
         assert isinstance(layers, list)
@@ -424,9 +423,9 @@ class NeuralNet(Model):
                 raise ValueError("NeuralNet.__init__ given a layer with same "
                                  "name as input source: " + layer.layer_name)
             # TODO
-            # This causes problems right now, because we want to change the
-            # nested layers' NeuralNet/MLP to the top-level one, but in that
-            # case set_mlp(self) will raise an error because it is already set
+            # This causes problems right now, because if we want to change the
+            # nested layers' NeuralNet/MLP to the top-level one, the
+            # set_mlp(self) will raise an error because it is already set
             # assert layer.get_mlp() is None
             layer.set_mlp(self)
             self.layer_names.append(layer.layer_name)
@@ -436,9 +435,6 @@ class NeuralNet(Model):
 
         self.batch_size = batch_size
         self.force_batch_size = batch_size
-
-        # TODO
-        self.setup_rng()
 
         # Set the input source and space
         self._input_source = input_source
@@ -567,9 +563,13 @@ class NeuralNet(Model):
 
     def setup_rng(self):
         """
-        .. todo::
+        Sets the RNG to be used by the neural network as well as all of
+        its layers. It uses the seed provided in the class constructor,
+        or a default value otherwise.
 
-            WRITEME
+        Parameters
+        ----------
+        None
         """
         if self.seed is None:
             self.seed = [2013, 1, 4]
@@ -686,9 +686,13 @@ class MLP(Layer):
 
     def setup_rng(self):
         """
-        .. todo::
+        Sets the RNG to be used by the neural network as well as all of
+        its layers. It uses the seed provided in the class constructor,
+        or a default value otherwise.
 
-            WRITEME
+        Parameters
+        ----------
+        None
         """
         assert not self._nested, "Nested MLPs should use their parent's RNG"
         if self.seed is None:
