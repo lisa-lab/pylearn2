@@ -27,7 +27,7 @@ def instantiate_train():
     # create the dataset and pickle it for resuming purposes
     dataset = DenseDesignMatrix(X=x, y=y, preprocessor=preprocessor,
                                 fit_preprocessor=True,
-                                pickle_storage='dataset.pickle')
+                                pickle_storage='dataset.pickle', save_dataset='True')
 
     dataset_no_preprocessing = DenseDesignMatrix(X=x_copy, y=y)
     # assert that the data has been preprocessed correctly
@@ -53,22 +53,23 @@ def test_save_train():
     """
     train = instantiate_train()
 
-    #if a pickle file is already present at the output destination, delete it
+    # if a pickle file is already present at the output destination, delete it
     pickled_file_path = train.chk_file
     if os.path.exists(pickled_file_path):
         os.remove(pickled_file_path)
 
     train.main_loop()
 
-    #verify data integrity is preserved when we pickle the Train object
+    # verify data integrity is preserved when we pickle the Train object
     pickled_data = Train.resume(pickled_file_path)
     epochs_pickled = pickled_data.model.monitor._epochs_seen
     assert (pickled_data.dataset.get_data()[0] ==
             train.dataset.get_data()[0]).all()
 
-    pickled_data_copy = Train.resume(pickled_file_path)
+    # store a copy of the pickled Train object for further training purposes
+    pickled_data_copy_1 = Train.resume(pickled_file_path)
 
-    #verify that the resume feature works correctly
+    # verify that the resume feature works correctly
     new_termination_criteria = EpochCounter(max_epochs=15)
     pickled_data.algorithm.termination_criterion = new_termination_criteria
     pickled_data.main_loop(resuming=True)
@@ -79,18 +80,80 @@ def test_save_train():
     assert (len(pickled_data.model.monitor.channels['train_y_nll'].val_record)
             > len(train.model.monitor.channels['train_y_nll'].val_record))
 
-    #verify resume feature work no matter how many time we stop and resume
+    # verify that the resume feature works no matter how many time we stop and
+    # resume
     new_termination_criteria_1 = EpochCounter(max_epochs=7)
     new_termination_criteria_2 = EpochCounter(max_epochs=8)
-    pickled_data_copy.algorithm.termination_criterion =\
+    pickled_data_copy_1.algorithm.termination_criterion =\
         new_termination_criteria_1
-    pickled_data_copy.main_loop(resuming=True)
-    pickled_data_copy = Train.resume(pickled_file_path)
-    pickled_data_copy.algorithm.termination_criterion =\
+    pickled_data_copy_1.main_loop(resuming=True)
+    pickled_data_copy_1 = Train.resume(pickled_file_path)
+    pickled_data_copy_1.algorithm.termination_criterion =\
         new_termination_criteria_2
-    pickled_data_copy.main_loop(resuming=True)
-    epochs_pickled = pickled_data_copy.model.monitor._epochs_seen
-    assert (pickled_data_copy.model.monitor.channels['train_y_nll'].
+    pickled_data_copy_1.main_loop(resuming=True)
+    epochs_pickled = pickled_data_copy_1.model.monitor._epochs_seen
+    assert (pickled_data_copy_1.model.monitor.channels['train_y_nll'].
             val_record[:epochs_pickled]
             == pickled_data.model.monitor.channels['train_y_nll'].
             val_record[:epochs_pickled])
+
+
+def test_resume_with_new_dataset():
+    """
+    This test verifies that we can resume training with a new dataset
+    """
+    train = instantiate_train()
+
+    # if a pickle file is already present at the output destination, delete it
+    pickled_file_path = train.chk_file
+    if os.path.exists(pickled_file_path):
+        os.remove(pickled_file_path)
+
+    train.main_loop()
+
+    # make a new dataset and resume training with it
+    x = numpy.random.rand(1000, 25)
+    y = numpy.random.rand(1000, 10)
+    DenseDesignMatrix(X=x, y=y, pickle_storage='dataset_2.pickle',
+                      save_dataset='True')
+    train_with_new_dataset = \
+        Train.resume(pickled_file_path,
+                     training_dataset_path='dataset_2.pickle')
+    train_with_old_dataset = Train.resume(pickled_file_path)
+    train_with_new_dataset.algorithm.termination_criterion = \
+        EpochCounter(max_epochs=10)
+    train_with_old_dataset.algorithm.termination_criterion = \
+        EpochCounter(max_epochs=10)
+    train_with_new_dataset.main_loop(resuming=True)
+    train_with_old_dataset.main_loop(resuming=True)
+    assert(train_with_new_dataset.model.monitor.channels['train_y_nll'].
+           val_record !=
+           train_with_old_dataset.model.monitor.channels['train_y_nll'].
+           val_record)
+
+    # pickle the original dataset in another path an make sure it doesn't
+    # change the training result
+    train_with_old_path = Train.resume(pickled_file_path)
+    dataset = copy.deepcopy(train_with_old_path.dataset)
+    with open('dataset_3.pickle', 'w') as f:
+        cPickle.dump(dataset, f)
+    train_with_new_path = \
+        Train.resume(pickled_file_path,
+                     training_dataset_path='dataset_3.pickle')
+    assert train_with_new_path.dataset != train_with_old_path.dataset
+    train_with_new_path.algorithm.termination_criterion = \
+        EpochCounter(max_epochs=10)
+    train_with_old_path.algorithm.termination_criterion = \
+        EpochCounter(max_epochs=10)
+    train_with_new_path.main_loop(resuming=True)
+    train_with_old_path.main_loop(resuming=True)
+    assert(train_with_new_path.model.monitor.channels['train_y_nll'].
+           val_record ==
+           train_with_old_path.model.monitor.channels['train_y_nll'].
+           val_record)
+
+def test_resume_with_new_monitor():
+    """
+    This test verifies that we can resume training with new monitors
+    """
+    pass

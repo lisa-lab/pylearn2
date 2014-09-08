@@ -33,6 +33,7 @@ import copy
 tables = None
 
 import cPickle
+import os
 
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.datasets import control
@@ -122,6 +123,17 @@ class DenseDesignMatrix(Dataset):
         total number of possible labels e.g. 10 for the MNIST dataset
         where the targets are numbers. This will make the set use
         IndexSpace.
+    pickle_storage: string, optional
+        This attribute is used to specify where we can find a pickled copy of
+        this dataset. If this attribute isn't specified, whenever we save a
+        a training algorithm, that algorithm will save a complete copy of the
+        dataset with it. This can be very taxing on storage space if several
+        algorithms use the same dataset. By specifying this variable, the
+        algorithm will store a pointer to the original dataset instead of
+        keeping its own copy.
+    save_dataset: boolean, optional
+        if set to True, a complete copy of the dataset will be saved inside
+        the location specified in pickle_storage.
 
     See Also
     --------
@@ -171,7 +183,7 @@ class DenseDesignMatrix(Dataset):
                  view_converter=None, axes=('b', 0, 1, 'c'),
                  rng=_default_seed, preprocessor=None, fit_preprocessor=False,
                  max_labels=None, X_labels=None, y_labels=None,
-                 pickle_storage=None):
+                 pickle_storage=None, save_dataset=False):
         self.X = X
         self.y = y
         self.view_converter = view_converter
@@ -252,11 +264,17 @@ class DenseDesignMatrix(Dataset):
             preprocessor.apply(self, can_fit=fit_preprocessor)
         self.preprocessor = preprocessor
 
-        if pickle_storage:
-        # pickle the dataset into 'pickle_storage'
+        if save_dataset:
+            if not pickle_storage:
+                raise AttributeError("You must specify where the dataset will"
+                                     " be saved with the 'pickle_storage'"
+                                     " argument")
+            #make a copy of the dataset and pickle it fully
             dataset_copy = copy.deepcopy(self)
             with open(pickle_storage, 'w') as f:
                 cPickle.dump(dataset_copy, f)
+
+        if pickle_storage:
             self.pickle_storage = pickle_storage
 
     def _check_labels(self):
@@ -534,6 +552,17 @@ class DenseDesignMatrix(Dataset):
             with open(d['pickle_storage'], 'r') as f:
                 origin_dataset = cPickle.load(f)
                 self.__dict__.update(origin_dataset.__dict__)
+
+    def load_from_path(self, dataset_path):
+        if not os.path.exists(dataset_path):
+            raise IOError('Dataset at location %s not found.' % dataset_path)
+        with open(dataset_path) as f:
+            dataset = cPickle.load(f)
+            # add the pickle_storage attribute to this object so that whenever
+            # this object gets pickled, a pointer to the original dataset is
+            # saved instead of storing another complete copy
+            dataset.pickle_storage = dataset_path
+            return dataset
 
     def _apply_holdout(self, _mode="sequential", train_size=0, train_prop=0):
         """

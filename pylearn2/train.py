@@ -16,7 +16,7 @@ import types
 import warnings
 from pylearn2.utils import serial
 from pylearn2.utils.string_utils import preprocess
-from pylearn2.monitor import Monitor
+from pylearn2.monitor import Monitor, push_monitor
 from pylearn2.space import NullSpace
 from pylearn2.utils.timing import log_timing, total_seconds
 from pylearn2.utils import sharedX
@@ -327,22 +327,41 @@ class Train(object):
                         self.first_save = False
 
     @staticmethod
-    def resume(chk_file):
+    def resume(chk_file, training_dataset_path=None,
+               monitored_datasets_paths=None):
         """
         Resume training
 
         Parameters
         ----------
-        chk_file: TODO
+        chk_file: path to the pickled Train object
+        training_dataset_path: if specified, training will be done on the
+                               dataset specified in 'dataset_path' instead of
+                               the dataset specified in the pickled Train
+                               object
+        monitored_datasets_paths: if specified, the datasets specified in the
+                                  dictionary monitored_datasets_paths will be
+                                  loaded instead of the datasets which are in
+                                  the pickled Train object
+                                  TODO: test this
         """
         if chk_file is not None and os.path.exists(chk_file):
             with log_timing(log, 'Loading data from ' + chk_file):
                 with open(chk_file, 'r') as f:
                     train = cPickle.load(f)
-
-                    # make a mapping from the dataset paths to the dataset
-                    # objects
-                    return train
+                if training_dataset_path:
+                    with open(training_dataset_path, 'r') as f:
+                        dataset = cPickle.load(f)
+                        train.dataset = dataset
+                if monitored_datasets_paths:
+                    train.algorithm.monitoring_dataset = {}
+                    for name, path in monitored_datasets_paths.items():
+                        with open(path) as f:
+                            monitored_dataset = cPickle.load(f)
+                            train.algorithm.monitoring_dataset[name] =\
+                                monitored_dataset
+                    push_monitor(train.model, 'old_monitor', True)
+            return train
 
 
 class SerializationGuard(object):
