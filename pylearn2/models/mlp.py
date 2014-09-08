@@ -40,7 +40,6 @@ from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_union
 from pylearn2.utils import safe_zip
 from pylearn2.utils import safe_izip
-from pylearn2.utils import safe_update
 from pylearn2.utils import sharedX
 from pylearn2.utils import wraps
 from pylearn2.utils import contains_nan
@@ -406,7 +405,8 @@ class NeuralNet(Model):
         for i, layer in enumerate(layers):
             if isinstance(layer, self.__class__):
                 layers = layers[:i] + layer.layers + layers[i + 1:]
-                safe_update(inputs, layer.inputs)
+                layer.inputs.update(inputs)
+                inputs = layer.inputs
         # In the new DAG structure we don't allowe CompositeLayers anymore
         for layer in layers:
             assert isinstance(layer, Layer)
