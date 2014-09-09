@@ -10,6 +10,9 @@ Variational autoencoder (VAE) implementation.
    methods related to latent space, such as its prior distribution
    :math:`p_\\theta(\\mathbf{z})` and its posterior distribution
    :math:`q_\\phi(\\mathbf{z} \\mid \\mathbf{x})`.
+
+For an example on how to use the VAE framework, see
+`pylearn2/scripts/tutorials/variational_autoencoder/vae.yaml`.
 """
 __authors__ = "Vincent Dumoulin"
 __copyright__ = "Copyright 2014, Universite de Montreal"
