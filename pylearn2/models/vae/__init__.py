@@ -21,6 +21,7 @@ __email__ = "pylearn-dev@googlegroups"
 import numpy
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
+from pylearn2.corruption import DummyCorruptor
 from pylearn2.models.model import Model
 from pylearn2.space import CompositeSpace, VectorSpace
 from pylearn2.utils import wraps, sharedX, safe_update
@@ -52,13 +53,21 @@ class VAE(Model):
     nhid : int
         Number of dimensions in latent space, i.e. the space in which :math:`z`
         lives
+    visible_corruptor : pylearn2.corruption.Corruptor, optional
+        Corruption of the inputs. Defaults to a `DummyCorruptor` which does
+        nothing.
+    latent_corruptor : pylearn2.corruption.Corruptor, optional
+        Corruption of the latent representation. Defaults to a `DummyCorruptor`
+        which does nothing.
     data_mean : numpy.ndarray, optional
         Data mean. Defaults to None.
     data_std : numpy.ndarray, optional
         Data standard deviation. Defaults to None.
     """
-    def __init__(self, nvis, visible, latent, nhid, data_mean=None,
-                 data_std=None):
+    def __init__(self, nvis, visible, latent, nhid,
+                 visible_corruptor=DummyCorruptor(0.0),
+                 latent_corruptor=DummyCorruptor(0.0),
+                 data_mean=None, data_std=None):
         super(VAE, self).__init__()
 
         self.__dict__.update(locals())
@@ -207,7 +216,7 @@ class VAE(Model):
         else:
             return reconstructed_X
 
-    def log_likelihood_lower_bound(self, X, num_samples):
+    def log_likelihood_lower_bound(self, X, num_samples, corruption=True):
         """
         Computes the VAE lower-bound on the marginal log-likelihood of X.
 
@@ -221,13 +230,18 @@ class VAE(Model):
         lower_bound : tensor_like
             Lower-bound on the marginal log-likelihood
         """
+        # Corrupt inputs (if requested)
+        if corruption:
+            Y = self.visible_corruptor(X)
+        else:
+            Y = X
         # Substract mean (if provided). We do not overwrite X, as X is the
         # reconstruction target.
         if self.data_mean is None:
             mean = sharedX(numpy.zeros(self.nvis))
         else:
             mean = self.data_mean
-        Y = X - mean
+        Y = Y - mean
         # Sample noise
         epsilon_shape = (num_samples, Y.shape[0], self.nhid)
         epsilon = self.latent.sample_from_epsilon(shape=epsilon_shape)
@@ -235,6 +249,9 @@ class VAE(Model):
         phi = self.latent.encode_phi(Y)
         # Compute z
         z = self.latent.sample_from_q_z_given_x(epsilon=epsilon, phi=phi)
+        # Corrupt z (if requested)
+        if corruption:
+            z = self.latent_corruptor(z)
         # Compute KL divergence term
         kl_divergence_term = self.latent.kl_divergence_term(
             X=X,
@@ -257,7 +274,7 @@ class VAE(Model):
 
         return -kl_divergence_term + expectation_term
 
-    def log_likelihood_approximation(self, X, num_samples):
+    def log_likelihood_approximation(self, X, num_samples, corruption=True):
         """
         Computes the importance sampling approximation to the marginal
         log-likelihood of X, using the reparametrization trick.
@@ -272,13 +289,18 @@ class VAE(Model):
         approximation : tensor_like
             Approximation on the marginal log-likelihood
         """
+        # Corrupt inputs (if requested)
+        if corruption:
+            Y = self.visible_corruptor(X)
+        else:
+            Y = X
         # Substract mean (if provided). We do not overwrite X, as X is used to
         # compute the conditional log-likelihood log p(x | z).
         if self.data_mean is None:
             mean = sharedX(numpy.zeros(self.nvis))
         else:
             mean = self.data_mean
-        Y = X - mean
+        Y = Y - mean
         # Sample noise
         epsilon_shape = (num_samples, Y.shape[0], self.nhid)
         epsilon = self.latent.sample_from_epsilon(shape=epsilon_shape)
@@ -286,6 +308,9 @@ class VAE(Model):
         phi = self.latent.encode_phi(Y)
         # Compute z
         z = self.latent.sample_from_q_z_given_x(epsilon=epsilon, phi=phi)
+        # Corrupt z (if requested)
+        if corruption:
+            z = self.latent_corruptor(z)
         # Decode p(x | z) parameters
         # (z is flattened out in order to be MLP-compatible, and the parameters
         #  output by the decoder network are reshaped to the right shape)
