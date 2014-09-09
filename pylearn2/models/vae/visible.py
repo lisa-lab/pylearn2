@@ -43,6 +43,9 @@ class Visible(object):
         self.decoding_model = decoding_model
         self.ndec = decoding_model.get_output_space().get_total_dimension()
 
+    def get_weights(self):
+        return self.decoding_model.get_weights()
+
     def get_monitoring_data_specs(self):
         """
         Get the data_specs describing the data for get_monitoring_channels.
