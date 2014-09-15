@@ -174,7 +174,7 @@ class VAE(Model):
         else:
             return X
 
-    def reconstruct(self, X, return_sample_means=True):
+    def reconstruct(self, X, noisy_encoding=False, return_sample_means=True):
         """
         Given an input, generates its reconstruction by propagating it through
         the encoder network **without adding noise** and projecting it back
@@ -203,7 +203,9 @@ class VAE(Model):
         # Sample noise
         # TODO: For now this covers our use cases, but we need something more
         # robust for the future.
-        epsilon = 0 * self.latent.sample_from_epsilon((X.shape[0], self.nhid))
+        epsilon = self.latent.sample_from_epsilon((X.shape[0], self.nhid))
+        if not noisy_encoding:
+            epsilon *= 0
         # Encode q(z | x) parameters
         phi = self.latent.encode_phi(X)
         # Compute z
