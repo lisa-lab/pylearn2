@@ -47,16 +47,11 @@ class Visible(object):
         representation from which parameters of :math:`p_\\theta(\\mathbf{x}
         \\mid \\mathbf{z})` will be computed, and `Visible` will add its own
         default output layer to the `decoding_model` MLP. If `False`, the MLP's
-        last layer **is** the output layer. Defaults to `True`. **Note: for
-        now, this interface is defined but not implemented, and setting
-        `output_layer_required` to `False` will result in a
-        `NotImplementedError` being raised.**
+        last layer **is** the output layer. Defaults to `True`.
     """
     def __init__(self, decoding_model, output_layer_required=True):
-        if not output_layer_required:
-            raise NotImplementedError("manually setting the output layer in "
-                                      "`decoding_model` is not yet supported")
         self.decoding_model = decoding_model
+        self.output_layer_required = output_layer_required
 
     def _get_default_output_layer(self):
         """
@@ -149,7 +144,8 @@ class Visible(object):
         """
         self.nvis = nvis
         self.decoder_input_space = decoder_input_space
-        self.decoding_model.add_layer(self._get_default_output_layer())
+        if self.output_layer_required:
+            self.decoding_model.add_layer(self._get_default_output_layer())
         self._validate_decoding_model()
         self._params = self.decoding_model.get_params()
 
@@ -272,12 +268,20 @@ class BinaryVisible(Visible):
     decoding_model : pylearn2.models.mlp.MLP
         An MLP representing the generative network, whose output will be used
         to compute :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})`
+    output_layer_required : bool, optional
+        If `True`, the decoding model's output is the last hidden
+        representation from which parameters of :math:`p_\\theta(\\mathbf{x}
+        \\mid \\mathbf{z})` will be computed, and `Visible` will add its own
+        default output layer to the `decoding_model` MLP. If `False`, the MLP's
+        last layer **is** the output layer. Defaults to `True`.
     isigma : float, optional
         Standard deviation on the zero-mean distribution from which parameters
         initialized by the model itself will be drawn. Defaults to 0.01.
     """
-    def __init__(self, decoding_model, isigma=0.01):
-        super(BinaryVisible, self).__init__(decoding_model)
+    def __init__(self, decoding_model, output_layer_required=True,
+                 isigma=0.01):
+        super(BinaryVisible, self).__init__(decoding_model,
+                                            output_layer_required)
         self.isigma = isigma
 
     @wraps(Visible._get_default_output_layer)
@@ -330,12 +334,20 @@ class ContinuousVisible(Visible):
     decoding_model : pylearn2.models.mlp.MLP
         An MLP representing the generative network, whose output will be used
         to compute :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})`
+    output_layer_required : bool, optional
+        If `True`, the decoding model's output is the last hidden
+        representation from which parameters of :math:`p_\\theta(\\mathbf{x}
+        \\mid \\mathbf{z})` will be computed, and `Visible` will add its own
+        default output layer to the `decoding_model` MLP. If `False`, the MLP's
+        last layer **is** the output layer. Defaults to `True`.
     isigma : float, optional
         Standard deviation on the zero-mean distribution from which parameters
         initialized by the model itself will be drawn. Defaults to 0.01.
     """
-    def __init__(self, decoding_model, isigma=0.01):
-        super(ContinuousVisible, self).__init__(decoding_model)
+    def __init__(self, decoding_model, output_layer_required=True,
+                 isigma=0.01):
+        super(ContinuousVisible, self).__init__(decoding_model,
+                                                output_layer_required)
         self.isigma = isigma
 
     @wraps(Visible._get_default_output_layer)

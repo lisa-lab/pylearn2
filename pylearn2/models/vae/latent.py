@@ -53,16 +53,11 @@ class Latent(object):
         representation from which parameters of :math:`q_\\phi(\\mathbf{z}
         \\mid \\mathbf{x})` will be computed, and `Latent` will add its own
         default output layer to the `encoding_model` MLP. If `False`, the MLP's
-        last layer **is** the output layer. Defaults to `True`. **Note: for
-        now, this interface is defined but not implemented, and setting
-        `output_layer_required` to `False` will result in a
-        `NotImplementedError` being raised.**
+        last layer **is** the output layer. Defaults to `True`.
     """
     def __init__(self, encoding_model, output_layer_required=True):
-        if not output_layer_required:
-            raise NotImplementedError("manually setting the output layer in "
-                                      "`encoding_model` is not yet supported")
         self.encoding_model = encoding_model
+        self.output_layer_required = output_layer_required
 
     def _get_default_output_layer(self):
         """
@@ -152,7 +147,8 @@ class Latent(object):
         """
         self.nhid = nhid
         self.encoder_input_space = encoder_input_space
-        self.encoding_model.add_layer(self._get_default_output_layer())
+        if self.output_layer_required:
+            self.encoding_model.add_layer(self._get_default_output_layer())
         self._validate_encoding_model()
         self._params = self.encoding_model.get_params()
         self._initialize_prior_parameters()
@@ -267,7 +263,7 @@ class Latent(object):
             `True`. Defaults to `False`.
         """
         if approximate:
-            return self._approximate_kl_divergence_term(phi, epsilon)    
+            return self._approximate_kl_divergence_term(phi, epsilon)
         else:
             try:
                 return self._kl_divergence_term(phi, **kwargs)
@@ -309,7 +305,7 @@ class Latent(object):
         """
         if epsilon is None:
             raise ValueError("stochastic KL is requested but no epsilon is "
-                              "given")
+                             "given")
         z = self.sample_from_q_z_given_x(epsilon=epsilon, phi=phi)
         log_q_z_x = self.log_q_z_given_x(z=z, phi=phi)
         log_p_z = self.log_p_z(z)
@@ -382,12 +378,20 @@ class DiagonalGaussianPrior(Latent):
     encoding_model : pylearn2.models.mlp.MLP
         An MLP representing the recognition network, whose output will be used
         to compute :math:`q_\\phi(\\mathbf{z} \\mid \\mathbf{x})`
+    output_layer_required : bool, optional
+        If `True`, the encoding model's output is the last hidden
+        representation from which parameters of :math:`q_\\phi(\\mathbf{z}
+        \\mid \\mathbf{x})` will be computed, and `Latent` will add its own
+        default output layer to the `encoding_model` MLP. If `False`, the MLP's
+        last layer **is** the output layer. Defaults to `True`.
     isigma : float, optional
         Standard deviation on the zero-mean distribution from which parameters
         initialized by the model itself will be drawn. Defaults to 0.01.
     """
-    def __init__(self, encoding_model, isigma=0.01):
-        super(DiagonalGaussianPrior, self).__init__(encoding_model)
+    def __init__(self, encoding_model, output_layer_required=True,
+                 isigma=0.01):
+        super(DiagonalGaussianPrior, self).__init__(encoding_model,
+                                                    output_layer_required)
         self.isigma = isigma
 
     @wraps(Latent._get_default_output_layer)

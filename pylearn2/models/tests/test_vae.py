@@ -2,7 +2,7 @@ import theano
 import theano.tensor as T
 from pylearn2.config import yaml_parse
 from pylearn2.models.mlp import MLP
-from pylearn2.models.mlp import Linear, ConvRectifiedLinear
+from pylearn2.models.mlp import Linear, CompositeLayer, ConvRectifiedLinear
 from pylearn2.models.vae import VAE
 from pylearn2.models.vae.visible import BinaryVisible, ContinuousVisible
 from pylearn2.models.vae.latent import DiagonalGaussianPrior
@@ -76,6 +76,25 @@ def test_convolutional_compatible():
     f(as_floatX(rng.uniform(size=(10, 16))))
 
 
+def test_binary_visible():
+    """
+    BinaryVisible works without crashing
+    """
+    encoding_model = MLP(nvis=10, layers=[Linear(layer_name='h', dim=10,
+                                                 irange=0.01)])
+    decoding_model = MLP(nvis=5, layers=[Linear(layer_name='h', dim=10,
+                                                irange=0.01)])
+    visible = BinaryVisible(decoding_model=decoding_model)
+    latent = DiagonalGaussianPrior(encoding_model=encoding_model)
+    vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
+    X = T.matrix('X')
+    lower_bound = vae.log_likelihood_lower_bound(X, num_samples=10)
+    z = vae.sample(num_samples=10, return_sample_means=False)
+    f = theano.function(inputs=[X], outputs=[lower_bound, z])
+    rng = make_np_rng(default_seed=11223)
+    f(as_floatX(rng.uniform(size=(10, 10))))
+
+
 def test_continuous_visible():
     """
     ContinuousVisible works without crashing
@@ -93,6 +112,43 @@ def test_continuous_visible():
     f = theano.function(inputs=[X], outputs=[lower_bound, z])
     rng = make_np_rng(default_seed=11223)
     f(as_floatX(rng.uniform(size=(10, 10))))
+
+
+def test_output_layer_not_required():
+    """
+    Visible and Latent allow user-defined output layers in MLP
+    """
+    encoding_model = MLP(
+        nvis=10,
+        layers=[
+            Linear(layer_name='h', dim=10, irange=0.01),
+            CompositeLayer(
+                layer_name='phi',
+                layers=[
+                    Linear(layer_name='mu', dim=5, irange=0.01),
+                    Linear(layer_name='log_sigma', dim=5, irange=0.01)
+                ]
+            )
+        ]
+    )
+    decoding_model = MLP(
+        nvis=5,
+        layers=[
+            Linear(layer_name='h', dim=10, irange=0.01),
+            CompositeLayer(
+                layer_name='theta',
+                layers=[
+                    Linear(layer_name='mu', dim=10, irange=0.01),
+                    Linear(layer_name='log_sigma', dim=10, irange=0.01)
+                ]
+            )
+        ]
+    )
+    visible = ContinuousVisible(decoding_model=decoding_model,
+                                output_layer_required=False)
+    latent = DiagonalGaussianPrior(encoding_model=encoding_model,
+                                   output_layer_required=False)
+    vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
 
 
 def test_VAE_cost():
