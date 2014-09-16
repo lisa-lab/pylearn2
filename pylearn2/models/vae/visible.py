@@ -8,6 +8,9 @@ namely
 * decode_theta
 * means_from_theta
 * log_p_x_given_z
+* _get_default_output_layer
+* _get_output_space
+* _validate_decoding_model
 """
 __authors__ = "Vincent Dumoulin"
 __copyright__ = "Copyright 2014, Universite de Montreal"
@@ -20,7 +23,8 @@ import numpy
 import theano
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
-from pylearn2.space import VectorSpace, NullSpace
+from pylearn2.models.mlp import Linear, Sigmoid, CompositeLayer
+from pylearn2.space import VectorSpace, NullSpace, CompositeSpace
 from pylearn2.utils.rng import make_theano_rng
 from pylearn2.utils import wraps, sharedX
 
@@ -38,10 +42,53 @@ class Visible(object):
     decoding_model : pylearn2.models.mlp.MLP
         An MLP representing the generative network, whose output will be used
         to compute :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})`
+    output_layer_required : bool, optional
+        If `True`, the decoding model's output is the last hidden
+        representation from which parameters of :math:`p_\\theta(\\mathbf{x}
+        \\mid \\mathbf{z})` will be computed, and `Visible` will add its own
+        default output layer to the `decoding_model` MLP. If `False`, the MLP's
+        last layer **is** the output layer. Defaults to `True`. **Note: for
+        now, this interface is defined but not implemented, and setting
+        `output_layer_required` to `False` will result in a
+        `NotImplementedError` being raised.**
     """
-    def __init__(self, decoding_model):
+    def __init__(self, decoding_model, output_layer_required=True):
+        if not output_layer_required:
+            raise NotImplementedError("manually setting the output layer in "
+                                      "`decoding_model` is not yet supported")
         self.decoding_model = decoding_model
-        self.ndec = decoding_model.get_output_space().get_total_dimension()
+
+    def _get_default_output_layer(self):
+        """
+        Returns a default `Layer` mapping the decoding model's last hidden
+        representation to parameters of :math:`p_\\theta(\\mathbf{x} \\mid
+        \\mathbf{z})`
+        """
+        raise NotImplementedError(str(self.__class__) + " does not implement "
+                                  "_get_default_output_layer")
+
+    def _get_output_space(self):
+        """
+        Returns the expected output space of the decoding model, i.e. a
+        description of how the parameters output by the decoding model should
+        look like.
+        """
+        raise NotImplementedError(str(self.__class__) + " does not implement "
+                                  "_get_output_space")
+
+    def _validate_decoding_model(self):
+        """
+        Makes sure the decoding model's output layer is compatible with the
+        parameters expected by :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})`
+        """
+        expected_output_space = self._get_output_space()
+        model_output_space = self.decoding_model.get_output_space()
+        if not model_output_space == expected_output_space:
+            raise ValueError("the specified decoding model's output space is "
+                             "incompatible with " + str(self.__class__) + ": "
+                             "expected " + str(expected_output_space) + " but "
+                             "decoding model's output space is " +
+                             str(model_output_space))
 
     def get_weights(self):
         return self.decoding_model.get_weights()
@@ -102,33 +149,15 @@ class Visible(object):
         """
         self.nvis = nvis
         self.decoder_input_space = decoder_input_space
-        self.decoder_output_space = VectorSpace(dim=self.ndec)
+        self.decoding_model.add_layer(self._get_default_output_layer())
+        self._validate_decoding_model()
+        self._params = self.decoding_model.get_params()
 
     def get_params(self):
         """
         Return the visible space-related parameters
         """
         return self._params
-
-    def fprop(self, z):
-        """
-        Wraps around the decoding model's `fprop` method to feed it data and
-        return its output in the right spaces.
-
-        Parameters
-        ----------
-        z : tensor_like
-            Input to the decoding network
-        """
-        z = self.decoder_input_space.format_as(
-            batch=z,
-            space=self.decoding_model.get_input_space()
-        )
-        h_d = self.decoding_model.fprop(z)
-        return self.decoding_model.get_output_space().format_as(
-            batch=h_d,
-            space=self.decoder_output_space
-        )
 
     def decode_theta(self, z):
         """
@@ -145,8 +174,14 @@ class Visible(object):
         theta : tuple of tensor_like
             Tuple of parameters for the conditional distribution
         """
-        raise NotImplementedError(str(self.__class__) + " does not implement "
-                                  "decode_theta.")
+        z = self.decoder_input_space.format_as(
+            batch=z,
+            space=self.decoding_model.get_input_space()
+        )
+        rval = self.decoding_model.fprop(z)
+        if not type(rval) == tuple:
+            rval = (rval, )
+        return rval
 
     def means_from_theta(self, theta):
         """
@@ -245,20 +280,13 @@ class BinaryVisible(Visible):
         super(BinaryVisible, self).__init__(decoding_model)
         self.isigma = isigma
 
-    @wraps(Visible.initialize_parameters)
-    def initialize_parameters(self, decoder_input_space, nvis):
-        super(BinaryVisible, self).initialize_parameters(decoder_input_space,
-                                                         nvis)
+    @wraps(Visible._get_default_output_layer)
+    def _get_default_output_layer(self):
+        return Linear(dim=self.nvis, layer_name='mu', irange=0.01)
 
-        W_mu_d_value = numpy.random.normal(loc=0, scale=self.isigma,
-                                           size=(self.ndec, self.nvis))
-        self.W_mu_d = sharedX(W_mu_d_value, name='W_mu_d')
-        b_mu_d_value = numpy.random.normal(loc=0, scale=self.isigma,
-                                           size=self.nvis)
-        self.b_mu_d = sharedX(b_mu_d_value, name='b_mu_d')
-
-        self._params = [self.W_mu_d, self.b_mu_d]
-        self._params += self.decoding_model.get_params()
+    @wraps(Visible._get_output_space)
+    def _get_output_space(self):
+        return VectorSpace(dim=self.nvis)
 
     @wraps(Visible.sample_from_p_x_given_z)
     def sample_from_p_x_given_z(self, num_samples, theta):
@@ -275,17 +303,6 @@ class BinaryVisible(Visible):
         # optimization manually; see `_decode_theta` for more details.
         (S,) = theta
         return -(X * T.nnet.softplus(-S) + (1 - X) * T.nnet.softplus(S))
-
-    @wraps(Visible.decode_theta)
-    def decode_theta(self, z):
-        h_d = self.fprop(z)
-        # We express theta in terms of the pre-sigmoid activation for numerical
-        # stability reasons: this lets us easily replace log sigmoid(x) with
-        # -softplus(-x). Allowing more than one sample per data point makes it
-        # hard for Theano to automatically apply the optimization (because of
-        # the reshapes involved in encoding / decoding), hence this workaround.
-        S = (T.dot(h_d, self.W_mu_d) + self.b_mu_d)
-        return (S,)
 
     @wraps(Visible.means_from_theta)
     def means_from_theta(self, theta):
@@ -321,24 +338,18 @@ class ContinuousVisible(Visible):
         super(ContinuousVisible, self).__init__(decoding_model)
         self.isigma = isigma
 
-    @wraps(Visible.initialize_parameters)
-    def initialize_parameters(self, decoder_input_space, nvis):
-        super(ContinuousVisible, self).initialize_parameters(
-            decoder_input_space=decoder_input_space,
-            nvis=nvis
+    @wraps(Visible._get_default_output_layer)
+    def _get_default_output_layer(self):
+        return CompositeLayer(
+            layer_name='phi',
+            layers=[Sigmoid(dim=self.nvis, layer_name='mu', irange=0.01),
+                    Linear(dim=self.nvis, layer_name='log_sigma', irange=0.01)]
         )
 
-        W_mu_d_value = numpy.random.normal(loc=0, scale=self.isigma,
-                                           size=(self.ndec, self.nvis))
-        self.W_mu_d = sharedX(W_mu_d_value, name='W_mu_d')
-        b_mu_d_value = numpy.random.normal(loc=0, scale=self.isigma,
-                                           size=self.nvis)
-        self.b_mu_d = sharedX(b_mu_d_value, name='b_mu_d')
-
-        self.log_sigma_d = sharedX(1.0, name='log_sigma_d')
-
-        self._params = [self.W_mu_d, self.b_mu_d, self.log_sigma_d]
-        self._params += self.decoding_model.get_params()
+    @wraps(Visible._get_output_space)
+    def _get_output_space(self):
+        return CompositeSpace([VectorSpace(dim=self.nvis),
+                               VectorSpace(dim=self.nvis)])
 
     @wraps(Visible.sample_from_p_x_given_z)
     def sample_from_p_x_given_z(self, num_samples, theta):
@@ -353,13 +364,6 @@ class ContinuousVisible(Visible):
         (mu_d, log_sigma_d) = theta
         return -0.5 * (T.log(2 * pi) + 2 * log_sigma_d +
                        (X - mu_d) ** 2 / T.exp(2 * log_sigma_d))
-
-    @wraps(Visible.decode_theta)
-    def decode_theta(self, z):
-        h_d = self.fprop(z)
-        mu_d = T.nnet.sigmoid(T.dot(h_d, self.W_mu_d) + self.b_mu_d)
-        log_sigma_d = T.ones_like(mu_d) * self.log_sigma_d
-        return (mu_d, log_sigma_d)
 
     @wraps(Visible.means_from_theta)
     def means_from_theta(self, theta):

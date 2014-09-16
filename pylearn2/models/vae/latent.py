@@ -9,6 +9,9 @@ Classes implementing latent space-related methods for the VAE framework, namely
 * encode_phi
 * log_q_z_given_x
 * log_p_z
+* _get_default_output_layer
+* _get_output_space
+* _validate_encoding_model
 
 The following methods are optionally implemented by classes in this module:
 
@@ -25,9 +28,10 @@ import numpy
 import theano
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
+from pylearn2.models.mlp import Linear, CompositeLayer
 from pylearn2.utils.rng import make_theano_rng
 from pylearn2.utils import sharedX, wraps
-from pylearn2.space import VectorSpace, NullSpace
+from pylearn2.space import VectorSpace, NullSpace, CompositeSpace
 
 theano_rng = make_theano_rng(default_seed=1234125)
 pi = sharedX(numpy.pi)
@@ -43,10 +47,53 @@ class Latent(object):
     encoding_model : pylearn2.models.mlp.MLP
         An MLP representing the recognition network, whose output will be used
         to compute :math:`q_\\phi(\\mathbf{z} \\mid \\mathbf{x})`
+    output_layer_required : bool, optional
+        If `True`, the encoding model's output is the last hidden
+        representation from which parameters of :math:`q_\\phi(\\mathbf{z}
+        \\mid \\mathbf{x})` will be computed, and `Latent` will add its own
+        default output layer to the `encoding_model` MLP. If `False`, the MLP's
+        last layer **is** the output layer. Defaults to `True`. **Note: for
+        now, this interface is defined but not implemented, and setting
+        `output_layer_required` to `False` will result in a
+        `NotImplementedError` being raised.**
     """
-    def __init__(self, encoding_model):
+    def __init__(self, encoding_model, output_layer_required=True):
+        if not output_layer_required:
+            raise NotImplementedError("manually setting the output layer in "
+                                      "`encoding_model` is not yet supported")
         self.encoding_model = encoding_model
-        self.nenc = encoding_model.get_output_space().get_total_dimension()
+
+    def _get_default_output_layer(self):
+        """
+        Returns a default `Layer` mapping the encoding model's last hidden
+        representation to parameters of :math:`q_\\phi(\\mathbf{z} \\mid
+        \\mathbf{x})`
+        """
+        raise NotImplementedError(str(self.__class__) + " does not implement "
+                                  "_get_default_output_layer")
+
+    def _get_output_space(self):
+        """
+        Returns the expected output space of the decoding model, i.e. a
+        description of how the parameters output by the encoding model should
+        look like.
+        """
+        raise NotImplementedError(str(self.__class__) + " does not implement "
+                                  "_get_output_space")
+
+    def _validate_encoding_model(self):
+        """
+        Makes sure the encoding model's output layer is compatible with the
+        parameters expected by :math:`q_\\phi(\\mathbf{z} \\mid \\mathbf{x})`
+        """
+        expected_output_space = self._get_output_space()
+        model_output_space = self.encoding_model.get_output_space()
+        if not model_output_space == expected_output_space:
+            raise ValueError("the specified encoding model's output space is "
+                             "incompatible with " + str(self.__class__) + ": "
+                             "expected " + str(expected_output_space) + " but "
+                             "encoding model's output space is " +
+                             str(model_output_space))
 
     def get_monitoring_data_specs(self):
         """
@@ -104,33 +151,23 @@ class Latent(object):
         """
         self.nhid = nhid
         self.encoder_input_space = encoder_input_space
-        self.encoder_output_space = VectorSpace(dim=self.nenc)
+        self.encoding_model.add_layer(self._get_default_output_layer())
+        self._validate_encoding_model()
+        self._params = self.encoding_model.get_params()
+        self._initialize_prior_parameters()
+
+    def _initialize_prior_parameters(self):
+        """
+        Initialize parameters for the prior distribution
+        """
+        raise NotImplementedError(str(self.__class__) + " does not implement "
+                                  "_initialize_prior_parameters")
 
     def get_params(self):
         """
         Return the latent space-related parameters
         """
         return self._params
-
-    def fprop(self, X):
-        """
-        Wraps around the encoding model's `fprop` method to feed it data and
-        return its output in the right spaces.
-
-        Parameters
-        ----------
-        X : tensor_like
-            Input to the encoding network
-        """
-        X = self.encoder_input_space.format_as(
-            batch=X,
-            space=self.encoding_model.get_input_space()
-        )
-        h_e = self.encoding_model.fprop(X)
-        return self.encoding_model.get_output_space().format_as(
-            batch=h_e,
-            space=self.encoder_output_space
-        )
 
     def encode_phi(self, X):
         """
@@ -147,8 +184,14 @@ class Latent(object):
         phi : tuple of tensor_like
             Tuple of parameters for the posterior distribution
         """
-        raise NotImplementedError(str(self.__class__) + " does not implement "
-                                  "encode_phi.")
+        X = self.encoder_input_space.format_as(
+            batch=X,
+            space=self.encoding_model.get_input_space()
+        )
+        rval = self.encoding_model.fprop(X)
+        if not type(rval) == tuple:
+            rval = (rval, )
+        return rval
 
     def sample_from_p_z(self, num_samples, **kwargs):
         """
@@ -326,32 +369,25 @@ class DiagonalGaussianPrior(Latent):
         super(DiagonalGaussianPrior, self).__init__(encoding_model)
         self.isigma = isigma
 
-    @wraps(Latent.initialize_parameters)
-    def initialize_parameters(self, encoder_input_space, nhid):
-        super(DiagonalGaussianPrior, self).initialize_parameters(
-            encoder_input_space,
-            nhid
+    @wraps(Latent._get_default_output_layer)
+    def _get_default_output_layer(self):
+        return CompositeLayer(
+            layer_name='phi',
+            layers=[Linear(dim=self.nhid, layer_name='mu', irange=0.01),
+                    Linear(dim=self.nhid, layer_name='log_sigma',
+                           irange=0.01)]
         )
 
-        W_mu_e_value = numpy.random.normal(loc=0, scale=self.isigma,
-                                           size=(self.nenc, self.nhid))
-        self.W_mu_e = sharedX(W_mu_e_value, name='W_mu_e')
-        b_mu_e_value = numpy.random.normal(loc=0, scale=self.isigma,
-                                           size=self.nhid)
-        self.b_mu_e = sharedX(b_mu_e_value, name='b_mu_e')
+    @wraps(Latent._get_output_space)
+    def _get_output_space(self):
+        return CompositeSpace([VectorSpace(dim=self.nhid),
+                               VectorSpace(dim=self.nhid)])
 
-        W_sigma_e_value = numpy.random.normal(loc=0, scale=self.isigma,
-                                              size=(self.nenc, self.nhid))
-        self.W_sigma_e = sharedX(W_sigma_e_value, name='W_sigma_e')
-        b_sigma_e_value = numpy.random.normal(loc=0, scale=self.isigma,
-                                              size=self.nhid)
-        self.b_sigma_e = sharedX(b_sigma_e_value, name='b_sigma_e')
-
+    @wraps(Latent._initialize_prior_parameters)
+    def _initialize_prior_parameters(self):
         self.prior_mu = sharedX(numpy.zeros(self.nhid), name="prior_mu")
         self.log_prior_sigma = sharedX(numpy.zeros(self.nhid),
                                        name="prior_log_sigma")
-        self._params = [self.W_mu_e, self.b_mu_e, self.W_sigma_e,
-                        self.b_sigma_e, self.prior_mu, self.log_prior_sigma]
         self._params += self.encoding_model.get_params()
 
     @wraps(Latent.sample_from_p_z)
@@ -390,13 +426,6 @@ class DiagonalGaussianPrior(Latent):
             0.5 * (T.exp(2 * log_sigma_e) + (mu_e - prior_mu) ** 2) /
             T.exp(2 * log_prior_sigma) - 0.5
         )
-
-    @wraps(Latent.encode_phi)
-    def encode_phi(self, X):
-        h_e = self.fprop(X)
-        mu_e = T.dot(h_e, self.W_mu_e) + self.b_mu_e
-        log_sigma_e = 0.5 * (T.dot(h_e, self.W_sigma_e) + self.b_sigma_e)
-        return (mu_e, log_sigma_e)
 
     @wraps(Latent.log_q_z_given_x)
     def log_q_z_given_x(self, z, phi):
