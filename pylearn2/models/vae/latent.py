@@ -25,6 +25,7 @@ __maintainer__ = "Vincent Dumoulin"
 __email__ = "pylearn-dev@googlegroups"
 
 import numpy
+import warnings
 import theano
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
@@ -250,7 +251,8 @@ class Latent(object):
         raise NotImplementedError(str(self.__class__) + " does not implement "
                                   "sample_from_epsilon.")
 
-    def kl_divergence_term(self, X, per_component=False, **kwargs):
+    def kl_divergence_term(self, phi, approximate=False, epsilon=None,
+                           **kwargs):
         """
         Computes the KL-divergence term of the VAE criterion.
 
@@ -264,36 +266,18 @@ class Latent(object):
             vector of indivitual KLs instead of the sum by setting this to
             `True`. Defaults to `False`.
         """
-        phi = self.encode_phi(X)
-        if per_component:
-            return self._per_component_kl_divergence_term(X=X, phi=phi,
-                                                          **kwargs)
+        if approximate:
+            return self._approximate_kl_divergence_term(phi, epsilon)    
         else:
-            return self._kl_divergence_term(X=X, phi=phi, **kwargs)
+            try:
+                return self._kl_divergence_term(phi, **kwargs)
+            except NotImplementedError:
+                warnings.warn("analytic KL is not supported by this prior/"
+                              "posterior combination, approximating the KL "
+                              "term instead")
+                return self._approximate_kl_divergence_term(phi, epsilon)
 
-    def _per_component_kl_divergence_term(self, X, phi, **kwargs):
-        """
-        If the prior/posterior combination allows it, analytically computes the
-        per-latent-dimension KL divergences between the prior distribution
-        :math:`p_\\theta(\\mathbf{z})` and :math:`q_\\phi(\\mathbf{z} \\mid
-        \\mathbf{x})`
-
-        Parameters
-        ----------
-        X : tensor_like
-            Input
-        phi : tuple of tensor_like
-            Tuple of parameters for the posterior distribution
-
-        Returns
-        -------
-        kl_divergence_term : tensor_like
-            Per-component KL-divergence terms
-        """
-        raise NotImplementedError(str(self.__class__) + " does not implement "
-                                  "_per_component_kl_divergence_term.")
-
-    def _kl_divergence_term(self, X, phi, **kwargs):
+    def _kl_divergence_term(self, phi, **kwargs):
         """
         Analytically computes the KL divergence between the prior distribution
         :math:`p_\\theta(\\mathbf{z})` and :math:`q_\\phi(\\mathbf{z} \\mid
@@ -301,8 +285,6 @@ class Latent(object):
 
         Parameters
         ----------
-        X : tensor_like
-            Input
         phi : tuple of tensor_like
             Tuple of parameters for the posterior distribution
 
@@ -313,6 +295,45 @@ class Latent(object):
         """
         raise NotImplementedError(str(self.__class__) + " does not implement "
                                   "_kl_divergence_term.")
+
+    def _approximate_kl_divergence_term(self, phi, epsilon):
+        """
+        Returns a Monte Carlo approximation of the KL divergence term.
+
+        Parameters
+        ----------
+        phi : tuple of tensor_like
+            Tuple of parameters for the posterior distribution
+        epsilon : tensor_like
+            Noise term from which z is computed
+        """
+        if epsilon is None:
+            raise ValueError("stochastic KL is requested but no epsilon is "
+                              "given")
+        z = self.sample_from_q_z_given_x(epsilon=epsilon, phi=phi)
+        log_q_z_x = self.log_q_z_given_x(z=z, phi=phi)
+        log_p_z = self.log_p_z(z)
+        return (log_q_z_x - log_p_z).mean(axis=0)
+
+    def per_component_kl_divergence_term(self, phi, **kwargs):
+        """
+        If the prior/posterior combination allows it, analytically computes the
+        per-latent-dimension KL divergences between the prior distribution
+        :math:`p_\\theta(\\mathbf{z})` and :math:`q_\\phi(\\mathbf{z} \\mid
+        \\mathbf{x})`
+
+        Parameters
+        ----------
+        phi : tuple of tensor_like
+            Tuple of parameters for the posterior distribution
+
+        Returns
+        -------
+        kl_divergence_term : tensor_like
+            Per-component KL-divergence terms
+        """
+        raise NotImplementedError(str(self.__class__) + " does not implement "
+                                  "per_component_kl_divergence_term.")
 
     def log_q_z_given_x(self, z, phi):
         """
@@ -412,12 +433,12 @@ class DiagonalGaussianPrior(Latent):
     def sample_from_epsilon(self, shape):
         return theano_rng.normal(size=shape, dtype=theano.config.floatX)
 
-    @wraps(Latent.kl_divergence_term)
-    def _kl_divergence_term(self, X, phi):
-        return self._per_component_kl_divergence_term(X, phi).sum(axis=1)
+    @wraps(Latent._kl_divergence_term)
+    def _kl_divergence_term(self, phi):
+        return self.per_component_kl_divergence_term(phi).sum(axis=1)
 
-    @wraps(Latent._per_component_kl_divergence_term)
-    def _per_component_kl_divergence_term(self, X, phi):
+    @wraps(Latent.per_component_kl_divergence_term)
+    def per_component_kl_divergence_term(self, phi):
         (mu_e, log_sigma_e) = phi
         log_prior_sigma = self.log_prior_sigma
         prior_mu = self.prior_mu

@@ -258,10 +258,9 @@ class VAE(Model):
         if corruption:
             z = self.latent_corruptor(z)
         # Compute KL divergence term
-        kl_divergence_term = self.latent.kl_divergence_term(
-            X=X,
-            per_component=False
-        )
+        kl_divergence_term = self.latent.kl_divergence_term(phi=phi,
+                                                            approximate=False,
+                                                            epsilon=epsilon)
         # Compute expectation term
         # (z is flattened out in order to be MLP-compatible, and the parameters
         #  output by the decoder network are reshaped to the right shape)
