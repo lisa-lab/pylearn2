@@ -24,7 +24,6 @@ __email__ = "pylearn-dev@googlegroups"
 import numpy
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
-from pylearn2.corruption import DummyCorruptor
 from pylearn2.models.model import Model
 from pylearn2.space import CompositeSpace, VectorSpace
 from pylearn2.utils import wraps, sharedX, safe_update
