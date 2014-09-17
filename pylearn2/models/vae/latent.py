@@ -59,6 +59,12 @@ class Latent(object):
         self.encoding_model = encoding_model
         self.output_layer_required = output_layer_required
 
+    def get_lr_scalers(self):
+        """
+        Returns the encoding model's learning rate scalers
+        """
+        return self.encoding_model.get_lr_scalers()
+
     def _get_default_output_layer(self):
         """
         Returns a default `Layer` mapping the encoding model's last hidden

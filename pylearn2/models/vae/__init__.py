@@ -120,6 +120,12 @@ class VAE(Model):
         safe_update(rval, lchannels)
         return rval
 
+    @wraps(Model.get_lr_scalers)
+    def get_lr_scalers(self):
+        rval = self.visible.get_lr_scalers()
+        safe_update(rval, self.latent.get_lr_scalers())
+        return rval
+
     @wraps(Model._modify_updates)
     def _modify_updates(self, updates):
         self.visible.modify_updates(updates)

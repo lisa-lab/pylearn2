@@ -151,6 +151,25 @@ def test_output_layer_not_required():
     vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
 
 
+def test_lr_scalers_returned():
+    """
+    VAE return its encoding and decoding models' LR scalers
+    """
+    encoding_model = MLP(nvis=10, layers=[Linear(layer_name='h', dim=10,
+                                                 W_lr_scale=0.5, irange=0.01)])
+    decoding_model = MLP(nvis=5, layers=[Linear(layer_name='h', dim=10,
+                                                W_lr_scale=0.5, irange=0.01)])
+    visible = ContinuousVisible(decoding_model=decoding_model)
+    latent = DiagonalGaussianPrior(encoding_model=encoding_model)
+    vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
+    lr_scalers = vae.get_lr_scalers()
+    expected_keys = [encoding_model.layers[0].transformer.get_params()[0],
+                     decoding_model.layers[0].transformer.get_params()[0]]
+    assert all(key in lr_scalers.keys() for key in expected_keys)
+    assert all(key in expected_keys for key in lr_scalers.keys())
+    assert all(lr_scalers[key] == 0.5 for key in expected_keys)
+
+
 def test_VAE_cost():
     """
     VAE trains properly with the VAE cost
