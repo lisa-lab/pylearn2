@@ -36,6 +36,7 @@ install:
   - "travis_retry pip install -q numexpr==1.4.2 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
 #cython is needed by pylearn2/utils/setup.py
   - "travis_retry pip install -q cython --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "cython --version"
   - "travis_retry pip install -q tables==2.4.0 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "travis_retry pip install -q pyyaml --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "travis_retry pip install -q sphinx --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
