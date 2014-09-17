@@ -62,15 +62,10 @@ class VAE(Model):
     latent_corruptor : pylearn2.corruption.Corruptor, optional
         Corruption of the latent representation. Defaults to a `DummyCorruptor`
         which does nothing.
-    data_mean : numpy.ndarray, optional
-        Data mean. Defaults to None.
-    data_std : numpy.ndarray, optional
-        Data standard deviation. Defaults to None.
     """
     def __init__(self, nvis, visible, latent, nhid,
                  visible_corruptor=DummyCorruptor(0.0),
-                 latent_corruptor=DummyCorruptor(0.0),
-                 data_mean=None, data_std=None):
+                 latent_corruptor=DummyCorruptor(0.0)):
         super(VAE, self).__init__()
 
         self.__dict__.update(locals())
@@ -78,11 +73,6 @@ class VAE(Model):
 
         self.visible.set_vae(self)
         self.latent.set_vae(self)
-
-        if self.data_mean is not None:
-            self.data_mean = sharedX(self.data_mean)
-        if self.data_std is not None:
-            self.data_std = sharedX(self.data_std)
 
         # Space initialization
         self.input_space = VectorSpace(dim=self.nvis)
@@ -200,12 +190,6 @@ class VAE(Model):
         rval : tensor_like or tuple of tensor_like
             Samples, and optionally conditional expectations
         """
-        # Substract mean (if provided)
-        if self.data_mean is None:
-            mean = sharedX(numpy.zeros(self.nvis))
-        else:
-            mean = self.data_mean
-        X = X - mean
         # Sample noise
         # TODO: For now this covers our use cases, but we need something more
         # robust for the future.
@@ -246,13 +230,6 @@ class VAE(Model):
             Y = self.visible_corruptor(X)
         else:
             Y = X
-        # Substract mean (if provided). We do not overwrite X, as X is the
-        # reconstruction target.
-        if self.data_mean is None:
-            mean = sharedX(numpy.zeros(self.nvis))
-        else:
-            mean = self.data_mean
-        Y = Y - mean
         # Sample noise
         epsilon_shape = (num_samples, Y.shape[0], self.nhid)
         epsilon = self.latent.sample_from_epsilon(shape=epsilon_shape)
@@ -304,13 +281,6 @@ class VAE(Model):
             Y = self.visible_corruptor(X)
         else:
             Y = X
-        # Substract mean (if provided). We do not overwrite X, as X is used to
-        # compute the conditional log-likelihood log p(x | z).
-        if self.data_mean is None:
-            mean = sharedX(numpy.zeros(self.nvis))
-        else:
-            mean = self.data_mean
-        Y = Y - mean
         # Sample noise
         epsilon_shape = (num_samples, Y.shape[0], self.nhid)
         epsilon = self.latent.sample_from_epsilon(shape=epsilon_shape)
