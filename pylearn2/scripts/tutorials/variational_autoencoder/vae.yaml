@@ -15,15 +15,6 @@
         nvis: &nvis 784,
         # Number of latent dimensions (z's dimensionality)
         nhid: &nhid 200,
-        # Optionally, corruption can be applied on the input and/or the
-        # posterior samples. See `pylearn2.corruption` for more details on
-        # `Corruptor` objects.
-        visible_corruptor: !obj:pylearn2.corruption.BinomialCorruptor {
-            corruption_level: 0.02,
-        },
-        latent_corruptor: !obj:pylearn2.corruption.GaussianCorruptor {
-            stdev: 0.001,
-        },
         # Object (subclass of `pylearn2.models.vae.visible.Visible`)
         # responsible for implementing visible-space-related methods. Defines
         # the conditional distribution p(x | z), amongst other things.

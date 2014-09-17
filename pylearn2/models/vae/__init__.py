@@ -56,16 +56,8 @@ class VAE(Model):
     nhid : int
         Number of dimensions in latent space, i.e. the space in which :math:`z`
         lives
-    visible_corruptor : pylearn2.corruption.Corruptor, optional
-        Corruption of the inputs. Defaults to a `DummyCorruptor` which does
-        nothing.
-    latent_corruptor : pylearn2.corruption.Corruptor, optional
-        Corruption of the latent representation. Defaults to a `DummyCorruptor`
-        which does nothing.
     """
-    def __init__(self, nvis, visible, latent, nhid,
-                 visible_corruptor=DummyCorruptor(0.0),
-                 latent_corruptor=DummyCorruptor(0.0)):
+    def __init__(self, nvis, visible, latent, nhid):
         super(VAE, self).__init__()
 
         self.__dict__.update(locals())
@@ -211,7 +203,7 @@ class VAE(Model):
         else:
             return reconstructed_X
 
-    def log_likelihood_lower_bound(self, X, num_samples, corruption=True):
+    def log_likelihood_lower_bound(self, X, num_samples):
         """
         Computes the VAE lower-bound on the marginal log-likelihood of X.
 
@@ -225,21 +217,13 @@ class VAE(Model):
         lower_bound : tensor_like
             Lower-bound on the marginal log-likelihood
         """
-        # Corrupt inputs (if requested)
-        if corruption:
-            Y = self.visible_corruptor(X)
-        else:
-            Y = X
         # Sample noise
-        epsilon_shape = (num_samples, Y.shape[0], self.nhid)
+        epsilon_shape = (num_samples, X.shape[0], self.nhid)
         epsilon = self.latent.sample_from_epsilon(shape=epsilon_shape)
         # Encode q(z | x) parameters
-        phi = self.latent.encode_phi(Y)
+        phi = self.latent.encode_phi(X)
         # Compute z
         z = self.latent.sample_from_q_z_given_x(epsilon=epsilon, phi=phi)
-        # Corrupt z (if requested)
-        if corruption:
-            z = self.latent_corruptor(z)
         # Compute KL divergence term
         kl_divergence_term = self.latent.kl_divergence_term(phi=phi,
                                                             approximate=False,
@@ -261,7 +245,7 @@ class VAE(Model):
 
         return -kl_divergence_term + expectation_term
 
-    def log_likelihood_approximation(self, X, num_samples, corruption=True):
+    def log_likelihood_approximation(self, X, num_samples):
         """
         Computes the importance sampling approximation to the marginal
         log-likelihood of X, using the reparametrization trick.
@@ -276,21 +260,13 @@ class VAE(Model):
         approximation : tensor_like
             Approximation on the marginal log-likelihood
         """
-        # Corrupt inputs (if requested)
-        if corruption:
-            Y = self.visible_corruptor(X)
-        else:
-            Y = X
         # Sample noise
-        epsilon_shape = (num_samples, Y.shape[0], self.nhid)
+        epsilon_shape = (num_samples, X.shape[0], self.nhid)
         epsilon = self.latent.sample_from_epsilon(shape=epsilon_shape)
         # Encode q(z | x) parameters
-        phi = self.latent.encode_phi(Y)
+        phi = self.latent.encode_phi(X)
         # Compute z
         z = self.latent.sample_from_q_z_given_x(epsilon=epsilon, phi=phi)
-        # Corrupt z (if requested)
-        if corruption:
-            z = self.latent_corruptor(z)
         # Decode p(x | z) parameters
         # (z is flattened out in order to be MLP-compatible, and the parameters
         #  output by the decoder network are reshaped to the right shape)
