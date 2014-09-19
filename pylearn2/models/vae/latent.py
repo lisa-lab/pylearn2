@@ -148,6 +148,8 @@ class Latent(object):
         self._validate_encoding_model()
         self._params = self.encoding_model.get_params()
         self._initialize_prior_parameters()
+        for param in self._params:
+            param.name = 'encoding_' + param.name
 
     def _initialize_prior_parameters(self):
         """
@@ -421,7 +423,7 @@ class DiagonalGaussianPrior(Latent):
         self.prior_mu = sharedX(numpy.zeros(self.nhid), name="prior_mu")
         self.log_prior_sigma = sharedX(numpy.zeros(self.nhid),
                                        name="prior_log_sigma")
-        self._params += self.encoding_model.get_params()
+        self._params += [self.prior_mu, self.log_prior_sigma]
 
     @wraps(Latent.sample_from_p_z)
     def sample_from_p_z(self, num_samples):

@@ -144,6 +144,8 @@ class Visible(object):
             self.decoding_model.add_layer(self._get_default_output_layer())
         self._validate_decoding_model()
         self._params = self.decoding_model.get_params()
+        for param in self._params:
+            param.name = 'decoding_' + param.name
 
     def get_params(self):
         """

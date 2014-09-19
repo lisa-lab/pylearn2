@@ -82,6 +82,13 @@ class VAE(Model):
         self._encoding_params = self.latent.get_params()
         self._decoding_params = self.visible.get_params()
         self._params = self._encoding_params + self._decoding_params
+        names = []
+        for param in self._params:
+            if param.name not in names:
+                names.append(param.name)
+            else:
+                raise Exception("no two paramameters must share the same "
+                                "name: " + param.name)
 
     @wraps(Model.get_monitoring_data_specs)
     def get_monitoring_data_specs(self):
