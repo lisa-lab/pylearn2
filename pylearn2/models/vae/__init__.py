@@ -85,20 +85,29 @@ class VAE(Model):
 
     @wraps(Model.get_monitoring_data_specs)
     def get_monitoring_data_specs(self):
-        vspace, vsource = self.visible.get_monitoring_data_specs()
-        lspace, lsource = self.latent.get_monitoring_data_specs()
-        return CompositeSpace([vspace, lspace]), (vsource, lsource)
+        return self.input_space, self.input_source
 
     @wraps(Model.get_monitoring_channels)
     def get_monitoring_channels(self, data):
         space, source = self.get_monitoring_data_specs()
         space.validate(data)
-        vdata, ldata = data
-        vchannels = self.visible.get_monitoring_channels(vdata)
-        lchannels = self.latent.get_monitoring_channels(ldata)
+
         rval = OrderedDict()
-        safe_update(rval, vchannels)
-        safe_update(rval, lchannels)
+
+        X = data
+        epsilon_shape = (1, X.shape[0], self.nhid)
+        epsilon = self.latent.sample_from_epsilon(shape=epsilon_shape)
+        phi = self.latent.encode_phi(X)
+        z = self.latent.sample_from_q_z_given_x(epsilon=epsilon, phi=phi)
+        z = z.reshape((epsilon.shape[0] * epsilon.shape[1], epsilon.shape[2]))
+        theta = self.visible.decode_theta(z)
+
+        latent_channels = self.latent.monitoring_channels_from_phi(phi)
+        safe_update(rval, latent_channels)
+
+        visible_channels = self.visible.monitoring_channels_from_theta(theta)
+        safe_update(rval, visible_channels)
+
         return rval
 
     @wraps(Model.get_lr_scalers)

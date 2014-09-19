@@ -94,22 +94,12 @@ class Visible(object):
     def get_weights(self):
         return self.decoding_model.get_weights()
 
-    def get_monitoring_data_specs(self):
-        """
-        Get the data_specs describing the data for get_monitoring_channels.
-
-        By default, nothing is requested for computing monitoring channels.
-        """
-        return (NullSpace(), '')
-
-    def get_monitoring_channels(self, data):
+    def monitoring_channels_from_theta(self, theta):
         """
         Get monitoring channels for this visible component.
 
         By default, no monitoring channel is computed.
         """
-        space, source = self.get_monitoring_data_specs()
-        space.validate(data)
         return OrderedDict()
 
     def modify_updates(self, updates):
@@ -118,7 +108,7 @@ class Visible(object):
 
         By default, does nothing.
         """
-        pass
+        self.decoding_model.modify_updates(updates)
 
     def get_vae(self):
         """
@@ -359,7 +349,7 @@ class ContinuousVisible(Visible):
     @wraps(Visible._get_default_output_layer)
     def _get_default_output_layer(self):
         return CompositeLayer(
-            layer_name='phi',
+            layer_name='theta',
             layers=[Sigmoid(dim=self.nvis, layer_name='mu', irange=0.01),
                     Linear(dim=self.nvis, layer_name='log_sigma', irange=0.01)]
         )
@@ -368,6 +358,18 @@ class ContinuousVisible(Visible):
     def _get_output_space(self):
         return CompositeSpace([VectorSpace(dim=self.nvis),
                                VectorSpace(dim=self.nvis)])
+
+    @wraps(Visible.monitoring_channels_from_theta)
+    def monitoring_channels_from_theta(self, theta):
+        rval = OrderedDict()
+
+        mu, log_sigma = theta
+        rval['sigma_theta_min'] = T.exp(log_sigma).min()
+        rval['sigma_theta_max'] = T.exp(log_sigma).max()
+        rval['sigma_theta_mean'] = T.exp(log_sigma).mean()
+        rval['sigma_theta_std'] = T.exp(log_sigma).std()
+
+        return rval
 
     @wraps(Visible.sample_from_p_x_given_z)
     def sample_from_p_x_given_z(self, num_samples, theta):

@@ -97,22 +97,12 @@ class Latent(object):
                              "encoding model's output space is " +
                              str(model_output_space))
 
-    def get_monitoring_data_specs(self):
-        """
-        Get the data_specs describing the data for get_monitoring_channels.
-
-        By default, nothing is requested for computing monitoring channels.
-        """
-        return (NullSpace(), '')
-
-    def get_monitoring_channels(self, data):
+    def monitoring_channels_from_phi(self, phi):
         """
         Get monitoring channels for this latent component.
 
         By default, no monitoring channel is computed.
         """
-        space, source = self.get_monitoring_data_specs()
-        space.validate(data)
         return OrderedDict()
 
     def modify_updates(self, updates):
@@ -121,7 +111,7 @@ class Latent(object):
 
         By default, does nothing.
         """
-        pass
+        self.encoding_model.modify_updates(updates)
 
     def get_vae(self):
         """
@@ -399,6 +389,18 @@ class DiagonalGaussianPrior(Latent):
         super(DiagonalGaussianPrior, self).__init__(encoding_model,
                                                     output_layer_required)
         self.isigma = isigma
+
+    @wraps(Latent.monitoring_channels_from_phi)
+    def monitoring_channels_from_phi(self, phi):
+        rval = OrderedDict()
+
+        mu, log_sigma = phi
+        rval['sigma_phi_min'] = T.exp(log_sigma).min()
+        rval['sigma_phi_max'] = T.exp(log_sigma).max()
+        rval['sigma_phi_mean'] = T.exp(log_sigma).mean()
+        rval['sigma_phi_std'] = T.exp(log_sigma).std()
+
+        return rval
 
     @wraps(Latent._get_default_output_layer)
     def _get_default_output_layer(self):
