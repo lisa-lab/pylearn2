@@ -395,9 +395,10 @@ class DiagonalGaussianPrior(Latent):
         initialized by the model itself will be drawn. Defaults to 0.01.
     """
     def __init__(self, encoding_model, output_layer_required=True,
-                 isigma=0.01):
+                 learn_prior=True, isigma=0.01):
         super(DiagonalGaussianPrior, self).__init__(encoding_model,
                                                     output_layer_required)
+        self.learn_prior = learn_prior
         self.isigma = isigma
 
     @wraps(Latent.monitoring_channels_from_phi)
@@ -431,7 +432,8 @@ class DiagonalGaussianPrior(Latent):
         self.prior_mu = sharedX(numpy.zeros(self.nhid), name="prior_mu")
         self.log_prior_sigma = sharedX(numpy.zeros(self.nhid),
                                        name="prior_log_sigma")
-        self._params += [self.prior_mu, self.log_prior_sigma]
+        if self.learn_prior:
+            self._params += [self.prior_mu, self.log_prior_sigma]
 
     @wraps(Latent.sample_from_p_z)
     def sample_from_p_z(self, num_samples):
