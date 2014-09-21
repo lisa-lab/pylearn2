@@ -24,7 +24,7 @@
             # parameters for p(x | z).
             decoding_model: !obj:pylearn2.models.mlp.MLP {
                 # Input dimensions should be the number of dimensions in z.
-                nvis: *nhid,
+                layer_name: "decoder",
                 layers: [
                     !obj:pylearn2.models.mlp.RectifiedLinear {
                         layer_name: 'h_d_1',
@@ -49,7 +49,7 @@
             # parameters for q(z | x).
             encoding_model: !obj:pylearn2.models.mlp.MLP {
                 # Input dimensions should be the number of dimensions in x.
-                nvis: *nvis,
+                layer_name: "encoder",
                 layers: [
                     !obj:pylearn2.models.mlp.RectifiedLinear {
                         layer_name: 'h_e_1',
