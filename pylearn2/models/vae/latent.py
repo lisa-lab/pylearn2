@@ -29,6 +29,7 @@ import warnings
 import theano
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
+from pylearn2.models import Model
 from pylearn2.models.mlp import Linear, CompositeLayer
 from pylearn2.utils.rng import make_theano_rng
 from pylearn2.utils import sharedX, wraps
@@ -37,7 +38,7 @@ from pylearn2.space import VectorSpace, CompositeSpace
 pi = sharedX(numpy.pi)
 
 
-class Latent(object):
+class Latent(Model):
     """
     Abstract class implementing latent space-related methods for the VAE
     framework.
@@ -104,7 +105,7 @@ class Latent(object):
         """
         return OrderedDict()
 
-    def modify_updates(self, updates):
+    def _modify_updates(self, updates):
         """
         Modifies the parameters before a learning update is applied.
 
@@ -148,7 +149,7 @@ class Latent(object):
         self.encoder_input_space = encoder_input_space
 
         if self.output_layer_required:
-            self.encoding_model.layers += [self._get_default_output_layer()]
+            self.encoding_model.add_layers([self._get_default_output_layer()])
         self.encoding_model.set_mlp(self)
         self.encoding_model.set_input_space(self.encoder_input_space)
 

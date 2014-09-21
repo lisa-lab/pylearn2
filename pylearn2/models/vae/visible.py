@@ -23,6 +23,7 @@ import numpy
 import theano
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
+from pylearn2.models import Model
 from pylearn2.models.mlp import Linear, Sigmoid, CompositeLayer
 from pylearn2.space import VectorSpace, CompositeSpace
 from pylearn2.utils.rng import make_theano_rng
@@ -31,7 +32,7 @@ from pylearn2.utils import wraps, sharedX
 pi = sharedX(numpy.pi)
 
 
-class Visible(object):
+class Visible(Model):
     """
     Abstract class implementing visible space-related methods for the VAE
     framework.
@@ -101,7 +102,7 @@ class Visible(object):
         """
         return OrderedDict()
 
-    def modify_updates(self, updates):
+    def _modify_updates(self, updates):
         """
         Modifies the parameters before a learning update is applied.
 
@@ -145,7 +146,7 @@ class Visible(object):
         self.decoder_input_space = decoder_input_space
 
         if self.output_layer_required:
-            self.decoding_model.layers += [self._get_default_output_layer()]
+            self.decoding_model.add_layers([self._get_default_output_layer()])
         self.decoding_model.set_mlp(self)
         self.decoding_model.set_input_space(self.decoder_input_space)
 
@@ -300,7 +301,7 @@ class BinaryVisible(Visible):
 
     @wraps(Visible.sample_from_p_x_given_z)
     def sample_from_p_x_given_z(self, num_samples, theta):
-        (p_x_given_z,) = theta
+        p_x_given_z = T.nnet.sigmoid(theta[0])
         return self.theano_rng.uniform(
             size=(num_samples, self.nvis),
             dtype=theano.config.floatX
