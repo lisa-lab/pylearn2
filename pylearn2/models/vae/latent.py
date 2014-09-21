@@ -32,9 +32,8 @@ from theano.compat.python2x import OrderedDict
 from pylearn2.models.mlp import Linear, CompositeLayer
 from pylearn2.utils.rng import make_theano_rng
 from pylearn2.utils import sharedX, wraps
-from pylearn2.space import VectorSpace, NullSpace, CompositeSpace
+from pylearn2.space import VectorSpace, CompositeSpace
 
-theano_rng = make_theano_rng(default_seed=1234125)
 pi = sharedX(numpy.pi)
 
 
@@ -136,6 +135,10 @@ class Latent(object):
             raise RuntimeError("this `Latent` instance already belongs to "
                                "another VAE")
         self.vae = vae
+        self.rng = self.vae.rng
+        self.theano_rng = make_theano_rng(int(self.rng.randint(2 ** 30)),
+                                          which_method=["normal", "uniform"])
+        self.batch_size = vae.batch_size
 
     def initialize_parameters(self, encoder_input_space, nhid):
         """
@@ -143,9 +146,14 @@ class Latent(object):
         """
         self.nhid = nhid
         self.encoder_input_space = encoder_input_space
+
         if self.output_layer_required:
-            self.encoding_model.add_layer(self._get_default_output_layer())
+            self.encoding_model.layers += [self._get_default_output_layer()]
+        self.encoding_model.set_mlp(self)
+        self.encoding_model.set_input_space(self.encoder_input_space)
+
         self._validate_encoding_model()
+
         self._params = self.encoding_model.get_params()
         self._initialize_prior_parameters()
         for param in self._params:
@@ -427,10 +435,10 @@ class DiagonalGaussianPrior(Latent):
 
     @wraps(Latent.sample_from_p_z)
     def sample_from_p_z(self, num_samples):
-        return theano_rng.normal(size=(num_samples, self.nhid),
-                                 avg=self.prior_mu,
-                                 std=T.exp(self.log_prior_sigma),
-                                 dtype=theano.config.floatX)
+        return self.theano_rng.normal(size=(num_samples, self.nhid),
+                                      avg=self.prior_mu,
+                                      std=T.exp(self.log_prior_sigma),
+                                      dtype=theano.config.floatX)
 
     @wraps(Latent.sample_from_q_z_given_x)
     def sample_from_q_z_given_x(self, epsilon, phi):
@@ -445,7 +453,7 @@ class DiagonalGaussianPrior(Latent):
 
     @wraps(Latent.sample_from_epsilon)
     def sample_from_epsilon(self, shape):
-        return theano_rng.normal(size=shape, dtype=theano.config.floatX)
+        return self.theano_rng.normal(size=shape, dtype=theano.config.floatX)
 
     @wraps(Latent._kl_divergence_term)
     def _kl_divergence_term(self, phi):

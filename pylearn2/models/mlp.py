@@ -496,31 +496,6 @@ class MLP(Layer):
                 return None
             return 1. / x
 
-    def add_layer(self, layer):
-        """
-        Add a layer as the MLP's last layer. **Only works for non-nested
-        MLPs**.
-
-        Parameters
-        ----------
-        layer : pylearn2.models.mlp.Layer
-            Layer to add at the end of the layer list
-
-        Notes
-        -----
-        This usually resets the layer's parameters!
-        """
-        assert isinstance(layer, Layer)
-        assert layer.get_mlp() is None
-        if layer.layer_name in self.layer_names:
-            raise ValueError("MLP.__init__ given two or more layers "
-                             "with same name: " + layer.layer_name)
-        layer.set_mlp(self)
-        self.layers += [layer]
-        self.layer_names.add(layer.layer_name)
-        assert not self._nested, "cannot add a layer to a nested MLP"
-        self._update_layer_input_spaces()
-
     @property
     def input_source(self):
         assert not self._nested, "A nested MLP does not have an input source"

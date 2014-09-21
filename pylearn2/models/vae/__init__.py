@@ -25,11 +25,11 @@ import numpy
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
 from pylearn2.models.model import Model
-from pylearn2.space import CompositeSpace, VectorSpace
+from pylearn2.space import VectorSpace
 from pylearn2.utils import wraps, sharedX, safe_update
-from pylearn2.utils.rng import make_theano_rng
+from pylearn2.utils.rng import make_np_rng
 
-theano_rng = make_theano_rng(default_seed=2341)
+default_seed = 2014 + 9 + 20
 pi = sharedX(numpy.pi)
 
 
@@ -55,12 +55,18 @@ class VAE(Model):
     nhid : int
         Number of dimensions in latent space, i.e. the space in which :math:`z`
         lives
+    seed : int or list of int
+        Seed for the VAE's numpy RNG used by its subcomponents
     """
-    def __init__(self, nvis, visible, latent, nhid):
+    def __init__(self, nvis, visible, latent, nhid, batch_size=None,
+                 seed=None):
         super(VAE, self).__init__()
 
         self.__dict__.update(locals())
         del self.self
+
+        self.rng = make_np_rng(self.seed, default_seed,
+                               ['uniform', 'randint', 'randn'])
 
         self.visible.set_vae(self)
         self.latent.set_vae(self)

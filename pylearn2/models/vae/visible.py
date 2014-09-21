@@ -24,11 +24,10 @@ import theano
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
 from pylearn2.models.mlp import Linear, Sigmoid, CompositeLayer
-from pylearn2.space import VectorSpace, NullSpace, CompositeSpace
+from pylearn2.space import VectorSpace, CompositeSpace
 from pylearn2.utils.rng import make_theano_rng
 from pylearn2.utils import wraps, sharedX
 
-theano_rng = make_theano_rng(default_seed=1234125)
 pi = sharedX(numpy.pi)
 
 
@@ -133,6 +132,10 @@ class Visible(object):
             raise RuntimeError("this `Visible` instance already belongs to "
                                "another VAE")
         self.vae = vae
+        self.rng = self.vae.rng
+        self.theano_rng = make_theano_rng(int(self.rng.randint(2 ** 30)),
+                                          which_method=["normal", "uniform"])
+        self.batch_size = vae.batch_size
 
     def initialize_parameters(self, decoder_input_space, nvis):
         """
@@ -140,9 +143,14 @@ class Visible(object):
         """
         self.nvis = nvis
         self.decoder_input_space = decoder_input_space
+
         if self.output_layer_required:
-            self.decoding_model.add_layer(self._get_default_output_layer())
+            self.decoding_model.layers += [self._get_default_output_layer()]
+        self.decoding_model.set_mlp(self)
+        self.decoding_model.set_input_space(self.decoder_input_space)
+
         self._validate_decoding_model()
+
         self._params = self.decoding_model.get_params()
         for param in self._params:
             param.name = 'decoding_' + param.name
@@ -293,7 +301,7 @@ class BinaryVisible(Visible):
     @wraps(Visible.sample_from_p_x_given_z)
     def sample_from_p_x_given_z(self, num_samples, theta):
         (p_x_given_z,) = theta
-        return theano_rng.uniform(
+        return self.theano_rng.uniform(
             size=(num_samples, self.nvis),
             dtype=theano.config.floatX
         ) < p_x_given_z
@@ -376,10 +384,10 @@ class ContinuousVisible(Visible):
     @wraps(Visible.sample_from_p_x_given_z)
     def sample_from_p_x_given_z(self, num_samples, theta):
         (mu_d, log_sigma_d) = theta
-        return theano_rng.normal(size=mu_d.shape,
-                                 avg=mu_d,
-                                 std=T.exp(log_sigma_d),
-                                 dtype=theano.config.floatX)
+        return self.theano_rng.normal(size=mu_d.shape,
+                                      avg=mu_d,
+                                      std=T.exp(log_sigma_d),
+                                      dtype=theano.config.floatX)
 
     @wraps(Visible.expectation_term)
     def expectation_term(self, X, theta):
