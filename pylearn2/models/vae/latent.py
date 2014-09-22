@@ -47,7 +47,9 @@ class Latent(Model):
     ------------
     encoding_model : pylearn2.models.mlp.MLP
         An MLP representing the recognition network, whose output will be used
-        to compute :math:`q_\\phi(\\mathbf{z} \\mid \\mathbf{x})`
+        to compute :math:`q_\\phi(\\mathbf{z} \\mid \\mathbf{x})`. Note that
+        the MLP must be **nested**, meaning that its input space must not have
+        already been defined, as Latent will do it automatically.
     output_layer_required : bool, optional
         If `True`, the encoding model's output is the last hidden
         representation from which parameters of :math:`q_\\phi(\\mathbf{z}
@@ -56,6 +58,12 @@ class Latent(Model):
         last layer **is** the output layer. Defaults to `True`.
     """
     def __init__(self, encoding_model, output_layer_required=True):
+        super(Latent, self).__init__()
+        if not encoding_model._nested:
+            raise ValueError("Latent expects an MLP whose input space has "
+                             "not been defined yet. You should not specify "
+                             "'nvis' or 'input_space' when instantiating the "
+                             "MLP.")
         self.encoding_model = encoding_model
         self.output_layer_required = output_layer_required
 

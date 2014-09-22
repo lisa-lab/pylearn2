@@ -1,8 +1,10 @@
+from nose.tools import raises
 import theano
 import theano.tensor as T
 from pylearn2.config import yaml_parse
-from pylearn2.models.mlp import MLP
-from pylearn2.models.mlp import Linear, CompositeLayer, ConvRectifiedLinear
+from pylearn2.models.mlp import (
+    MLP, Linear, CompositeLayer, ConvRectifiedLinear, SpaceConverter
+)
 from pylearn2.models.vae import VAE
 from pylearn2.models.vae.visible import BinaryVisible, ContinuousVisible
 from pylearn2.models.vae.latent import DiagonalGaussianPrior
@@ -15,10 +17,8 @@ def test_one_sample_allowed():
     """
     VAE allows one sample per data point
     """
-    encoding_model = MLP(nvis=10, layers=[Linear(layer_name='h', dim=10,
-                                                 irange=0.01)])
-    decoding_model = MLP(nvis=5, layers=[Linear(layer_name='h', dim=10,
-                                                irange=0.01)])
+    encoding_model = MLP(layers=[Linear(layer_name='h', dim=10, irange=0.01)])
+    decoding_model = MLP(layers=[Linear(layer_name='h', dim=10, irange=0.01)])
     visible = BinaryVisible(decoding_model=decoding_model)
     latent = DiagonalGaussianPrior(encoding_model=encoding_model)
     vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
@@ -33,10 +33,8 @@ def test_multiple_samples_allowed():
     """
     VAE allows multiple samples per data point
     """
-    encoding_model = MLP(nvis=10, layers=[Linear(layer_name='h', dim=10,
-                                                 irange=0.01)])
-    decoding_model = MLP(nvis=5, layers=[Linear(layer_name='h', dim=10,
-                                                irange=0.01)])
+    encoding_model = MLP(layers=[Linear(layer_name='h', dim=10, irange=0.01)])
+    decoding_model = MLP(layers=[Linear(layer_name='h', dim=10, irange=0.01)])
     visible = BinaryVisible(decoding_model=decoding_model)
     latent = DiagonalGaussianPrior(encoding_model=encoding_model)
     vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
@@ -52,20 +50,23 @@ def test_convolutional_compatible():
     VAE allows convolutional encoding networks
     """
     encoding_model = MLP(
-        input_space=Conv2DSpace(shape=[4, 4], num_channels=1),
-        layers=[ConvRectifiedLinear(
-            layer_name='h',
-            output_channels=2,
-            kernel_shape=[2, 2],
-            kernel_stride=[1, 1],
-            pool_shape=[1, 1],
-            pool_stride=[1, 1],
-            pool_type='max',
-            irange=0.01
-        )]
+        layers=[
+            SpaceConverter(
+                layer_name='conv2d_converter',
+                output_space=Conv2DSpace(shape=[4, 4], num_channels=1)
+            ),
+            ConvRectifiedLinear(
+                layer_name='h',
+                output_channels=2,
+                kernel_shape=[2, 2],
+                kernel_stride=[1, 1],
+                pool_shape=[1, 1],
+                pool_stride=[1, 1],
+                pool_type='max',
+                irange=0.01)
+            ]
     )
-    decoding_model = MLP(nvis=5, layers=[Linear(layer_name='h', dim=16,
-                                                irange=0.01)])
+    decoding_model = MLP(layers=[Linear(layer_name='h', dim=16, irange=0.01)])
     visible = BinaryVisible(decoding_model=decoding_model)
     latent = DiagonalGaussianPrior(encoding_model=encoding_model)
     vae = VAE(nvis=16, visible=visible, latent=latent, nhid=5)
@@ -80,10 +81,8 @@ def test_binary_visible():
     """
     BinaryVisible works without crashing
     """
-    encoding_model = MLP(nvis=10, layers=[Linear(layer_name='h', dim=10,
-                                                 irange=0.01)])
-    decoding_model = MLP(nvis=5, layers=[Linear(layer_name='h', dim=10,
-                                                irange=0.01)])
+    encoding_model = MLP(layers=[Linear(layer_name='h', dim=10, irange=0.01)])
+    decoding_model = MLP(layers=[Linear(layer_name='h', dim=10, irange=0.01)])
     visible = BinaryVisible(decoding_model=decoding_model)
     latent = DiagonalGaussianPrior(encoding_model=encoding_model)
     vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
@@ -99,10 +98,8 @@ def test_continuous_visible():
     """
     ContinuousVisible works without crashing
     """
-    encoding_model = MLP(nvis=10, layers=[Linear(layer_name='h', dim=10,
-                                                 irange=0.01)])
-    decoding_model = MLP(nvis=5, layers=[Linear(layer_name='h', dim=10,
-                                                irange=0.01)])
+    encoding_model = MLP(layers=[Linear(layer_name='h', dim=10, irange=0.01)])
+    decoding_model = MLP(layers=[Linear(layer_name='h', dim=10, irange=0.01)])
     visible = ContinuousVisible(decoding_model=decoding_model)
     latent = DiagonalGaussianPrior(encoding_model=encoding_model)
     vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
@@ -119,7 +116,6 @@ def test_output_layer_not_required():
     Visible and Latent allow user-defined output layers in MLP
     """
     encoding_model = MLP(
-        nvis=10,
         layers=[
             Linear(layer_name='h', dim=10, irange=0.01),
             CompositeLayer(
@@ -132,7 +128,6 @@ def test_output_layer_not_required():
         ]
     )
     decoding_model = MLP(
-        nvis=5,
         layers=[
             Linear(layer_name='h', dim=10, irange=0.01),
             CompositeLayer(
@@ -151,14 +146,106 @@ def test_output_layer_not_required():
     vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
 
 
+@raises(ValueError)
+def test_visible_rejects_invalid_output_layer():
+    """
+    Visible rejects invalid user-defined output layer
+    """
+    encoding_model = MLP(
+        layers=[
+            Linear(layer_name='h', dim=10, irange=0.01),
+            CompositeLayer(
+                layer_name='phi',
+                layers=[
+                    Linear(layer_name='mu', dim=5, irange=0.01),
+                    Linear(layer_name='log_sigma', dim=5, irange=0.01)
+                ]
+            )
+        ]
+    )
+    decoding_model = MLP(
+        layers=[
+            Linear(layer_name='h', dim=10, irange=0.01),
+            CompositeLayer(
+                layer_name='theta',
+                layers=[
+                    Linear(layer_name='mu', dim=8, irange=0.01),
+                    Linear(layer_name='log_sigma', dim=8, irange=0.01)
+                ]
+            )
+        ]
+    )
+    visible = ContinuousVisible(decoding_model=decoding_model,
+                                output_layer_required=False)
+    latent = DiagonalGaussianPrior(encoding_model=encoding_model,
+                                   output_layer_required=False)
+    vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
+
+
+@raises(ValueError)
+def test_latent_rejects_invalid_output_layer():
+    """
+    Latent rejects invalid user-defined output layer
+    """
+    encoding_model = MLP(
+        layers=[
+            Linear(layer_name='h', dim=10, irange=0.01),
+            CompositeLayer(
+                layer_name='phi',
+                layers=[
+                    Linear(layer_name='mu', dim=8, irange=0.01),
+                    Linear(layer_name='log_sigma', dim=8, irange=0.01)
+                ]
+            )
+        ]
+    )
+    decoding_model = MLP(
+        layers=[
+            Linear(layer_name='h', dim=10, irange=0.01),
+            CompositeLayer(
+                layer_name='theta',
+                layers=[
+                    Linear(layer_name='mu', dim=10, irange=0.01),
+                    Linear(layer_name='log_sigma', dim=10, irange=0.01)
+                ]
+            )
+        ]
+    )
+    visible = ContinuousVisible(decoding_model=decoding_model,
+                                output_layer_required=False)
+    latent = DiagonalGaussianPrior(encoding_model=encoding_model,
+                                   output_layer_required=False)
+    vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
+
+
+@raises(ValueError)
+def test_visible_requires_nested_mlp():
+    """
+    Visible rejects non-nested MLPs
+    """
+    decoding_model = MLP(nvis=10,
+                         layers=[Linear(layer_name='h', dim=10, irange=0.01)])
+    visible = BinaryVisible(decoding_model=decoding_model)
+
+
+@raises(ValueError)
+def test_latent_requires_nested_mlp():
+    """
+    Latent rejects non-nested MLPs
+    """
+    encoding_model = MLP(nvis=10,
+                         layers=[Linear(layer_name='h', dim=10, irange=0.01)])
+    latent = DiagonalGaussianPrior(encoding_model=encoding_model)
+
+
 def test_lr_scalers_returned():
     """
     VAE return its encoding and decoding models' LR scalers
     """
-    encoding_model = MLP(nvis=10, layers=[Linear(layer_name='h', dim=10,
-                                                 W_lr_scale=0.5, irange=0.01)])
-    decoding_model = MLP(nvis=5, layers=[Linear(layer_name='h', dim=10,
-                                                W_lr_scale=0.5, irange=0.01)])
+    encoding_model = MLP(layers=[Linear(layer_name='h', dim=10, W_lr_scale=0.5,
+                                        irange=0.01)])
+    decoding_model = MLP(layers=[Linear(layer_name='h', dim=10, W_lr_scale=0.5,
+                                        irange=0.01)])
     visible = ContinuousVisible(decoding_model=decoding_model)
     latent = DiagonalGaussianPrior(encoding_model=encoding_model)
     vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
@@ -189,7 +276,6 @@ def test_VAE_cost():
             nhid: &nhid 5,
             visible: !obj:pylearn2.models.vae.visible.BinaryVisible {
                 decoding_model: !obj:pylearn2.models.mlp.MLP {
-                    nvis: *nhid,
                     layers: [
                         !obj:pylearn2.models.mlp.Linear {
                             layer_name: 'h_d',
@@ -201,7 +287,6 @@ def test_VAE_cost():
             },
             latent: !obj:pylearn2.models.vae.latent.DiagonalGaussianPrior {
                 encoding_model: !obj:pylearn2.models.mlp.MLP {
-                    nvis: *nvis,
                     layers: [
                         !obj:pylearn2.models.mlp.RectifiedLinear {
                             layer_name: 'h_e',
@@ -250,7 +335,6 @@ def test_IS_cost():
             nhid: &nhid 5,
             visible: !obj:pylearn2.models.vae.visible.BinaryVisible {
                 decoding_model: !obj:pylearn2.models.mlp.MLP {
-                    nvis: *nhid,
                     layers: [
                         !obj:pylearn2.models.mlp.Linear {
                             layer_name: 'h_d',
@@ -262,7 +346,6 @@ def test_IS_cost():
             },
             latent: !obj:pylearn2.models.vae.latent.DiagonalGaussianPrior {
                 encoding_model: !obj:pylearn2.models.mlp.MLP {
-                    nvis: *nvis,
                     layers: [
                         !obj:pylearn2.models.mlp.RectifiedLinear {
                             layer_name: 'h_e',

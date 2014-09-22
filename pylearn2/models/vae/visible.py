@@ -41,7 +41,9 @@ class Visible(Model):
     ------------
     decoding_model : pylearn2.models.mlp.MLP
         An MLP representing the generative network, whose output will be used
-        to compute :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})`
+        to compute :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})`. Note that
+        the MLP must be **nested**, meaning that its input space must not have
+        already been defined, as Visible will do it automatically.
     output_layer_required : bool, optional
         If `True`, the decoding model's output is the last hidden
         representation from which parameters of :math:`p_\\theta(\\mathbf{x}
@@ -50,6 +52,12 @@ class Visible(Model):
         last layer **is** the output layer. Defaults to `True`.
     """
     def __init__(self, decoding_model, output_layer_required=True):
+        super(Visible, self).__init__()
+        if not decoding_model._nested:
+            raise ValueError("Visible expects an MLP whose input space has "
+                             "not been defined yet. You should not specify "
+                             "'nvis' or 'input_space' when instantiating the "
+                             "MLP.")
         self.decoding_model = decoding_model
         self.output_layer_required = output_layer_required
 
