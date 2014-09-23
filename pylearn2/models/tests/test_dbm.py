@@ -10,7 +10,6 @@ __maintainer__ = "LISA Lab"
 import numpy as np
 import random
 assert hasattr(np, 'exp')
-import unittest
 
 from theano import config
 from theano import function
@@ -48,7 +47,7 @@ class DummyDBM(object):
         self.rng = rng
 
 
-class TestBinary(unittest.TestCase):
+class TestBinary:
     def setUp(self):
         pass
     @staticmethod
@@ -134,7 +133,7 @@ class TestBinary(unittest.TestCase):
         TestBinary.check_binary_samples(sample, (num_samples, n), mean, tol)
 
 
-class TestGaussian(unittest.TestCase):
+class TestGaussian:
 
     def setUp(self):
         pass
@@ -332,7 +331,7 @@ class TestGaussian(unittest.TestCase):
         TestGaussian.check_gaussian_samples(sample, num_samples, n, rows, cols, channels, mean, tol)
 
 
-class TestBVMP(unittest.TestCase):
+class TestBVMP:
 
     def setUp(self):
         pass
@@ -731,7 +730,7 @@ class TestBVMP(unittest.TestCase):
             TestBVMP.check_mfsamples(pool_size, rng, theano_rng, num_samples, tol)
 
 
-class TestSoftmax(unittest.TestCase):
+class TestSoftmax:
 
     def setUp(self):
         pass
@@ -1028,5 +1027,3 @@ def test_extra():
     from galatea.dbm.pylearn2_bridge import run_unit_tests
     run_unit_tests()
 
-if __name__ == '__main__':
-    unittest.main()
