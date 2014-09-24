@@ -35,7 +35,8 @@ install:
 #we need an older numexpr version. numexpr is needed for pytables
   - "travis_retry pip install -q numexpr==1.4.2 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
 #cython is needed by pylearn2/utils/setup.py
-  - "travis_retry pip install -q cython --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+#pytables doesn't like the recent cython 0.21. Force use of cython 0.20.
+  - "travis_retry pip install -q cython==0.20 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "travis_retry pip install -q tables==2.4.0 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "travis_retry pip install -q pyyaml --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "travis_retry pip install -q sphinx --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
