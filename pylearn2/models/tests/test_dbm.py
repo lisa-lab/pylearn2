@@ -47,7 +47,7 @@ class DummyDBM(object):
         self.rng = rng
 
 
-class TestBinary:
+class TestBinaryVector:
     """
     Testing class for DBM BinaryVector.
     """
