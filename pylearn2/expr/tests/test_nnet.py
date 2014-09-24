@@ -15,6 +15,8 @@ from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
 from pylearn2.expr.nnet import softmax_numpy
 from pylearn2.expr.nnet import softmax_ratio
 from pylearn2.expr.nnet import compute_recall
+from pylearn2.expr.nnet import kl
+from pylearn2.expr.nnet import elemwise_kl 
 from pylearn2.utils import sharedX
 
 
@@ -70,3 +72,10 @@ def test_compute_recall():
     recall = compute_recall(ys, tp)
     assert np.allclose(recall.eval(),
                        recall_py)
+
+
+def test_kl():
+    """
+    Test whether kl() function has properly processed the input.
+    """
+
