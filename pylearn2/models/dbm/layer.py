@@ -852,7 +852,7 @@ class BinaryVectorMaxPool(HiddenLayer):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
-        return coeff * T.abs(W).sum()
+        return coeff * abs(W).sum()
 
     def get_weights(self):
         """
