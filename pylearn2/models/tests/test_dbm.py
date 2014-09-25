@@ -97,7 +97,7 @@ class TestBinaryVector:
 
         value = init_state.get_value()
 
-        TestBinary.check_samples(value, (num_samples, n), mean, tol)
+        TestBinaryVector.check_samples(value, (num_samples, n), mean, tol)
 
     def test_sample(self):
         # Verifies that BinaryVector.sample returns an expression
@@ -131,7 +131,7 @@ class TestBinaryVector:
 
         sample = sample.eval()
 
-        TestBinary.check_samples(sample, (num_samples, n), mean, tol)
+        TestBinaryVector.check_samples(sample, (num_samples, n), mean, tol)
 
 
 def check_gaussian_samples(value, nsamples, nvis, rows, cols, channels, expected_mean, tol):
