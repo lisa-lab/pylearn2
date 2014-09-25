@@ -97,10 +97,6 @@ class MonitorBased(TerminationCriterion):
         else:
             v = monitor.channels[self._channel_name].val_record
 
-        if not v:
-            # No epochs have been run yet, so continue learning.
-            return True
-
         # The countdown decreases every time the termination criterion is
         # called unless the channel value is lower than the best value times
         # the prop_decrease factor, in which case the countdown is reset to N
@@ -149,11 +145,6 @@ class MatchChannel(TerminationCriterion):
             prev_monitor = getattr(model, self.prev_monitor_name)
             channels = prev_monitor.channels
             prev_channel = channels[self.prev_channel_name]
-
-            if not prev_channel.val_record:
-                # No epochs have been run yet, so continue learning.
-                return True
-
             self.target = prev_channel.val_record[-1]
 
         monitor = model.monitor
@@ -187,10 +178,6 @@ class ChannelTarget(TerminationCriterion):
         channels = monitor.channels
         channel = channels[self.channel_name]
 
-        if not channel.val_record:
-            # No epochs have been run yet, so continue learning.
-            return True
-
         rval = channel.val_record[-1] > self.target
         return rval
 
@@ -213,11 +200,6 @@ class ChannelInf(TerminationCriterion):
         monitor = model.monitor
         channels = monitor.channels
         channel = channels[self.channel_name]
-
-        if not channel.val_record:
-            # No epochs have been run yet, so continue learning.
-            return True
-
         rval = np.isinf(channel.val_record[-1])
         return rval
 
@@ -248,14 +230,15 @@ class EpochCounter(TerminationCriterion):
         if self._new_epochs:
             self._epochs_done = 0
         else:
-            self._epochs_done = model.monitor.get_epochs_seen()
+            # epochs_seen = 1 on first continue_learning() call
+            self._epochs_done = model.monitor.get_epochs_seen() - 1
 
     @functools.wraps(TerminationCriterion.continue_learning)
     def continue_learning(self, model):
         if not hasattr(self, "_epochs_done"):
             self.initialize(model)
-        else:
-            self._epochs_done += 1
+
+        self._epochs_done += 1
         return self._epochs_done < self._max_epochs
 
 
