@@ -421,13 +421,18 @@ class MLP(Layer):
     layer_name : name of the MLP layer. Should be None if the MLP is
         not part of another MLP.
     seed : WRITEME
+    monitor_targets : bool, optional
+        Default: True
+        If true, includes monitoring channels that are functions of the
+        targets. This can be disabled to allow monitoring on monitoring
+        datasets that do not include targets.
     kwargs : dict
         Passed on to the superclass.
     """
 
     def __init__(self, layers, batch_size=None, input_space=None,
                  input_source='features', nvis=None, seed=None,
-                 layer_name=None, **kwargs):
+                 layer_name=None, monitor_targets=True, **kwargs):
         super(MLP, self).__init__(**kwargs)
 
         self.seed = seed
@@ -455,6 +460,8 @@ class MLP(Layer):
         self.force_batch_size = batch_size
 
         self._input_source = input_source
+
+        self.monitor_targets = monitor_targets
 
         if input_space is not None or nvis is not None:
             self._nested = False
@@ -593,7 +600,11 @@ class MLP(Layer):
         # if the MLP is the outer MLP \
         # (ie MLP is not contained in another structure)
 
-        X, Y = data
+        if self.monitor_targets:
+            X, Y = data
+        else:
+            X = data
+            Y = None
         state = X
         rval = self.get_layer_monitoring_channels(state_below=X,
                                                     targets=Y)
@@ -687,6 +698,9 @@ class MLP(Layer):
         data_specs: TODO
             The data specifications for both inputs and targets.
         """
+
+        if not self.monitor_targets:
+            return (self.get_input_space(), self.get_input_source())
         space = CompositeSpace((self.get_input_space(),
                                 self.get_target_space()))
         source = (self.get_input_source(), self.get_target_source())
