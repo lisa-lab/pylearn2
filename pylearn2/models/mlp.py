@@ -421,7 +421,8 @@ class MLP(Layer):
     layer_name : name of the MLP layer. Should be None if the MLP is
         not part of another MLP.
     seed : WRITEME
-    monitor_targets : bool
+    monitor_targets : bool, optional
+        Default: True
         If true, includes monitoring channels that are functions of the
         targets. This can be disabled to allow monitoring on monitoring
         datasets that do not include targets.
