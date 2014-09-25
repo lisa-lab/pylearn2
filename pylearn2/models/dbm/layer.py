@@ -839,6 +839,21 @@ class BinaryVectorMaxPool(HiddenLayer):
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
+    def get_l1_weight_decay(self, coeff):
+        """
+        Returns the L1 norm of the weights.
+
+        Paramters
+        ---------
+        coeff: float, str(float)
+            multiplicative coefficient for the L1 norm.
+        """
+        if isinstance(coeff, str)):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W ,= self.transformer.get_params()
+        return coeff * T.abs(W).sum()
+
     def get_weights(self):
         """
         .. todo::

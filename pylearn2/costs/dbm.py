@@ -1027,6 +1027,53 @@ class WeightDecay(NullDataSpecsMixin, Cost):
         return total_cost
 
 
+class L1WeightDecay(NullDataSpecsMixin, Cost):
+    """
+    A Cost that applies the following cost function:
+
+    coeff * sum(abs(weights))
+    for each set of weights.
+
+    Parameters
+    ----------
+    coeffs : list
+        One element per layer, specifying the coefficient
+        to put on the L1 activation cost for each layer.
+        Each element may in turn be a list, ie, for CompositeLayers.
+    """
+
+    def __init__(self, coeffs):
+        self.__dict__.update(locals())
+        del self.self
+
+    def expr(self, model, data, ** kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        self.get_data_specs(model)[0].validate(data)
+        layer_costs = [ layer.get_l1_weight_decay(coeff)
+            for layer, coeff in safe_izip(model.hidden_layers, self.coeffs) ]
+
+        assert T.scalar() != 0. # make sure theano semantics do what I want
+        layer_costs = [ cost for cost in layer_costs if cost != 0.]
+
+        if len(layer_costs) == 0:
+            rval =  T.as_tensor_variable(0.)
+            rval.name = '0_l1_weight_decay'
+            return rval
+        else:
+            total_cost = reduce(lambda x, y: x + y, layer_costs)
+        total_cost.name = 'DBM_L1WeightDecay'
+
+        assert total_cost.ndim == 0
+
+        total_cost.name = 'l1_weight_decay'
+
+        return total_cost
+
+
 class MultiPrediction(DefaultDataSpecsMixin, Cost):
     """
     If you use this class in your research work, please cite:
