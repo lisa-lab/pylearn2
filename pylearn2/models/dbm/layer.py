@@ -848,7 +848,7 @@ class BinaryVectorMaxPool(HiddenLayer):
         coeff: float, str(float)
             multiplicative coefficient for the L1 norm.
         """
-        if isinstance(coeff, str)):
+        if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
