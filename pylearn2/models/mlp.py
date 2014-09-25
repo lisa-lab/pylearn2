@@ -4656,8 +4656,8 @@ class FlattenerLayer(Layer):
                                       state=None, targets=None):
         return self.raw_layer.get_layer_monitoring_channels(
             state_below=state_below,
-            state=state,
-            targets=targets
+            state=self.get_output_space().format_as(state, self.raw_layer.get_output_space()),
+            targets=self.get_target_space().format_as(targets, self.raw_layer.get_target_space())
             )
 
     @wraps(Layer.get_monitoring_data_specs)
