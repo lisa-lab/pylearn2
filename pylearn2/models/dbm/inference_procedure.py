@@ -1199,21 +1199,6 @@ class UpDown(InferenceProcedure):
                 if Y is not None:
                     H_hat[-1] = Y
 
-            for j in xrange(1,len(H_hat),2):
-                state_below = dbm.hidden_layers[j-1].upward_state(H_hat[j-1])
-                if j == len(H_hat) - 1:
-                    state_above = None
-                    state_above = None
-                else:
-                    state_above = dbm.hidden_layers[j+1].downward_state(H_hat[j+1])
-                    layer_above = dbm.hidden_layers[j+1]
-                H_hat[j] = dbm.hidden_layers[j].mf_update(
-                        state_below = state_below,
-                        state_above = state_above,
-                        layer_above = layer_above)
-                #end ifelse
-            #end for odd layer
-
             if Y is not None:
                 H_hat[-1] = Y
 
