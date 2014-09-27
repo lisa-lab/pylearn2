@@ -10,6 +10,8 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Vincent Dumoulin"
 __email__ = "pylearn-dev@googlegroups"
 
+import sys
+import inspect
 import theano.tensor as T
 from pylearn2.utils import wraps
 from pylearn2.models.vae import prior, posterior
@@ -108,3 +110,16 @@ class DiagonalGaussianPriorPosteriorKL(KLIntegrator):
                    (posterior_mu - prior_mu) ** 2) /
                   T.exp(2 * prior_log_sigma) - 0.5
         )
+
+
+def find_integrator_for(prior, posterior):
+    """
+    Returns a KLIntegrator instance compatible with 'prior' and 'posterior', or
+    None if nothing is compatible.
+    """
+    for name, obj in inspect.getmembers(sys.modules[__name__]):
+        if inspect.isclass(obj):
+            if (isinstance(prior, obj.prior_class) and
+                isinstance(posterior, obj.posterior_class)):
+                return obj()
+    return None

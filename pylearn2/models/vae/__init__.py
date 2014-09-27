@@ -28,6 +28,7 @@ import numpy
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
 from pylearn2.models.model import Model
+from pylearn2.models.vae.kl import find_integrator_for
 from pylearn2.space import VectorSpace
 from pylearn2.utils import wraps, sharedX, safe_update
 from pylearn2.utils.rng import make_np_rng
@@ -107,6 +108,11 @@ class VAE(Model):
             else:
                 raise Exception("no two parameters must share the same name: "
                                 + param.name)
+
+        # Look for the right KLIntegrator if it's not specified
+        if self.kl_integrator is None:
+            self.kl_integrator = find_integrator_for(self.prior,
+                                                     self.posterior)
 
     @wraps(Model.get_monitoring_data_specs)
     def get_monitoring_data_specs(self):
