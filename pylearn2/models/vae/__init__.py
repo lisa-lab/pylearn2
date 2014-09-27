@@ -87,9 +87,10 @@ class VAE(Model):
             encoder_input_space=self.input_space,
             nhid=self.nhid
         )
-        self._encoding_params = self.latent.get_params()
-        self._decoding_params = self.visible.get_params()
-        self._params = self._encoding_params + self._decoding_params
+        self._params = (
+            self.get_prior_params() + self.get_posterior_params() +
+            self.get_conditional_params()
+        )
         names = []
         for param in self._params:
             if param.name not in names:
@@ -148,17 +149,25 @@ class VAE(Model):
         # visualize, but is it the most intuitive choice?
         return self.visible.get_weights()
 
-    def get_decoding_params(self):
+    def get_prior_params(self):
         """
-        Returns the model's decoder-related parameters
+        Returns the model's prior distribution parameters
         """
-        return self._decoding_params
+        return self.latent.get_prior_params()
 
-    def get_encoding_params(self):
+    def get_posterior_params(self):
         """
-        Returns the model's encoder-related parameters
+        Returns the model's posterior distribution parameters (i.e. parameters
+        of the encoding model)
         """
-        return self._encoding_params
+        return self.latent.get_posterior_params()
+
+    def get_conditional_params(self):
+        """
+        Returns the model's conditional distribution parameters (i.e.
+        parameters of the decoding model)
+        """
+        return self.visible.get_conditional_params()
 
     def sample(self, num_samples, return_sample_means=True, **kwargs):
         """

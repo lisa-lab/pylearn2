@@ -160,15 +160,15 @@ class Visible(Model):
 
         self._validate_decoding_model()
 
-        self._params = self.decoding_model.get_params()
-        for param in self._params:
-            param.name = 'decoding_' + param.name
+        self._conditional_params = self.decoding_model.get_params()
+        for param in self._conditional_params:
+            param.name = 'conditional_' + param.name
 
-    def get_params(self):
+    def get_conditional_params(self):
         """
         Return the visible space-related parameters
         """
-        return self._params
+        return self._conditional_params
 
     def decode_theta(self, z):
         """

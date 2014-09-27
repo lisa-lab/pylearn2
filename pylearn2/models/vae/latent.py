@@ -170,10 +170,13 @@ class Latent(Model):
 
         self._validate_encoding_model()
 
-        self._params = self.encoding_model.get_params()
+        self._posterior_params = self.encoding_model.get_params()
+        self._prior_params = []
         self._initialize_prior_parameters()
-        for param in self._params:
-            param.name = 'encoding_' + param.name
+        for param in self._posterior_params:
+            param.name = 'posterior_' + param.name
+        for param in self._prior_params:
+            param.name = 'prior_' + param.name
 
     def _initialize_prior_parameters(self):
         """
@@ -182,11 +185,17 @@ class Latent(Model):
         raise NotImplementedError(str(self.__class__) + " does not implement "
                                   "_initialize_prior_parameters")
 
-    def get_params(self):
+    def get_prior_params(self):
         """
-        Return the latent space-related parameters
+        Returns the parameters of the prior distribution
         """
-        return self._params
+        return self._prior_params
+
+    def get_posterior_params(self):
+        """
+        Returns the parameters of the posterior distribution
+        """
+        return self._posterior_params
 
     def encode_phi(self, X):
         """
@@ -453,7 +462,7 @@ class DiagonalGaussianPrior(Latent):
         self.log_prior_sigma = sharedX(numpy.zeros(self.nhid),
                                        name="prior_log_sigma")
         if self.learn_prior:
-            self._params += [self.prior_mu, self.log_prior_sigma]
+            self._prior_params += [self.prior_mu, self.log_prior_sigma]
 
     @wraps(Latent.sample_from_p_z)
     def sample_from_p_z(self, num_samples):
