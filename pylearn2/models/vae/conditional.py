@@ -1,16 +1,6 @@
 """
-Classes implementing visible space-related methods for the VAE framework,
-namely
-
-* initialize_parameters
-* sample_from_p_x_given_z
-* expectation_term
-* decode_theta
-* means_from_theta
-* log_p_x_given_z
-* _get_default_output_layer
-* _get_output_space
-* _validate_decoding_model
+Classes implementing logic related to the conditional distribution
+:math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})` in the VAE framework
 """
 __authors__ = "Vincent Dumoulin"
 __copyright__ = "Copyright 2014, Universite de Montreal"
@@ -32,10 +22,10 @@ from pylearn2.utils import wraps, sharedX
 pi = sharedX(numpy.pi)
 
 
-class Visible(Model):
+class Conditional(Model):
     """
-    Abstract class implementing visible space-related methods for the VAE
-    framework.
+    Abstract class implementing methods related to the conditional distribution
+    :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})` for the VAE framework.
 
     Parameteters
     ------------
@@ -43,21 +33,21 @@ class Visible(Model):
         An MLP representing the generative network, whose output will be used
         to compute :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})`. Note that
         the MLP must be **nested**, meaning that its input space must not have
-        already been defined, as Visible will do it automatically.
+        already been defined, as `Conditional` will do it automatically.
     output_layer_required : bool, optional
         If `True`, the decoding model's output is the last hidden
         representation from which parameters of :math:`p_\\theta(\\mathbf{x}
-        \\mid \\mathbf{z})` will be computed, and `Visible` will add its own
+        \\mid \\mathbf{z})` will be computed, and `Conditional` will add its own
         default output layer to the `decoding_model` MLP. If `False`, the MLP's
         last layer **is** the output layer. Defaults to `True`.
     """
     def __init__(self, decoding_model, output_layer_required=True):
-        super(Visible, self).__init__()
+        super(Conditional, self).__init__()
         if not decoding_model._nested:
-            raise ValueError("Visible expects an MLP whose input space has "
-                             "not been defined yet. You should not specify "
-                             "'nvis' or 'input_space' when instantiating the "
-                             "MLP.")
+            raise ValueError("Conditional expects an MLP whose input space "
+                             "has not been defined yet. You should not "
+                             "specify 'nvis' or 'input_space' when "
+                             "instantiating the MLP.")
         self.decoding_model = decoding_model
         self.output_layer_required = output_layer_required
 
@@ -76,29 +66,30 @@ class Visible(Model):
         raise NotImplementedError(str(self.__class__) + " does not implement "
                                   "_get_default_output_layer")
 
-    def _get_output_space(self):
+    def _get_required_decoder_output_space(self):
         """
         Returns the expected output space of the decoding model, i.e. a
         description of how the parameters output by the decoding model should
         look like.
         """
         raise NotImplementedError(str(self.__class__) + " does not implement "
-                                  "_get_output_space")
+                                  "_get_required_decoder_output_space")
 
     def _validate_decoding_model(self):
         """
         Makes sure the decoding model's output layer is compatible with the
         parameters expected by :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})`
         """
-        expected_output_space = self._get_output_space()
-        model_output_space = self.decoding_model.get_output_space()
-        if not model_output_space == expected_output_space:
+        expected_output_space = self._get_required_decoder_output_space()
+        decoder_output_space = self.decoding_model.get_output_space()
+        if not decoder_output_space == expected_output_space:
             raise ValueError("the specified decoding model's output space is "
                              "incompatible with " + str(self.__class__) + ": "
                              "expected " + str(expected_output_space) + " but "
                              "decoding model's output space is " +
                              str(model_output_space))
 
+    @wraps(Model.get_weights)
     def get_weights(self):
         return self.decoding_model.get_weights()
 
@@ -120,7 +111,7 @@ class Visible(Model):
 
     def get_vae(self):
         """
-        Returns the VAE that this `Visible` instance belongs to, or None
+        Returns the VAE that this `Conditional` instance belongs to, or None
         if it has not been assigned to a VAE yet.
         """
         if hasattr(self, 'vae'):
@@ -130,7 +121,7 @@ class Visible(Model):
 
     def set_vae(self, vae):
         """
-        Assigns this `Visible` instance to a VAE.
+        Assigns this `Conditional` instance to a VAE.
 
         Parameters
         ----------
@@ -138,7 +129,7 @@ class Visible(Model):
             VAE to assign to
         """
         if self.get_vae() is not None:
-            raise RuntimeError("this `Visible` instance already belongs to "
+            raise RuntimeError("this `Conditional` instance already belongs to "
                                "another VAE")
         self.vae = vae
         self.rng = self.vae.rng
@@ -185,10 +176,6 @@ class Visible(Model):
         theta : tuple of tensor_like
             Tuple of parameters for the conditional distribution
         """
-        z = self.decoder_input_space.format_as(
-            batch=z,
-            space=self.decoding_model.get_input_space()
-        )
         rval = self.decoding_model.fprop(z)
         if not type(rval) == tuple:
             rval = (rval, )
@@ -274,62 +261,48 @@ class Visible(Model):
                                   "log_p_x_given_z.")
 
 
-class BinaryVisible(Visible):
+class BernoulliVector(Conditional):
     """
-    Subclass implementing visible-related methods for binary inputs
-
-    Parameters
-    ----------
-    decoding_model : pylearn2.models.mlp.MLP
-        An MLP representing the generative network, whose output will be used
-        to compute :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})`
-    output_layer_required : bool, optional
-        If `True`, the decoding model's output is the last hidden
-        representation from which parameters of :math:`p_\\theta(\\mathbf{x}
-        \\mid \\mathbf{z})` will be computed, and `Visible` will add its own
-        default output layer to the `decoding_model` MLP. If `False`, the MLP's
-        last layer **is** the output layer. Defaults to `True`.
-    isigma : float, optional
-        Standard deviation on the zero-mean distribution from which parameters
-        initialized by the model itself will be drawn. Defaults to 0.01.
+    Implements a vectorial bernoulli conditional distribution, i.e.
+    
+    .. math::
+        `p_\\theta(\\mathbf{x} \\mid \\mathbf{z})
+        = \\prod_i \\mu_i(\\mathbf{z})^{x_i}
+                   (1 - \\mu_i(\\mathbf{z}))^{(1 - x_i)}
     """
-    def __init__(self, decoding_model, output_layer_required=True,
-                 isigma=0.01):
-        super(BinaryVisible, self).__init__(decoding_model,
-                                            output_layer_required)
-        self.isigma = isigma
-
-    @wraps(Visible._get_default_output_layer)
+    @wraps(Conditional._get_default_output_layer)
     def _get_default_output_layer(self):
         return Linear(dim=self.nvis, layer_name='mu', irange=0.01)
 
-    @wraps(Visible._get_output_space)
-    def _get_output_space(self):
+    @wraps(Conditional._get_required_decoder_output_space)
+    def _get_required_decoder_output_space(self):
         return VectorSpace(dim=self.nvis)
 
-    @wraps(Visible.sample_from_p_x_given_z)
+    @wraps(Conditional.sample_from_p_x_given_z)
     def sample_from_p_x_given_z(self, num_samples, theta):
+        # We express mu in terms of the pre-sigmoid activations. See
+        # `log_p_x_given_z` for more details.
         p_x_given_z = T.nnet.sigmoid(theta[0])
         return self.theano_rng.uniform(
             size=(num_samples, self.nvis),
             dtype=theano.config.floatX
         ) < p_x_given_z
 
-    @wraps(Visible.expectation_term)
+    @wraps(Conditional.expectation_term)
     def expectation_term(self, X, theta):
         # We express the expectation term in terms of the pre-sigmoid
         # activations, which lets us apply the log sigmoid(x) -> -softplus(-x)
-        # optimization manually; see `_decode_theta` for more details.
+        # optimization manually.
         (S,) = theta
         return -(X * T.nnet.softplus(-S) + (1 - X) * T.nnet.softplus(S))
 
-    @wraps(Visible.means_from_theta)
+    @wraps(Conditional.means_from_theta)
     def means_from_theta(self, theta):
-        # Theta is composed of pre-sigmoid activations; see `_decode_theta` for
-        # more details.
+        # Theta is composed of pre-sigmoid activations; see `_log_p_x_given_z`
+        # for more details.
         return T.nnet.sigmoid(theta[0])
 
-    @wraps(Visible.log_p_x_given_z)
+    @wraps(Conditional.log_p_x_given_z)
     def log_p_x_given_z(self, X, theta):
         # We express the probability in terms of the pre-sigmoid activations,
         # which lets us apply the log sigmoid(x) -> -softplus(-x)
@@ -340,32 +313,18 @@ class BinaryVisible(Visible):
         ).sum(axis=2)
 
 
-class ContinuousVisible(Visible):
+class DiagonalGaussian(Conditional):
     """
-    Subclass implementing visible-related methods for real-valued inputs
-
-    Parameters
-    ----------
-    decoding_model : pylearn2.models.mlp.MLP
-        An MLP representing the generative network, whose output will be used
-        to compute :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})`
-    output_layer_required : bool, optional
-        If `True`, the decoding model's output is the last hidden
-        representation from which parameters of :math:`p_\\theta(\\mathbf{x}
-        \\mid \\mathbf{z})` will be computed, and `Visible` will add its own
-        default output layer to the `decoding_model` MLP. If `False`, the MLP's
-        last layer **is** the output layer. Defaults to `True`.
-    isigma : float, optional
-        Standard deviation on the zero-mean distribution from which parameters
-        initialized by the model itself will be drawn. Defaults to 0.01.
+    Implements a normal conditional distribution with diagonal covariance
+    matrix, i.e.
+    
+    .. math::
+        `p_\\theta(\\mathbf{x} \\mid \\mathbf{z})
+        = \\prod_i \\exp(-(x_i - \\mu_i(\\mathbf{z}))^2 /
+                         (2\\sigma_i(\\mathbf{z})^2 ) /
+                   (\\sqrt{2 \\pi} \\sigma_i(\\mathbf{z}))
     """
-    def __init__(self, decoding_model, output_layer_required=True,
-                 isigma=0.01):
-        super(ContinuousVisible, self).__init__(decoding_model,
-                                                output_layer_required)
-        self.isigma = isigma
-
-    @wraps(Visible._get_default_output_layer)
+    @wraps(Conditional._get_default_output_layer)
     def _get_default_output_layer(self):
         return CompositeLayer(
             layer_name='theta',
@@ -373,12 +332,12 @@ class ContinuousVisible(Visible):
                     Linear(dim=self.nvis, layer_name='log_sigma', irange=0.01)]
         )
 
-    @wraps(Visible._get_output_space)
-    def _get_output_space(self):
+    @wraps(Conditional._get_required_decoder_output_space)
+    def _get_required_decoder_output_space(self):
         return CompositeSpace([VectorSpace(dim=self.nvis),
                                VectorSpace(dim=self.nvis)])
 
-    @wraps(Visible.monitoring_channels_from_theta)
+    @wraps(Conditional.monitoring_channels_from_theta)
     def monitoring_channels_from_theta(self, theta):
         rval = OrderedDict()
 
@@ -390,7 +349,7 @@ class ContinuousVisible(Visible):
 
         return rval
 
-    @wraps(Visible.sample_from_p_x_given_z)
+    @wraps(Conditional.sample_from_p_x_given_z)
     def sample_from_p_x_given_z(self, num_samples, theta):
         (mu_d, log_sigma_d) = theta
         return self.theano_rng.normal(size=mu_d.shape,
@@ -398,17 +357,17 @@ class ContinuousVisible(Visible):
                                       std=T.exp(log_sigma_d),
                                       dtype=theano.config.floatX)
 
-    @wraps(Visible.expectation_term)
+    @wraps(Conditional.expectation_term)
     def expectation_term(self, X, theta):
         (mu_d, log_sigma_d) = theta
         return -0.5 * (T.log(2 * pi) + 2 * log_sigma_d +
                        (X - mu_d) ** 2 / T.exp(2 * log_sigma_d))
 
-    @wraps(Visible.means_from_theta)
+    @wraps(Conditional.means_from_theta)
     def means_from_theta(self, theta):
         return theta[0]
 
-    @wraps(Visible.log_p_x_given_z)
+    @wraps(Conditional.log_p_x_given_z)
     def log_p_x_given_z(self, X, theta):
         (mu_d, log_sigma_d) = theta
         return -0.5 * (T.log(2 * pi) + 2 * log_sigma_d +
