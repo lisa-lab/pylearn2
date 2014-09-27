@@ -261,7 +261,7 @@ class Conditional(Model):
                                   "log_p_x_given_z.")
 
 
-class BernoulliVector(Conditional):
+class BernoulliVectorConditional(Conditional):
     """
     Implements a vectorial bernoulli conditional distribution, i.e.
     
