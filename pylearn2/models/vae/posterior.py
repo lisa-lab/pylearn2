@@ -1,21 +1,6 @@
 """
-Classes implementing latent space-related methods for the VAE framework, namely
-
-* initialize_parameters
-* sample_from_p_z
-* sample_from_q_z_given_x
-* sample_from_epsilon
-* kl_divergence_term
-* encode_phi
-* log_q_z_given_x
-* log_p_z
-* _get_default_output_layer
-* _get_output_space
-* _validate_encoding_model
-
-The following methods are optionally implemented by classes in this module:
-
-* _per_component_kl_divergence_term
+Classes implementing logic related to the posterior distribution
+:math:`q_\\phi(\\mathbf{z} \\mid \\mathbf{x})` in the VAE framework
 """
 __authors__ = "Vincent Dumoulin"
 __copyright__ = "Copyright 2014, Universite de Montreal"
@@ -38,10 +23,10 @@ from pylearn2.space import VectorSpace, CompositeSpace
 pi = sharedX(numpy.pi)
 
 
-class Latent(Model):
+class Posterior(Model):
     """
-    Abstract class implementing latent space-related methods for the VAE
-    framework.
+    Abstract class implementing methods related to the posterior distribution
+    :math:`q_\\phi(\\mathbf{z} \\mid \\mathbf{x})` for the VAE framework
 
     Parameteters
     ------------
@@ -49,21 +34,21 @@ class Latent(Model):
         An MLP representing the recognition network, whose output will be used
         to compute :math:`q_\\phi(\\mathbf{z} \\mid \\mathbf{x})`. Note that
         the MLP must be **nested**, meaning that its input space must not have
-        already been defined, as Latent will do it automatically.
+        already been defined, as `Posterior` will do it automatically.
     output_layer_required : bool, optional
         If `True`, the encoding model's output is the last hidden
         representation from which parameters of :math:`q_\\phi(\\mathbf{z}
-        \\mid \\mathbf{x})` will be computed, and `Latent` will add its own
+        \\mid \\mathbf{x})` will be computed, and `Posterior` will add its own
         default output layer to the `encoding_model` MLP. If `False`, the MLP's
         last layer **is** the output layer. Defaults to `True`.
     """
     def __init__(self, encoding_model, output_layer_required=True):
-        super(Latent, self).__init__()
+        super(Posterior, self).__init__()
         if not encoding_model._nested:
-            raise ValueError("Latent expects an MLP whose input space has "
-                             "not been defined yet. You should not specify "
-                             "'nvis' or 'input_space' when instantiating the "
-                             "MLP.")
+            raise ValueError("`Posterior` expects an MLP whose input space "
+                             "has not been defined yet. You should not "
+                             "specify 'nvis' or 'input_space' when "
+                             "instantiating the MLP.")
         self.encoding_model = encoding_model
         self.output_layer_required = output_layer_required
 
@@ -82,23 +67,23 @@ class Latent(Model):
         raise NotImplementedError(str(self.__class__) + " does not implement "
                                   "_get_default_output_layer")
 
-    def _get_output_space(self):
+    def _get_required_encoder_output_space(self):
         """
-        Returns the expected output space of the decoding model, i.e. a
+        Returns the expected output space of the encoding model, i.e. a
         description of how the parameters output by the encoding model should
         look like.
         """
         raise NotImplementedError(str(self.__class__) + " does not implement "
-                                  "_get_output_space")
+                                  "_get_required_encoder_output_space")
 
     def _validate_encoding_model(self):
         """
         Makes sure the encoding model's output layer is compatible with the
         parameters expected by :math:`q_\\phi(\\mathbf{z} \\mid \\mathbf{x})`
         """
-        expected_output_space = self._get_output_space()
-        model_output_space = self.encoding_model.get_output_space()
-        if not model_output_space == expected_output_space:
+        expected_output_space = self._get_required_encoder_output_space()
+        encoder_output_space = self.encoding_model.get_output_space()
+        if not encoder_output_space == expected_output_space:
             raise ValueError("the specified encoding model's output space is "
                              "incompatible with " + str(self.__class__) + ": "
                              "expected " + str(expected_output_space) + " but "
@@ -123,7 +108,7 @@ class Latent(Model):
 
     def get_vae(self):
         """
-        Returns the VAE that this `Latent` instance belongs to, or None
+        Returns the VAE that this `Posterior` instance belongs to, or None
         if it has not been assigned to a VAE yet.
         """
         if hasattr(self, 'vae'):
@@ -133,7 +118,7 @@ class Latent(Model):
 
     def set_vae(self, vae):
         """
-        Assigns this `Latent` instance to a VAE.
+        Assigns this `Posterior` instance to a VAE.
 
         Parameters
         ----------
@@ -141,7 +126,7 @@ class Latent(Model):
             VAE to assign to
         """
         if self.get_vae() is not None:
-            raise RuntimeError("this `Latent` instance already belongs to "
+            raise RuntimeError("this `Posterior` instance already belongs to "
                                "another VAE")
         self.vae = vae
         self.rng = self.vae.rng
@@ -170,32 +155,9 @@ class Latent(Model):
 
         self._validate_encoding_model()
 
-        self._posterior_params = self.encoding_model.get_params()
-        self._prior_params = []
-        self._initialize_prior_parameters()
-        for param in self._posterior_params:
+        self._params = self.encoding_model.get_params()
+        for param in self._params:
             param.name = 'posterior_' + param.name
-        for param in self._prior_params:
-            param.name = 'prior_' + param.name
-
-    def _initialize_prior_parameters(self):
-        """
-        Initialize parameters for the prior distribution
-        """
-        raise NotImplementedError(str(self.__class__) + " does not implement "
-                                  "_initialize_prior_parameters")
-
-    def get_prior_params(self):
-        """
-        Returns the parameters of the prior distribution
-        """
-        return self._prior_params
-
-    def get_posterior_params(self):
-        """
-        Returns the parameters of the posterior distribution
-        """
-        return self._posterior_params
 
     def encode_phi(self, X):
         """
@@ -212,31 +174,10 @@ class Latent(Model):
         phi : tuple of tensor_like
             Tuple of parameters for the posterior distribution
         """
-        X = self.encoder_input_space.format_as(
-            batch=X,
-            space=self.encoding_model.get_input_space()
-        )
         rval = self.encoding_model.fprop(X)
         if not type(rval) == tuple:
             rval = (rval, )
         return rval
-
-    def sample_from_p_z(self, num_samples, **kwargs):
-        """
-        Samples from the prior distribution :math:`p_\\theta(\\mathbf{z})`
-
-        Parameters
-        ----------
-        num_samples : int
-            Number of samples
-
-        Returns
-        -------
-        z : tensor_like
-            Sample from the prior distribution
-        """
-        raise NotImplementedError(str(self.__class__) + " does not implement "
-                                  "sample_from_p_z.")
 
     def sample_from_q_z_given_x(self, epsilon, phi):
         """
@@ -278,92 +219,6 @@ class Latent(Model):
         raise NotImplementedError(str(self.__class__) + " does not implement "
                                   "sample_from_epsilon.")
 
-    def kl_divergence_term(self, phi, approximate=False, epsilon=None,
-                           **kwargs):
-        """
-        Computes the KL-divergence term of the VAE criterion.
-
-        Parameters
-        ----------
-        phi : tuple of tensor_like
-            Tuple of parameters for the posterior distribution
-        approximate : bool, optional
-            Whether to compute the approximate KL instead of the analytical KL.
-            Defaults to `False`.
-        epsilon : tensor_like, optional
-            Noise term from which z is computed. Used for computing an
-            approximate KL if the analytical KL is not computable. Defaults to
-            `None`.
-        """
-        if approximate:
-            return self._approximate_kl_divergence_term(phi, epsilon)
-        else:
-            try:
-                return self._kl_divergence_term(phi, **kwargs)
-            except NotImplementedError:
-                warnings.warn("analytic KL is not supported by this prior/"
-                              "posterior combination, approximating the KL "
-                              "term instead")
-                return self._approximate_kl_divergence_term(phi, epsilon)
-
-    def _kl_divergence_term(self, phi, **kwargs):
-        """
-        Analytically computes the KL divergence between the prior distribution
-        :math:`p_\\theta(\\mathbf{z})` and :math:`q_\\phi(\\mathbf{z} \\mid
-        \\mathbf{x})`
-
-        Parameters
-        ----------
-        phi : tuple of tensor_like
-            Tuple of parameters for the posterior distribution
-
-        Returns
-        -------
-        kl_divergence_term : tensor_like
-            KL-divergence term
-        """
-        raise NotImplementedError(str(self.__class__) + " does not implement "
-                                  "_kl_divergence_term.")
-
-    def _approximate_kl_divergence_term(self, phi, epsilon):
-        """
-        Returns a Monte Carlo approximation of the KL divergence term.
-
-        Parameters
-        ----------
-        phi : tuple of tensor_like
-            Tuple of parameters for the posterior distribution
-        epsilon : tensor_like
-            Noise term from which z is computed
-        """
-        if epsilon is None:
-            raise ValueError("stochastic KL is requested but no epsilon is "
-                             "given")
-        z = self.sample_from_q_z_given_x(epsilon=epsilon, phi=phi)
-        log_q_z_x = self.log_q_z_given_x(z=z, phi=phi)
-        log_p_z = self.log_p_z(z)
-        return (log_q_z_x - log_p_z).mean(axis=0)
-
-    def per_component_kl_divergence_term(self, phi, **kwargs):
-        """
-        If the prior/posterior combination allows it, analytically computes the
-        per-latent-dimension KL divergences between the prior distribution
-        :math:`p_\\theta(\\mathbf{z})` and :math:`q_\\phi(\\mathbf{z} \\mid
-        \\mathbf{x})`
-
-        Parameters
-        ----------
-        phi : tuple of tensor_like
-            Tuple of parameters for the posterior distribution
-
-        Returns
-        -------
-        kl_divergence_term : tensor_like
-            Per-component KL-divergence terms
-        """
-        raise NotImplementedError(str(self.__class__) + " does not implement "
-                                  "per_component_kl_divergence_term.")
-
     def log_q_z_given_x(self, z, phi):
         """
         Computes the log-posterior probabilities of `z`
@@ -383,66 +238,32 @@ class Latent(Model):
         raise NotImplementedError(str(self.__class__) + " does not implement "
                                   "log_q_z_given_x.")
 
-    def log_p_z(self, z):
-        """
-        Computes the log-prior probabilities of `z`
 
-        Parameters
-        ----------
-        z : tensor_like
-            Posterior samples
-
-        Returns
-        -------
-        log_p_z : tensor_like
-            Log-prior probabilities
-        """
-        raise NotImplementedError(str(self.__class__) + " does not implement "
-                                  "log_p_z.")
-
-
-class DiagonalGaussianPrior(Latent):
+class DiagonalGaussianPosterior(Posterior):
     """
-    Implements a gaussian prior and a gaussian posterior with diagonal
-    covariance matrices
+    Implements a gaussian posterior diagonal covariance matrix, i.e.
 
-    Parameters
-    ----------
-    encoding_model : pylearn2.models.mlp.MLP
-        An MLP representing the recognition network, whose output will be used
-        to compute :math:`q_\\phi(\\mathbf{z} \\mid \\mathbf{x})`
-    output_layer_required : bool, optional
-        If `True`, the encoding model's output is the last hidden
-        representation from which parameters of :math:`q_\\phi(\\mathbf{z}
-        \\mid \\mathbf{x})` will be computed, and `Latent` will add its own
-        default output layer to the `encoding_model` MLP. If `False`, the MLP's
-        last layer **is** the output layer. Defaults to `True`.
-    learn_prior : bool, optional
-        Whether to learn the prior distribution on z. Defaults to `True`.
-    isigma : float, optional
-        Standard deviation on the zero-mean distribution from which parameters
-        initialized by the model itself will be drawn. Defaults to 0.01.
+    .. math::
+        q_\\phi(\\mathbf{z} \\mid \\mathbf{x})
+        = \\prod_i \\exp(-(z_i - \\mu_i(\\mathbf{x}))^2 /
+                         (2\\sigma_i(\\mathbf{x})^2 ) /
+                   (\\sqrt{2 \\pi} \\sigma_i(\\mathbf{x}))
     """
-    def __init__(self, encoding_model, output_layer_required=True,
-                 learn_prior=True, isigma=0.01):
-        super(DiagonalGaussianPrior, self).__init__(encoding_model,
-                                                    output_layer_required)
-        self.learn_prior = learn_prior
-        self.isigma = isigma
-
-    @wraps(Latent.monitoring_channels_from_phi)
+    @wraps(Posterior.monitoring_channels_from_phi)
     def monitoring_channels_from_phi(self, phi):
-        rval = OrderedDict()
-
         mu, log_sigma = phi
-        rval['sigma_phi_min'] = T.exp(log_sigma).min()
-        rval['sigma_phi_max'] = T.exp(log_sigma).max()
-        rval['sigma_phi_mean'] = T.exp(log_sigma).mean()
-        rval['sigma_phi_std'] = T.exp(log_sigma).std()
+        return OrderedDict([
+            ('mu_phi_min', mu.min()),
+            ('mu_phi_max', mu.max()),
+            ('mu_phi_mean', mu.mean()),
+            ('mu_phi_std', mu.std()),
+            ('sigma_phi_min', T.exp(log_sigma).min()),
+            ('sigma_phi_max', T.exp(log_sigma).max()),
+            ('sigma_phi_mean', T.exp(log_sigma).mean()),
+            ('sigma_phi_std', T.exp(log_sigma).std())
+        ])
 
-        return rval
-
-    @wraps(Latent._get_default_output_layer)
+    @wraps(Posterior._get_default_output_layer)
     def _get_default_output_layer(self):
         return CompositeLayer(
             layer_name='phi',
@@ -451,27 +272,12 @@ class DiagonalGaussianPrior(Latent):
                            irange=0.01)]
         )
 
-    @wraps(Latent._get_output_space)
-    def _get_output_space(self):
+    @wraps(Posterior._get_required_encoder_output_space)
+    def _get_required_encoder_output_space(self):
         return CompositeSpace([VectorSpace(dim=self.nhid),
                                VectorSpace(dim=self.nhid)])
 
-    @wraps(Latent._initialize_prior_parameters)
-    def _initialize_prior_parameters(self):
-        self.prior_mu = sharedX(numpy.zeros(self.nhid), name="prior_mu")
-        self.log_prior_sigma = sharedX(numpy.zeros(self.nhid),
-                                       name="prior_log_sigma")
-        if self.learn_prior:
-            self._prior_params += [self.prior_mu, self.log_prior_sigma]
-
-    @wraps(Latent.sample_from_p_z)
-    def sample_from_p_z(self, num_samples):
-        return self.theano_rng.normal(size=(num_samples, self.nhid),
-                                      avg=self.prior_mu,
-                                      std=T.exp(self.log_prior_sigma),
-                                      dtype=theano.config.floatX)
-
-    @wraps(Latent.sample_from_q_z_given_x)
+    @wraps(Posterior.sample_from_q_z_given_x)
     def sample_from_q_z_given_x(self, epsilon, phi):
         (mu_e, log_sigma_e) = phi
         if epsilon.ndim == 3:
@@ -482,37 +288,15 @@ class DiagonalGaussianPrior(Latent):
         else:
             return mu_e + T.exp(log_sigma_e) * epsilon
 
-    @wraps(Latent.sample_from_epsilon)
+    @wraps(Posterior.sample_from_epsilon)
     def sample_from_epsilon(self, shape):
         return self.theano_rng.normal(size=shape, dtype=theano.config.floatX)
 
-    @wraps(Latent._kl_divergence_term)
-    def _kl_divergence_term(self, phi):
-        return self.per_component_kl_divergence_term(phi).sum(axis=1)
-
-    @wraps(Latent.per_component_kl_divergence_term)
-    def per_component_kl_divergence_term(self, phi):
-        (mu_e, log_sigma_e) = phi
-        log_prior_sigma = self.log_prior_sigma
-        prior_mu = self.prior_mu
-        return (
-            log_prior_sigma - log_sigma_e +
-            0.5 * (T.exp(2 * log_sigma_e) + (mu_e - prior_mu) ** 2) /
-            T.exp(2 * log_prior_sigma) - 0.5
-        )
-
-    @wraps(Latent.log_q_z_given_x)
+    @wraps(Posterior.log_q_z_given_x)
     def log_q_z_given_x(self, z, phi):
         (mu_e, log_sigma_e) = phi
         return -0.5 * (
             T.log(2 * pi) + 2 * log_sigma_e.dimshuffle(('x', 0, 1)) +
             (z - mu_e.dimshuffle(('x', 0, 1))) ** 2 /
             T.exp(2 * log_sigma_e.dimshuffle(('x', 0, 1)))
-        ).sum(axis=2)
-
-    @wraps(Latent.log_p_z)
-    def log_p_z(self, z):
-        return -0.5 * (
-            T.log(2 * pi * T.exp(2 * self.log_prior_sigma)) +
-            ((z - self.prior_mu) / T.exp(self.log_prior_sigma)) ** 2
         ).sum(axis=2)

@@ -266,7 +266,7 @@ class BernoulliVectorConditional(Conditional):
     Implements a vectorial bernoulli conditional distribution, i.e.
     
     .. math::
-        `p_\\theta(\\mathbf{x} \\mid \\mathbf{z})
+        p_\\theta(\\mathbf{x} \\mid \\mathbf{z})
         = \\prod_i \\mu_i(\\mathbf{z})^{x_i}
                    (1 - \\mu_i(\\mathbf{z}))^{(1 - x_i)}
     """
@@ -319,7 +319,7 @@ class DiagonalGaussianConditional(Conditional):
     matrix, i.e.
     
     .. math::
-        `p_\\theta(\\mathbf{x} \\mid \\mathbf{z})
+        p_\\theta(\\mathbf{x} \\mid \\mathbf{z})
         = \\prod_i \\exp(-(x_i - \\mu_i(\\mathbf{z}))^2 /
                          (2\\sigma_i(\\mathbf{z})^2 ) /
                    (\\sqrt{2 \\pi} \\sigma_i(\\mathbf{z}))
