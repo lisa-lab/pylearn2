@@ -92,7 +92,7 @@ class VAE(Model):
         self.prior.initialize_parameters(nhid=self.nhid)
         self.conditional.initialize_parameters(
             decoder_input_space=self.latent_space,
-            nvis=self.vis
+            nvis=self.nvis
         )
         self.posterior.initialize_parameters(
             encoder_input_space=self.input_space,
@@ -252,7 +252,7 @@ class VAE(Model):
         else:
             return reconstructed_X
 
-    def log_likelihood_lower_bound(self, X, num_samples, approximate_KL=False):
+    def log_likelihood_lower_bound(self, X, num_samples, approximate_kl=False):
         """
         Computes the VAE lower-bound on the marginal log-likelihood of X.
 
@@ -393,7 +393,7 @@ class VAE(Model):
         Returns parameters of the prior distribution
         :math:`p_\\theta(\\mathbf{z})`
         """
-        return self.prior.get_theta()
+        return self.prior.get_prior_theta()
 
     def means_from_theta(self, theta):
         """

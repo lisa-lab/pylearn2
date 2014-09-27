@@ -15,15 +15,24 @@
         nvis: &nvis 784,
         # Number of latent dimensions (z's dimensionality)
         nhid: &nhid 200,
-        # Object (subclass of `pylearn2.models.vae.visible.Visible`)
-        # responsible for implementing visible-space-related methods. Defines
-        # the conditional distribution p(x | z), amongst other things.
-        visible: !obj:pylearn2.models.vae.visible.BinaryVisible {
-            # `Visible` subclasses get passed an `MLP` instance which will be
-            # fed posterior sample and whose output is used to "decode"
+        # Object (subclass of `pylearn2.models.vae.kl.KLIntegrator`)
+        # responsible for coordinating the analytical computation of the KL
+        # divergence term.
+        kl_integrator: !obj:pylearn2.models.vae.kl.DiagonalGaussianPriorPosteriorKL {},
+        # Object (subclass of `pylearn2.models.vae.prior.Prior`)
+        # responsible for implementing methods related to the prior
+        # distribution p(z).
+        prior: !obj:pylearn2.models.vae.prior.DiagonalGaussianPrior {
+            learn_prior : 1,
+        },
+        # Object (subclass of `pylearn2.models.vae.conditional.Conditional`)
+        # responsible for implementing methods related to the conditional
+        # distribution p(x | z).
+        conditional: !obj:pylearn2.models.vae.conditional.BernoulliVectorConditional {
+            # `Conditional` subclasses get passed an `MLP` instance which will
+            # # be fed posterior sample and whose output is used to "decode"
             # parameters for p(x | z).
             decoding_model: !obj:pylearn2.models.mlp.MLP {
-                # Input dimensions should be the number of dimensions in z.
                 layer_name: "decoder",
                 layers: [
                     !obj:pylearn2.models.mlp.RectifiedLinear {
@@ -39,16 +48,14 @@
                 ],
             },
         },
-        # Object (subclass of `pylearn2.models.vae.latent.Latent`)
-        # responsible for implementing latent-space-related methods. Defines
-        # the posterior distribution q(z | x) and the prior distribution p(z),
-        # amongst other things.
-        latent: !obj:pylearn2.models.vae.latent.DiagonalGaussianPrior {
-            # `Latent` subclasses get passed an `MLP` instance which will be
+        # Object (subclass of `pylearn2.models.vae.posterior.Posterior`)
+        # responsible for implementing methods related to the posterior
+        # distribution q(z | x).
+        posterior: !obj:pylearn2.models.vae.posterior.DiagonalGaussianPosterior {
+            # `Posterior` subclasses get passed an `MLP` instance which will be
             # fed training examples and whose output is used to "encode"
             # parameters for q(z | x).
             encoding_model: !obj:pylearn2.models.mlp.MLP {
-                # Input dimensions should be the number of dimensions in x.
                 layer_name: "encoder",
                 layers: [
                     !obj:pylearn2.models.mlp.RectifiedLinear {

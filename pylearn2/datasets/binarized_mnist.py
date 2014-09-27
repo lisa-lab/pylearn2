@@ -21,7 +21,7 @@ from pylearn2.datasets.dense_design_matrix import (
     DefaultViewConverter
 )
 from pylearn2.datasets import control, cache
-from pylearn2.datasets.exp import NotInstalledError
+from pylearn2.datasets.exc import NotInstalledError
 from pylearn2.utils import serial
 from pylearn2.utils.rng import make_np_rng
 

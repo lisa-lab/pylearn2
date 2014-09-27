@@ -10,6 +10,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Vincent Dumoulin"
 __email__ = "pylearn-dev@googlegroups"
 
+import theano.tensor as T
 from pylearn2.utils import wraps
 from pylearn2.models.vae import prior, posterior
 
@@ -65,7 +66,7 @@ class KLIntegrator(object):
         posterior : pylearn2.models.vae.posterior.Posterior
             Posterior distribution on z given x
         """
-        if self.prior is None or self.posterior is None:
+        if self.prior_class is None or self.posterior_class is None:
             raise NotImplementedError(str(self.__class__) + " has not set " +
                                       "the required 'prior_class' and " +
                                       "'posterior_class' class attributes")

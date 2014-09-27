@@ -151,8 +151,8 @@ class Conditional(Model):
 
         self._validate_decoding_model()
 
-        self._conditional_params = self.decoding_model.get_params()
-        for param in self._conditional_params:
+        self._params = self.decoding_model.get_params()
+        for param in self._params:
             param.name = 'conditional_' + param.name
 
     def get_conditional_params(self):
