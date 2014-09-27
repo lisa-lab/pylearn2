@@ -576,7 +576,9 @@ class MLP(Layer):
         for layer in layers:
             assert layer.get_mlp() is None
             layer.set_mlp(self)
-            if hasattr(existing_layers[-1], "output_space"):
+            # In the case of nested MLPs, input/output spaces may have not yet
+            # been initialized
+            if not self._nested or hasattr(self, 'input_space'):
                 layer.set_input_space(existing_layers[-1].get_output_space())
             existing_layers.append(layer)
             assert layer.layer_name not in self.layer_names
