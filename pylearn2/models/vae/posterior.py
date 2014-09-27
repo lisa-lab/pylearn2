@@ -88,7 +88,7 @@ class Posterior(Model):
                              "incompatible with " + str(self.__class__) + ": "
                              "expected " + str(expected_output_space) + " but "
                              "encoding model's output space is " +
-                             str(model_output_space))
+                             str(encoder_output_space))
 
     def monitoring_channels_from_phi(self, phi):
         """

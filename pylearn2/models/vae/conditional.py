@@ -87,7 +87,7 @@ class Conditional(Model):
                              "incompatible with " + str(self.__class__) + ": "
                              "expected " + str(expected_output_space) + " but "
                              "decoding model's output space is " +
-                             str(model_output_space))
+                             str(decoder_output_space))
 
     @wraps(Model.get_weights)
     def get_weights(self):

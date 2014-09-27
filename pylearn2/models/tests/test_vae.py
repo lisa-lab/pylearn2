@@ -6,8 +6,13 @@ from pylearn2.models.mlp import (
     MLP, Linear, CompositeLayer, ConvRectifiedLinear, SpaceConverter
 )
 from pylearn2.models.vae import VAE
-from pylearn2.models.vae.visible import BinaryVisible, ContinuousVisible
-from pylearn2.models.vae.latent import DiagonalGaussianPrior
+from pylearn2.models.vae.kl import DiagonalGaussianPriorPosteriorKL
+from pylearn2.models.vae.prior import DiagonalGaussianPrior
+from pylearn2.models.vae.conditional import (
+    BernoulliVectorConditional,
+    DiagonalGaussianConditional
+)
+from pylearn2.models.vae.posterior import DiagonalGaussianPosterior
 from pylearn2.space import Conv2DSpace
 from pylearn2.utils.rng import make_np_rng
 from pylearn2.utils import as_floatX
@@ -19,11 +24,13 @@ def test_one_sample_allowed():
     """
     encoding_model = MLP(layers=[Linear(layer_name='h', dim=10, irange=0.01)])
     decoding_model = MLP(layers=[Linear(layer_name='h', dim=10, irange=0.01)])
-    visible = BinaryVisible(decoding_model=decoding_model)
-    latent = DiagonalGaussianPrior(encoding_model=encoding_model)
-    vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
+    prior = DiagonalGaussianPrior()
+    conditional = BernoulliVectorConditional(decoding_model=decoding_model)
+    posterior = DiagonalGaussianPosterior(encoding_model=encoding_model)
+    vae = VAE(nvis=10, prior=prior, conditional=conditional,
+              posterior=posterior, nhid=5)
     X = T.matrix('X')
-    lower_bound = vae.log_likelihood_lower_bound(X, num_samples=10)
+    lower_bound = vae.log_likelihood_lower_bound(X, num_samples=1)
     f = theano.function(inputs=[X], outputs=lower_bound)
     rng = make_np_rng(default_seed=11223)
     f(as_floatX(rng.uniform(size=(10, 10))))
@@ -35,9 +42,11 @@ def test_multiple_samples_allowed():
     """
     encoding_model = MLP(layers=[Linear(layer_name='h', dim=10, irange=0.01)])
     decoding_model = MLP(layers=[Linear(layer_name='h', dim=10, irange=0.01)])
-    visible = BinaryVisible(decoding_model=decoding_model)
-    latent = DiagonalGaussianPrior(encoding_model=encoding_model)
-    vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
+    prior = DiagonalGaussianPrior()
+    conditional = BernoulliVectorConditional(decoding_model=decoding_model)
+    posterior = DiagonalGaussianPosterior(encoding_model=encoding_model)
+    vae = VAE(nvis=10, prior=prior, conditional=conditional,
+              posterior=posterior, nhid=5)
     X = T.matrix('X')
     lower_bound = vae.log_likelihood_lower_bound(X, num_samples=10)
     f = theano.function(inputs=[X], outputs=lower_bound)
@@ -67,9 +76,11 @@ def test_convolutional_compatible():
             ]
     )
     decoding_model = MLP(layers=[Linear(layer_name='h', dim=16, irange=0.01)])
-    visible = BinaryVisible(decoding_model=decoding_model)
-    latent = DiagonalGaussianPrior(encoding_model=encoding_model)
-    vae = VAE(nvis=16, visible=visible, latent=latent, nhid=5)
+    prior = DiagonalGaussianPrior()
+    conditional = BernoulliVectorConditional(decoding_model=decoding_model)
+    posterior = DiagonalGaussianPosterior(encoding_model=encoding_model)
+    vae = VAE(nvis=16, prior=prior, conditional=conditional,
+              posterior=posterior, nhid=16)
     X = T.matrix('X')
     lower_bound = vae.log_likelihood_lower_bound(X, num_samples=10)
     f = theano.function(inputs=[X], outputs=lower_bound)
@@ -77,43 +88,63 @@ def test_convolutional_compatible():
     f(as_floatX(rng.uniform(size=(10, 16))))
 
 
-def test_binary_visible():
+def test_diagonal_gaussian_prior_diagonal_gaussian_posterior():
     """
-    BinaryVisible works without crashing
+    DiagonalGaussianPrior and DiagonalGaussianPosterior works without crashing
     """
     encoding_model = MLP(layers=[Linear(layer_name='h', dim=10, irange=0.01)])
     decoding_model = MLP(layers=[Linear(layer_name='h', dim=10, irange=0.01)])
-    visible = BinaryVisible(decoding_model=decoding_model)
-    latent = DiagonalGaussianPrior(encoding_model=encoding_model)
-    vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
+    prior = DiagonalGaussianPrior()
+    conditional = BernoulliVectorConditional(decoding_model=decoding_model)
+    posterior = DiagonalGaussianPosterior(encoding_model=encoding_model)
+    vae = VAE(nvis=10, prior=prior, conditional=conditional,
+              posterior=posterior, nhid=5)
     X = T.matrix('X')
-    lower_bound = vae.log_likelihood_lower_bound(X, num_samples=10)
-    z = vae.sample(num_samples=10, return_sample_means=False)
-    f = theano.function(inputs=[X], outputs=[lower_bound, z])
+    lower_bound = vae.log_likelihood_lower_bound(X, num_samples=1)
+    f = theano.function(inputs=[X], outputs=lower_bound)
     rng = make_np_rng(default_seed=11223)
     f(as_floatX(rng.uniform(size=(10, 10))))
 
 
-def test_continuous_visible():
+def test_bernoulli_vector_conditional():
     """
-    ContinuousVisible works without crashing
+    BernoulliVectorConditional works without crashing
     """
     encoding_model = MLP(layers=[Linear(layer_name='h', dim=10, irange=0.01)])
     decoding_model = MLP(layers=[Linear(layer_name='h', dim=10, irange=0.01)])
-    visible = ContinuousVisible(decoding_model=decoding_model)
-    latent = DiagonalGaussianPrior(encoding_model=encoding_model)
-    vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
+    prior = DiagonalGaussianPrior()
+    conditional = BernoulliVectorConditional(decoding_model=decoding_model)
+    posterior = DiagonalGaussianPosterior(encoding_model=encoding_model)
+    vae = VAE(nvis=10, prior=prior, conditional=conditional,
+              posterior=posterior, nhid=5)
     X = T.matrix('X')
-    lower_bound = vae.log_likelihood_lower_bound(X, num_samples=10)
-    z = vae.sample(num_samples=10, return_sample_means=False)
-    f = theano.function(inputs=[X], outputs=[lower_bound, z])
+    lower_bound = vae.log_likelihood_lower_bound(X, num_samples=1)
+    f = theano.function(inputs=[X], outputs=lower_bound)
+    rng = make_np_rng(default_seed=11223)
+    f(as_floatX(rng.uniform(size=(10, 10))))
+
+
+def test_diagonal_gaussian_conditional():
+    """
+    DiagonalGaussianConditional works without crashing
+    """
+    encoding_model = MLP(layers=[Linear(layer_name='h', dim=10, irange=0.01)])
+    decoding_model = MLP(layers=[Linear(layer_name='h', dim=10, irange=0.01)])
+    prior = DiagonalGaussianPrior()
+    conditional = DiagonalGaussianConditional(decoding_model=decoding_model)
+    posterior = DiagonalGaussianPosterior(encoding_model=encoding_model)
+    vae = VAE(nvis=10, prior=prior, conditional=conditional,
+              posterior=posterior, nhid=5)
+    X = T.matrix('X')
+    lower_bound = vae.log_likelihood_lower_bound(X, num_samples=1)
+    f = theano.function(inputs=[X], outputs=lower_bound)
     rng = make_np_rng(default_seed=11223)
     f(as_floatX(rng.uniform(size=(10, 10))))
 
 
 def test_output_layer_not_required():
     """
-    Visible and Latent allow user-defined output layers in MLP
+    Conditional and Posterior allow user-defined output layers in MLP
     """
     encoding_model = MLP(
         layers=[
@@ -139,17 +170,19 @@ def test_output_layer_not_required():
             )
         ]
     )
-    visible = ContinuousVisible(decoding_model=decoding_model,
-                                output_layer_required=False)
-    latent = DiagonalGaussianPrior(encoding_model=encoding_model,
-                                   output_layer_required=False)
-    vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
+    prior = DiagonalGaussianPrior()
+    conditional = DiagonalGaussianConditional(decoding_model=decoding_model,
+                                              output_layer_required=False)
+    posterior = DiagonalGaussianPosterior(encoding_model=encoding_model,
+                                          output_layer_required=False)
+    vae = VAE(nvis=10, prior=prior, conditional=conditional,
+              posterior=posterior, nhid=5)
 
 
 @raises(ValueError)
-def test_visible_rejects_invalid_output_layer():
+def test_conditional_rejects_invalid_output_layer():
     """
-    Visible rejects invalid user-defined output layer
+    Conditional rejects invalid user-defined output layer
     """
     encoding_model = MLP(
         layers=[
@@ -175,17 +208,19 @@ def test_visible_rejects_invalid_output_layer():
             )
         ]
     )
-    visible = ContinuousVisible(decoding_model=decoding_model,
-                                output_layer_required=False)
-    latent = DiagonalGaussianPrior(encoding_model=encoding_model,
-                                   output_layer_required=False)
-    vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
+    prior = DiagonalGaussianPrior()
+    conditional = BernoulliVectorConditional(decoding_model=decoding_model,
+                                             output_layer_required=False)
+    posterior = DiagonalGaussianPosterior(encoding_model=encoding_model,
+                                          output_layer_required=False)
+    vae = VAE(nvis=10, prior=prior, conditional=conditional,
+              posterior=posterior, nhid=5)
 
 
 @raises(ValueError)
-def test_latent_rejects_invalid_output_layer():
+def test_posterior_rejects_invalid_output_layer():
     """
-    Latent rejects invalid user-defined output layer
+    Posterior rejects invalid user-defined output layer
     """
     encoding_model = MLP(
         layers=[
@@ -211,31 +246,33 @@ def test_latent_rejects_invalid_output_layer():
             )
         ]
     )
-    visible = ContinuousVisible(decoding_model=decoding_model,
-                                output_layer_required=False)
-    latent = DiagonalGaussianPrior(encoding_model=encoding_model,
-                                   output_layer_required=False)
-    vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
+    prior = DiagonalGaussianPrior()
+    conditional = BernoulliVectorConditional(decoding_model=decoding_model,
+                                             output_layer_required=False)
+    posterior = DiagonalGaussianPosterior(encoding_model=encoding_model,
+                                          output_layer_required=False)
+    vae = VAE(nvis=10, prior=prior, conditional=conditional,
+              posterior=posterior, nhid=5)
 
 
 @raises(ValueError)
-def test_visible_requires_nested_mlp():
+def test_conditional_requires_nested_mlp():
     """
     Visible rejects non-nested MLPs
     """
     decoding_model = MLP(nvis=10,
                          layers=[Linear(layer_name='h', dim=10, irange=0.01)])
-    visible = BinaryVisible(decoding_model=decoding_model)
+    conditional = BernoulliVectorConditional(decoding_model=decoding_model)
 
 
 @raises(ValueError)
-def test_latent_requires_nested_mlp():
+def test_posterior_requires_nested_mlp():
     """
-    Latent rejects non-nested MLPs
+    Posterior rejects non-nested MLPs
     """
     encoding_model = MLP(nvis=10,
                          layers=[Linear(layer_name='h', dim=10, irange=0.01)])
-    latent = DiagonalGaussianPrior(encoding_model=encoding_model)
+    posterior = DiagonalGaussianPosterior(encoding_model=encoding_model)
 
 
 def test_lr_scalers_returned():
@@ -246,15 +283,32 @@ def test_lr_scalers_returned():
                                         irange=0.01)])
     decoding_model = MLP(layers=[Linear(layer_name='h', dim=10, W_lr_scale=0.5,
                                         irange=0.01)])
-    visible = ContinuousVisible(decoding_model=decoding_model)
-    latent = DiagonalGaussianPrior(encoding_model=encoding_model)
-    vae = VAE(nvis=10, visible=visible, latent=latent, nhid=5)
+    prior = DiagonalGaussianPrior()
+    conditional = DiagonalGaussianConditional(decoding_model=decoding_model)
+    posterior = DiagonalGaussianPosterior(encoding_model=encoding_model)
+    vae = VAE(nvis=10, prior=prior, conditional=conditional,
+              posterior=posterior, nhid=5)
     lr_scalers = vae.get_lr_scalers()
     expected_keys = [encoding_model.layers[0].transformer.get_params()[0],
                      decoding_model.layers[0].transformer.get_params()[0]]
     assert all(key in lr_scalers.keys() for key in expected_keys)
     assert all(key in expected_keys for key in lr_scalers.keys())
     assert all(lr_scalers[key] == 0.5 for key in expected_keys)
+
+
+def test_vae_automatically_finds_kl_integrator():
+    """
+    VAE automatically finds the right KLIntegrator
+    """
+    encoding_model = MLP(layers=[Linear(layer_name='h', dim=10, irange=0.01)])
+    decoding_model = MLP(layers=[Linear(layer_name='h', dim=10, irange=0.01)])
+    prior = DiagonalGaussianPrior()
+    conditional = BernoulliVectorConditional(decoding_model=decoding_model)
+    posterior = DiagonalGaussianPosterior(encoding_model=encoding_model)
+    vae = VAE(nvis=10, prior=prior, conditional=conditional,
+              posterior=posterior, nhid=5)
+    assert (vae.kl_integrator is not None and
+            isinstance(vae.kl_integrator, DiagonalGaussianPriorPosteriorKL))
 
 
 def test_VAE_cost():
@@ -274,7 +328,8 @@ def test_VAE_cost():
         model: !obj:pylearn2.models.vae.VAE {
             nvis: *nvis,
             nhid: &nhid 5,
-            visible: !obj:pylearn2.models.vae.visible.BinaryVisible {
+            prior: !obj:pylearn2.models.vae.prior.DiagonalGaussianPrior {},
+            conditional: !obj:pylearn2.models.vae.conditional.BernoulliVectorConditional {
                 decoding_model: !obj:pylearn2.models.mlp.MLP {
                     layers: [
                         !obj:pylearn2.models.mlp.Linear {
@@ -285,7 +340,7 @@ def test_VAE_cost():
                     ],
                 },
             },
-            latent: !obj:pylearn2.models.vae.latent.DiagonalGaussianPrior {
+            posterior: !obj:pylearn2.models.vae.posterior.DiagonalGaussianPosterior {
                 encoding_model: !obj:pylearn2.models.mlp.MLP {
                     layers: [
                         !obj:pylearn2.models.mlp.RectifiedLinear {
@@ -333,7 +388,8 @@ def test_IS_cost():
         model: !obj:pylearn2.models.vae.VAE {
             nvis: *nvis,
             nhid: &nhid 5,
-            visible: !obj:pylearn2.models.vae.visible.BinaryVisible {
+            prior: !obj:pylearn2.models.vae.prior.DiagonalGaussianPrior {},
+            conditional: !obj:pylearn2.models.vae.conditional.BernoulliVectorConditional {
                 decoding_model: !obj:pylearn2.models.mlp.MLP {
                     layers: [
                         !obj:pylearn2.models.mlp.Linear {
@@ -344,7 +400,7 @@ def test_IS_cost():
                     ],
                 },
             },
-            latent: !obj:pylearn2.models.vae.latent.DiagonalGaussianPrior {
+            posterior: !obj:pylearn2.models.vae.posterior.DiagonalGaussianPosterior {
                 encoding_model: !obj:pylearn2.models.mlp.MLP {
                     layers: [
                         !obj:pylearn2.models.mlp.RectifiedLinear {
