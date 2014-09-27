@@ -117,7 +117,7 @@ class Latent(Model):
         """
         Modifies the parameters before a learning update is applied.
 
-        By default, does nothing.
+        By default, only calls the encoding model's `modify_updates` method.
         """
         self.encoding_model.modify_updates(updates)
 
@@ -152,6 +152,13 @@ class Latent(Model):
     def initialize_parameters(self, encoder_input_space, nhid):
         """
         Initialize model parameters.
+
+        Parameters
+        ----------
+        encoder_input_space : pylearn2.space.Space
+            The input space for the encoding model
+        nhid : int
+            Number of latent units for z
         """
         self.nhid = nhid
         self.encoder_input_space = encoder_input_space
@@ -269,13 +276,15 @@ class Latent(Model):
 
         Parameters
         ----------
-        X : tensor_like
-            Input
-        per_component : bool, optional
-            If the prior/posterior combination leads to a KL that's a sum of
-            individual KLs across latent dimensions, the user can request the
-            vector of indivitual KLs instead of the sum by setting this to
-            `True`. Defaults to `False`.
+        phi : tuple of tensor_like
+            Tuple of parameters for the posterior distribution
+        approximate : bool, optional
+            Whether to compute the approximate KL instead of the analytical KL.
+            Defaults to `False`.
+        epsilon : tensor_like, optional
+            Noise term from which z is computed. Used for computing an
+            approximate KL if the analytical KL is not computable. Defaults to
+            `None`.
         """
         if approximate:
             return self._approximate_kl_divergence_term(phi, epsilon)
@@ -399,6 +408,8 @@ class DiagonalGaussianPrior(Latent):
         \\mid \\mathbf{x})` will be computed, and `Latent` will add its own
         default output layer to the `encoding_model` MLP. If `False`, the MLP's
         last layer **is** the output layer. Defaults to `True`.
+    learn_prior : bool, optional
+        Whether to learn the prior distribution on z. Defaults to `True`.
     isigma : float, optional
         Standard deviation on the zero-mean distribution from which parameters
         initialized by the model itself will be drawn. Defaults to 0.01.

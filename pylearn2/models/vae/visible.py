@@ -114,7 +114,7 @@ class Visible(Model):
         """
         Modifies the parameters before a learning update is applied.
 
-        By default, does nothing.
+        By default, only calls the decoding model's `modify_updates` method.
         """
         self.decoding_model.modify_updates(updates)
 

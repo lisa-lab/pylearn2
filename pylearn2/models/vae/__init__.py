@@ -1,5 +1,7 @@
 """
-Variational autoencoder (VAE) implementation.
+Variational autoencoder (VAE) implementation, as described in
+
+    Kingma, D. and Welling, M. Auto-Encoding Variational Bayes
 
 `VAE` expects to receive two objects to do its job properly:
 
@@ -93,8 +95,8 @@ class VAE(Model):
             if param.name not in names:
                 names.append(param.name)
             else:
-                raise Exception("no two paramameters must share the same "
-                                "name: " + param.name)
+                raise Exception("no two parameters must share the same name: "
+                                + param.name)
 
     @wraps(Model.get_monitoring_data_specs)
     def get_monitoring_data_specs(self):
@@ -102,6 +104,12 @@ class VAE(Model):
 
     @wraps(Model.get_monitoring_channels)
     def get_monitoring_channels(self, data):
+        """
+        Notes
+        -----
+        Monitors quantities related to the approximate posterior parameters phi
+        and the distributions parameters theta.
+        """
         space, source = self.get_monitoring_data_specs()
         space.validate(data)
 
@@ -185,13 +193,15 @@ class VAE(Model):
     def reconstruct(self, X, noisy_encoding=False, return_sample_means=True):
         """
         Given an input, generates its reconstruction by propagating it through
-        the encoder network **without adding noise** and projecting it back
-        through the decoder network.
+        the encoder network and projecting it back through the decoder network.
 
         Parameters
         ----------
         X : tensor_like
             Input to reconstruct
+        noisy_encoding : bool, optional
+            If `True`, sample z from the posterior distribution. If `False`,
+            take the expected value. Defaults to `False`.
         return_sample_means : bool, optional
             Whether to return the conditional expectations
             :math:`\\mathbb{E}[p_\\theta(\\mathbf{x} \\mid \\mathbf{h})]` in
@@ -231,6 +241,9 @@ class VAE(Model):
         ----------
         X : tensor_like
             Input
+        num_samples : int
+            Number of posterior samples per data point, e.g. number of times z
+            is sampled for each x.
 
         Returns
         -------
@@ -274,6 +287,9 @@ class VAE(Model):
         ----------
         X : tensor_like
             Input
+        num_samples : int
+            Number of posterior samples per data point, e.g. number of times z
+            is sampled for each x.
 
         Returns
         -------
