@@ -22,8 +22,17 @@ class KLIntegrator(object):
     Class responsible for computing the analytical KL divergence term in the
     VAE criterion
     """
-    prior_class = None
-    posterior_class = None
+    class ImpossiblePrior(prior.Prior):
+        """
+        A Prior that's incompatible with everything
+        """
+    prior_class = ImpossiblePrior
+
+    class ImpossiblePosterior(posterior.Posterior):
+        """
+        A Posterior that's incompatible with everything
+        """
+    posterior_class = ImpossiblePosterior
 
     def kl_divergence(self, phi, theta, prior, posterior):
         """

@@ -24,6 +24,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Vincent Dumoulin"
 __email__ = "pylearn-dev@googlegroups"
 
+import warnings
 import numpy
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
