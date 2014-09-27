@@ -37,9 +37,9 @@ class Conditional(Model):
     output_layer_required : bool, optional
         If `True`, the decoding model's output is the last hidden
         representation from which parameters of :math:`p_\\theta(\\mathbf{x}
-        \\mid \\mathbf{z})` will be computed, and `Conditional` will add its own
-        default output layer to the `decoding_model` MLP. If `False`, the MLP's
-        last layer **is** the output layer. Defaults to `True`.
+        \\mid \\mathbf{z})` will be computed, and `Conditional` will add its
+        own default output layer to the `decoding_model` MLP. If `False`, the
+        MLP's last layer **is** the output layer. Defaults to `True`.
     """
     def __init__(self, decoding_model, output_layer_required=True):
         super(Conditional, self).__init__()
@@ -129,8 +129,8 @@ class Conditional(Model):
             VAE to assign to
         """
         if self.get_vae() is not None:
-            raise RuntimeError("this `Conditional` instance already belongs to "
-                               "another VAE")
+            raise RuntimeError("this `Conditional` instance already belongs "
+                               "to another VAE")
         self.vae = vae
         self.rng = self.vae.rng
         self.theano_rng = make_theano_rng(int(self.rng.randint(2 ** 30)),
@@ -313,7 +313,7 @@ class BernoulliVector(Conditional):
         ).sum(axis=2)
 
 
-class DiagonalGaussian(Conditional):
+class DiagonalGaussianConditional(Conditional):
     """
     Implements a normal conditional distribution with diagonal covariance
     matrix, i.e.
