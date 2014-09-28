@@ -29,11 +29,12 @@
         # Object (subclass of `pylearn2.models.vae.conditional.Conditional`)
         # responsible for implementing methods related to the conditional
         # distribution p(x | z).
-        conditional: !obj:pylearn2.models.vae.conditional.BernoulliVectorConditional {
+        conditional: !obj:pylearn2.models.vae.conditional.BernoulliVector {
             # `Conditional` subclasses get passed an `MLP` instance which will
             # # be fed posterior sample and whose output is used to "decode"
             # parameters for p(x | z).
-            decoding_model: !obj:pylearn2.models.mlp.MLP {
+            name: 'conditional',
+            mlp: !obj:pylearn2.models.mlp.MLP {
                 layer_name: "decoder",
                 layers: [
                     !obj:pylearn2.models.mlp.RectifiedLinear {
@@ -49,14 +50,15 @@
                 ],
             },
         },
-        # Object (subclass of `pylearn2.models.vae.posterior.Posterior`)
+        # Object (subclass of `pylearn2.models.vae.conditional.Conditional`)
         # responsible for implementing methods related to the posterior
         # distribution q(z | x).
-        posterior: !obj:pylearn2.models.vae.posterior.DiagonalGaussianPosterior {
-            # `Posterior` subclasses get passed an `MLP` instance which will be
-            # fed training examples and whose output is used to "encode"
+        posterior: !obj:pylearn2.models.vae.conditional.DiagonalGaussian {
+            # `Conditional` subclasses get passed an `MLP` instance which will
+            # be fed training examples and whose output is used to "encode"
             # parameters for q(z | x).
-            encoding_model: !obj:pylearn2.models.mlp.MLP {
+            name: 'posterior',
+            mlp: !obj:pylearn2.models.mlp.MLP {
                 layer_name: "encoder",
                 layers: [
                     !obj:pylearn2.models.mlp.RectifiedLinear {
