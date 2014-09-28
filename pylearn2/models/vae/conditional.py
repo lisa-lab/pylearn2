@@ -22,80 +22,83 @@ from pylearn2.utils import wraps, sharedX
 pi = sharedX(numpy.pi)
 
 
+
 class Conditional(Model):
     """
-    Abstract class implementing methods related to the conditional distribution
-    :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})` for the VAE framework.
+    Abstract class implementing methods related to a conditional distribution
+    :math:`f_\\omega(\\mathbf{a} \\mid \\mathbf{b})`. Used in the VAE framework
+    for the conditional :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})` and
+    the posterior :math:`q_\\phi(\\mathbf{z} \\mid \\mathbf{x})`.
 
     Parameteters
     ------------
-    decoding_model : pylearn2.models.mlp.MLP
-        An MLP representing the generative network, whose output will be used
-        to compute :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})`. Note that
-        the MLP must be **nested**, meaning that its input space must not have
-        already been defined, as `Conditional` will do it automatically.
+    mlp : pylearn2.models.mlp.MLP
+        An MLP mapping the variable conditioned on (e.g. x for the posterior
+        distribution or z for the conditional distribution in the VAE
+        framework) to the distribution parameters. Note that the MLP must be
+        **nested**, meaning that its input space must not have already been
+        defined, as `Conditional` will do it automatically.
+    name : str
+        A string identifier for this conditional distribution (e.g. "posterior"
+        or "conditional")
     output_layer_required : bool, optional
-        If `True`, the decoding model's output is the last hidden
-        representation from which parameters of :math:`p_\\theta(\\mathbf{x}
-        \\mid \\mathbf{z})` will be computed, and `Conditional` will add its
-        own default output layer to the `decoding_model` MLP. If `False`, the
-        MLP's last layer **is** the output layer. Defaults to `True`.
+        If `True`, the MLP's output is the last hidden representation from
+        which parameters of the conditional distribution will be computed, and
+        `Conditional` will add its own default output layer to the MLP. If
+        `False`, the MLP's last layer **is** the output layer. Defaults to
+        `True`.
     """
-    def __init__(self, decoding_model, output_layer_required=True):
-        super(Conditional, self).__init__()
-        if not decoding_model._nested:
-            raise ValueError("Conditional expects an MLP whose input space "
-                             "has not been defined yet. You should not "
-                             "specify 'nvis' or 'input_space' when "
-                             "instantiating the MLP.")
-        self.decoding_model = decoding_model
+    def __init__(self, mlp, name, output_layer_required=True):
+        super(Conditonal, self).__init__()
+        if not encoding_model._nested:
+            raise ValueError(str(self.__class__) + " expects an MLP whose " +
+                             "input space has not been defined yet. You " +
+                             "should not specify 'nvis' or 'input_space' " +
+                             "when instantiating the MLP.")
+        self.mlp = mlp
+        self.name = name
         self.output_layer_required = output_layer_required
 
     def get_lr_scalers(self):
         """
-        Returns the decoding model's learning rate scalers
+        Returns the encoding model's learning rate scalers
         """
-        return self.decoding_model.get_lr_scalers()
+        return self.mlp.get_lr_scalers()
 
     def _get_default_output_layer(self):
         """
-        Returns a default `Layer` mapping the decoding model's last hidden
-        representation to parameters of :math:`p_\\theta(\\mathbf{x} \\mid
-        \\mathbf{z})`
+        Returns a default `Layer` mapping the MLP's last hidden representation
+        to parameters of the conditional distribution
         """
         raise NotImplementedError(str(self.__class__) + " does not implement "
                                   "_get_default_output_layer")
 
-    def _get_required_decoder_output_space(self):
+    def _get_required_mlp_output_space(self):
         """
-        Returns the expected output space of the decoding model, i.e. a
-        description of how the parameters output by the decoding model should
-        look like.
+        Returns the expected output space of the MLP, i.e. a description of how
+        the parameters output by the MLP should look like.
         """
         raise NotImplementedError(str(self.__class__) + " does not implement "
-                                  "_get_required_decoder_output_space")
+                                  "_get_required_mlp_output_space")
 
-    def _validate_decoding_model(self):
+    def _validate_mlp(self):
         """
-        Makes sure the decoding model's output layer is compatible with the
-        parameters expected by :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})`
+        Makes sure the MLP's output layer is compatible with the parameters
+        expected by the conditional distribution
         """
-        expected_output_space = self._get_required_decoder_output_space()
-        decoder_output_space = self.decoding_model.get_output_space()
-        if not decoder_output_space == expected_output_space:
-            raise ValueError("the specified decoding model's output space is "
+        expected_output_space = self._get_required_mlp_output_space()
+        mlp_output_space = self.mlp.get_output_space()
+        if not mlp_output_space == expected_output_space:
+            raise ValueError("the specified MLP's output space is " +
                              "incompatible with " + str(self.__class__) + ": "
                              "expected " + str(expected_output_space) + " but "
-                             "decoding model's output space is " +
-                             str(decoder_output_space))
+                             "encoding model's output space is " +
+                             str(mlp_output_space))
 
-    @wraps(Model.get_weights)
-    def get_weights(self):
-        return self.decoding_model.get_weights()
-
-    def monitoring_channels_from_theta(self, theta):
+    def monitoring_channels_from_conditional_params(self, conditional_params):
         """
-        Get monitoring channels for this visible component.
+        Get monitoring channels from the parameters of the conditional
+        distribution.
 
         By default, no monitoring channel is computed.
         """
@@ -105,9 +108,9 @@ class Conditional(Model):
         """
         Modifies the parameters before a learning update is applied.
 
-        By default, only calls the decoding model's `modify_updates` method.
+        By default, only calls the MLP's `modify_updates` method.
         """
-        self.decoding_model.modify_updates(updates)
+        self.mlp.modify_updates(updates)
 
     def get_vae(self):
         """
@@ -129,219 +132,219 @@ class Conditional(Model):
             VAE to assign to
         """
         if self.get_vae() is not None:
-            raise RuntimeError("this `Conditional` instance already belongs "
-                               "to another VAE")
+            raise RuntimeError("this " + str(self.__class__) + " instance " +
+                               "already belongs to another VAE")
         self.vae = vae
         self.rng = self.vae.rng
         self.theano_rng = make_theano_rng(int(self.rng.randint(2 ** 30)),
                                           which_method=["normal", "uniform"])
         self.batch_size = vae.batch_size
 
-    def initialize_parameters(self, decoder_input_space, nvis):
+    def initialize_parameters(self, input_space, ndim):
         """
         Initialize model parameters.
+
+        Parameters
+        ----------
+        input_space : pylearn2.space.Space
+            The input space for the MLP
+        ndim : int
+            Number of units of a in f(a | b)
         """
-        self.nvis = nvis
-        self.decoder_input_space = decoder_input_space
+        self.ndim = ndim
+        self.input_space = input_space
 
         if self.output_layer_required:
-            self.decoding_model.add_layers([self._get_default_output_layer()])
-        self.decoding_model.set_mlp(self)
-        self.decoding_model.set_input_space(self.decoder_input_space)
+            self.mlp.add_layers([self._get_default_output_layer()])
+        self.mlp.set_mlp(self)
+        self.mlp.set_input_space(self.input_space)
 
-        self._validate_decoding_model()
+        self._validate_mlp()
 
-        self._params = self.decoding_model.get_params()
+        self._params = self.mlp.get_params()
         for param in self._params:
-            param.name = 'conditional_' + param.name
+            param.name = self.name + "_" + param.name
 
-    def get_conditional_params(self):
+    def encode_conditional_params(self, X):
         """
-        Return the visible space-related parameters
-        """
-        return self._conditional_params
-
-    def decode_theta(self, z):
-        """
-        Maps latent variable `z` to a tuple of parameters of the
-        :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})` distribution
+        Maps input `X` to a tuple of parameters of the conditional distribution
 
         Parameters
         ----------
-        z : tensor_like
-            Latent sample
+        X : tensor_like
+            Input
 
         Returns
         -------
-        theta : tuple of tensor_like
+        conditional_params : tuple of tensor_like
             Tuple of parameters for the conditional distribution
         """
-        rval = self.decoding_model.fprop(z)
-        if not type(rval) == tuple:
-            rval = (rval, )
-        return rval
+        conditional_params = self.mlp.fprop(X)
+        if not type(conditional_params) == tuple:
+            conditional_params = (conditional_params, )
+        return conditional_params
 
-    def means_from_theta(self, theta):
+    def conditional_expectation(self, conditional_params):
         """
-        Given a tuple of parameters of the
-        :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})` distribution,
-        returns the expected value of `x`.
+        Given parameters of the conditional distribution, returns the
+        expected value of a in p(a | b).
 
         Parameters
         ----------
-        theta : tuple of tensor_like
+        conditional_params : tuple of tensor_like
             Tuple of parameters for the conditional distribution
-
-        Returns
-        -------
-        means : tensor_like
-            Expected value of `x`
         """
         raise NotImplementedError(str(self.__class__) + " does not implement "
-                                  "means_from_theta.")
+                                  "conditional_expectation.")
 
-    def sample_from_p_x_given_z(self, num_samples, theta):
+    def sample_from_conditional(self, conditional_params, epsilon=None,
+                                num_samples=None):
         """
-        Given a tuple of parameters, samples from the
-        :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})` conditional
-        distribution
+        Given a tuple of conditional parameters and an epsilon noise sample,
+        generates samples from the conditional distribution.
 
         Parameters
         ----------
-        num_samples : int
-            Number of samples
-        theta : tuple of tensor_like
+        conditional_params : tuple of tensor_like
             Tuple of parameters for the conditional distribution
+        epsilon : tensor_like, optional
+            Noise sample used to sample with the reparametrization trick. If
+            `None`, sampling will be done without the reparametrization trick.
+            Defaults to `None`.
+        num_samples : int, optional
+            Number of requested samples, in case the reparametrization trick is
+            not used
 
         Returns
         -------
-        x : tensor_like
+        rval : tensor_like
             Samples
         """
         raise NotImplementedError(str(self.__class__) + " does not implement "
-                                  "sample_from_p_x_given_z.")
+                                  "sample_from_conditional.")
 
-    def expectation_term(self, X, theta):
+    def sample_from_epsilon(self, shape):
         """
-        Computes an approximation of :math:`\\mathrm{E}_{q_\\phi(\\mathbf{z}
-        \\mid \\mathbf{x})} [\\log p_\\theta(\\mathbf{x} \\mid \\mathbf{z})]`
+        Samples from a canonical noise distribution from which conditional
+        samples will be drawn using the reparametrization trick. If using the
+        reparametrization trick is not possible for this particular conditional
+        distribution, will raise an exception.
 
         Parameters
         ----------
-        X : tensor_like
-            Input
-        theta : tuple of tensor_like
+        shape : tuple of int
+            Shape of the requested samples
+
+        Returns
+        -------
+        epsilon : tensor_like
+            Noise samples
+        """
+        raise NotImplementedError(str(self.__class__) + " does not implement "
+                                  "sample_from_epsilon, which probably "
+                                  "means it is not able to sample using the "
+                                  "reparametrization trick.")
+
+    def log_conditional(self, samples, conditional_params):
+        """
+        Given the conditional parameters, computes the log-conditional
+        probabilities of samples of this distribution.
+
+        Parameters
+        ----------
+        samples : tensor_like
+            Conditional samples
+        conditional_params : tuple of tensor_like
             Tuple of parameters for the conditional distribution
 
         Returns
         -------
-        expectation_term : tensor_like
-            Expectation term
+        log_conditonal : tensor_like
+            Log-conditional probabilities
         """
         raise NotImplementedError(str(self.__class__) + " does not implement "
-                                  "expectation_term.")
-
-    def log_p_x_given_z(self, X, theta):
-        """
-        Computes the log-conditional probabilities of `X`
-
-        Parameters
-        ----------
-        X : tensor_like
-            Input
-        theta : tuple of tensor_like
-            Tuple of parameters for the contitional distribution
-
-        Returns
-        -------
-        log_p_x_z : tensor_like
-            Log-prior probabilities
-        """
-        raise NotImplementedError(str(self.__class__) + " does not implement "
-                                  "log_p_x_given_z.")
+                                  "log_conditional.")
 
 
-class BernoulliVectorConditional(Conditional):
+class BernoulliVector(Conditional):
     """
     Implements a vectorial bernoulli conditional distribution, i.e.
     
     .. math::
-        p_\\theta(\\mathbf{x} \\mid \\mathbf{z})
-        = \\prod_i \\mu_i(\\mathbf{z})^{x_i}
-                   (1 - \\mu_i(\\mathbf{z}))^{(1 - x_i)}
+        f_\\omega(\\mathbf{a} \\mid \\mathbf{b})
+        = \\prod_i \\mu_i(\\mathbf{b})^{a_i}
+                   (1 - \\mu_i(\\mathbf{b}))^{(1 - a_i)}
     """
     @wraps(Conditional._get_default_output_layer)
     def _get_default_output_layer(self):
-        return Linear(dim=self.nvis, layer_name='mu', irange=0.01)
+        return Linear(dim=self.ndim, layer_name='mu', irange=0.01)
 
-    @wraps(Conditional._get_required_decoder_output_space)
-    def _get_required_decoder_output_space(self):
-        return VectorSpace(dim=self.nvis)
+    @wraps(Conditional._get_required_mlp_output_space)
+    def _get_required_mlp_output_space(self):
+        return VectorSpace(dim=self.ndim)
 
-    @wraps(Conditional.sample_from_p_x_given_z)
-    def sample_from_p_x_given_z(self, num_samples, theta):
+    @wraps(Conditional.sample_from_conditional)
+    def sample_from_conditional(self, conditional_params, epsilon=None,
+                                num_samples=None):
+        if epsilon is not None:
+            raise ValueError(str(self.__class__) + " is not able to sample " +
+                                 "using the reparametrization trick.")
+        if num_samples is None:
+            raise ValueError("number of requested samples needs to be given.")
         # We express mu in terms of the pre-sigmoid activations. See
-        # `log_p_x_given_z` for more details.
-        p_x_given_z = T.nnet.sigmoid(theta[0])
+        # `log_conditional` for more details.
+        conditional_probs = T.nnet.sigmoid(conditional_params[0])
         return self.theano_rng.uniform(
-            size=(num_samples, self.nvis),
+            size=(num_samples, self.ndim),
             dtype=theano.config.floatX
-        ) < p_x_given_z
+        ) < conditional_probs
 
-    @wraps(Conditional.expectation_term)
-    def expectation_term(self, X, theta):
-        # We express the expectation term in terms of the pre-sigmoid
-        # activations, which lets us apply the log sigmoid(x) -> -softplus(-x)
-        # optimization manually.
-        (S,) = theta
-        return -(X * T.nnet.softplus(-S) + (1 - X) * T.nnet.softplus(S))
+    @wraps(Conditional.conditional_expectation)
+    def conditional_expectation(self, conditional_params):
+        # `conditional_params` is composed of pre-sigmoid activations; see
+        # `log_conditional` for more details.
+        return T.nnet.sigmoid(conditional_params[0])
 
-    @wraps(Conditional.means_from_theta)
-    def means_from_theta(self, theta):
-        # Theta is composed of pre-sigmoid activations; see `_log_p_x_given_z`
-        # for more details.
-        return T.nnet.sigmoid(theta[0])
-
-    @wraps(Conditional.log_p_x_given_z)
-    def log_p_x_given_z(self, X, theta):
+    @wraps(Conditional.log_conditional)
+    def log_conditional(self, samples, conditional_params):
         # We express the probability in terms of the pre-sigmoid activations,
         # which lets us apply the log sigmoid(x) -> -softplus(-x)
-        # optimization manually; see `_decode_theta` for more details.
-        (S,) = theta
+        # optimization manually
+        (S,) = conditional_params
         return -(
-            X * T.nnet.softplus(-S) + (1 - X) * T.nnet.softplus(S)
+            samples * T.nnet.softplus(-S) + (1 - samples) * T.nnet.softplus(S)
         ).sum(axis=2)
 
 
-class DiagonalGaussianConditional(Conditional):
+class DiagonalGaussian(Conditional):
     """
     Implements a normal conditional distribution with diagonal covariance
     matrix, i.e.
     
     .. math::
-        p_\\theta(\\mathbf{x} \\mid \\mathbf{z})
-        = \\prod_i \\exp(-(x_i - \\mu_i(\\mathbf{z}))^2 /
-                         (2\\sigma_i(\\mathbf{z})^2 ) /
-                   (\\sqrt{2 \\pi} \\sigma_i(\\mathbf{z}))
+        f_\\omega(\\mathbf{a} \\mid \\mathbf{b})
+        = \\prod_i \\exp(-(a_i - \\mu_i(\\mathbf{b}))^2 /
+                         (2\\sigma_i(\\mathbf{b})^2 ) /
+                   (\\sqrt{2 \\pi} \\sigma_i(\\mathbf{b}))
     """
     @wraps(Conditional._get_default_output_layer)
     def _get_default_output_layer(self):
         return CompositeLayer(
-            layer_name='theta',
-            layers=[Sigmoid(dim=self.nvis, layer_name='mu', irange=0.01),
-                    Linear(dim=self.nvis, layer_name='log_sigma', irange=0.01)]
+            layer_name='conditional',
+            layers=[Sigmoid(dim=self.ndim, layer_name='mu', irange=0.01),
+                    Linear(dim=self.ndim, layer_name='log_sigma', irange=0.01)]
         )
 
-    @wraps(Conditional._get_required_decoder_output_space)
-    def _get_required_decoder_output_space(self):
-        return CompositeSpace([VectorSpace(dim=self.nvis),
-                               VectorSpace(dim=self.nvis)])
+    @wraps(Conditional._get_required_mlp_output_space)
+    def _get_required_mlp_output_space(self):
+        return CompositeSpace([VectorSpace(dim=self.ndim),
+                               VectorSpace(dim=self.ndim)])
 
-    @wraps(Conditional.monitoring_channels_from_theta)
-    def monitoring_channels_from_theta(self, theta):
+    @wraps(Conditional.monitoring_channels_from_conditional_params)
+    def monitoring_channels_from_conditional_params(self, conditional_params):
         rval = OrderedDict()
 
-        mu, log_sigma = theta
+        mu, log_sigma = conditional_params
         rval['sigma_theta_min'] = T.exp(log_sigma).min()
         rval['sigma_theta_max'] = T.exp(log_sigma).max()
         rval['sigma_theta_mean'] = T.exp(log_sigma).mean()
@@ -349,26 +352,36 @@ class DiagonalGaussianConditional(Conditional):
 
         return rval
 
-    @wraps(Conditional.sample_from_p_x_given_z)
-    def sample_from_p_x_given_z(self, num_samples, theta):
-        (mu_d, log_sigma_d) = theta
-        return self.theano_rng.normal(size=mu_d.shape,
-                                      avg=mu_d,
-                                      std=T.exp(log_sigma_d),
-                                      dtype=theano.config.floatX)
+    @wraps(Conditional.sample_from_conditional)
+    def sample_from_p_x_given_z(self, conditional_params, epsilon=None,
+                                num_samples=None):
+        (mu, log_sigma) = conditional_params
+        if epsilon is None:
+            if num_samples is None:
+                raise ValueError("number of requested samples needs to be "
+                                 "given.")
+            return self.theano_rng.normal(size=mu_d.shape,
+                                          avg=mu_d,
+                                          std=T.exp(log_sigma_d),
+                                          dtype=theano.config.floatX)
+        else:
+            if epsilon.ndim == 3:
+                return (
+                    mu.dimshuffle('x', 0, 1) +
+                    T.exp(log_sigma.dimshuffle('x', 0, 1)) * epsilon
+                )
+            else:
+                return mu + T.exp(log_sigma) * epsilon
 
-    @wraps(Conditional.expectation_term)
-    def expectation_term(self, X, theta):
-        (mu_d, log_sigma_d) = theta
-        return -0.5 * (T.log(2 * pi) + 2 * log_sigma_d +
-                       (X - mu_d) ** 2 / T.exp(2 * log_sigma_d))
+    @wraps(Conditional.conditional_expectation)
+    def conditional_expectation(self, conditional_params):
+        return conditional_params[0]
 
-    @wraps(Conditional.means_from_theta)
-    def means_from_theta(self, theta):
-        return theta[0]
-
-    @wraps(Conditional.log_p_x_given_z)
-    def log_p_x_given_z(self, X, theta):
-        (mu_d, log_sigma_d) = theta
-        return -0.5 * (T.log(2 * pi) + 2 * log_sigma_d +
-                       (X - mu_d) ** 2 / T.exp(2 * log_sigma_d)).sum(axis=2)
+    @wraps(Conditional.log_conditional)
+    def log_conditional(self, samples, conditional_params):
+        (mu, log_sigma) = conditional_params
+        return -0.5 * (
+            T.log(2 * pi) + 2 * log_sigma.dimshuffle('x', 0, 1) +
+            (samples - mu.dimshuffle('x', 0, 1)) ** 2 /
+            T.exp(2 * log_sigma.dimshuffle('x', 0, 1))
+        ).sum(axis=2)
