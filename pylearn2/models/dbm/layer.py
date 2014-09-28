@@ -228,7 +228,7 @@ class Layer(Model):
         Parameters
         ----------
         state_below : WRITEME
-            Upward state of the layer below.
+           Upward state of the layer below.
         state : WRITEME
             Total state of this layer
         average_below : bool
@@ -2300,6 +2300,18 @@ class GaussianVisLayer(VisibleLayer):
         rval = theano_rng.normal(size = z.shape, avg = z, dtype = z.dtype,
                        std = 1. / T.sqrt(self.beta))
         return rval
+
+    def make_symbolic_state(self, num_examples, theano_rng):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        if not hasattr(self, 'copies'):
+            self.copies = 1
+        if self.copies != 1:
+            raise NotImplementedError()
+        rval = theano_rng.normal(size=(num_examples, self.nvis), avg = self.mu, dtype=theano.config.floatX)
 
     def recons_cost(self, V, V_hat_unmasked, drop_mask = None, use_sum=False):
         """
