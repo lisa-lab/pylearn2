@@ -134,221 +134,156 @@ class TestBinaryVector:
         TestBinaryVector.check_samples(sample, (num_samples, n), mean, tol)
 
 
-def check_gaussian_samples(value, nsamples, nvis, rows, cols, channels, expected_mean, tol):
-    """
-    Tests that a matrix of Gaussian samples (observations in rows, variables
-     in columns)
-    1) Has the right shape
-    2) Is not binary
-    3) Converges to the right mean
+class TestGaussianVisLayer:
 
-    """
-    if nvis:
-        expected_shape = (nsamples, nvis)
-    else:
-        expected_shape = (nsamples,rows,cols,channels)
-    assert value.shape == expected_shape
-    assert not is_binary(value)
-    mean = value.mean(axis=0)
-    max_error = np.abs(mean-expected_mean).max()
-    print 'Actual mean:'
-    print mean
-    print 'Expected mean:'
-    print expected_mean
-    print 'Maximal error:', max_error
-    print 'Tolerable variance:', tol
-    if max_error > tol:
-        raise ValueError("Samples don't seem to have the right mean.")
-    else:
-        print 'Mean is within expected range'
+    def setUp(self):
+        pass
 
-
-def test_gaussian_vis_layer_make_state():
-    """
-    Verifies that GaussianVisLayer.make_state creates
-    a shared variable whose value passes check_gaussian_samples
-
-    In this case the layer lives in a VectorSpace
-
-    """
-    n = 5
-    rows = None
-    cols = None
-    channels = None
-    num_samples = 1000
-    tol = .042 # tolerated variance
-    beta = 1/tol # precision parameter
-
-    layer = GaussianVisLayer(nvis = n, init_beta=beta)
-
-    rng = np.random.RandomState([2012,11,1])
-
-    mean = rng.uniform(1e-6, 1. - 1e-6, (n,))
-
-    z= mean
-
-    layer.set_biases(z.astype(config.floatX))
-
-    init_state = layer.make_state(num_examples=num_samples,
-            numpy_rng=rng)
-
-    value = init_state.get_value()
-
-    check_gaussian_samples(value, num_samples, n, rows, cols, channels, mean, tol)
-
-def test_gaussian_vis_layer_make_state_conv():
-    """
-    Verifies that GaussianVisLayer.make_state creates
-    a shared variable whose value passes check_gaussian_samples
-
-    In this case the layer lives in a Conv2DSpace
-
-    """
-    n = None
-    rows = 3
-    cols = 3
-    channels = 3
-    num_samples = 1000
-    tol = .042  # tolerated variance
-    beta = 1/tol  # precision parameter
-    # axes for batch, rows, cols, channels, can be given in any order
-    axes = ['b', 0, 1, 'c']
-    random.shuffle(axes)
-    axes = tuple(axes)
-    print 'axes:', axes
-
-    layer = GaussianVisLayer(rows=rows, cols=cols, channels=channels, init_beta=beta, axes=axes)
-
-    # rng = np.random.RandomState([2012,11,1])
-    rng = np.random.RandomState()
-    mean = rng.uniform(1e-6, 1. - 1e-6, (rows, cols, channels))
-
-    #z = inverse_sigmoid_numpy(mean)
-    z= mean
-
-    layer.set_biases(z.astype(config.floatX))
-
-    init_state = layer.make_state(num_examples=num_samples,
-            numpy_rng=rng)
-
-    value = init_state.get_value()
-
-    check_gaussian_samples(value, num_samples, n, rows, cols, channels, mean, tol)
-
-def test_gaussian_vis_layer_sample():
-    """
-    Verifies that GaussianVisLayer.sample returns an expression
-    whose value passes check_gaussian_samples
-
-    In this case the layer lives in a VectorSpace
-
-    """
-    assert hasattr(np, 'exp')
-
-    n = 5
-    num_samples = 1000
-    tol = .042  # tolerated variance
-    beta = 1/tol  # precision parameter
-    rows = None
-    cols = None
-    channels = None
-
-    class DummyLayer(object):
+    @staticmethod
+    def check_samples(value, nsamples, nvis, rows, cols, channels, expected_mean, tol):
         """
-        A layer that we build for the test that just uses a state
-        as its downward message.
+        Tests that a matrix of Gaussian samples (observations in rows, variables
+        in columns)
+        1) Has the right shape
+        2) Is not binary
+        3) Converges to the right mean
+
         """
+        if nvis:
+            expected_shape = (nsamples, nvis)
+        else:
+            expected_shape = (nsamples,rows,cols,channels)
+        assert value.shape == expected_shape
+        assert not is_binary(value)
+        mean = value.mean(axis=0)
+        max_error = np.abs(mean-expected_mean).max()
+        print 'Actual mean:'
+        print mean
+        print 'Expected mean:'
+        print expected_mean
+        print 'Maximal error:', max_error
+        print 'Tolerable variance:', tol
+        if max_error > tol:
+            raise ValueError("Samples don't seem to have the right mean.")
+        else:
+            print 'Mean is within expected range'
 
-        def downward_state(self, state):
-            return state
-
-        def downward_message(self, state):
-            return state
-
-    vis = GaussianVisLayer(nvis=n, init_beta=beta)
-    hid = DummyLayer()
-
-    rng = np.random.RandomState([2012,11,1,259])
-
-    mean = rng.uniform(1e-6, 1. - 1e-6, (n,))
-
-    ofs = rng.randn(n)
-
-    vis.set_biases(ofs.astype(config.floatX))
-
-    #z = inverse_sigmoid_numpy(mean) - ofs
-    z=mean -ofs # linear activation function
-    z_var = sharedX(np.zeros((num_samples, n)) + z)
-    # mean will be z_var + mu
-
-    theano_rng = MRG_RandomStreams(2012+11+1)
-
-    sample = vis.sample(state_above=z_var, layer_above=hid,
-            theano_rng=theano_rng)
-
-    sample = sample.eval()
-
-    check_gaussian_samples(sample, num_samples, n, rows, cols, channels, mean, tol)
-
-def test_gaussian_vis_layer_sample_conv():
-    """
-    Verifies that GaussianVisLayer.sample returns an expression
-    whose value passes check_gaussian_samples.
-
-    In this case the layer lives in a Conv2DSpace
-
-    """
-    assert hasattr(np, 'exp')
-
-    n = None
-    num_samples = 1000
-    tol = .042  # tolerated variance
-    beta = 1/tol  # precision parameter
-    rows = 3
-    cols = 3
-    channels = 3
-    # axes for batch, rows, cols, channels, can be given in any order
-    axes = ['b', 0, 1, 'c']
-    random.shuffle(axes)
-    axes = tuple(axes)
-    print 'axes:', axes
-
-    class DummyLayer(object):
+    def test_make_state(self, n=5, rows=None, cols=None, channels=None, num_samples=1000, tol=0.042):
         """
-        A layer that we build for the test that just uses a state
-        as its downward message.
+        Verifies that GaussianVisLayer.make_state.
+        Verified that GaussianVisLayer creates a shared variable whose value passes check_samples.
+        In this case the layer lives in a VectorSpace.
+
         """
+        beta = 1/tol # precision parameter
+        assert (n is None and (rows is not None and cols is not None and channels is not None)) or\
+            (n is not None and (rows == cols == channels == None)),\
+            "n must be None or rows, cols, and channels must be None"
 
-        def downward_state(self, state):
-            return state
+        rng = np.random.RandomState([2012,11,1])
+        if n is not None:
+            layer = GaussianVisLayer(nvis = n, init_beta=beta)
+            mean = rng.uniform(1e-6, 1. - 1e-6, (n,))
+        else:
+            # axes for batch, rows, cols, channels, can be given in any order
+            axes = ['b', 0, 1, 'c']
+            random.shuffle(axes)
+            axes = tuple(axes)
+            layer = GaussianVisLayer(rows=rows, cols=cols, channels=channels,
+                                     init_beta=beta, axes=axes)
+            mean = rng.uniform(1e-6, 1. - 1e-6, (rows, cols, channels))
 
-        def downward_message(self, state):
-            return state
+        z = mean
+        layer.set_biases(z.astype(config.floatX))
+        init_state = layer.make_state(num_examples=num_samples,
+                                      numpy_rng=rng)
+        value = init_state.get_value()
+        TestGaussianVisLayer.check_samples(value, num_samples, n, rows, cols, channels, mean, tol)
 
-    vis = GaussianVisLayer(nvis=None,rows=rows, cols=cols, channels=channels, init_beta=beta, axes=axes)
-    hid = DummyLayer()
+    def test_make_state_conv(self, n=None, rows=3, cols=3, channels=3, num_samples=1000, tol=0.042):
+        """
+        Verifies that GaussianVisLayer.make_state.
+        Verifies that GaussianVisLayer.make_state creates a shared variable
+        whose value passes check_samples. In this case the layer lives in a Conv2DSpace.
 
-    rng = np.random.RandomState([2012,11,1,259])
+        Parameters:
+        ----------
+        n: detector layer dimension.
+        num_samples: number of samples or observations over each dimension.
+        tol: tolerace in comparisons
+        rows: number of rows in convolutional detector. Must be None if n is not None
+        cols: number of cols in convolutional detector. Must be None if n is not None
+        channels: number of channels in convolutional detector. Must be None if n is not None
+        """
+        self.test_make_state(n, rows, cols, channels, num_samples, tol)
 
-    mean = rng.uniform(1e-6, 1. - 1e-6, (rows, cols, channels))
+    def test_sample(self, n=5, rows=None, cols=None, channels=None, num_samples=1000, tol=0.042):
+        """
+        Verifies that GaussianVisLayer.sample returns an expression whose value passes check_samples.
+        In this case the layer lives in a VectorSpace.
 
-    ofs = rng.randn(rows,cols,channels)
+        Parameters:
+        -----------
+        n: detector layer dimension.
+        num_samples: number of samples or observations over each dimension.
+        tol: tolerace in comparisons
+        rows: number of rows in convolutional detector.  Must be None if n is not None
+        cols: number of cols in convolutional detector.  Must be None if n is not None
+        channels: number of channels in convolutional detector.  Must be None if n is not None
+        """
+        assert hasattr(np, 'exp')
 
-    vis.set_biases(ofs.astype(config.floatX))
+        beta = 1/tol  # precision parameter
+        assert (n is None and (rows is not None and cols is not None and channels is not None)) or\
+            (n is not None and (rows == cols == channels == None)),\
+            "n must be None or rows, cols, and channels must be None"
 
-    #z = inverse_sigmoid_numpy(mean) - ofs
-    z = mean -ofs
+        rng = np.random.RandomState([2012,11,1,259])
+        if n is not None:
+            vis = GaussianVisLayer(nvis=n, init_beta=beta)
+            mean = rng.uniform(1e-6, 1. - 1e-6, (n,))
+            ofs = rng.randn(n)
+        else:
+            # axes for batch, rows, cols, channels, can be given in any order
+            axes = ['b', 0, 1, 'c']
+            random.shuffle(axes)
+            axes = tuple(axes)
+            vis = GaussianVisLayer(nvis=None,rows=rows, cols=cols,
+                                   channels=channels, init_beta=beta, axes=axes)
+            mean = rng.uniform(1e-6, 1. - 1e-6, (rows, cols, channels))
+            ofs = rng.randn(rows,cols,channels)
 
-    z_var = sharedX(np.zeros((num_samples, rows, cols, channels)) + z)
+        hid = DummyLayer()
+        vis.set_biases(ofs.astype(config.floatX))
+        z=mean -ofs # linear activation function
 
-    theano_rng = MRG_RandomStreams(2012+11+1)
+        if n is not None:
+            z_var = sharedX(np.zeros((num_samples, n)) + z)
+        else:
+            z_var = sharedX(np.zeros((num_samples, rows, cols, channels)) + z)
 
-    sample = vis.sample(state_above=z_var, layer_above=hid,
-            theano_rng=theano_rng)
+        theano_rng = MRG_RandomStreams(2012+11+1)
+        sample = vis.sample(state_above=z_var, layer_above=hid,
+                            theano_rng=theano_rng)
+        sample = sample.eval()
+        TestGaussianVisLayer.check_samples(sample, num_samples, n, rows, cols, channels, mean, tol)
 
-    sample = sample.eval()
+    def test_sample_conv(self, n=None, rows=3, cols=3, channels=3, num_samples=1000, tol=0.042):
+        """
+        Verifies that GaussianVisLayer.sample returns an expression whose value passes check_samples.
+        In this case the layer lives in a Conv2DSpace.
 
-    check_gaussian_samples(sample, num_samples, n, rows, cols, channels, mean, tol)
+        Parameters:
+        -----------
+        n: detector layer dimension.  Set to None for convolutional.
+        num_samples: number of samples or observations over each dimension.
+        tol: tolerace in comparisons
+        rows: number of rows in convolutional detector.  Must be None if n is not None
+        cols: number of cols in convolutional detector.  Must be None if n is not None
+        channels: number of channels in convolutional detector.  Must be None if n is not None
+        """
+        self.test_sample(n, rows, cols, channels, num_samples, tol)
+
 
 def check_bvmp_samples(value, num_samples, n, pool_size, mean, tol):
     """
