@@ -54,11 +54,13 @@ class VAE(Model):
     nvis : int
         Number of dimensions in the input data
     prior : pylearn2.models.vae.prior.Prior
-        Handles the prior-related methods necessary for `VAE` to work
+        Represents the prior distribution :math:`p_\\theta(\\mathbf{z})`
     conditional : pylearn2.models.vae.conditional.Conditional
-        Handles the conditional-related methods necessary for `VAE` to work
-    posterior : pylearn2.models.vae.posterior.Posterior
-        Handles the posterior-related methods necessary for `VAE` to work
+        Represents the conditional distribution
+        :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})`
+    posterior : pylearn2.models.vae.conditional.Conditional
+        Represents the posterior distribution
+        :math:`q_\\phi(\\mathbf{z} \\mid \\mathbf{x})`
     nhid : int
         Number of dimensions in latent space, i.e. the space in which :math:`z`
         lives
@@ -93,12 +95,12 @@ class VAE(Model):
         # Parameter initialization
         self.prior.initialize_parameters(nhid=self.nhid)
         self.conditional.initialize_parameters(
-            decoder_input_space=self.latent_space,
-            nvis=self.nvis
+            input_space=self.latent_space,
+            ndim=self.nvis
         )
         self.posterior.initialize_parameters(
-            encoder_input_space=self.input_space,
-            nhid=self.nhid
+            input_space=self.input_space,
+            ndim=self.nhid
         )
         self._params = (self.get_prior_params() + self.get_posterior_params() +
                         self.get_conditional_params())
@@ -140,11 +142,12 @@ class VAE(Model):
         z = z.reshape((epsilon.shape[0] * epsilon.shape[1], epsilon.shape[2]))
         theta = self.decode_theta(z)
 
-        posterior_channels = self.posterior.monitoring_channels_from_phi(phi)
+        posterior_channels = \
+            self.posterior.monitoring_channels_from_conditional_params(phi)
         safe_update(rval, posterior_channels)
 
         conditional_channels = \
-            self.conditional.monitoring_channels_from_theta(theta)
+            self.conditional.monitoring_channels_from_conditional_params(theta)
         safe_update(rval, conditional_channels)
 
         return rval
@@ -376,7 +379,7 @@ class VAE(Model):
         phi : tuple of tensor_like
             Tuple of parameters for the posterior distribution
         """
-        return self.posterior.encode_phi(X)
+        return self.posterior.encode_conditional_params(X)
 
     def decode_theta(self, z):
         """
@@ -393,7 +396,7 @@ class VAE(Model):
         theta : tuple of tensor_like
             Tuple of parameters for the conditional distribution
         """
-        return self.conditional.decode_theta(z)
+        return self.conditional.encode_conditional_params(z)
 
     def get_prior_theta(self):
         """
@@ -418,7 +421,7 @@ class VAE(Model):
         means : tensor_like
             Expected value of `x`
         """
-        return self.conditional.means_from_theta(theta)
+        return self.conditional.conditional_expectation(theta)
 
     def expectation_term(self, X, theta):
         """
@@ -535,7 +538,10 @@ class VAE(Model):
         x : tensor_like
             Samples
         """
-        return self.conditional.sample_from_p_x_given_z(num_samples, theta)
+        return self.conditional.sample_from_conditional(
+            conditional_params=theta,
+            num_samples=num_samples
+        )
 
     def sample_from_p_z(self, num_samples, **kwargs):
         """
@@ -571,7 +577,10 @@ class VAE(Model):
         z : tensor_like
             Posterior sample
         """
-        return self.posterior.sample_from_q_z_given_x(epsilon, phi)
+        return self.posterior.sample_from_conditional(
+            conditional_params=phi,
+            epsilon=epsilon
+        )
 
     def sample_from_epsilon(self, shape):
         """
@@ -623,7 +632,7 @@ class VAE(Model):
         log_p_x_z : tensor_like
             Log-prior probabilities
         """
-        return self.conditional.log_p_x_given_z(X, theta)
+        return self.conditional.log_conditional(X, theta)
 
     def log_q_z_given_x(self, z, phi):
         """
@@ -641,4 +650,4 @@ class VAE(Model):
         log_q_z_x : tensor_like
             Log-posterior probabilities
         """
-        return self.posterior.log_q_z_given_x(z, phi)
+        return self.posterior.log_conditional(z, phi)

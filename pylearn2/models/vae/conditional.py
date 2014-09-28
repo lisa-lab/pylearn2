@@ -49,8 +49,8 @@ class Conditional(Model):
         `True`.
     """
     def __init__(self, mlp, name, output_layer_required=True):
-        super(Conditonal, self).__init__()
-        if not encoding_model._nested:
+        super(Conditional, self).__init__()
+        if not mlp._nested:
             raise ValueError(str(self.__class__) + " expects an MLP whose " +
                              "input space has not been defined yet. You " +
                              "should not specify 'nvis' or 'input_space' " +
@@ -311,6 +311,11 @@ class BernoulliVector(Conditional):
         # which lets us apply the log sigmoid(x) -> -softplus(-x)
         # optimization manually
         (S,) = conditional_params
+        # If there are multiple samples per data point, make sure mu and
+        # log_sigma are broadcasted correctly.
+        if samples.ndim == 3:
+            if S.ndim == 2:
+                S = S.dimshuffle('x', 0, 1)
         return -(
             samples * T.nnet.softplus(-S) + (1 - samples) * T.nnet.softplus(S)
         ).sum(axis=2)
@@ -353,7 +358,7 @@ class DiagonalGaussian(Conditional):
         return rval
 
     @wraps(Conditional.sample_from_conditional)
-    def sample_from_p_x_given_z(self, conditional_params, epsilon=None,
+    def sample_from_conditional(self, conditional_params, epsilon=None,
                                 num_samples=None):
         (mu, log_sigma) = conditional_params
         if epsilon is None:
@@ -365,13 +370,18 @@ class DiagonalGaussian(Conditional):
                                           std=T.exp(log_sigma_d),
                                           dtype=theano.config.floatX)
         else:
+            # If there are multiple samples per data point, make sure mu and
+            # log_sigma are broadcasted correctly.
             if epsilon.ndim == 3:
-                return (
-                    mu.dimshuffle('x', 0, 1) +
-                    T.exp(log_sigma.dimshuffle('x', 0, 1)) * epsilon
-                )
-            else:
-                return mu + T.exp(log_sigma) * epsilon
+                if mu.ndim == 2:
+                    mu = mu.dimshuffle('x', 0, 1)
+                if log_sigma.ndim == 2:
+                    log_sigma = log_sigma.dimshuffle('x', 0, 1)
+            return mu + T.exp(log_sigma) * epsilon
+
+    @wraps(Conditional.sample_from_epsilon)
+    def sample_from_epsilon(self, shape):
+        return self.theano_rng.normal(size=shape, dtype=theano.config.floatX)
 
     @wraps(Conditional.conditional_expectation)
     def conditional_expectation(self, conditional_params):
@@ -380,8 +390,14 @@ class DiagonalGaussian(Conditional):
     @wraps(Conditional.log_conditional)
     def log_conditional(self, samples, conditional_params):
         (mu, log_sigma) = conditional_params
+        # If there are multiple samples per data point, make sure mu and
+        # log_sigma are broadcasted correctly.
+        if samples.ndim == 3:
+            if log_sigma.ndim == 2:
+                log_sigma = log_sigma.dimshuffle('x', 0, 1)
+            if mu.ndim == 2:
+                mu = mu.dimshuffle('x', 0, 1)
         return -0.5 * (
-            T.log(2 * pi) + 2 * log_sigma.dimshuffle('x', 0, 1) +
-            (samples - mu.dimshuffle('x', 0, 1)) ** 2 /
-            T.exp(2 * log_sigma.dimshuffle('x', 0, 1))
+            T.log(2 * pi) + 2 * log_sigma + (samples - mu) ** 2 /
+            T.exp(2 * log_sigma)
         ).sum(axis=2)

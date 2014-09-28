@@ -14,7 +14,7 @@ import sys
 import inspect
 import theano.tensor as T
 from pylearn2.utils import wraps
-from pylearn2.models.vae import prior, posterior
+from pylearn2.models.vae import prior, conditional
 
 
 class KLIntegrator(object):
@@ -28,9 +28,9 @@ class KLIntegrator(object):
         """
     prior_class = ImpossiblePrior
 
-    class ImpossiblePosterior(posterior.Posterior):
+    class ImpossiblePosterior(conditional.Conditional):
         """
-        A Posterior that's incompatible with everything
+        A Conditional that's incompatible with everything
         """
     posterior_class = ImpossiblePosterior
 
@@ -97,7 +97,7 @@ class DiagonalGaussianPriorPosteriorKL(KLIntegrator):
     gaussian posterior
     """
     prior_class = prior.DiagonalGaussianPrior
-    posterior_class = posterior.DiagonalGaussianPosterior
+    posterior_class = conditional.DiagonalGaussian
 
     @wraps(KLIntegrator.kl_divergence)
     def kl_divergence(self, phi, theta, prior, posterior):
