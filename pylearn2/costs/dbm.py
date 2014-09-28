@@ -3,7 +3,7 @@ This module contains cost functions to use with deep Boltzmann machines
 (pylearn2.models.dbm).
 """
 
-__authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
+__authors__ = ["Ian Goodfellow", "Vincent Dumoulin", "Devon Hjelm"]
 __copyright__ = "Copyright 2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
@@ -38,6 +38,226 @@ from pylearn2.utils.rng import make_theano_rng
 
 
 logger = logging.getLogger(__name__)
+
+# Negative phase methods
+
+def negative_phase(model, layer_to_chains, method="STANDARD"):
+    """
+    Wrapper function for negative phase.
+
+    Parameters
+    ----------
+    model: a dbm model.
+    layer_to_chains: dicitonary of layer chains for sampling.
+    method: standard or toronto
+    """
+
+    if method == "STANDARD":
+        return standard_negative_phase(model, layer_to_chains)
+    elif method == "TORONTO":
+        return toronto_negative_phase(model, layer_to_chains)
+    else: raise ValueError("Available methods for negative phase are STANDARD and TORONTO")
+
+def standard_negative_phase(model, layer_to_chains):
+    """
+    .. todo::
+
+    WRITEME
+
+    TODO:reduce variance of negative phase by
+    integrating out the even-numbered layers. The
+    Rao-Blackwellize method can do this for you when
+    expected gradient = gradient of expectation, but
+    doing this in general is trickier.
+    """
+    params = list(model.get_params())
+
+    # layer_to_chains = model.rao_blackwellize(layer_to_chains)
+    expected_energy_p = model.energy(
+        layer_to_chains[model.visible_layer],
+        [layer_to_chains[layer] for layer in model.hidden_layers]).mean()
+
+    samples = flatten(layer_to_chains.values())
+    for i, sample in enumerate(samples):
+        if sample.name is None:
+            sample.name = 'sample_'+str(i)
+
+    neg_phase_grads = OrderedDict(
+        safe_zip(params, T.grad(-expected_energy_p, params,
+                                 consider_constant=samples,
+                                 disconnected_inputs='ignore')))
+    return neg_phase_grads
+
+def toronto_negative_phase(model, layer_to_chains):
+    """
+    .. todo::
+
+    WRITEME
+    """
+    # Ruslan Salakhutdinov's undocumented negative phase from
+    # http://www.mit.edu/~rsalakhu/code_DBM/dbm_mf.m
+    # IG copied it here without fully understanding it, so it
+    # only applies to exactly the same model structure as
+    # in that code.
+
+    assert isinstance(model.visible_layer, BinaryVector)
+    assert isinstance(model.hidden_layers[0], BinaryVectorMaxPool)
+    assert model.hidden_layers[0].pool_size == 1
+    assert isinstance(model.hidden_layers[1], BinaryVectorMaxPool)
+    assert model.hidden_layers[1].pool_size == 1
+    assert isinstance(model.hidden_layers[2], Softmax)
+    assert len(model.hidden_layers) == 3
+
+    params = list(model.get_params())
+
+    V_samples = layer_to_chains[model.visible_layer]
+    H1_samples, H2_samples, Y_samples = [layer_to_chains[layer] for
+                                         layer in model.hidden_layers]
+
+    H1_mf = model.hidden_layers[0].mf_update(
+        state_below=model.visible_layer.upward_state(V_samples),
+        state_above=model.hidden_layers[1].downward_state(H2_samples),
+        layer_above=model.hidden_layers[1])
+    Y_mf = model.hidden_layers[2].mf_update(
+        state_below=model.hidden_layers[1].upward_state(H2_samples))
+    H2_mf = model.hidden_layers[1].mf_update(
+        state_below=model.hidden_layers[0].upward_state(H1_mf),
+        state_above=model.hidden_layers[2].downward_state(Y_mf),
+        layer_above=model.hidden_layers[2])
+
+    expected_energy_p = model.energy(
+        V_samples, [H1_mf, H2_mf, Y_samples]).mean()
+
+    constants = flatten([V_samples, H1_mf, H2_mf, Y_samples])
+
+    neg_phase_grads = OrderedDict(
+        safe_zip(params, T.grad(-expected_energy_p, params,
+                                 consider_constant=constants)))
+    return neg_phase_grads
+
+# Positive phase methods
+
+def positive_phase(model, X, Y, num_gibbs_steps=None, supervised=False,
+                   theano_rng=None, method="VARIATIONAL"):
+    """
+    Wrapper function for positive phase.
+
+    Parameters
+    ----------
+    X: input observables
+    Y: supervised observables
+    num_gibbs_steps: number of gibbs steps for sampling method
+    theano_rng for sampling method
+    method: method for positive phase: VARIATIONAL or SAMPLING.
+    """
+
+    if method == "VARIATIONAL":
+        return variational_positive_phase(model, X, Y, supervised=supervised)
+    elif method == "SAMPLING":
+        return sampling_positive_phase(model, X, Y,
+                                       supervised=supervised,
+                                       num_gibbs_steps=num_gibbs_steps,
+                                       theano_rng=theano_rng)
+    else: raise ValueError("Available methods for positive phase are VARIATIONAL and SAMPLING")
+
+def variational_positive_phase(model, X, Y, supervised):
+    """
+    .. todo::
+
+    WRITEME
+    """
+    if supervised:
+        assert Y is not None
+        # note: if the Y layer changes to something without linear energy,
+        # we'll need to make the expected energy clamp Y in the positive
+        # phase
+        assert isinstance(model.hidden_layers[-1], Softmax)
+
+    q = model.mf(X, Y)
+
+    """
+    Use the non-negativity of the KL divergence to construct a lower
+    bound on the log likelihood. We can drop all terms that are
+    constant with respect to the model parameters:
+
+    log P(v) = L(v, q) + KL(q || P(h|v))
+    L(v, q) = log P(v) - KL(q || P(h|v))
+    L(v, q) = log P(v) - sum_h q(h) log q(h) + q(h) log P(h | v)
+    L(v, q) = log P(v) + sum_h q(h) log P(h | v) + const
+    L(v, q) = log P(v) + sum_h q(h) log P(h, v)
+    - sum_h q(h) log P(v) + const
+    L(v, q) = sum_h q(h) log P(h, v) + const
+    L(v, q) = sum_h q(h) -E(h, v) - log Z + const
+
+    so the cost we want to minimize is
+    expected_energy + log Z + const
+
+
+    Note: for the RBM, this bound is exact, since the KL divergence
+    goes to 0.
+    """
+
+    variational_params = flatten(q)
+
+    # The gradients of the expected energy under q are easy, we can just
+    # do that in theano
+    expected_energy_q = model.expected_energy(X, q).mean()
+    params = list(model.get_params())
+    gradients = OrderedDict(
+        safe_zip(params, T.grad(expected_energy_q,
+                                params,
+                                consider_constant=variational_params,
+                                disconnected_inputs='ignore')))
+    return gradients
+
+def sampling_positive_phase(model, X, Y, supervised, num_gibbs_steps, theano_rng):
+    """
+    .. todo::
+
+    WRITEME
+    """
+    layer_to_clamp = OrderedDict([(model.visible_layer, True)])
+    layer_to_pos_samples = OrderedDict([(model.visible_layer, X)])
+    if supervised:
+        # note: if the Y layer changes to something without linear energy,
+        #       we'll need to make the expected energy clamp Y in the
+        #       positive phase
+        assert isinstance(model.hidden_layers[-1], Softmax)
+        layer_to_clamp[model.hidden_layers[-1]] = True
+        layer_to_pos_samples[model.hidden_layers[-1]] = Y
+        hid = model.hidden_layers[:-1]
+    else:
+        assert Y is None
+        hid = model.hidden_layers
+
+    for layer in hid:
+        mf_state = layer.init_mf_state()
+
+        def recurse_zeros(x):
+            if isinstance(x, tuple):
+                return tuple([recurse_zeros(e) for e in x])
+            return x.zeros_like()
+        layer_to_pos_samples[layer] = recurse_zeros(mf_state)
+
+    layer_to_pos_samples = model.mcmc_steps(
+        layer_to_state=layer_to_pos_samples,
+        layer_to_clamp=layer_to_clamp,
+        num_steps=num_gibbs_steps,
+        theano_rng=theano_rng)
+
+    q = [layer_to_pos_samples[layer] for layer in model.hidden_layers]
+
+    pos_samples = flatten(q)
+
+    # The gradients of the expected energy under q are easy, we can just
+    # do that in theano
+    expected_energy_q = model.energy(X, q).mean()
+    params = list(model.get_params())
+    gradients = OrderedDict(
+        safe_zip(params, T.grad(expected_energy_q, params,
+                                consider_constant=pos_samples,
+                                disconnected_inputs='ignore')))
+    return gradients
 
 
 class BaseCD(Cost):
@@ -83,6 +303,35 @@ class BaseCD(Cost):
 
         return None
 
+    def get_gradients(self, model, data):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        self.get_data_specs(model)[0].validate(data)
+        if self.supervised:
+            X, Y = data
+            assert Y is not None
+        else:
+            X = data
+            Y = None
+
+        pos_phase_grads, pos_updates = self._get_positive_phase(model, X, Y)
+        neg_phase_grads, neg_updates = self._get_negative_phase(model, X, Y)
+
+        updates = OrderedDict()
+        for key, val in pos_updates.items():
+            updates[key] = val
+        for key, val in neg_updates.items():
+            updates[key] = val
+
+        gradients = OrderedDict()
+        for param in list(pos_phase_grads.keys()):
+            gradients[param] = neg_phase_grads[param] + pos_phase_grads[param]
+
+        return gradients, updates
+
     def get_monitoring_channels(self, model, data):
         """
         .. todo::
@@ -125,217 +374,6 @@ class BaseCD(Cost):
 
         return rval
 
-    def get_gradients(self, model, data):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        self.get_data_specs(model)[0].validate(data)
-        if self.supervised:
-            X, Y = data
-            assert Y is not None
-        else:
-            X = data
-            Y = None
-
-        pos_phase_grads, pos_updates = self._get_positive_phase(model, X, Y)
-
-        neg_phase_grads, neg_updates = self._get_negative_phase(model, X, Y)
-
-        updates = OrderedDict()
-        for key, val in pos_updates.items():
-            updates[key] = val
-        for key, val in neg_updates.items():
-            updates[key] = val
-
-        gradients = OrderedDict()
-        for param in list(pos_phase_grads.keys()):
-            gradients[param] = neg_phase_grads[param] + pos_phase_grads[param]
-
-        return gradients, updates
-
-    def _get_toronto_neg(self, model, layer_to_chains):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        # Ruslan Salakhutdinov's undocumented negative phase from
-        # http://www.mit.edu/~rsalakhu/code_DBM/dbm_mf.m
-        # IG copied it here without fully understanding it, so it
-        # only applies to exactly the same model structure as
-        # in that code.
-
-        assert isinstance(model.visible_layer, BinaryVector)
-        assert isinstance(model.hidden_layers[0], BinaryVectorMaxPool)
-        assert model.hidden_layers[0].pool_size == 1
-        assert isinstance(model.hidden_layers[1], BinaryVectorMaxPool)
-        assert model.hidden_layers[1].pool_size == 1
-        assert isinstance(model.hidden_layers[2], Softmax)
-        assert len(model.hidden_layers) == 3
-
-        params = list(model.get_params())
-
-        V_samples = layer_to_chains[model.visible_layer]
-        H1_samples, H2_samples, Y_samples = [layer_to_chains[layer] for
-                                             layer in model.hidden_layers]
-
-        H1_mf = model.hidden_layers[0].mf_update(
-            state_below=model.visible_layer.upward_state(V_samples),
-            state_above=model.hidden_layers[1].downward_state(H2_samples),
-            layer_above=model.hidden_layers[1])
-        Y_mf = model.hidden_layers[2].mf_update(
-            state_below=model.hidden_layers[1].upward_state(H2_samples))
-        H2_mf = model.hidden_layers[1].mf_update(
-            state_below=model.hidden_layers[0].upward_state(H1_mf),
-            state_above=model.hidden_layers[2].downward_state(Y_mf),
-            layer_above=model.hidden_layers[2])
-
-        expected_energy_p = model.energy(
-            V_samples, [H1_mf, H2_mf, Y_samples]
-        ).mean()
-
-        constants = flatten([V_samples, H1_mf, H2_mf, Y_samples])
-
-        neg_phase_grads = OrderedDict(
-            safe_zip(params, T.grad(-expected_energy_p, params,
-                                    consider_constant=constants)))
-        return neg_phase_grads
-
-    def _get_standard_neg(self, model, layer_to_chains):
-        """
-        .. todo::
-
-            WRITEME
-
-        TODO:reduce variance of negative phase by
-             integrating out the even-numbered layers. The
-             Rao-Blackwellize method can do this for you when
-             expected gradient = gradient of expectation, but
-             doing this in general is trickier.
-        """
-        params = list(model.get_params())
-
-        # layer_to_chains = model.rao_blackwellize(layer_to_chains)
-        expected_energy_p = model.energy(
-            layer_to_chains[model.visible_layer],
-            [layer_to_chains[layer] for layer in model.hidden_layers]
-        ).mean()
-
-        samples = flatten(layer_to_chains.values())
-        for i, sample in enumerate(samples):
-            if sample.name is None:
-                sample.name = 'sample_'+str(i)
-
-        neg_phase_grads = OrderedDict(
-            safe_zip(params, T.grad(-expected_energy_p, params,
-                                    consider_constant=samples,
-                                    disconnected_inputs='ignore'))
-        )
-        return neg_phase_grads
-
-    def _get_variational_pos(self, model, X, Y):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        if self.supervised:
-            assert Y is not None
-            # note: if the Y layer changes to something without linear energy,
-            # we'll need to make the expected energy clamp Y in the positive
-            # phase
-            assert isinstance(model.hidden_layers[-1], Softmax)
-
-        q = model.mf(X, Y)
-
-        """
-            Use the non-negativity of the KL divergence to construct a lower
-            bound on the log likelihood. We can drop all terms that are
-            constant with repsect to the model parameters:
-
-            log P(v) = L(v, q) + KL(q || P(h|v))
-            L(v, q) = log P(v) - KL(q || P(h|v))
-            L(v, q) = log P(v) - sum_h q(h) log q(h) + q(h) log P(h | v)
-            L(v, q) = log P(v) + sum_h q(h) log P(h | v) + const
-            L(v, q) = log P(v) + sum_h q(h) log P(h, v)
-                               - sum_h q(h) log P(v) + const
-            L(v, q) = sum_h q(h) log P(h, v) + const
-            L(v, q) = sum_h q(h) -E(h, v) - log Z + const
-
-            so the cost we want to minimize is
-            expected_energy + log Z + const
-
-
-            Note: for the RBM, this bound is exact, since the KL divergence
-                  goes to 0.
-        """
-
-        variational_params = flatten(q)
-
-        # The gradients of the expected energy under q are easy, we can just
-        # do that in theano
-        expected_energy_q = model.expected_energy(X, q).mean()
-        params = list(model.get_params())
-        gradients = OrderedDict(
-            safe_zip(params, T.grad(expected_energy_q,
-                                    params,
-                                    consider_constant=variational_params,
-                                    disconnected_inputs='ignore'))
-        )
-        return gradients
-
-    def _get_sampling_pos(self, model, X, Y):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        layer_to_clamp = OrderedDict([(model.visible_layer, True)])
-        layer_to_pos_samples = OrderedDict([(model.visible_layer, X)])
-        if self.supervised:
-            # note: if the Y layer changes to something without linear energy,
-            #       we'll need to make the expected energy clamp Y in the
-            #       positive phase
-            assert isinstance(model.hidden_layers[-1], Softmax)
-            layer_to_clamp[model.hidden_layers[-1]] = True
-            layer_to_pos_samples[model.hidden_layers[-1]] = Y
-            hid = model.hidden_layers[:-1]
-        else:
-            assert Y is None
-            hid = model.hidden_layers
-
-        for layer in hid:
-            mf_state = layer.init_mf_state()
-
-            def recurse_zeros(x):
-                if isinstance(x, tuple):
-                    return tuple([recurse_zeros(e) for e in x])
-                return x.zeros_like()
-            layer_to_pos_samples[layer] = recurse_zeros(mf_state)
-
-        layer_to_pos_samples = model.mcmc_steps(
-            layer_to_state=layer_to_pos_samples,
-            layer_to_clamp=layer_to_clamp,
-            num_steps=self.num_gibbs_steps,
-            theano_rng=self.theano_rng)
-
-        q = [layer_to_pos_samples[layer] for layer in model.hidden_layers]
-
-        pos_samples = flatten(q)
-
-        # The gradients of the expected energy under q are easy, we can just
-        # do that in theano
-        expected_energy_q = model.energy(X, q).mean()
-        params = list(model.get_params())
-        gradients = OrderedDict(
-            safe_zip(params, T.grad(expected_energy_q, params,
-                                    consider_constant=pos_samples,
-                                    disconnected_inputs='ignore'))
-        )
-        return gradients
-
 
 class PCD(DefaultDataSpecsMixin, BaseCD):
     """
@@ -357,7 +395,10 @@ class PCD(DefaultDataSpecsMixin, BaseCD):
 
             WRITEME
         """
-        return self._get_sampling_pos(model, X, Y), OrderedDict()
+        return positive_phase(model, X, Y, supervised=self.supervised,
+                              method="SAMPLING",
+                              num_gibbs_steps=self.num_gibbs_steps,
+                              theano_rng=self.theano_rng), OrderedDict()
 
     def _get_negative_phase(self, model, X, Y=None):
         """
@@ -384,11 +425,8 @@ class PCD(DefaultDataSpecsMixin, BaseCD):
             layer_to_chains, self.theano_rng, num_steps=self.num_gibbs_steps,
             return_layer_to_updated=True)
 
-        if self.toronto_neg:
-            neg_phase_grads = self._get_toronto_neg(model, layer_to_chains)
-        else:
-            neg_phase_grads = self._get_standard_neg(model, layer_to_chains)
-
+        method = "TORONTO" if self.toronto_neg else "STANDARD"
+        neg_phase_grads = negative_phase(model, layer_to_chains, method=method)
         return neg_phase_grads, updates
 
 
@@ -424,7 +462,8 @@ class VariationalPCD(DefaultDataSpecsMixin, BaseCD):
 
             WRITEME
         """
-        return self._get_variational_pos(model, X, Y), OrderedDict()
+        return positive_phase(model, X, Y, supervised=self.supervised,
+                              method="VARIATIONAL"), OrderedDict()
 
     def _get_negative_phase(self, model, X, Y=None):
         """
@@ -457,11 +496,8 @@ class VariationalPCD(DefaultDataSpecsMixin, BaseCD):
             self.theano_rng, num_steps=self.num_gibbs_steps,
             return_layer_to_updated=True)
 
-        if self.toronto_neg:
-            neg_phase_grads = self._get_toronto_neg(model, layer_to_chains)
-        else:
-            neg_phase_grads = self._get_standard_neg(model, layer_to_chains)
-
+        method = "TORONTO" if self.toronto_neg else "STANDARD"
+        neg_phase_grads = negative_phase(model, layer_to_chains, method=method)
         return neg_phase_grads, updates
 
 
@@ -675,7 +711,8 @@ class VariationalCD(DefaultDataSpecsMixin, BaseCD):
 
             WRITEME
         """
-        return self._get_variational_pos(model, X, Y), OrderedDict()
+        return positive_phase(model, X, Y, supervised=self.supervised,
+                              method="VARIATIONAL"), OrderedDict()
 
     def _get_negative_phase(self, model, X, Y=None):
         """
@@ -720,10 +757,8 @@ class VariationalCD(DefaultDataSpecsMixin, BaseCD):
                                            self.theano_rng,
                                            num_steps=self.num_gibbs_steps)
 
-        if self.toronto_neg:
-            neg_phase_grads = self._get_toronto_neg(model, layer_to_chains)
-        else:
-            neg_phase_grads = self._get_standard_neg(model, layer_to_chains)
+        method = "TORONTO" if self.toronto_neg else "STANDARD"
+        neg_phase_grads = negative_phase(model, layer_to_chains, method=method)
 
         return neg_phase_grads, OrderedDict()
 
