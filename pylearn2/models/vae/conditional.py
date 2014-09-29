@@ -365,9 +365,9 @@ class DiagonalGaussian(Conditional):
             if num_samples is None:
                 raise ValueError("number of requested samples needs to be "
                                  "given.")
-            return self.theano_rng.normal(size=mu_d.shape,
-                                          avg=mu_d,
-                                          std=T.exp(log_sigma_d),
+            return self.theano_rng.normal(size=mu.shape,
+                                          avg=mu,
+                                          std=T.exp(log_sigma),
                                           dtype=theano.config.floatX)
         else:
             # If there are multiple samples per data point, make sure mu and
