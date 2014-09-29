@@ -81,7 +81,7 @@
                         # For the RBM, the variational approximation is exact, so
                         # this is really just PCD. In deeper models, it means we
                         # use mean field rather than Gibbs sampling in the positive phase.
-                        !obj:pylearn2.costs.dbm.VariationalPCD {
+                        !obj:pylearn2.costs.dbm.VariationalCD {
                            # Here we specify how many fantasy particles to maintain
                            num_chains: 100,
                            # Here we specify how many steps of Gibbs sampling to do between
