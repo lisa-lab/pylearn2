@@ -401,8 +401,13 @@ class Maxout(Layer):
         if not isinstance(self.input_space, Conv2DSpace):
             raise NotImplementedError()
 
-        # There was an implementation of this, but it was broken
-        raise NotImplementedError()
+        W, = self.transformer.get_params()
+        assert self.input_space.num_channels in [1, 3]
+        viewer_space = Conv2DSpace(shape=self.input_space.shape,
+                num_channels=self.input_space.num_channels, axes=('b',0,1,'c'))
+        W = self.desired_space.format_as(W.T, viewer_space)
+        rval = W.eval()
+        return rval
 
     @functools.wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
