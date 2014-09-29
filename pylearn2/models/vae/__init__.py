@@ -150,6 +150,9 @@ class VAE(Model):
             self.conditional.monitoring_channels_from_conditional_params(theta)
         safe_update(rval, conditional_channels)
 
+        prior_channels = self.prior.monitoring_channels_from_prior_params()
+        safe_update(rval, prior_channels)
+
         return rval
 
     @wraps(Model.get_lr_scalers)

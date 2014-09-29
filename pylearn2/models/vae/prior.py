@@ -10,15 +10,12 @@ __maintainer__ = "Vincent Dumoulin"
 __email__ = "pylearn-dev@googlegroups"
 
 import numpy
-import warnings
 import theano
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
 from pylearn2.models import Model
-from pylearn2.models.mlp import Linear, CompositeLayer
 from pylearn2.utils.rng import make_theano_rng
 from pylearn2.utils import sharedX, wraps
-from pylearn2.space import VectorSpace, CompositeSpace
 
 pi = sharedX(numpy.pi)
 
@@ -84,6 +81,14 @@ class Prior(Model):
         """
         raise NotImplementedError(str(self.__class__) + " does not implement "
                                   "get_prior_theta")
+
+    def monitoring_channels_from_prior_params(self):
+        """
+        Get monitoring channels from the parameters of the prior distribution.
+
+        By default, no monitoring channel is computed.
+        """
+        return OrderedDict()
 
     def sample_from_p_z(self, num_samples, **kwargs):
         """

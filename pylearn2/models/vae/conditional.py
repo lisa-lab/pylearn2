@@ -1,6 +1,6 @@
 """
-Classes implementing logic related to the conditional distribution
-:math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})` in the VAE framework
+Classes implementing logic related to the conditional distributions in the VAE
+framework
 """
 __authors__ = "Vincent Dumoulin"
 __copyright__ = "Copyright 2014, Universite de Montreal"
@@ -20,7 +20,6 @@ from pylearn2.utils.rng import make_theano_rng
 from pylearn2.utils import wraps, sharedX
 
 pi = sharedX(numpy.pi)
-
 
 
 class Conditional(Model):
@@ -269,7 +268,7 @@ class Conditional(Model):
 class BernoulliVector(Conditional):
     """
     Implements a vectorial bernoulli conditional distribution, i.e.
-    
+
     .. math::
         f_\\omega(\\mathbf{a} \\mid \\mathbf{b})
         = \\prod_i \\mu_i(\\mathbf{b})^{a_i}
@@ -288,7 +287,7 @@ class BernoulliVector(Conditional):
                                 num_samples=None):
         if epsilon is not None:
             raise ValueError(str(self.__class__) + " is not able to sample " +
-                                 "using the reparametrization trick.")
+                             "using the reparametrization trick.")
         if num_samples is None:
             raise ValueError("number of requested samples needs to be given.")
         # We express mu in terms of the pre-sigmoid activations. See
@@ -325,7 +324,7 @@ class DiagonalGaussian(Conditional):
     """
     Implements a normal conditional distribution with diagonal covariance
     matrix, i.e.
-    
+
     .. math::
         f_\\omega(\\mathbf{a} \\mid \\mathbf{b})
         = \\prod_i \\exp(-(a_i - \\mu_i(\\mathbf{b}))^2 /
