@@ -409,7 +409,6 @@ class Maxout(Layer):
         rval = W.eval()
         return rval
 
-
     @functools.wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
         warnings.warn("Layer.get_monitoring_channels is " +
