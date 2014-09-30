@@ -10,7 +10,11 @@ through the 3-12 images that fit those labels.
 import sys
 import argparse
 import numpy
-from matplotlib import pyplot
+try:
+    from matplotlib import pyplot
+except ImportError:
+    warnings.warn("browse_norb.py needs the matplotlib module to function.")
+
 from pylearn2.datasets.new_norb import NORB
 from pylearn2.utils import safe_zip
 
