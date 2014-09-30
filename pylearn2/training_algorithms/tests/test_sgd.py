@@ -446,7 +446,7 @@ def test_annealed_learning_rate():
 
     cost = DummyCost()
 
-    anneal_start = 5.
+    anneal_start = 5
     annealed_rate = AnnealedLearningRate(anneal_start=anneal_start)
 
     # including this extension for saving learning rate value after each batch
@@ -474,7 +474,7 @@ def test_annealed_learning_rate():
     for i in xrange(epoch_num * num_batches):
         actual = lr_tracker.lr_rates[i]
         batches_seen = i + 1
-        expected = learning_rate*min(1,anneal_start/batches_seen)
+        expected = learning_rate*min(1,float(anneal_start)/batches_seen)
         if not np.allclose(actual, expected):
             raise AssertionError("After %d batches, expected learning rate to "
                                  "be %f, but it is %f." %
