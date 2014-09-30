@@ -90,7 +90,6 @@ def _get_blank_label(dataset):
 
     blank_rowmask = dataset.y[:, category_index] == blank_label
     blank_labels = dataset.y[blank_rowmask, :]
-    #assert(blank_rowmask.any())
 
     if not blank_rowmask.any():
         return None
