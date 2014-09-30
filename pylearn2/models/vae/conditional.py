@@ -58,6 +58,9 @@ class Conditional(Model):
         self.name = name
         self.output_layer_required = output_layer_required
 
+    def get_weights(self):
+        return self.mlp.get_weights()
+
     def get_lr_scalers(self):
         """
         Returns the encoding model's learning rate scalers

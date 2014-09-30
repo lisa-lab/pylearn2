@@ -516,7 +516,7 @@ class VAE(Model):
             raise NotImplementedError("impossible to compute the analytical "
                                       "KL divergence")
         else:
-            return self.kl_integrator.per_component_kl_divergence_term(
+            return self.kl_integrator.per_component_kl_divergence(
                 phi=phi,
                 theta=theta,
                 prior=self.prior,
