@@ -8,18 +8,13 @@ through the 3-12 images that fit those labels.
 """
 
 import sys
+import os
 import argparse
 import numpy
-import warnings
-
-try:
-    from matplotlib import pyplot
-except ImportError, import_error:
-    warnings.warn("Can't use this script without matplotlib.")
-    pyplot = None
-
+import matplotlib
+from matplotlib import pyplot
 from pylearn2.datasets.new_norb import NORB
-from pylearn2.utils import safe_zip
+from pylearn2.utils import safe_zip, serial
 
 
 def _parse_args():
@@ -28,13 +23,13 @@ def _parse_args():
 
     parser.add_argument('--which_norb',
                         type=str,
-                        required=True,
+                        required=False,
                         choices=('big', 'small'),
                         help="'Selects the (big) NORB, or the Small NORB.")
 
     parser.add_argument('--which_set',
                         type=str,
-                        required=True,
+                        required=False,
                         choices=('train', 'test', 'both'),
                         help="'train', or 'test'")
 
@@ -348,9 +343,9 @@ def main():
 
         figure.canvas.draw()
 
-    default_status_text = ("mouseover image%s for pixel values" % ""
-                           if len(image_axes)==1 else "s")
-    status_text = figure.text(0.1, 0.1, default_status_text)
+    default_status_text = ("mouseover image%s for pixel values" %
+                           ("" if len(image_axes) == 1 else "s"))
+    status_text = figure.text(0.5, 0.1, default_status_text)
 
     def on_mouse_motion(event):
         original_text = status_text.get_text()
