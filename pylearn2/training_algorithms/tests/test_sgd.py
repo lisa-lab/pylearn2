@@ -409,7 +409,7 @@ def test_annealed_learning_rate():
     # gets the learning rate properly over the training batches
     # it runs a small softmax and at the end checks the learning values.
     # the learning rates are expected to start changing at batch 'anneal_start'
-    # After batch anneal_start, the learning rate should be 
+    # After batch anneal_start, the learning rate should be
     # learning_rate * anneal_start/number of batches seen
 
     class LearningRateTracker(object):
@@ -474,7 +474,7 @@ def test_annealed_learning_rate():
     for i in xrange(epoch_num * num_batches):
         actual = lr_tracker.lr_rates[i]
         batches_seen = i + 1
-        expected = learning_rate*min(1,float(anneal_start)/batches_seen)
+        expected = learning_rate*min(1, float(anneal_start)/batches_seen)
         if not np.allclose(actual, expected):
             raise AssertionError("After %d batches, expected learning rate to "
                                  "be %f, but it is %f." %
