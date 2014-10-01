@@ -276,8 +276,8 @@ class Space(object):
         """
         Returns the batch axis of the output space.
 
-        Return
-        ------
+        Returns
+        -------
         batch_axis : int
             the axis of the batch in the output space.
         """

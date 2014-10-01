@@ -6,6 +6,10 @@ import pickle
 import warnings
 import exceptions
 import numpy
+
+from pylearn2.testing.skip import skip_if_no_matplotlib
+skip_if_no_matplotlib()
+
 from matplotlib import pyplot
 from pylearn2.datasets import norb
 

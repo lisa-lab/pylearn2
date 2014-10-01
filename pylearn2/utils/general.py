@@ -48,8 +48,8 @@ def contains_nan(arr):
     """
     Test whether a numpy.ndarray contains any `np.nan` values.
 
-    Paramaters:
-    -----------
+    Parameters
+    ----------
     arr : np.ndarray
 
     Returns
@@ -71,8 +71,8 @@ def contains_inf(arr):
     """
     Test whether a numpy.ndarray contains any `np.inf` values.
 
-    Paramaters:
-    -----------
+    Parameters
+    ----------
     arr : np.ndarray
 
     Returns
@@ -95,8 +95,8 @@ def isfinite(arr):
     """
     Test whether a numpy.ndarray contains any `np.inf` or `np.nan` values.
 
-    Paramaters:
-    -----------
+    Parameters
+    ----------
     arr : np.ndarray
 
     Returns
