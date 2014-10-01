@@ -770,12 +770,19 @@ class SimplyTypedSpace(Space):
         def is_complex(dtype):
             return str(dtype).startswith('complex')
 
-        if self.dtype is not None and \
-           is_complex(batch.dtype) and \
-           not is_complex(self.dtype):
-            raise TypeError("This space has a non-complex dtype (%s), and "
-                            "thus cannot support complex batches of type %s."
-                            % (self.dtype, batch.dtype))
+        def is_integral(dtype):
+            return np.issubdtype(dtype, np.integer)
+
+        if self.dtype is not None:
+            if is_complex(batch.dtype) and not is_complex(self.dtype):
+                raise TypeError("This space has a non-complex dtype (%s), and "
+                                "thus cannot support complex batches of type "
+                                "%s." % (self.dtype, batch.dtype))
+
+            if is_integral(self.dtype) and not is_integral(batch.dtype):
+                raise TypeError("This space has an integral type (%s), and "
+                                "thus cannot support batches of non-integral "
+                                "type %s." % (self.dtype, batch.dtype))
 
     @property
     def dtype(self):
@@ -1094,7 +1101,7 @@ class VectorSpace(SimplyTypedSpace):
             my_dimension = self.get_total_dimension()
             other_dimension = space.get_total_dimension()
             if my_dimension != other_dimension:
-                raise ValueError(str(self)+" with total dimension " +
+                raise ValueError(str(self) + " with total dimension " +
                                  str(my_dimension) +
                                  " can't format a batch into " +
                                  str(space) +
@@ -1117,7 +1124,7 @@ class VectorSpace(SimplyTypedSpace):
             pieces = []
             for component in space.components:
                 width = component.get_total_dimension()
-                subtensor = batch[:, pos:pos+width]
+                subtensor = batch[:, pos:pos + width]
                 pos += width
                 vector_subspace = VectorSpace(dim=width,
                                               dtype=self.dtype,
@@ -1220,7 +1227,7 @@ class VectorSpace(SimplyTypedSpace):
             elif not isinstance(batch.type, (theano.tensor.TensorType,
                                              CudaNdarrayType)):
                 raise TypeError("VectorSpace batch should be TensorType or "
-                                "CudaNdarrayType, got "+str(batch.type))
+                                "CudaNdarrayType, got " + str(batch.type))
 
             if batch.ndim != 2:
                 raise ValueError('VectorSpace batches must be 2D, got %d '
@@ -1539,7 +1546,6 @@ class Conv2DSpace(SimplyTypedSpace):
     kwargs : dict
         Passed on to superclass constructor
     """
-
 
     # Assume pylearn2's get_topological_view format, since this is how
     # data is currently served up. If we make better iterators change
