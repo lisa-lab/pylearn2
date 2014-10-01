@@ -262,7 +262,7 @@ def sampling_positive_phase(model, X, Y, supervised, num_gibbs_steps, theano_rng
     return gradients
 
 
-class BaseCD(DefaultDataSpecsMixin, Cost): 
+class BaseCD(DefaultDataSpecsMixin, Cost):
     """
     Parameters
     ----------
@@ -337,11 +337,6 @@ class BaseCD(DefaultDataSpecsMixin, Cost):
                                            self.theano_rng,
                                            layer_to_clamp=layer_to_clamp,
                                            num_steps=1)
-        # We then sample
-        layer_to_chains = model.sampling_procedure.sample(layer_to_chains,
-                                           self.theano_rng,
-                                           num_steps=self.num_gibbs_steps)
-
         return layer_to_chains
 
     def _get_negative_phase(self, model, X, Y=None):
@@ -356,10 +351,16 @@ class BaseCD(DefaultDataSpecsMixin, Cost):
                         = - sum_h sum_v P(v,h)  d/d theta E(v,h)
         """
         layer_to_chains = self._initialize_chains(model, X, Y)
-        neg_phase_grads = negative_phase(model, layer_to_chains, method=self.negative_method)
-        return neg_phase_grads, OrderedDict()
+        updates, layer_to_chains = model.get_sampling_updates(layer_to_chains,
+                                                              self.theano_rng,
+                                                              num_steps=self.num_gibbs_steps,
+                                                              return_layer_to_updated=True)
 
-    def get_gradients(self, model, data):
+        neg_phase_grads = negative_phase(model, layer_to_chains, method=self.negative_method)
+
+        return neg_phase_grads, updates
+
+    def get_gradients(self, model, data, persistent=False):
         """
         .. todo::
 
@@ -377,10 +378,11 @@ class BaseCD(DefaultDataSpecsMixin, Cost):
         neg_phase_grads, neg_updates = self._get_negative_phase(model, X, Y)
 
         updates = OrderedDict()
-        for key, val in pos_updates.items():
-            updates[key] = val
-        for key, val in neg_updates.items():
-            updates[key] = val
+        if persistent:
+            for key, val in pos_updates.items():
+                updates[key] = val
+            for key, val in neg_updates.items():
+                updates[key] = val
 
         gradients = OrderedDict()
         for param in list(pos_phase_grads.keys()):
@@ -443,7 +445,7 @@ class VariationalCD(BaseCD):
 
     def __init__(self, num_chains, num_gibbs_steps, supervised=False,
                  toronto_neg=False, theano_rng=None):
-        super(VariationalCD, self).__init__(num_chains, num_gibbs_steps, 
+        super(VariationalCD, self).__init__(num_chains, num_gibbs_steps,
                                             supervised=supervised,
                                             toronto_neg=toronto_neg,
                                             positive_method="VARIATIONAL",

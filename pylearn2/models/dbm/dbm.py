@@ -423,7 +423,7 @@ class DBM(Model):
         .. todo::
 
             WRITEME
-        """
+        """        
         return self.hidden_layers[0].get_weights_topo()
 
     def make_layer_to_state(self, num_examples, rng=None):
