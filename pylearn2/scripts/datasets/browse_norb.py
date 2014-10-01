@@ -10,7 +10,14 @@ through the 3-12 images that fit those labels.
 import sys
 import argparse
 import numpy
-from matplotlib import pyplot
+import warnings
+
+try:
+    from matplotlib import pyplot
+except ImportError, import_error:
+    warnings.warn("Can't use this script without matplotlib.")
+    pyplot = None
+
 from pylearn2.datasets.new_norb import NORB
 from pylearn2.utils import safe_zip
 
@@ -90,7 +97,6 @@ def _get_blank_label(dataset):
 
     blank_rowmask = dataset.y[:, category_index] == blank_label
     blank_labels = dataset.y[blank_rowmask, :]
-    #assert(blank_rowmask.any())
 
     if not blank_rowmask.any():
         return None

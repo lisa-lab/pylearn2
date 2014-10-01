@@ -1365,8 +1365,8 @@ class DefaultViewConverter(object):
         """
         Returns a topological view/copy of design matrix.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         design_matrix: numpy.ndarray
           A design matrix with data in rows. Data is assumed to be laid out in
           memory according to the axis order ('b', 'c', 0, 1)
@@ -1418,8 +1418,8 @@ class DefaultViewConverter(object):
         """
         Returns a design matrix view/copy of topological matrix.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         topo_array: numpy.ndarray
           An N-D array with axis order given by self.axes. Non-batch axes'
           dimension sizes must agree with corresponding sizes in self.shape.

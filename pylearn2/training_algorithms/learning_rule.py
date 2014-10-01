@@ -320,7 +320,9 @@ class AdaDelta(LearningRule):
 
 class RMSProp(LearningRule):
     """
-    Implements the RMSProp learning rule as described by Hinton in `lecture 6
+    Implements the RMSProp learning rule.
+
+    The RMSProp learning rule is described by Hinton in `lecture 6
     <http://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf>`
     of the Coursera Neural Networks for Machine Learning course.
 
@@ -377,9 +379,28 @@ class RMSProp(LearningRule):
                     dataset=monitoring_dataset)
         return
 
-    @wraps(LearningRule.get_updates)
     def get_updates(self, learning_rate, grads, lr_scalers=None):
         """
+        Provides the symbolic (theano) description of the updates needed to
+        perform this learning rule. See Notes for side-effects.
+
+        Parameters
+        ----------
+        learning_rate : float
+            Learning rate coefficient.
+        grads : dict
+            A dictionary mapping from the model's parameters to their
+            gradients.
+        lr_scalers : dict
+            A dictionary mapping from the model's parameters to a learning
+            rate multiplier.
+
+        Returns
+        -------
+        updates : OrderdDict
+            A dictionary mapping from the old model parameters, to their new
+            values after a single iteration of the learning rule.
+
         Notes
         -----
         This method has the side effect of storing the moving average

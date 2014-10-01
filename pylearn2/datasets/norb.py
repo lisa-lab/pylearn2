@@ -158,7 +158,6 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
         subtensor = slice(0, stop) if stop is not None else None
 
-
         X = SmallNORB.load(which_set, 'dat', subtensor=subtensor)
 
         # Casts to the GPU-supported float type, using theano._asarray(), a

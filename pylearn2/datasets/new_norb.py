@@ -441,8 +441,8 @@ class NORB(DenseDesignMatrix):
         """
         Return a topological view.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         mat : ndarray
           A design matrix of images, one per row.
 
@@ -767,6 +767,14 @@ def _get_array_element(name, label, array):
 
 
 def get_category_value(label):
+    """
+    Returns the category name represented by a category label int.
+
+    Parameters
+    ----------
+    label: int
+      Category label.
+    """
     return _get_array_element('category', label, ('animal',
                                                   'human',
                                                   'airplane',
@@ -786,10 +794,30 @@ def _check_range_and_return(name,
 
 
 def get_instance_value(label):
+    """
+    Returns the instance value corresponding to a lighting label int.
+
+    The value is the int itself. This just sanity-checks the label for range
+    errors.
+
+    Parameters
+    ----------
+    label: int
+      Instance label.
+    """
     return _check_range_and_return('instance', label, -1, 9, -1)
 
 
 def get_elevation_value(label):
+    """
+    Returns the angle in degrees represented by a elevation label int.
+
+    Parameters
+    ----------
+    label: int
+      Elevation label.
+    """
+
     name = 'elevation'
     _check_is_integral(name, label)
     _check_range(name, label, -1, 8)
@@ -801,6 +829,15 @@ def get_elevation_value(label):
 
 
 def get_azimuth_value(label):
+    """
+    Returns the angle in degrees represented by a azimuth label int.
+
+    Parameters
+    ----------
+    label: int
+      Azimuth label.
+    """
+
     _check_is_integral('azimuth', label)
     if label == -1:
         return None
@@ -815,30 +852,101 @@ def get_azimuth_value(label):
 
 
 def get_lighting_value(label):
+    """
+    Returns the value corresponding to a lighting label int.
+
+    The value is the int itself. This just sanity-checks the label for range
+    errors.
+
+    Parameters
+    ----------
+    label: int
+      Lighting label.
+    """
     return _check_range_and_return('lighting', label, -1, 5, -1)
 
 
 def get_horizontal_shift_value(label):
+    """
+    Returns the value corresponding to a horizontal shift label int.
+
+    The value is the int itself. This just sanity-checks the label for range
+    errors.
+
+    Parameters
+    ----------
+    label: int
+      Horizontal shift label.
+    """
     return _check_range_and_return('horizontal shift', label, -5, 5)
 
 
 def get_vertical_shift_value(label):
+    """
+    Returns the value corresponding to a vertical shift label int.
+
+    The value is the int itself. This just sanity-checks the label for range
+    errors.
+
+    Parameters
+    ----------
+    label: int
+      Vertical shift label.
+    """
     return _check_range_and_return('vertical shift', label, -5, 5)
 
 
 def get_lumination_change_value(label):
+    """
+    Returns the value corresponding to a lumination change label int.
+
+    The value is the int itself. This just sanity-checks the label for range
+    errors.
+
+    Parameters
+    ----------
+    label: int
+      Lumination change label.
+    """
     return _check_range_and_return('lumination_change', label, -19, 19)
 
 
 def get_contrast_change_value(label):
+    """
+    Returns the float value represented by a contrast change label int.
+
+    Parameters
+    ----------
+    label: int
+      Contrast change label.
+    """
     return _get_array_element('contrast change', label, (0.8, 1.3))
 
 
 def get_scale_change_value(label):
+    """
+    Returns the float value represented by a scale change label int.
+
+    Parameters
+    ----------
+    label: int
+      Scale change label.
+    """
     return _get_array_element('scale change', label, (0.78, 1.0))
 
 
 def get_rotation_change_value(label):
+    """
+    Returns the value corresponding to a rotation change label int.
+
+    The value is the int itself. This just sanity-checks the label for range
+    errors.
+
+    Parameters
+    ----------
+    label: int
+      Rotation change label.
+    """
     return _check_range_and_return('rotation change', label, -4, 4)
 
 
