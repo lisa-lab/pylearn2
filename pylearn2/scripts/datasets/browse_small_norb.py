@@ -6,7 +6,12 @@ import pickle
 import warnings
 import exceptions
 import numpy
-from matplotlib import pyplot
+try:
+    from matplotlib import pyplot
+except ImportError, import_error:
+    warnings.warn("Can't use this script without matplotlib.")
+    pyplot = None
+
 from pylearn2.datasets import norb
 
 warnings.warn("This script is deprecated. Please use ./browse_norb.py "

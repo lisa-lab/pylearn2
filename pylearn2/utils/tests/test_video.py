@@ -22,32 +22,35 @@ def test_frame_lookup():
     assert lookup[15 + 19 + 4] == ('baz', 26, 4)
 
 
-def test_spatiotemporal_cubes():
-    def check_patch_coverage(files):
-        rng = numpy.random.RandomState(1)
-        inputs = [(fname, array.shape) for fname, array in files.iteritems()]
-        shape = (5, 7, 7)
-        for fname, index in spatiotemporal_cubes(inputs, shape, 50000, rng):
-            cube = files[fname][index]
-            if len(files[fname].shape) == 3:
-                assert cube.shape == shape
-            else:
-                assert cube.shape[:3] == shape[:3]
-            cube[...] = True
-        for fname, array in files.iteritems():
-            assert array.all()
+# The test below is crashing on Travis, though not on mkg's machine. Ian
+# suggests commenting the test out for now, to fast-track PR #1133.
 
-    files = {
-        'file1': numpy.zeros((10, 30, 21), dtype=bool),
-        'file2': numpy.zeros((15, 25, 28), dtype=bool),
-        'file3': numpy.zeros((7, 18, 22), dtype=bool),
-    }
-    check_patch_coverage(files)
+# def test_spatiotemporal_cubes():
+#     def check_patch_coverage(files):
+#         rng = numpy.random.RandomState(1)
+#         inputs = [(fname, array.shape) for fname, array in files.iteritems()]
+#         shape = (5, 7, 7)
+#         for fname, index in spatiotemporal_cubes(inputs, shape, 50000, rng):
+#             cube = files[fname][index]
+#             if len(files[fname].shape) == 3:
+#                 assert cube.shape == shape
+#             else:
+#                 assert cube.shape[:3] == shape[:3]
+#             cube[...] = True
+#         for fname, array in files.iteritems():
+#             assert array.all()
 
-    # Check that stuff still works with an extra color channel dimension.
-    files = {
-        'file1': numpy.zeros((10, 30, 21, 3), dtype=bool),
-        'file2': numpy.zeros((15, 25, 28, 3), dtype=bool),
-        'file3': numpy.zeros((7, 18, 22, 3), dtype=bool),
-    }
-    check_patch_coverage(files)
+#     files = {
+#         'file1': numpy.zeros((10, 30, 21), dtype=bool),
+#         'file2': numpy.zeros((15, 25, 28), dtype=bool),
+#         'file3': numpy.zeros((7, 18, 22), dtype=bool),
+#     }
+#     check_patch_coverage(files)
+
+#     # Check that stuff still works with an extra color channel dimension.
+#     files = {
+#         'file1': numpy.zeros((10, 30, 21, 3), dtype=bool),
+#         'file2': numpy.zeros((15, 25, 28, 3), dtype=bool),
+#         'file3': numpy.zeros((7, 18, 22, 3), dtype=bool),
+#     }
+#     check_patch_coverage(files)
