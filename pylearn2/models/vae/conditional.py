@@ -352,10 +352,10 @@ class DiagonalGaussian(Conditional):
         rval = OrderedDict()
 
         mu, log_sigma = conditional_params
-        rval['sigma_theta_min'] = T.exp(log_sigma).min()
-        rval['sigma_theta_max'] = T.exp(log_sigma).max()
-        rval['sigma_theta_mean'] = T.exp(log_sigma).mean()
-        rval['sigma_theta_std'] = T.exp(log_sigma).std()
+        rval[self.name + '_sigma_min'] = T.exp(log_sigma).min()
+        rval[self.name + '_sigma_max'] = T.exp(log_sigma).max()
+        rval[self.name + '_sigma_mean'] = T.exp(log_sigma).mean()
+        rval[self.name + '_sigma_std'] = T.exp(log_sigma).std()
 
         return rval
 
