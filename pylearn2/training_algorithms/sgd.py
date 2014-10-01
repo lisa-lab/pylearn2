@@ -767,7 +767,7 @@ class AnnealedLearningRate(object):
             self._base = algorithm.learning_rate.get_value()
             self._initialized = True
         self._count += 1
-        algorithm.learning_rate.set_value(self.current_learning_rate())
+        algorithm.learning_rate.set_value(np.cast[config.floatX](self.current_learning_rate()))
 
     def current_learning_rate(self):
         """
