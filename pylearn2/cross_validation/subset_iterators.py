@@ -15,9 +15,6 @@ __maintainer__ = "Steven Kearnes"
 import numpy as np
 import warnings
 
-from pylearn2.testing.skip import skip_if_no_sklearn
-skip_if_no_sklearn()
-
 try:
     from sklearn.cross_validation import (KFold, StratifiedKFold, ShuffleSplit,
                                           StratifiedShuffleSplit)

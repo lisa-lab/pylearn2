@@ -6,16 +6,13 @@ import pickle
 import warnings
 import exceptions
 import numpy
-
-from pylearn2.testing.skip import skip_if_no_matplotlib
-skip_if_no_matplotlib()
-
 from matplotlib import pyplot
 from pylearn2.datasets import norb
 
 warnings.warn("This script is deprecated. Please use ./browse_norb.py "
               "instead. It is kept around as a tester for deprecated class "
-              "datasets.norb.SmallNORB", exceptions.DeprecationWarning)
+              "datasets.norb.SmallNORB",
+              exceptions.DeprecationWarning)
 
 
 def main():
