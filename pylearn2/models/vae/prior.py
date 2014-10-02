@@ -24,16 +24,7 @@ class Prior(Model):
     """
     Abstract class implementing methods related to the prior distribution
     :math:`p_\\theta(\\mathbf{z})` for the VAE framework
-
-    Parameters
-    ----------
-    learn_prior : bool, optional
-        Whether to learn the prior distribution on z. Defaults to `True`.
     """
-    def __init__(self, learn_prior=True):
-        super(Prior, self).__init__()
-        self.learn_prior = learn_prior
-
     def get_vae(self):
         """
         Returns the VAE that this `Prior` instance belongs to, or None
@@ -73,14 +64,6 @@ class Prior(Model):
         """
         raise NotImplementedError(str(self.__class__) + " does not implement "
                                   "initialize_parameters")
-
-    def get_prior_theta(self):
-        """
-        Returns parameters of the prior distribution
-        :math:`p_\\theta(\\mathbf{z})`
-        """
-        raise NotImplementedError(str(self.__class__) + " does not implement "
-                                  "get_prior_theta")
 
     def monitoring_channels_from_prior_params(self):
         """
@@ -140,13 +123,7 @@ class DiagonalGaussianPrior(Prior):
         self.prior_mu = sharedX(numpy.zeros(self.nhid), name="prior_mu")
         self.log_prior_sigma = sharedX(numpy.zeros(self.nhid),
                                        name="prior_log_sigma")
-        self._params = []
-        if self.learn_prior:
-            self._params += [self.prior_mu, self.log_prior_sigma]
-
-    @wraps(Prior.get_prior_theta)
-    def get_prior_theta(self):
-        return (self.prior_mu, self.log_prior_sigma)
+        self._params = [self.prior_mu, self.log_prior_sigma]
 
     @wraps(Prior.sample_from_p_z)
     def sample_from_p_z(self, num_samples):

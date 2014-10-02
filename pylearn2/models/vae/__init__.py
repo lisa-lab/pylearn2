@@ -64,6 +64,8 @@ class VAE(Model):
     nhid : int
         Number of dimensions in latent space, i.e. the space in which :math:`z`
         lives
+    learn_prior : bool, optional
+        Whether to learn the prior distribution p(z). Defaults to `True`.
     kl_integrator : pylearn2.models.vae.kl.KLIntegrator, optional
         Object providing methods for computing KL-related quantities. Defaults
         to `None`, in which case the approximate KL is computed instead.
@@ -74,7 +76,8 @@ class VAE(Model):
         Seed for the VAE's numpy RNG used by its subcomponents
     """
     def __init__(self, nvis, prior, conditional, posterior, nhid,
-                 kl_integrator=None, batch_size=None, seed=None):
+                 learn_prior=True, kl_integrator=None, batch_size=None,
+                 seed=None):
         super(VAE, self).__init__()
 
         self.__dict__.update(locals())
@@ -86,6 +89,8 @@ class VAE(Model):
         self.prior.set_vae(self)
         self.conditional.set_vae(self)
         self.posterior.set_vae(self)
+
+        self.learn_prior = learn_prior
 
         # Space initialization
         self.input_space = VectorSpace(dim=self.nvis)
@@ -102,8 +107,11 @@ class VAE(Model):
             input_space=self.input_space,
             ndim=self.nhid
         )
-        self._params = (self.get_prior_params() + self.get_posterior_params() +
+        self._params = (self.get_posterior_params() +
                         self.get_conditional_params())
+        if self.learn_prior:
+            self._params += self.get_prior_params()
+
         names = []
         for param in self._params:
             if param.name not in names:
@@ -406,7 +414,7 @@ class VAE(Model):
         Returns parameters of the prior distribution
         :math:`p_\\theta(\\mathbf{z})`
         """
-        return self.prior.get_prior_theta()
+        return self.prior.get_params()
 
     def means_from_theta(self, theta):
         """
