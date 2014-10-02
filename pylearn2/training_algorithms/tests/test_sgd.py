@@ -48,6 +48,7 @@ class DummyCost(DefaultDataSpecsMixin, Cost):
 class DummyModel(Model):
 
     def __init__(self, shapes, lr_scalers=None):
+        super(DummyModel, self).__init__()
         self._params = [sharedX(np.random.random(shape)) for shape in shapes]
         self.input_space = VectorSpace(1)
         self.lr_scalers = lr_scalers
@@ -75,6 +76,7 @@ class SoftmaxModel(Model):
     """
 
     def __init__(self, dim):
+        super(SoftmaxModel, self).__init__()
         self.dim = dim
         rng = np.random.RandomState([2012, 9, 25])
         self.P = sharedX(rng.uniform(-1., 1., (dim, )))
@@ -105,6 +107,7 @@ class TopoSoftmaxModel(Model):
     """
 
     def __init__(self, rows, cols, channels):
+        super(TopoSoftmaxModel, self).__init__()
         dim = rows * cols * channels
         self.input_space = Conv2DSpace((rows, cols), channels)
         self.dim = dim
@@ -1117,6 +1120,7 @@ def test_determinism_2():
             """
 
             def __init__(self):
+                super(ManyParamsModel, self).__init__()
                 self.W1 = [sharedX(rng.randn(num_features, chunk_width)) for i
                            in xrange(num_chunks)]
                 disturb_mem.disturb_mem()
@@ -1224,6 +1228,7 @@ def test_lr_scalers():
 
     class ModelWithScalers(Model):
         def __init__(self):
+            super(ModelWithScalers, self).__init__()
             self._params = [sharedX(np.zeros(shape)) for shape in shapes]
             self.input_space = VectorSpace(1)
 
