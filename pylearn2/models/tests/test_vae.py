@@ -274,7 +274,7 @@ def test_conditional_encode_conditional_parameters():
     mlp_Y1, mlp_Y2 = mlp.fprop(X)
     cond_Y1, cond_Y2 = conditional.encode_conditional_params(X)
     f = theano.function([X], [mlp_Y1, mlp_Y2, cond_Y1, cond_Y2])
-    rval = f(numpy.random.uniform(size=(10, 5)))
+    rval = f(as_floatX(numpy.random.uniform(size=(10, 5))))
     numpy.testing.assert_allclose(rval[0], rval[2])
     numpy.testing.assert_allclose(rval[1], rval[3])
 
