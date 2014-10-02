@@ -338,7 +338,7 @@ class DiagonalGaussian(Conditional):
     def _get_default_output_layer(self):
         return CompositeLayer(
             layer_name='conditional',
-            layers=[Sigmoid(dim=self.ndim, layer_name='mu', irange=0.01),
+            layers=[Linear(dim=self.ndim, layer_name='mu', irange=0.01),
                     Linear(dim=self.ndim, layer_name='log_sigma', irange=0.01)]
         )
 
