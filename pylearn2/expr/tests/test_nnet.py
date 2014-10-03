@@ -126,7 +126,7 @@ def test_elemwise_kl():
             get_debug_values(X)[0].shape)
         Y_hat = mlp.fprop(X)
 
-        #This call should not raise any error:
+        # This call should not raise any error:
         ave = elemwise_kl(Y, Y_hat)
 
         # The following calls should raise ValueError exceptions:
