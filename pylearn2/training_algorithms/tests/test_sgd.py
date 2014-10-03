@@ -22,7 +22,8 @@ from pylearn2.training_algorithms.sgd import (ExponentialDecay,
                                               MonitorBasedLRAdjuster,
                                               SGD,
                                               AnnealedLearningRate)
-from pylearn2.training_algorithms.learning_rule import Momentum, MomentumAdjustor
+from pylearn2.training_algorithms.learning_rule import (Momentum,
+                                                        MomentumAdjustor)
 from pylearn2.utils.iteration import _iteration_schemes
 from pylearn2.utils import safe_izip, safe_union, sharedX
 from pylearn2.utils.exc import reraise_as
