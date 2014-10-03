@@ -151,12 +151,10 @@ def kl(Y, Y_hat, batch_axis):
                          "op, got "+str(op)+" of type "+str(type(op)))
     assert isinstance(op.scalar_op, T.nnet.sigm.ScalarSigmoid)
     
-    if theano.config.compute_test_value != 'off':  
-        for Yv in get_debug_values(Y):
-            if not (Yv.min() >= 0.0 and Yv.max() <= 1.0):
-                raise ValueError("Y is expected to be purely"
-                      + "binary. Either Y < 0. or Y > 1 is got in"
-                      + "the input.")
+    for Yv in get_debug_values(Y):
+        if not (Yv.min() >= 0.0 and Yv.max() <= 1.0):
+            raise ValueError("Y is expected to be purely binary. Either Y"
+                             + "< 0. or Y > 1 is got in the input.")
 
     z, = owner.inputs
 
@@ -210,12 +208,10 @@ def elemwise_kl(Y, Y_hat):
                          "op, got "+str(op)+" of type "+str(type(op)))
     assert isinstance(op.scalar_op, T.nnet.sigm.ScalarSigmoid)
     
-    if theano.config.compute_test_value != 'off':  
-        for Yv in get_debug_values(Y):
-            if not (Yv.min() >= 0.0 and Yv.max() <= 1.0):
-                raise ValueError("Y is expected to be purely"
-                      + "binary. Either Y < 0. or Y > 1 is got in"
-                      + "the input.")
+    for Yv in get_debug_values(Y):
+        if not (Yv.min() >= 0.0 and Yv.max() <= 1.0):
+            raise ValueError("Y is expected to be purely binary. Either Y"
+                             + "< 0. or Y > 1 is got in the input.")
     
     z, = owner.inputs
 

@@ -9,8 +9,11 @@ __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
 import numpy as np
+import theano
+from theano.gof.op import get_debug_values
 from theano import tensor as T
 
+from pylearn2.models.mlp import MLP, Sigmoid
 from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
 from pylearn2.expr.nnet import softmax_numpy
 from pylearn2.expr.nnet import softmax_ratio
@@ -78,93 +81,61 @@ def test_kl():
     """
     Test whether function kl() has properly processed the input.
     """
-    from pylearn2.models.mlp import MLP, Sigmoid
-    import theano
-    from theano.gof.op import get_debug_values
-
-    init_mode = theano.config.compute_test_value
-    theano.config.compute_test_value = 'warn' #except for "warn," which other flags has debug values assigened? Maybe we need to include all of them here for better reliablity.
-    mlp = MLP(layers=[Sigmoid(dim=10, 
-                      layer_name='Y', irange=0.1)], nvis=10)
-
-    X = mlp.get_input_space().make_theano_batch()
-    Y = mlp.get_output_space().make_theano_batch()
-    X.tag.test_value = np.random.random(
-                       get_debug_values(X)[0].shape)
-    Y_hat = mlp.fprop(X)
-
-    #This call should not raise any error:
-    ave = kl(Y, Y_hat, 1)
-
-    #This call should raise a ValueError exception:
-    Y.tag.test_value[2][3] = 1.1
     try:
-        ave2 = kl(Y, Y_hat, 1)
-        print "ERROR: Y check is not working."
-    except ValueError:
-        pass
-    except:
-        print("Unexpected error occurred when Y is not assigned"
-            + "with a proper value.")
+        init_mode = theano.config.compute_test_value
+        theano.config.compute_test_value = 'raise'
+        mlp = MLP(layers=[Sigmoid(dim=10, layer_name='Y', 
+                                  irange=0.1)],
+                  nvis=10)
 
-    #This call should raise a ValueError exception:
-    Y.tag.test_value[2][3] = -0.1
-    try:
-        ave2 = kl(Y, Y_hat, 1)
-        print "ERROR: Y check is not working."
-    except ValueError:
-        pass
-    except:
-        print("Unexpected error occurred when Y is not assigned"
-            + "with a proper value.")
+        X = mlp.get_input_space().make_theano_batch()
+        Y = mlp.get_output_space().make_theano_batch()
+        X.tag.test_value = np.random.random(
+            get_debug_values(X)[0].shape).astype(
+                theano.config.floatX)
+        Y_hat = mlp.fprop(X)
 
-    theano.config.compute_test_value = init_mode
+        # This call should not raise any error:
+        ave = kl(Y, Y_hat, 1)
+
+        # The following calls should raise ValueError exceptions:
+        Y.tag.test_value[2][3] = 1.1
+        np.testing.assert_raises(ValueError, kl, Y, Y_hat, 1)
+        Y.tag.test_value[2][3] = -0.1
+        np.testing.assert_raises(ValueError, kl, Y, Y_hat, 1)
+    
+    finally:
+        theano.config.compute_test_value = init_mode
 
 
 def test_elemwise_kl():
     """
-    Test whether elemwise_kl() function has properly processed the input.
+    Test whether elemwise_kl() function has properly processed the
+    input.
     """
-    from pylearn2.models.mlp import MLP, Sigmoid
-    import theano
-    from theano.gof.op import get_debug_values
+    try:    
+        init_mode = theano.config.compute_test_value
+        theano.config.compute_test_value = 'raise' 
+        mlp = MLP(layers=[Sigmoid(dim=10, layer_name='Y', 
+                                  irange=0.1)], 
+                  nvis=10)
+
+        X = mlp.get_input_space().make_theano_batch()
+        Y = mlp.get_output_space().make_theano_batch()
+        X.tag.test_value = np.random.random(
+            get_debug_values(X)[0].shape)
+        Y_hat = mlp.fprop(X)
+
+        #This call should not raise any error:
+        ave = elemwise_kl(Y, Y_hat)
+
+        # The following calls should raise ValueError exceptions:
+        Y.tag.test_value[2][3] = 1.1
+        np.testing.assert_raises(ValueError, elemwise_kl, Y, Y_hat)
+        Y.tag.test_value[2][3] = -0.1
+        np.testing.assert_raises(ValueError, elemwise_kl, Y, Y_hat)
     
-    init_mode = theano.config.compute_test_value
-    theano.config.compute_test_value = 'warn' # same issue 
-    mlp = MLP(layers=[Sigmoid(dim=10, 
-                      layer_name='Y', irange=0.1)], nvis=10)
-
-    X = mlp.get_input_space().make_theano_batch()
-    Y = mlp.get_output_space().make_theano_batch()
-    X.tag.test_value = np.random.random(
-                       get_debug_values(X)[0].shape)
-    Y_hat = mlp.fprop(X)
-
-    #This call should not raise any error:
-    ave = elemwise_kl(Y, Y_hat)
-
-    #This call should raise a ValueError exception:
-    Y.tag.test_value[2][3] = 1.1
-    try:
-        ave2 = elemwise_kl(Y, Y_hat)
-        print "ERROR: Y check is not working."
-    except ValueError:
-        pass
-    except:
-        print("Unexpected error occurred when Y is not assigned"
-            + "with a proper value.")
-
-    #This call should raise a ValueError exception:
-    Y.tag.test_value[2][3] = -0.1
-    try:
-        ave2 = elemwise_kl(Y, Y_hat)
-        print "ERROR: Y check is not working."
-    except ValueError:
-        pass
-    except:
-        print("Unexpected error occurred when Y is not assigned"
-            + "with a proper value.")
-
-    theano.config.compute_test_value = init_mode
+    finally:
+        theano.config.compute_test_value = init_mode
 
    
