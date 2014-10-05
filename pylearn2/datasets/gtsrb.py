@@ -34,6 +34,7 @@ class GTSRB(DenseDesignMatrix):
             if which_set == 'train':
                 datasets = load_from_dump(dump_data_dir = self.path, dump_filename = 'train_dump.pkl.gz')
                 augmented_X, y = datasets[0], datasets[1]
+                augmented_X, y = augmented_X[self.start:self.stop], y[self.start:self.stop]
             else:
                 datasets = load_from_dump(dump_data_dir = self.path, dump_filename = 'test_dump.pkl.gz')
                 augmented_X, y = datasets[0], datasets[1]
@@ -42,6 +43,7 @@ class GTSRB(DenseDesignMatrix):
                 if which_set == 'train':
                     datasets = load_from_dump(dump_data_dir = self.path, dump_filename = 'noaug_train_dump.pkl.gz')
                     X, y = datasets[0], datasets[1]
+                    X, y = X[self.start:self.stop], y[self.start:self.stop]
                 else:
                     datasets = load_from_dump(dump_data_dir = self.path, dump_filename = 'noaug_test_dump.pkl.gz')
                     X, y = datasets[0], datasets[1]
