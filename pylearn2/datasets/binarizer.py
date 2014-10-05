@@ -15,6 +15,7 @@ from pylearn2.expr.sampling import SampleBernoulli
 
 
 class Binarizer(TransformerDataset):
+
     """
     A TransformerDataset that takes examples with features in the interval
     [0,1], and uses these as Bernoulli parameters to sample examples
@@ -34,8 +35,8 @@ class Binarizer(TransformerDataset):
     def __init__(self, raw, seed=None):
         transformer = SampleBernoulli(seed=seed)
 
-        super(Binarizer, self).__init__(raw, transformer, space_preserving=True)
-
+        super(Binarizer, self).__init__(
+            raw, transformer, space_preserving=True)
 
     def get_design_matrix(self, topo=None):
         """

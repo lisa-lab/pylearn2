@@ -12,7 +12,13 @@ __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
 
-import copy, logging, time, warnings, os, numpy, scipy
+import copy
+import logging
+import time
+import warnings
+import os
+import numpy
+import scipy
 try:
     from scipy import linalg
 except ImportError:
@@ -37,6 +43,7 @@ convert_axes = Conv2DSpace.convert_numpy
 
 
 class Preprocessor(object):
+
     """
         Abstract class.
 
@@ -113,6 +120,7 @@ class Preprocessor(object):
 
 
 class ExamplewisePreprocessor(Preprocessor):
+
     """
     Abstract class.
 
@@ -133,6 +141,7 @@ class ExamplewisePreprocessor(Preprocessor):
 
 
 class BlockPreprocessor(ExamplewisePreprocessor):
+
     """
     An ExamplewisePreprocessor implemented by a Block.
 
@@ -155,6 +164,7 @@ class BlockPreprocessor(ExamplewisePreprocessor):
 
 
 class Pipeline(Preprocessor):
+
     """
     A Preprocessor that sequentially applies a list
     of other Preprocessors.
@@ -178,6 +188,7 @@ class Pipeline(Preprocessor):
 
 
 class ExtractGridPatches(Preprocessor):
+
     """
     Converts a dataset of images into a dataset of patches extracted along a
     regular grid from each image.  The order of the images is
@@ -267,6 +278,7 @@ class ExtractGridPatches(Preprocessor):
 
 
 class ReassembleGridPatches(Preprocessor):
+
     """
     Converts a dataset of patches into a dataset of full examples.
 
@@ -310,7 +322,7 @@ class ReassembleGridPatches(Preprocessor):
                 raise Exception('Trying to re-assemble ' + str(num_patches) +
                                 ' patches of shape ' + str(self.patch_shape) +
                                 ' into images of shape ' + str(self.orig_shape)
-                               )
+                                )
             num_examples /= patches_this_dim
 
         # batch size
@@ -368,6 +380,7 @@ class ReassembleGridPatches(Preprocessor):
 
 
 class ExtractPatches(Preprocessor):
+
     """
     Converts an image dataset into a dataset of patches
     extracted at random from the original dataset.
@@ -382,8 +395,9 @@ class ExtractPatches(Preprocessor):
     def __init__(self, patch_shape, num_patches, rng=None):
         self.patch_shape = patch_shape
         self.num_patches = num_patches
-
-        self.start_rng = make_np_rng(copy.copy(rng), [1,2,3], which_method="randint")
+        self.start_rng = make_np_rng(copy.copy(rng),
+                                     [1, 2, 3],
+                                     which_method="randint")
 
     def apply(self, dataset, can_fit=False):
         """
@@ -428,6 +442,7 @@ class ExtractPatches(Preprocessor):
 
 
 class ExamplewiseUnitNormBlock(Block):
+
     """
     A block that takes n-tensors, with training examples indexed along
     the first axis, and normalizes each example to lie on the unit
@@ -485,6 +500,7 @@ class ExamplewiseUnitNormBlock(Block):
 
 
 class MakeUnitNorm(ExamplewisePreprocessor):
+
     """
     .. todo::
 
@@ -512,6 +528,7 @@ class MakeUnitNorm(ExamplewisePreprocessor):
 
 
 class ExamplewiseAddScaleTransform(Block):
+
     """
     A block that encodes an per-feature addition/scaling transform.
     The addition/scaling can be done in either order.
@@ -623,6 +640,7 @@ class ExamplewiseAddScaleTransform(Block):
 
 
 class RemoveMean(ExamplewisePreprocessor):
+
     """
     Subtracts the mean along a given axis, or from every element
     if `axis=None`.
@@ -667,6 +685,7 @@ class RemoveMean(ExamplewisePreprocessor):
 
 
 class Standardize(ExamplewisePreprocessor):
+
     """
     Subtracts the mean and divides by the standard deviation.
 
@@ -726,11 +745,13 @@ class Standardize(ExamplewisePreprocessor):
 
 
 class ColumnSubsetBlock(Block):
+
     """
     .. todo::
 
         WRITEME
     """
+
     def __init__(self, columns, total):
         self._columns = columns
         self._total = total
@@ -771,6 +792,7 @@ class ColumnSubsetBlock(Block):
 
 
 class ZeroColumnInsertBlock(Block):
+
     def __init__(self, columns, total):
         """
         .. todo::
@@ -816,6 +838,7 @@ class ZeroColumnInsertBlock(Block):
 
 
 class RemoveZeroColumns(ExamplewisePreprocessor):
+
     """
     .. todo::
 
@@ -851,6 +874,7 @@ class RemoveZeroColumns(ExamplewisePreprocessor):
 
 
 class RemapInterval(ExamplewisePreprocessor):
+
     """
     .. todo::
 
@@ -877,6 +901,7 @@ class RemapInterval(ExamplewisePreprocessor):
 
 
 class PCA_ViewConverter(object):
+
     """
     .. todo::
 
@@ -889,6 +914,7 @@ class PCA_ViewConverter(object):
     to_weights : WRITEME
     orig_view_converter : WRITEME
     """
+
     def __init__(self, to_pca, to_input, to_weights, orig_view_converter):
         self.to_pca = to_pca
         self.to_input = to_input
@@ -952,6 +978,7 @@ class PCA_ViewConverter(object):
 
 
 class PCA(object):
+
     """
     .. todo::
 
@@ -1014,6 +1041,7 @@ class PCA(object):
 
 
 class Downsample(object):
+
     """
     Downsamples the topological view
 
@@ -1064,6 +1092,7 @@ class Downsample(object):
 
 
 class GlobalContrastNormalization(Preprocessor):
+
     """
     .. todo::
 
@@ -1119,16 +1148,18 @@ class GlobalContrastNormalization(Preprocessor):
                 stop = i + self._batch_size
                 log.info("GCN processing data from %d to %d" % (i, stop))
                 X = data[i:stop]
-                X = global_contrast_normalize(X,
-                                              scale=self._scale,
-                                              subtract_mean=self._subtract_mean,
-                                              use_std=self._use_std,
-                                              sqrt_bias=self._sqrt_bias,
-                                              min_divisor=self._min_divisor)
+                X = global_contrast_normalize(
+                    X,
+                    scale=self._scale,
+                    subtract_mean=self._subtract_mean,
+                    use_std=self._use_std,
+                    sqrt_bias=self._sqrt_bias,
+                    min_divisor=self._min_divisor)
                 dataset.set_design_matrix(X, start=i)
 
 
 class ZCA(Preprocessor):
+
     """
     Performs ZCA whitening.
 
@@ -1197,8 +1228,8 @@ class ZCA(Preprocessor):
         if not hasattr(ZCA._gpu_matrix_dot, 'theano_func'):
             ma, mb = theano.tensor.matrices('A', 'B')
             mc = theano.tensor.dot(ma, mb)
-            ZCA._gpu_matrix_dot.theano_func = theano.function([ma, mb], mc,
-                    allow_input_downcast=True)
+            ZCA._gpu_matrix_dot.theano_func = \
+                theano.function([ma, mb], mc, allow_input_downcast=True)
 
         theano_func = ZCA._gpu_matrix_dot.theano_func
 
@@ -1372,7 +1403,7 @@ class ZCA(Preprocessor):
 
         covariance = ZCA._gpu_matrix_dot(X.T, X) / X.shape[0] + bias
         t2 = time.time()
-        log.info("cov estimate took {0} seconds".format(t2-t1))
+        log.info("cov estimate took {0} seconds".format(t2 - t1))
 
         t1 = time.time()
         eigs, eigv = linalg.eigh(covariance)
@@ -1393,7 +1424,7 @@ class ZCA(Preprocessor):
 
         sqrt_eigs = numpy.sqrt(eigs)
         try:
-            self.P_ = ZCA._gpu_mdmt(eigv, 1.0/sqrt_eigs)
+            self.P_ = ZCA._gpu_mdmt(eigv, 1.0 / sqrt_eigs)
         except MemoryError:
             warnings.warn()
             self.P_ = numpy.dot(eigv * (1.0 / sqrt_eigs), eigv.T)
@@ -1445,6 +1476,7 @@ class ZCA(Preprocessor):
 
 
 class LeCunLCN(ExamplewisePreprocessor):
+
     """
     Yann LeCun local contrast normalization
 
@@ -1552,6 +1584,7 @@ class LeCunLCN(ExamplewisePreprocessor):
 
 
 class RGB_YUV(ExamplewisePreprocessor):
+
     """
     Converts image color channels from rgb to yuv and vice versa
 
@@ -1660,6 +1693,7 @@ class RGB_YUV(ExamplewisePreprocessor):
 
 
 class CentralWindow(Preprocessor):
+
     """
     Preprocesses an image dataset to contain only the central window.
 
@@ -1685,8 +1719,9 @@ class CentralWindow(Preprocessor):
         try:
             axes = dataset.view_converter.axes
         except AttributeError:
-            reraise_as(NotImplementedError("I don't know how to tell what the axes "
-                                           "of this kind of dataset are."))
+            reraise_as(NotImplementedError("I don't know how to tell what the "
+                                           "axes of this kind of dataset "
+                                           "are."))
 
         needs_transpose = not axes[1:3] == (0, 1)
 
@@ -1743,7 +1778,7 @@ def lecun_lcn(input, img_shape, kernel_shape, threshold=1e-4):
                          batch_size=len(input),
                          input_space=input_space,
                          border_mode='full')
-    sum_sqr_XX = transformer.lmul(X**2)
+    sum_sqr_XX = transformer.lmul(X ** 2)
 
     denom = tensor.sqrt(sum_sqr_XX[:, mid:-mid, mid:-mid, :])
     per_img_mean = denom.mean(axis=[1, 2])
@@ -1771,8 +1806,8 @@ def gaussian_filter(kernel_shape):
                     dtype=theano.config.floatX)
 
     def gauss(x, y, sigma=2.0):
-        Z = 2 * numpy.pi * sigma**2
-        return 1. / Z * numpy.exp(-(x**2 + y**2) / (2. * sigma**2))
+        Z = 2 * numpy.pi * sigma ** 2
+        return 1. / Z * numpy.exp(-(x ** 2 + y ** 2) / (2. * sigma ** 2))
 
     mid = numpy.floor(kernel_shape / 2.)
     for i in xrange(0, kernel_shape):
@@ -1783,6 +1818,7 @@ def gaussian_filter(kernel_shape):
 
 
 class ShuffleAndSplit(Preprocessor):
+
     """
     .. todo::
 

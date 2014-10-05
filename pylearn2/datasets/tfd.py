@@ -11,6 +11,7 @@ from pylearn2.utils import contains_nan
 
 
 class TFD(dense_design_matrix.DenseDesignMatrix):
+
     """
     Pylearn2 wrapper for the Toronto Face Dataset.
     http://aclab.ca/users/josh/TFD.html

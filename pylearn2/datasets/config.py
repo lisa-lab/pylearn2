@@ -16,14 +16,16 @@ def resolve(d):
     tag = pylearn2.config.get_tag(d)
 
     if tag != 'dataset':
-        raise TypeError('pylearn2.datasets.config asked to resolve a config dictionary with tag "'+tag+'"')
+        raise TypeError('pylearn2.datasets.config asked to resolve a config '
+                        'dictionary with tag "%s"' % tag)
 
-    t = pylearn2.config.get_str(d,'typename')
+    typename = pylearn2.config.get_str(d, 'typename')
 
     try:
-        resolver = resolvers[t]
+        resolver = resolvers[typename]
     except KeyError:
-        reraise_as(TypeError('pylearn2.datasets does not know of a dataset type "'+t+'"'))
+        reraise_as(TypeError('pylearn2.datasets does not know of a dataset '
+                             'type "%s"' % typename))
 
     return resolver(d)
 
@@ -35,10 +37,10 @@ def resolve_avicenna(d):
         WRITEME
     """
     import pylearn2.datasets.avicenna
-    return pylearn2.config.checked_call(pylearn2.datasets.avicenna.Avicenna,d)
+    return pylearn2.config.checked_call(pylearn2.datasets.avicenna.Avicenna, d)
 
 resolvers = {
-            'avicenna' : resolve_avicenna
-        }
+    'avicenna': resolve_avicenna
+}
 
 import pylearn2.config
