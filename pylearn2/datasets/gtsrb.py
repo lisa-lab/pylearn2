@@ -33,17 +33,15 @@ class GTSRB(DenseDesignMatrix):
         try:
             if which_set == 'train':
                 datasets = load_from_dump(dump_data_dir = self.path, dump_filename = 'train_dump.pkl.gz')
-                augmented_X, y = datasets[0], datasets[1]
-                augmented_X, y = augmented_X[self.start:self.stop], y[self.start:self.stop]
+                X, y = datasets[0], datasets[1]
             else:
                 datasets = load_from_dump(dump_data_dir = self.path, dump_filename = 'test_dump.pkl.gz')
-                augmented_X, y = datasets[0], datasets[1]
+                X, y = datasets[0], datasets[1]
         except:
             try:
                 if which_set == 'train':
                     datasets = load_from_dump(dump_data_dir = self.path, dump_filename = 'noaug_train_dump.pkl.gz')
                     X, y = datasets[0], datasets[1]
-                    X, y = X[self.start:self.stop], y[self.start:self.stop]
                 else:
                     datasets = load_from_dump(dump_data_dir = self.path, dump_filename = 'noaug_test_dump.pkl.gz')
                     X, y = datasets[0], datasets[1]
@@ -60,11 +58,12 @@ class GTSRB(DenseDesignMatrix):
                     save_to_dump(var_to_dump = noaug_datasets, dump_data_dir = self.path, dump_filename = 'noaug_test_dump.pkl.gz')
             
             X, y = X.astype(float), y.astype(float)
-            X /= 255.
+            #X /= 255.
             
             # BUILD AUGMENTED INPUT FOR FINETUNING
             if mf_steps is not None:
                 augmented_X = augment_input(X, model, mf_steps)
+                X = augmented_X
                 
                 datasets = augmented_X, y
                 if which_set == 'train':
@@ -72,6 +71,7 @@ class GTSRB(DenseDesignMatrix):
                 else:
                     save_to_dump(var_to_dump = datasets, dump_data_dir = self.path, dump_filename = 'test_dump.pkl.gz')
         
+        X, y = X[self.start:self.stop], y[self.start:self.stop]
         super(GTSRB, self).__init__(X = X, y = y)
         
     def load_data(self):
