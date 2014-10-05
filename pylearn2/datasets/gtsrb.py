@@ -45,6 +45,7 @@ class GTSRB(DenseDesignMatrix):
                 else:
                     datasets = load_from_dump(dump_data_dir = self.path, dump_filename = 'noaug_test_dump.pkl.gz')
                     X, y = datasets[0], datasets[1]
+                    X, y = X[0:12600], y[0:12600] # temporaneo
             
             except:
                 X, y = self.load_data()
