@@ -32,18 +32,18 @@ class GTSRB(DenseDesignMatrix):
         
         try:
             if which_set == 'train':
-                datasets = load_from_dump(dump_data_dir = first_path, dump_filename = 'train_dump.pkl.gz')
+                datasets = load_from_dump(dump_data_dir = self.path, dump_filename = 'train_dump.pkl.gz')
                 augmented_X, y = datasets[0], datasets[1]
             else:
-                datasets = load_from_dump(dump_data_dir = first_path, dump_filename = 'test_dump.pkl.gz')
+                datasets = load_from_dump(dump_data_dir = self.path, dump_filename = 'test_dump.pkl.gz')
                 augmented_X, y = datasets[0], datasets[1]
         except:
             try:
                 if which_set == 'train':
-                    datasets = load_from_dump(dump_data_dir = first_path, dump_filename = 'noaug_train_dump.pkl.gz')
+                    datasets = load_from_dump(dump_data_dir = self.path, dump_filename = 'noaug_train_dump.pkl.gz')
                     X, y = datasets[0], datasets[1]
                 else:
-                    datasets = load_from_dump(dump_data_dir = first_path, dump_filename = 'noaug_test_dump.pkl.gz')
+                    datasets = load_from_dump(dump_data_dir = self.path, dump_filename = 'noaug_test_dump.pkl.gz')
                     X, y = datasets[0], datasets[1]
             
             except:
@@ -52,9 +52,9 @@ class GTSRB(DenseDesignMatrix):
                 
                 noaug_datasets = X, y # not augmented datasets is saved in order not to waste time reloading gtsrb each time
                 if which_set == 'train':
-                    save_to_dump(var_to_dump = noaug_datasets, dump_data_dir = first_path, dump_filename = 'noaug_train_dump.pkl.gz')
+                    save_to_dump(var_to_dump = noaug_datasets, dump_data_dir = self.path, dump_filename = 'noaug_train_dump.pkl.gz')
                 else:
-                    save_to_dump(var_to_dump = noaug_datasets, dump_data_dir = first_path, dump_filename = 'noaug_test_dump.pkl.gz')
+                    save_to_dump(var_to_dump = noaug_datasets, dump_data_dir = self.path, dump_filename = 'noaug_test_dump.pkl.gz')
             
             X, y = X.astype(float), y.astype(float)
             X /= 255.
@@ -65,9 +65,9 @@ class GTSRB(DenseDesignMatrix):
                 
                 datasets = augmented_X, y
                 if which_set == 'train':
-                    save_to_dump(var_to_dump = datasets, dump_data_dir = first_path, dump_filename = 'train_dump.pkl.gz')
+                    save_to_dump(var_to_dump = datasets, dump_data_dir = self.path, dump_filename = 'train_dump.pkl.gz')
                 else:
-                    save_to_dump(var_to_dump = datasets, dump_data_dir = first_path, dump_filename = 'test_dump.pkl.gz')
+                    save_to_dump(var_to_dump = datasets, dump_data_dir = self.path, dump_filename = 'test_dump.pkl.gz')
         
         super(GTSRB, self).__init__(X = X, y = y)
         
