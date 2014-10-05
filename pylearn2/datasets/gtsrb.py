@@ -13,8 +13,8 @@ bound_test = 1000
 
 class GTSRB(DenseDesignMatrix):
     
-    def __init__(self, which_set, model, mf_steps, one_hot = True,
-                 start = None, stop = None, img_size = None, augment = False):
+    def __init__(self, which_set, model = None, mf_steps = None, one_hot = True,
+                 start = None, stop = None, img_size = None):
         
         #path = "${PYLEARN2_DATA_PATH}/gtsrb"
         first_path = "/home/deramo/workspace/datasets/gtsrb"
@@ -60,7 +60,7 @@ class GTSRB(DenseDesignMatrix):
             X /= 255.
             
             # BUILD AUGMENTED INPUT FOR FINETUNING
-            if augment == True:
+            if mf_steps is not None:
                 augmented_X = augment_input(X, model, mf_steps)
                 
                 datasets = augmented_X, y
