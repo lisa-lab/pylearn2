@@ -56,8 +56,8 @@ class GTSRB(DenseDesignMatrix):
                 else:
                     save_to_dump(var_to_dump = noaug_datasets, dump_data_dir = first_path, dump_filename = 'noaug_test_dump.pkl.gz')
             
-            #X, y = X.astype(float), y.astype(float)
-            #X /= 255.
+            X, y = X.astype(float), y.astype(float)
+            X /= 255.
             
             # BUILD AUGMENTED INPUT FOR FINETUNING
             if augment == True:
