@@ -4,6 +4,7 @@ A module defining the Dataset class.
 
 
 class Dataset(object):
+
     """
     Abstract interface for Datasets.
     """
@@ -151,7 +152,7 @@ class Dataset(object):
             Either numpy value of the features, or a (features, targets) tuple
             of numpy values, depending on the value of `include_labels`.
         """
-        raise NotImplementedError(str(type(self))+" does not implement "
+        raise NotImplementedError(str(type(self)) + " does not implement "
                                   "get_batch_design.")
 
     def get_batch_topo(self, batch_size):

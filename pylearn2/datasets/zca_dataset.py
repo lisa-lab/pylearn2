@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 class ZCA_Dataset(DenseDesignMatrix):
+
     """
     A Dataset that was created by ZCA whitening a DenseDesignMatrix.
     Supports viewing the data both in the new ZCA whitened space and
@@ -85,7 +86,7 @@ class ZCA_Dataset(DenseDesignMatrix):
                 self.X = preprocessed_dataset.X[start:stop, :]
                 if self.y is not None:
                     self.y = self.y[start:stop, :]
-                assert self.X.shape[0] == stop-start
+                assert self.X.shape[0] == stop - start
             else:
                 self.X = preprocessed_dataset.X
         else:
@@ -94,8 +95,8 @@ class ZCA_Dataset(DenseDesignMatrix):
             if self.y is not None:
                 assert self.y.shape[0] == self.X.shape[0]
 
-        #self.mn = self.X.min()
-        #self.mx = self.X.max()
+        # self.mn = self.X.min()
+        # self.mx = self.X.max()
 
         if getattr(preprocessor, "inv_P_", None) is None:
             warnings.warn("ZCA preprocessor.inv_P_ was none. Computing "
@@ -123,14 +124,14 @@ class ZCA_Dataset(DenseDesignMatrix):
 
             WRITEME
         """
-        #rval = X - self.mn
-        #rval /= (self.mx-self.mn)
+        # rval = X - self.mn
+        # rval /= (self.mx-self.mn)
 
-        #rval *= 2.
-        #rval -= 1.
+        # rval *= 2.
+        # rval -= 1.
         rval = X.copy()
 
-        #rval = np.clip(rval,-1.,1.)
+        # rval = np.clip(rval,-1.,1.)
 
         for i in xrange(rval.shape[0]):
             rval[i, :] /= np.abs(rval[i, :]).max() + 1e-12
@@ -143,11 +144,11 @@ class ZCA_Dataset(DenseDesignMatrix):
 
             WRITEME
         """
-        #rval = X - self.mn
-        #rval /= (self.mx-self.mn)
+        # rval = X - self.mn
+        # rval /= (self.mx-self.mn)
 
-        #rval *= 2.
-        #rval -= 1.
+        # rval *= 2.
+        # rval -= 1.
 
         assert X.shape == other.shape, (X.shape, other.shape)
 

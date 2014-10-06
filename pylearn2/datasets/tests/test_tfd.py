@@ -6,6 +6,7 @@ from pylearn2.testing.skip import skip_if_no_data
 
 
 class TestTFD(unittest.TestCase):
+
     def setUp(self):
         skip_if_no_data()
 
