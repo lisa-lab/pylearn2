@@ -323,8 +323,8 @@ class LocalDatasetCache:
                 force_perm_path = force_perm_path[:-1]
             base = len(force_perm_path) - len(intermediaryFolders)
 
-        for i in range(2, len(intermediaryFolders)):
-            folderToCreate = os.path.sep.join(intermediaryFolders[:i])
+        for i in range(1, len(intermediaryFolders)):
+            folderToCreate = os.path.sep.join(intermediaryFolders[:i + 1])
 
             if os.path.exists(folderToCreate):
                 continue
