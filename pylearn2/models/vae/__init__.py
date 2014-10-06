@@ -10,8 +10,8 @@ Variational autoencoder (VAE) implementation, as described in
 2. An instance of `Conditional` (`pylearn2.models.vae.conditional` module),
    which handles methods related to the conditional distribution
    :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})`.
-1. An instance of `Posterior` (`pylearn2.models.vae.posterior` module), which
-   handles methods related to the posterior distribution
+1. An instance of `Conditional` (`pylearn2.models.vae.conditional` module),
+   which handles methods related to the posterior distribution
    :math:`q_\\phi(\\mathbf{z} \\mid \\mathbf{x})`.
 
 For an example on how to use the VAE framework, see
@@ -135,7 +135,7 @@ class VAE(Model):
         Notes
         -----
         Monitors quantities related to the approximate posterior parameters phi
-        and the conditional parameters theta.
+        and the conditional and prior parameters theta.
         """
         space, source = self.get_monitoring_data_specs()
         space.validate(data)
