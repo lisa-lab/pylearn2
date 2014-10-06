@@ -83,16 +83,16 @@ def test_kl():
     """
     init_mode = theano.config.compute_test_value
     theano.config.compute_test_value = 'raise'
-
-    mlp = MLP(layers=[Sigmoid(dim=10, layer_name='Y', irange=0.1)],
-              nvis=10)
-    X = mlp.get_input_space().make_theano_batch()
-    Y = mlp.get_output_space().make_theano_batch()
-    X.tag.test_value = np.random.random(
-        get_debug_values(X)[0].shape).astype(theano.config.floatX)
-    Y_hat = mlp.fprop(X)
-
+    
     try:
+        mlp = MLP(layers=[Sigmoid(dim=10, layer_name='Y', irange=0.1)],
+                  nvis=10)
+        X = mlp.get_input_space().make_theano_batch()
+        Y = mlp.get_output_space().make_theano_batch()
+        X.tag.test_value = np.random.random(
+            get_debug_values(X)[0].shape).astype(theano.config.floatX)
+        Y_hat = mlp.fprop(X)
+
         # This call should not raise any error:
         ave = kl(Y, Y_hat, 1)
 
@@ -114,15 +114,15 @@ def test_elemwise_kl():
     init_mode = theano.config.compute_test_value
     theano.config.compute_test_value = 'raise' 
     
-    mlp = MLP(layers=[Sigmoid(dim=10, layer_name='Y', irange=0.1)], 
-              nvis=10)
-    X = mlp.get_input_space().make_theano_batch()
-    Y = mlp.get_output_space().make_theano_batch()
-    X.tag.test_value = np.random.random(
-        get_debug_values(X)[0].shape).astype(theano.config.floatX)
-    Y_hat = mlp.fprop(X)
+    try:
+        mlp = MLP(layers=[Sigmoid(dim=10, layer_name='Y', irange=0.1)], 
+                  nvis=10)
+        X = mlp.get_input_space().make_theano_batch()
+        Y = mlp.get_output_space().make_theano_batch()
+        X.tag.test_value = np.random.random(
+            get_debug_values(X)[0].shape).astype(theano.config.floatX)
+        Y_hat = mlp.fprop(X)
 
-    try:    
         # This call should not raise any error:
         ave = elemwise_kl(Y, Y_hat)
 
