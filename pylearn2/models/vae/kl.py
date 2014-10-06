@@ -130,7 +130,7 @@ def find_integrator_for(prior, posterior):
     None if nothing is compatible.
     """
     for name, obj in inspect.getmembers(sys.modules[__name__]):
-        if inspect.isclass(obj):
+        if inspect.isclass(obj) and isinstance(obj, KLIntegrator):
             if (isinstance(prior, obj.prior_class) and
                 isinstance(posterior, obj.posterior_class)):
                 return obj()
