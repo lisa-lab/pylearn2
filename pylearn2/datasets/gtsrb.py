@@ -58,7 +58,7 @@ class GTSRB(DenseDesignMatrix):
                     save_to_dump(var_to_dump = noaug_datasets, dump_data_dir = self.path, dump_filename = 'noaug_test_dump.pkl.gz')
             
             X, y = X.astype(float), y.astype(float)
-            #X /= 255.
+            X /= 255.
             
             # BUILD AUGMENTED INPUT FOR FINETUNING
             if mf_steps is not None:
