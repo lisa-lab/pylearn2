@@ -154,7 +154,7 @@ def kl(Y, Y_hat, batch_axis):
     for Yv in get_debug_values(Y):
         if not (Yv.min() >= 0.0 and Yv.max() <= 1.0):
             raise ValueError("Expected Y to be between 0 and 1. Either Y"
-                             + "< 0. or Y > 1 is got in the input.")
+                             + "< 0 or Y > 1 was found in the input.")
     
     z, = owner.inputs
 
@@ -211,7 +211,7 @@ def elemwise_kl(Y, Y_hat):
     for Yv in get_debug_values(Y):
         if not (Yv.min() >= 0.0 and Yv.max() <= 1.0):
             raise ValueError("Expected Y to be between 0 and 1. Either Y"
-                             + "< 0. or Y > 1 is got in the input.")
+                             + "< 0 or Y > 1 was found in the input.")
     
     z, = owner.inputs
 
