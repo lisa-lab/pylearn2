@@ -93,17 +93,6 @@ def test_diagonal_gaussian_prior_initialize_parameters():
     prior.initialize_parameters(nhid=5)
 
 
-def test_diagonal_gaussian_prior_get_prior_theta():
-    """
-    DiagonalGaussianPrior.get_prior_theta works without crashing
-    """
-    prior = DiagonalGaussianPrior()
-    vae = DummyVAE()
-    prior.set_vae(vae)
-    prior.initialize_parameters(nhid=5)
-    prior.get_prior_theta()
-
-
 def test_diagonal_gaussian_prior_sample_from_p_z():
     """
     DiagonalGaussianPrior.sample_from_p_z works without crashing

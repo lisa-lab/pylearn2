@@ -262,8 +262,10 @@ def log_sum_exp(log_A, axis=None):
     if axis is None:
         return B.dimshuffle(())
     else:
+        if type(axis) is int:
+            axis = [axis]
         return B.dimshuffle([i for i in range(B.ndim) if
-                             (i in axis or (i + B.ndim) in axis)])
+                             i % B.ndim not in axis])
 
 
 class Identity(Block):
