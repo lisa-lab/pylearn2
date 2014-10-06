@@ -58,7 +58,6 @@ class GTSRB(DenseDesignMatrix):
                     save_to_dump(var_to_dump = noaug_datasets, dump_data_dir = self.path, dump_filename = 'noaug_test_dump.pkl.gz')
             
             X, y = X.astype(float), y.astype(float)
-            X /= 255.
             
             # BUILD AUGMENTED INPUT FOR FINETUNING
             if mf_steps is not None:
@@ -95,10 +94,12 @@ class GTSRB(DenseDesignMatrix):
                         img = img.resize(self.img_size, Image.ANTIALIAS) #resize
                         if first:
                             X = numpy.asarray([img.getdata()])
+                            X /= 255.
                             y = numpy.asarray(row[7])
                             first = False
                         else:
                             X = numpy.append(X, [img.getdata()], axis = 0)
+                            X /= 255.
                             y = numpy.append(y, row[7])
                 f.close()
                 
@@ -133,10 +134,12 @@ class GTSRB(DenseDesignMatrix):
                         img = img.resize(self.img_size, Image.ANTIALIAS) #resize
                         if first:
                             X = numpy.asarray([img.getdata()])
+                            X /= 255.
                             y = row[7]
                             first = False
                         else:
                             X = numpy.append(X, [img.getdata()], axis = 0)
+                            X /= 255.
                             y = numpy.append(y, row[7])
             f.close()
         
