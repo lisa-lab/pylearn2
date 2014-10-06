@@ -17,21 +17,24 @@ from pylearn2.utils import wraps
 from pylearn2.models.vae import prior, conditional
 
 
+class ImpossiblePrior(prior.Prior):
+    """
+    A Prior that's incompatible with everything
+    """
+
+
+class ImpossiblePosterior(conditional.Conditional):
+    """
+    A Conditional that's incompatible with everything
+    """
+
+
 class KLIntegrator(object):
     """
     Class responsible for computing the analytical KL divergence term in the
     VAE criterion
     """
-    class ImpossiblePrior(prior.Prior):
-        """
-        A Prior that's incompatible with everything
-        """
     prior_class = ImpossiblePrior
-
-    class ImpossiblePosterior(conditional.Conditional):
-        """
-        A Conditional that's incompatible with everything
-        """
     posterior_class = ImpossiblePosterior
 
     def kl_divergence(self, phi, theta, prior, posterior):
