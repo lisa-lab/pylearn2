@@ -267,7 +267,8 @@ class VAE(Model):
         else:
             return reconstructed_X
 
-    def log_likelihood_lower_bound(self, X, num_samples, approximate_kl=False):
+    def log_likelihood_lower_bound(self, X, num_samples, approximate_kl=False,
+                                   return_individual_terms=False):
         """
         Computes the VAE lower-bound on the marginal log-likelihood of X.
 
@@ -281,6 +282,9 @@ class VAE(Model):
         approximate_kl : bool, optional
             Whether to compute a stochastic approximation of the KL divergence
             term. Defaults to `False`.
+        return_individual_terms : bool, optional
+            If `True`, return `(kl_divergence_term, expectation_term)` instead.
+            Defaults to `False`.
 
         Returns
         -------
@@ -318,7 +322,10 @@ class VAE(Model):
             theta=theta
         ).mean(axis=0)
 
-        return -kl_divergence_term + expectation_term
+        if return_individual_terms:
+            return (kl_divergence_term, expectation_term)
+        else:
+            return -kl_divergence_term + expectation_term
 
     def log_likelihood_approximation(self, X, num_samples):
         """
