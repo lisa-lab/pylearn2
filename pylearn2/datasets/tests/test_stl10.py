@@ -5,6 +5,7 @@ from pylearn2.testing.skip import skip_if_no_data
 
 
 class TestSTL10(unittest.TestCase):
+
     """
     This is a unittest for stl10.py.
 
@@ -13,6 +14,7 @@ class TestSTL10(unittest.TestCase):
     none
 
     """
+
     def setUp(self):
         """This loads train and test sets."""
         skip_if_no_data()

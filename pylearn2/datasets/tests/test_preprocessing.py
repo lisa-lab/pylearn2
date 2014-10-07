@@ -20,6 +20,7 @@ from pylearn2.datasets.preprocessing import (GlobalContrastNormalization,
 
 
 class testGlobalContrastNormalization:
+
     """Tests for the GlobalContrastNormalization class """
 
     def test_zero_vector(self):
@@ -69,7 +70,7 @@ class testGlobalContrastNormalization:
 
         norms = np.sqrt(np.square(result).sum(axis=1))
 
-        max_norm_error = np.abs(norms-1.).max()
+        max_norm_error = np.abs(norms - 1.).max()
 
         tol = 3e-5
 
@@ -82,7 +83,7 @@ def test_extract_reassemble():
 
     rng = np.random.RandomState([1, 3, 7])
 
-    topo = rng.randn(4, 3*5, 3*7, 2)
+    topo = rng.randn(4, 3 * 5, 3 * 7, 2)
 
     dataset = DenseDesignMatrix(topo_view=topo)
 
@@ -104,6 +105,7 @@ def test_extract_reassemble():
 
 
 class testLeCunLCN:
+
     """
     Test LeCunLCN
     """
@@ -116,7 +118,7 @@ class testLeCunLCN:
         """
 
         rng = np.random.RandomState([1, 2, 3])
-        X = as_floatX(rng.randn(5, 32*32*3))
+        X = as_floatX(rng.randn(5, 32 * 32 * 3))
 
         axes = ['b', 0, 1, 'c']
         view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3),
@@ -134,7 +136,7 @@ class testLeCunLCN:
         Test on zero-value image if cause any division by zero
         """
 
-        X = as_floatX(np.zeros((5, 32*32*3)))
+        X = as_floatX(np.zeros((5, 32 * 32 * 3)))
 
         axes = ['b', 0, 1, 'c']
         view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3),
@@ -153,7 +155,7 @@ class testLeCunLCN:
         """
 
         rng = np.random.RandomState([1, 2, 3])
-        X = as_floatX(rng.randn(5, 32*32*3))
+        X = as_floatX(rng.randn(5, 32 * 32 * 3))
 
         axes = ['b', 0, 1, 'c']
         view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3),
@@ -175,7 +177,7 @@ def test_rgb_yuv():
     """
 
     rng = np.random.RandomState([1, 2, 3])
-    X = as_floatX(rng.randn(5, 32*32*3))
+    X = as_floatX(rng.randn(5, 32 * 32 * 3))
 
     axes = ['b', 0, 1, 'c']
     view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3),
