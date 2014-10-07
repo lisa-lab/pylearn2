@@ -3954,7 +3954,7 @@ def mean_pool(bc01, pool_shape, pool_stride, image_shape):
     pool_stride : tuple
         strides between pooling regions (row stride, col stride)
     image_shape : tuple
-        avoid doing some of the arithmetic in theano
+        (rows, cols) tuple to avoid doing some arithmetic in theano
 
     Returns
     -------
@@ -3964,6 +3964,30 @@ def mean_pool(bc01, pool_shape, pool_stride, image_shape):
     See Also
     --------
     max_pool : Same thing but with max pooling
+
+    Examples
+    --------
+    >>> import theano
+    >>> import theano.tensor as T
+    >>> from pylearn2.models.mlp import mean_pool
+    >>> import numpy as np
+    >>> t = np.array([[1, 1, 3, 3],
+    ...               [1, 1, 3, 3],
+    ...               [5, 5, 7, 7],
+    ...               [5, 5, 7, 7],
+    ...               [9, 9, 11, 11],
+    ...               [9, 9, 11, 11]])
+
+    >>> X = np.zeros((3, t.shape[0], t.shape[1]))
+    >>> X[:] = t
+    >>> X = X[np.newaxis]
+    >>> X_sym = T.tensor4('X')
+    >>> pool_it = mean_pool(X_sym, pool_shape=(2, 2), pool_stride=(2, 2),
+    ...                     image_shape=(6, 4))
+    >>> f = theano.function(inputs=[X_sym], outputs=pool_it)
+
+    This will pool over over windows of size (2, 2) while also stepping by this
+    same amount, shrinking the examples input to [[1, 3], [5, 7], [9, 11]].
     """
     mx = None
     r, c = image_shape
