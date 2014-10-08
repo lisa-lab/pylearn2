@@ -20,12 +20,20 @@ from pylearn2.models.vae import prior, conditional
 class ImpossiblePrior(prior.Prior):
     """
     A Prior that's incompatible with everything
+
+    Parameters
+    ----------
+    See `Prior`
     """
 
 
 class ImpossiblePosterior(conditional.Conditional):
     """
     A Conditional that's incompatible with everything
+
+    Parameters
+    ----------
+    See `Conditional`
     """
 
 
@@ -120,7 +128,7 @@ class DiagonalGaussianPriorPosteriorKL(KLIntegrator):
             prior_log_sigma - posterior_log_sigma +
             0.5 * (T.exp(2 * posterior_log_sigma) +
                    (posterior_mu - prior_mu) ** 2) /
-                  T.exp(2 * prior_log_sigma) - 0.5
+            T.exp(2 * prior_log_sigma) - 0.5
         )
 
 
@@ -128,10 +136,18 @@ def find_integrator_for(prior, posterior):
     """
     Returns a KLIntegrator instance compatible with 'prior' and 'posterior', or
     None if nothing is compatible.
+
+    Parameters
+    ----------
+    prior : pylearn2.models.vae.prior.Prior
+        Object representing the prior p(z)
+    posterior : pylearn2.models.vae.conditional.Conditional
+        Object representing the approximate posterior q(z | x)
     """
     for name, obj in inspect.getmembers(sys.modules[__name__]):
         if inspect.isclass(obj) and issubclass(obj, KLIntegrator):
-            if (isinstance(prior, obj.prior_class) and
-                isinstance(posterior, obj.posterior_class)):
+            corresponds = (isinstance(prior, obj.prior_class) and
+                           isinstance(posterior, obj.posterior_class))
+            if corresponds:
                 return obj()
     return None

@@ -1,3 +1,19 @@
+"""
+Download script for the unlabeled version of the MNIST dataset, used in
+
+    On the Quantitative Analysis of Deep Belief Networks
+    Salakhutdinov and Murray
+    http://www.mit.edu/~rsalakhu/papers/dbn_ais.pdf
+    The MNIST database of handwritten digits
+    LeCun and Cortes
+    http://yann.lecun.com/exdb/mnist/
+"""
+__authors__ = "Vincent Dumoulin"
+__copyright__ = "Copyright 2014, Universite de Montreal"
+__credits__ = ["Vincent Dumoulin"]
+__license__ = "3-clause BSD"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
 import os
 import urllib
 import numpy

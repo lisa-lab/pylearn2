@@ -1,6 +1,6 @@
 """
-Classes implementing logic related to the conditional distributions in the VAE
-framework
+Classes implementing logic related to the conditional distributions
+in the VAE framework
 """
 __authors__ = "Vincent Dumoulin"
 __copyright__ = "Copyright 2014, Universite de Montreal"
@@ -14,7 +14,7 @@ import theano
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
 from pylearn2.models import Model
-from pylearn2.models.mlp import Linear, Sigmoid, CompositeLayer
+from pylearn2.models.mlp import Linear, CompositeLayer
 from pylearn2.space import VectorSpace, CompositeSpace
 from pylearn2.utils.rng import make_theano_rng
 from pylearn2.utils import wraps, sharedX
@@ -29,8 +29,8 @@ class Conditional(Model):
     for the conditional :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})` and
     the posterior :math:`q_\\phi(\\mathbf{z} \\mid \\mathbf{x})`.
 
-    Parameteters
-    ------------
+    Parameters
+    ----------
     mlp : pylearn2.models.mlp.MLP
         An MLP mapping the variable conditioned on (e.g. x for the posterior
         distribution or z for the conditional distribution in the VAE
@@ -59,6 +59,9 @@ class Conditional(Model):
         self.output_layer_required = output_layer_required
 
     def get_weights(self):
+        """
+        Returns its MLP's weights
+        """
         return self.mlp.get_weights()
 
     def get_lr_scalers(self):
@@ -103,6 +106,11 @@ class Conditional(Model):
         distribution.
 
         By default, no monitoring channel is computed.
+
+        Parameters
+        ----------
+        conditional_params : tuple of tensor_like
+            Parameters of the conditional distribution
         """
         return OrderedDict()
 
@@ -228,9 +236,7 @@ class Conditional(Model):
     def sample_from_epsilon(self, shape):
         """
         Samples from a canonical noise distribution from which conditional
-        samples will be drawn using the reparametrization trick. If using the
-        reparametrization trick is not possible for this particular conditional
-        distribution, will raise an exception.
+        samples will be drawn using the reparametrization trick.
 
         Parameters
         ----------
@@ -241,6 +247,12 @@ class Conditional(Model):
         -------
         epsilon : tensor_like
             Noise samples
+
+        Notes
+        -----
+        If using the reparametrization trick is not possible for this
+        particular conditional distribution, will raise an exception.
+
         """
         raise NotImplementedError(str(self.__class__) + " does not implement "
                                   "sample_from_epsilon, which probably "
@@ -276,6 +288,10 @@ class BernoulliVector(Conditional):
         f_\\omega(\\mathbf{a} \\mid \\mathbf{b})
         = \\prod_i \\mu_i(\\mathbf{b})^{a_i}
                    (1 - \\mu_i(\\mathbf{b}))^{(1 - a_i)}
+
+    Parameters
+    ----------
+    See `Conditional`
     """
     @wraps(Conditional._get_default_output_layer)
     def _get_default_output_layer(self):
@@ -333,6 +349,10 @@ class DiagonalGaussian(Conditional):
         = \\prod_i \\exp(-(a_i - \\mu_i(\\mathbf{b}))^2 /
                          (2\\sigma_i(\\mathbf{b})^2 ) /
                    (\\sqrt{2 \\pi} \\sigma_i(\\mathbf{b}))
+
+    Parameters
+    ----------
+    See `Conditional`
     """
     @wraps(Conditional._get_default_output_layer)
     def _get_default_output_layer(self):

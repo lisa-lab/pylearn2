@@ -138,6 +138,11 @@ class BinarizedMNIST(DenseDesignMatrix):
         """
         Adjusts the data to be compatible with a viewer that expects values to
         be in [-1, 1].
+
+        Parameters
+        ----------
+        X : numpy.ndarray
+            Data
         """
         return numpy.clip(X * 2. - 1., -1., 1.)
 
@@ -145,6 +150,13 @@ class BinarizedMNIST(DenseDesignMatrix):
         """
         Adjusts the data to be compatible with a viewer that expects values to
         be in [-1, 1].
+
+        Parameters
+        ----------
+        X : numpy.ndarray
+            Data
+        other : WRITEME
+        per_example : WRITEME
         """
         return self.adjust_for_viewer(X)
 

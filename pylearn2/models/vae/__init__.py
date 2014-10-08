@@ -5,13 +5,14 @@ Variational autoencoder (VAE) implementation, as described in
 
 `VAE` expects to receive three objects to do its job properly:
 
-1. An instance of `Prior` (`pylearn2.models.vae.prior` module), which handles
-   methods related to the prior distribution :math:`p_\\theta(\\mathbf{z})`.
-2. An instance of `Conditional` (`pylearn2.models.vae.conditional` module),
-   which handles methods related to the conditional distribution
+1. An instance of `Prior` (`pylearn2.models.vae.prior` module), which
+   handles methods related to the prior distribution
+   :math:`p_\\theta(\\mathbf{z})`.
+2. An instance of `Conditional` (`pylearn2.models.vae.conditional`
+   module), which handles methods related to the conditional distribution
    :math:`p_\\theta(\\mathbf{x} \\mid \\mathbf{z})`.
-1. An instance of `Conditional` (`pylearn2.models.vae.conditional` module),
-   which handles methods related to the posterior distribution
+1. An instance of `Conditional` (`pylearn2.models.vae.conditional`
+   module), which handles methods related to the posterior distribution
    :math:`q_\\phi(\\mathbf{z} \\mid \\mathbf{x})`.
 
 For an example on how to use the VAE framework, see

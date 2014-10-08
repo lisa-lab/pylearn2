@@ -24,6 +24,10 @@ class Prior(Model):
     """
     Abstract class implementing methods related to the prior distribution
     :math:`p_\\theta(\\mathbf{z})` for the VAE framework
+
+    Parameters
+    ----------
+    See `Model`
     """
     def get_vae(self):
         """
@@ -116,6 +120,10 @@ class DiagonalGaussianPrior(Prior):
         p_\\theta(\\mathbf{z})
         = \\prod_i \\exp(-(z_i - \\mu_i)^2 / (2\\sigma_i^2 ) /
                    (\\sqrt{2 \\pi} \\sigma_i)
+
+    Parameters
+    ----------
+    See `Model`
     """
     @wraps(Prior.initialize_parameters)
     def initialize_parameters(self, nhid):

@@ -313,6 +313,7 @@ whitelist_docstrings = [
     'models/tests/test_s3c_inference.py',
     'models/tests/test_maxout.py',
     'models/tests/test_mnd.py',
+    'models/tests/test_vae.py',
     'models/tests/test_rbm.py',
     'models/tests/test_s3c_misc.py',
     'models/gsn.py',

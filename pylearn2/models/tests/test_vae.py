@@ -538,61 +538,8 @@ def test_VAE_cost():
     """
     VAE trains properly with the VAE cost
     """
-    yaml_string = """
-    !obj:pylearn2.train.Train {
-        dataset: &train !obj:pylearn2.testing.datasets.random_dense_design_matrix {
-            rng: !obj:pylearn2.utils.rng.make_np_rng {
-                default_seed: 11234,
-            },
-            num_examples: 100,
-            dim: &nvis 10,
-            num_classes: 2,
-        },
-        model: !obj:pylearn2.models.vae.VAE {
-            nvis: *nvis,
-            nhid: &nhid 5,
-            prior: !obj:pylearn2.models.vae.prior.DiagonalGaussianPrior {},
-            conditional: !obj:pylearn2.models.vae.conditional.BernoulliVector {
-                name: 'conditional',
-                mlp: !obj:pylearn2.models.mlp.MLP {
-                    layers: [
-                        !obj:pylearn2.models.mlp.Linear {
-                            layer_name: 'h_d',
-                            dim: 10,
-                            irange: .01,
-                        },
-                    ],
-                },
-            },
-            posterior: !obj:pylearn2.models.vae.conditional.DiagonalGaussian {
-                name: 'posterior',
-                mlp: !obj:pylearn2.models.mlp.MLP {
-                    layers: [
-                        !obj:pylearn2.models.mlp.RectifiedLinear {
-                            layer_name: 'h_e',
-                            dim: 10,
-                            irange: .01,
-                        },
-                    ],
-                },
-            },
-        },
-        algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
-            batch_size: 100,
-            learning_rate: 1e-3,
-            monitoring_dataset: {
-                'train' : *train,
-            },
-            cost: !obj:pylearn2.costs.vae.VAECriterion {
-                num_samples: 2,
-            },
-            termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
-                max_epochs: 2
-            },
-        },
-    }
-    """
-    train_object = yaml_parse.load(yaml_string)
+    train_object = yaml_parse.load_path('pylearn2/models/tests/'
+                                        'test_vae_cost_vae_criterion.yaml')
     train_object.main_loop()
 
 
@@ -600,59 +547,6 @@ def test_IS_cost():
     """
     VAE trains properly with the importance sampling cost
     """
-    yaml_string = """
-    !obj:pylearn2.train.Train {
-        dataset: &train !obj:pylearn2.testing.datasets.random_dense_design_matrix {
-            rng: !obj:pylearn2.utils.rng.make_np_rng {
-                default_seed: 11234,
-            },
-            num_examples: 100,
-            dim: &nvis 10,
-            num_classes: 2,
-        },
-        model: !obj:pylearn2.models.vae.VAE {
-            nvis: *nvis,
-            nhid: &nhid 5,
-            prior: !obj:pylearn2.models.vae.prior.DiagonalGaussianPrior {},
-            conditional: !obj:pylearn2.models.vae.conditional.BernoulliVector {
-                name: 'conditional',
-                mlp: !obj:pylearn2.models.mlp.MLP {
-                    layers: [
-                        !obj:pylearn2.models.mlp.Linear {
-                            layer_name: 'h_d',
-                            dim: 10,
-                            irange: .01,
-                        },
-                    ],
-                },
-            },
-            posterior: !obj:pylearn2.models.vae.conditional.DiagonalGaussian {
-                name: 'posterior',
-                mlp: !obj:pylearn2.models.mlp.MLP {
-                    layers: [
-                        !obj:pylearn2.models.mlp.RectifiedLinear {
-                            layer_name: 'h_e',
-                            dim: 10,
-                            irange: .01,
-                        },
-                    ],
-                },
-            },
-        },
-        algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
-            batch_size: 100,
-            learning_rate: 1e-3,
-            monitoring_dataset: {
-                'train' : *train,
-            },
-            cost: !obj:pylearn2.costs.vae.ImportanceSamplingCriterion {
-                num_samples: 2,
-            },
-            termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
-                max_epochs: 2
-            },
-        },
-    }
-    """
-    train_object = yaml_parse.load(yaml_string)
+    train_object = yaml_parse.load_path('pylearn2/models/tests/'
+                                        'test_vae_cost_is_criterion.yaml')
     train_object.main_loop()
