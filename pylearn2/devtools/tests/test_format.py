@@ -561,6 +561,7 @@ whitelist_docstrings = [
     'scripts/gpu_pkl_to_cpu_pkl.py',
     'scripts/datasets/step_through_small_norb.py',
     'scripts/datasets/download_mnist.py',
+    'scripts/datasets/download_binarized_mnist.py',
     'scripts/datasets/browse_small_norb.py',
     'scripts/datasets/make_mnistplus.py',
     'scripts/__init__.py',
