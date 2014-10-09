@@ -768,10 +768,30 @@ class SimplyTypedSpace(Space):
             raise TypeError("This space only supports simple dtypes, but "
                             "received a composite batch.")
 
+        # Checks for information-destroying casts.
+        #
+        # To be maximally strict, we'd guard against all loss of precision by
+        # checking if np.can_cast(batch.dtype, self.dtype).
+        #
+        # Because this prohibits float64->float32, it breaks too much of the
+        # codebase (float64 is default float, float32 is default CUDA float for
+        # many graphics cards).
+        #
+        # Therefore, we only prohibit the following:
+        # * non-integral type to integral type
+        # * complex to non-complex
+
+        def is_complex(dtype):
+            return np.issubdtype(dtype, np.complex)
+
+        def is_integral(dtype):
+            return np.issubdtype(dtype, np.integer)
+
         if self.dtype is not None:
-            if not np.can_cast(batch.dtype, self.dtype):
-                raise TypeError("Cannot safely cast batches of dtype %s to "
-                                "this space's dtype %s" %
+            if (is_complex(batch.dtype) and not is_complex(self.dtype)) or \
+               (not is_integral(batch.dtype) and is_integral(self.dtype)):
+                raise TypeError("Cannot safely cast batch dtype %s to "
+                                "space's dtype %s. " %
                                 (batch.dtype, self.dtype))
 
     @property
