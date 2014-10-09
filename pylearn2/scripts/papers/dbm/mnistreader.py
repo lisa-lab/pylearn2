@@ -1,9 +1,8 @@
-import struct
 from array import array
 
 def readmnist():
 
-	path = '/home/carlo/workspace/datasets/mnist/'
+	path = 'PYLEARN2_DATA_PATH/mnist/'
 	
 	# read files
 	with open(path + 'train-images-idx3-ubyte', "rb") as f:
