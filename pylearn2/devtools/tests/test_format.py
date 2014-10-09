@@ -197,7 +197,6 @@ whitelist_pep8 = [
     "sandbox/lisa_rl/bandit/algorithm.py",
     "sandbox/lisa_rl/bandit/environment.py",
     "sandbox/lisa_rl/__init__.py",
-    "space/__init__.py",
     "datasets/avicenna.py",
     "datasets/iris.py",
     "datasets/adult.py",
