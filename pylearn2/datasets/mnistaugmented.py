@@ -2,6 +2,7 @@ import numpy
 import csv
 import cPickle
 
+from pylearn2.utils import serial
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.datasets.augment_input import augment_input
 
@@ -16,6 +17,7 @@ class MNISTAUGMENTED(DenseDesignMatrix):
                  start = None, stop = None, img_size = None):
         
         first_path = "${PYLEARN2_DATA_PATH}/mnistaugmented"
+        first_path = serial.preprocess(first_path)
         if which_set == 'train':
             path = first_path + "/digitstrain.csv"
         else:
