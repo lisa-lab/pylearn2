@@ -285,11 +285,12 @@ class BaseCD(DefaultDataSpecsMixin, Cost):
         Otherwise, makes its own random number generator.
     """
 
-    def __init__(self, num_chains, num_gibbs_steps, supervised=False,
+    def __init__(self, num_chains=1, num_gibbs_steps=1, supervised=False,
                  toronto_neg=False, theano_rng=None,
                  positive_method = "SAMPLING", negative_method = "STANDARD"):
         self.__dict__.update(locals())
         del self.self
+
         self.theano_rng = make_theano_rng(theano_rng, 2012+10+14, which_method="binomial")
         assert supervised in [True, False]
         if toronto_neg:
@@ -315,7 +316,7 @@ class BaseCD(DefaultDataSpecsMixin, Cost):
     def _initialize_chains(self, model, X, Y):
         # Initializing to data
         layer_to_clamp = OrderedDict([(model.visible_layer, True)])
-        layer_to_chains = model.make_layer_to_symbolic_state(self.num_chains, self.theano_rng)
+        layer_to_chains = model.make_layer_to_symbolic_state(1, self.theano_rng)
         # initialized the visible layer to data
         layer_to_chains[model.visible_layer] = X
         # if supervised, also clamp targets
@@ -443,9 +444,9 @@ class VariationalCD(BaseCD):
             Contrastive Divergence
     """
 
-    def __init__(self, num_chains, num_gibbs_steps, supervised=False,
+    def __init__(self, num_gibbs_steps=1, supervised=False,
                  toronto_neg=False, theano_rng=None):
-        super(VariationalCD, self).__init__(num_chains, num_gibbs_steps,
+        super(VariationalCD, self).__init__(num_gibbs_steps,
                                             supervised=supervised,
                                             toronto_neg=toronto_neg,
                                             positive_method="VARIATIONAL",
