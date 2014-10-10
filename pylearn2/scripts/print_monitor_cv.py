@@ -44,34 +44,33 @@ def main(models, all=False):
                     values[key] = []
                 values[key].append(channels[key].val_record[-1])
     n_models = len(epochs)
-    print 'number of models: {}'.format(n_models)
+    print 'number of models: {0}'.format(n_models)
     if n_models > 1:
         if all:
-            print '\nepochs seen:\n{}\n{} +/- {}'.format(np.asarray(epochs),
-                                                         np.mean(epochs),
-                                                         np.std(epochs))
-            print '\ntraining time:\n{}\n{} +/- {}'.format(np.asarray(time),
-                                                           np.mean(time),
-                                                           np.std(time))
+            print '\nepochs seen:\n{0}\n{1} +/- {2}'.format(np.asarray(epochs),
+                                                            np.mean(epochs),
+                                                            np.std(epochs))
+            print '\ntraining time:\n{0}\n{1} +/- {2}'.format(np.asarray(time),
+                                                              np.mean(time),
+                                                              np.std(time))
         else:
-            print 'epochs seen: {} +/- {}'.format(np.mean(epochs),
-                                                  np.std(epochs))
-            print 'training time: {} +/- {}'.format(np.mean(time),
-                                                    np.std(time))
+            print 'epochs seen: {0} +/- {1}'.format(np.mean(epochs),
+                                                    np.std(epochs))
+            print 'training time: {0} +/- {1}'.format(np.mean(time),
+                                                      np.std(time))
         for key in sorted(values.keys()):
             if all:
-                print '\n{}:\n{}\n{} +/- {}'.format(key,
-                                                    np.asarray(values[key]),
-                                                    np.mean(values[key]),
-                                                    np.std(values[key]))
+                print '\n{0}:\n{1}\n{2} +/- {3}'.format(
+                    key, np.asarray(values[key]),
+                    np.mean(values[key]), np.std(values[key]))
             else:
-                print '{}: {} +/- {}'.format(key, np.mean(values[key]),
-                                             np.std(values[key]))
+                print '{0}: {1} +/- {2}'.format(key, np.mean(values[key]),
+                                                np.std(values[key]))
     else:
-        print 'epochs seen: {}'.format(epochs[0])
-        print 'training time: {}'.format(time[0])
+        print 'epochs seen: {0}'.format(epochs[0])
+        print 'training time: {0}'.format(time[0])
         for key in sorted(values.keys()):
-            print '{}: {}'.format(key, values[key][0])
+            print '{0}: {1}'.format(key, values[key][0])
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
