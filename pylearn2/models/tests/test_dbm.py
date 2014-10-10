@@ -1120,10 +1120,10 @@ class Test_CD(object):
         visible_layer = BinaryVector(nvis=num_visible)
         visible_layer.set_biases(rng.uniform(-1., 1., (num_visible,)).astype(config.floatX))
         hidden_layer = BinaryVectorMaxPool(detector_layer_dim=num_hidden,
-                                     pool_size=1,
-                                     layer_name='h',
-                                     irange=0.05,
-                                     init_bias=-2.0)
+                                           pool_size=1,
+                                           layer_name='h',
+                                           irange=0.05,
+                                           init_bias=-2.0)
         hidden_layer.set_biases(rng.uniform(-1., 1., (num_hidden,)).astype(config.floatX))
         model = RBM(visible_layer=visible_layer,
                     hidden_layer=hidden_layer,
