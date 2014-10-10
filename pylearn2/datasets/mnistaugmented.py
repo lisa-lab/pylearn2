@@ -15,7 +15,7 @@ class MNISTAUGMENTED(DenseDesignMatrix):
     def __init__(self, which_set, model, mf_steps, one_hot = True,
                  start = None, stop = None, img_size = None):
         
-        first_path = "PYLEARN2_DATA_PATH/mnistaugmented"
+        first_path = "${PYLEARN2_DATA_PATH}/mnistaugmented"
         if which_set == 'train':
             path = first_path + "/digitstrain.csv"
         else:
