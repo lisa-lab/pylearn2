@@ -1,0 +1,81 @@
+# This file shows how to train a binary RBM on MNIST by viewing it as a single layer DBM.
+# The hyperparameters in this file aren't especially great; they're mostly chosen to demonstrate
+# the interface. Feel free to suggest better hyperparameters!
+!obj:pylearn2.train.Train {
+    dataset: &train !obj:pylearn2.neuroimaging_utils.sMRI.MRI_On_Memory {
+        which_set: 'train',
+        center: True,
+        variance_normalize: True,
+        apply_mask: True,
+        dataset_name: 'aod',
+#        reprocess: True,
+    },
+    model: !obj:pylearn2.models.dbm.RBM {
+        batch_size: 4,
+        niter: 1,
+        visible_layer: !obj:pylearn2.models.dbm.GaussianVisLayer {
+            nvis: 70896,
+            # We can initialize the biases of the visible units
+            # so that sigmoid(b_i) = E[v_i] where the expectation
+            # is taken over the dataset. This should get the biases
+            # about correct from the start and helps speed up learning.
+#            bias_from_marginals: *train,
+        },
+        hidden_layer: 
+            !obj:pylearn2.models.dbm.BinaryVectorMaxPool {
+                layer_name: 'h',
+                detector_layer_dim: 64,
+                pool_size: 1,
+                center: True,
+                # We initialize the weights by drawing them from W_ij ~ U(-irange, irange)
+                irange: .05,
+                # We initialize all the biases of the hidden units to a negative
+                # number. This helps to learn a sparse representation.
+                init_bias: -2.,
+            }
+    },
+     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+               train_iteration_mode: 'even_batchwise_shuffled_sequential',
+               learning_rate: 0.08,
+               learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+                   init_momentum: 0.5,
+               },
+               monitoring_batches: 20,
+               monitor_iteration_mode: 'even_sequential',
+               monitoring_dataset : &test !obj:pylearn2.neuroimaging_utils.sMRI.MRI_On_Memory {
+                   which_set: 'test',
+                   center: True,
+                   variance_normalize: True,
+                   apply_mask: True,
+                   dataset_name: 'aod',
+#                   reprocess: True,
+               },
+               cost : !obj:pylearn2.costs.cost.SumOfCosts {
+                costs: [
+                        !obj:pylearn2.costs.dbm.VariationalCD {
+                        },
+                        !obj:pylearn2.costs.dbm.L1WeightDecay {
+                          coeffs: [ 0.1  ]
+                        },
+                       ],
+           },
+           # We tell the RBM to train for 300 epochs
+           termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter { max_epochs: 300 },
+           update_callbacks: [
+                !obj:pylearn2.training_algorithms.sgd.ExponentialDecay {
+                        decay_factor: 1.000015,
+                        min_lr:       0.0001
+                }
+           ]
+        },
+    extensions: [
+            !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
+                final_momentum: .9,
+                start: 5,
+                saturate: 6
+            },
+    ],
+    # This says to save it every epoch
+    save_freq : 1
+}
+
