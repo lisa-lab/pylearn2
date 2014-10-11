@@ -62,9 +62,7 @@ def raise_cannot_open(path):
 
 def load(filepath, recurse_depth=0, retry=True):
     """
-    .. todo::
-
-        WRITEME
+    Loads object(s) from file specified by 'filepath'.
 
     .. todo::
 
