@@ -1113,20 +1113,44 @@ def check_gradients(expected_grad, actual_grad, corr_tol=0.8, mean_tol=0.05):
 
 class Test_CD(object):
     @staticmethod
-    def check_rbm_pos_phase(rbm, cost, X):
+    def check_rbm_pos_phase(rbm, cost, X, theano_rng, variational=False):
         pos_grads, _ = cost._get_positive_phase(rbm, X)
 
         visible_layer = rbm.visible_layer
         hidden_layer = rbm.hidden_layers[0]
         P_H0_given_X = hidden_layer.mf_update(state_below=visible_layer.upward_state(X),
                                               state_above=None, layer_above=None)[1]
-
+        H0 = hidden_layer.sample(state_below=visible_layer.upward_state(X),
+                                 state_above=None, layer_above=None,
+                                 theano_rng=theano_rng)[1]
         dW_pos_act = pos_grads[hidden_layer.transformer.get_params()[0]].eval()
-        print "dW pos actual", dW_pos_act
-        dW_pos_exp = 1 * np.dot(X.eval().T, P_H0_given_X.eval()) / rbm.batch_size
+        if variational:
+            dW_pos_exp = -1 * np.dot(X.eval().T, P_H0_given_X.eval()) / rbm.batch_size
+        else:
+            dW_pos_exp = -1 * np.dot(X.eval().T, H0.eval()) / rbm.batch_size
         check_gradients(dW_pos_exp, dW_pos_act, corr_tol=0.99)
 
         return pos_grads
+
+    @staticmethod
+    def check_rbm_neg_phase(rbm, cost, X, theano_rng):
+        neg_grads, _ = cost._get_negative_phase(rbm, X)
+        
+        visible_layer = rbm.visible_layer
+        hidden_layer = rbm.hidden_layers[0]
+
+        P_H0_given_X = hidden_layer.mf_update(state_below = visible_layer.upward_state(X),
+                                              state_above=None, layer_above=None)[1]
+        H0 = hidden_layer.sample(state_below=visible_layer.upward_state(X),
+                                 state_above=None, layer_above=None,
+                                 theano_rng=theano_rng)[1]
+        V1 = visible_layer.sample(state_above=H0, layer_above=hidden_layer,
+                                  theano_rng=theano_rng)
+        P_H1_given_V1 = hidden_layer.mf_update(state_below=visible_layer.upward_state(V1),
+                                               state_above=None, layer_above=None)[1]
+        dW_neg_act = neg_grads[hidden_layer.transformer.get_params()[0]].eval()
+        dW_neg_exp = np.dot(V1.eval().T, P_H1_given_V1.eval()) / rbm.batch_size
+        check_gradients(dW_neg_exp, dW_neg_act, corr_tol=0.85)
 
     def test_rbm(self, num_visible=100, num_hidden=50, batch_size=200, variational=False):
         rng = np.random.RandomState([2012,11,3])
@@ -1154,7 +1178,8 @@ class Test_CD(object):
         X = sharedX(rng.randn(batch_size, num_visible))
         # Get the gradients from the cost function
         grads, updates = cost.get_gradients(model, X)
-        Test_CD.check_rbm_pos_phase(model, cost, X)
+        Test_CD.check_rbm_pos_phase(model, cost, X, theano_rng, variational=variational)
+        Test_CD.check_rbm_neg_phase(model, cost, X, theano_rng)
         return
         # Iterate through the Gibbs chain, collecting P(H|v) when needed.
         P_H0_given_X = hidden_layer.mf_update(state_below = visible_layer.upward_state(X),
