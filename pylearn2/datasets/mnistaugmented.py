@@ -14,7 +14,7 @@ from pylearn2.datasets.augment_input import augment_input
 class MNISTAUGMENTED(DenseDesignMatrix):
     
     def __init__(self, which_set, model, mf_steps, one_hot = True,
-                 start = None, stop = None, img_size = None):
+                 start = None, stop = None):
         
         first_path = "${PYLEARN2_DATA_PATH}/mnistaugmented"
         first_path = serial.preprocess(first_path)
@@ -25,7 +25,6 @@ class MNISTAUGMENTED(DenseDesignMatrix):
         self.path = path
         self.which_set = which_set
         self.delimiter = ','
-        self.img_size = img_size
         self.one_hot = one_hot
         self.start = start
         self.stop = stop
