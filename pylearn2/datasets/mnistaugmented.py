@@ -71,7 +71,7 @@ class MNISTAUGMENTED(DenseDesignMatrix):
         augmented_X, y = augmented_X[self.start:self.stop], y[self.start:self.stop]
         super(MNISTAUGMENTED, self).__init__(X = augmented_X, y = y)
         
-    def load_data(self):
+    '''def load_data(self):
         
         print "\nloading data...\n"
 
@@ -91,7 +91,33 @@ class MNISTAUGMENTED(DenseDesignMatrix):
                 y = numpy.append(y, [row], axis = 0)
 
         return X, y
+    '''
+    def load_data(self):
+        print "\nloading data...\n"
+        
+        path = self.path
+        if self.which_set == 'train':
+            im_path = path + 'train-images-idx3-ubyte'
+            label_path = path + 'train-labels-idx1-ubyte'
+        else:
+            assert self.which_set == 'test'
+            im_path = path + 't10k-images-idx3-ubyte'
+            label_path = path + 't10k-labels-idx1-ubyte'
+            
+        im_path = serial.preprocess(im_path)
+        label_path = serial.preprocess(label_path)
 
+        from pylearn2.datasets import cache
+        # Locally cache the files before reading them
+        datasetCache = cache.datasetCache
+        im_path = datasetCache.cache_file(im_path)
+        label_path = datasetCache.cache_file(label_path)
+        import struct
+        with open(im_path, 'rb') as f:
+            magic, number, rows, cols = struct.unpack('>iiii', f.read(16))
+        array = numpy.fromfile(f, dtype='uint8').reshape((60000, 784))
+        return array
+        
 def load_from_dump(dump_data_dir, dump_filename):
     load_file = open(dump_data_dir + "/" + dump_filename)
     unpickled_var = cPickle.load(load_file)
