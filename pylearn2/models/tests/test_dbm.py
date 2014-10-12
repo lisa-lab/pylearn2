@@ -1112,6 +1112,22 @@ def check_gradients(expected_grad, actual_grad, corr_tol=0.8, mean_tol=0.05):
             (np.mean(expected_grad), np.mean(actual_grad))
 
 class Test_CD(object):
+    @staticmethod
+    def check_rbm_pos_phase(rbm, cost, X):
+        pos_grads, _ = cost._get_positive_phase(rbm, X)
+
+        visible_layer = rbm.visible_layer
+        hidden_layer = rbm.hidden_layers[0]
+        P_H0_given_X = hidden_layer.mf_update(state_below=visible_layer.upward_state(X),
+                                              state_above=None, layer_above=None)[1]
+
+        dW_pos_act = pos_grads[hidden_layer.transformer.get_params()[0]].eval()
+        print "dW pos actual", dW_pos_act
+        dW_pos_exp = 1 * np.dot(X.eval().T, P_H0_given_X.eval()) / rbm.batch_size
+        check_gradients(dW_pos_exp, dW_pos_act, corr_tol=0.99)
+
+        return pos_grads
+
     def test_rbm(self, num_visible=100, num_hidden=50, batch_size=200, variational=False):
         rng = np.random.RandomState([2012,11,3])
         theano_rng = MRG_RandomStreams(2024+30+9)
@@ -1138,7 +1154,8 @@ class Test_CD(object):
         X = sharedX(rng.randn(batch_size, num_visible))
         # Get the gradients from the cost function
         grads, updates = cost.get_gradients(model, X)
-
+        Test_CD.check_rbm_pos_phase(model, cost, X)
+        return
         # Iterate through the Gibbs chain, collecting P(H|v) when needed.
         P_H0_given_X = hidden_layer.mf_update(state_below = visible_layer.upward_state(X),
                                               state_above=None, layer_above=None)[1]
