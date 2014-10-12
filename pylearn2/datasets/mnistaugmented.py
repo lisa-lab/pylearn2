@@ -2,6 +2,7 @@ import cPickle
 
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.datasets.augment_input import augment_input
+from pylearn2.utils import serial
 
 '''
     Loads MNIST dataset and build augmented dataset
@@ -14,6 +15,7 @@ class MNISTAUGMENTED(DenseDesignMatrix):
                  start = None, stop = None):
         
         path = "${PYLEARN2_DATA_PATH}/mnist"
+        path = serial.preprocess(path)
         
         try:
             if which_set == 'train':
@@ -24,7 +26,6 @@ class MNISTAUGMENTED(DenseDesignMatrix):
                 augmented_X, y = datasets[0], datasets[1]
         except:
             X, y = dataset.X, dataset.y
-            print "\ndata loaded!\n"
 
             #X, y = X.astype(float), y.astype(float)
             #X /= 255.    
