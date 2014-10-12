@@ -32,8 +32,8 @@ def _zero_pad(array, amount, axes=(1, 2)):
     The new array has the same dimensions as the input array, except for
     the dimensions given by <axes>, which are increased by 2*<amount>.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     array: numpy.ndarray
       The array to zero-pad.
 

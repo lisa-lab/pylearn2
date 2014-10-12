@@ -401,8 +401,14 @@ class Maxout(Layer):
         if not isinstance(self.input_space, Conv2DSpace):
             raise NotImplementedError()
 
-        # There was an implementation of this, but it was broken
-        raise NotImplementedError()
+        W, = self.transformer.get_params()
+        assert self.input_space.num_channels in [1, 3]
+        viewer_space = Conv2DSpace(shape=self.input_space.shape,
+                                   num_channels=self.input_space.num_channels,
+                                   axes=('b', 0, 1, 'c'))
+        W = self.desired_space.format_as(W.T, viewer_space)
+        rval = W.eval()
+        return rval
 
     @functools.wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
@@ -426,12 +432,12 @@ class Maxout(Layer):
                                  "weight matrix W. This is a measure of the "
                                  "least influence any visible unit has.")
 
-        return OrderedDict([('row_norms_min',  row_norms_min),
+        return OrderedDict([('row_norms_min', row_norms_min),
                             ('row_norms_mean', row_norms.mean()),
-                            ('row_norms_max',  row_norms.max()),
-                            ('col_norms_min',  col_norms.min()),
+                            ('row_norms_max', row_norms.max()),
+                            ('col_norms_min', col_norms.min()),
                             ('col_norms_mean', col_norms.mean()),
-                            ('col_norms_max',  col_norms.max()), ])
+                            ('col_norms_max', col_norms.max()), ])
 
     @functools.wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state):
@@ -497,12 +503,12 @@ class Maxout(Layer):
                                  "weight matrix W. This is a measure of the "
                                  "least influence any visible unit has.")
 
-        rval = OrderedDict([('row_norms_min',  row_norms_min),
+        rval = OrderedDict([('row_norms_min', row_norms_min),
                             ('row_norms_mean', row_norms.mean()),
-                            ('row_norms_max',  row_norms.max()),
-                            ('col_norms_min',  col_norms.min()),
+                            ('row_norms_max', row_norms.max()),
+                            ('col_norms_min', col_norms.min()),
                             ('col_norms_mean', col_norms.mean()),
-                            ('col_norms_max',  col_norms.max()), ])
+                            ('col_norms_max', col_norms.max()), ])
 
         if (state is not None) or (state_below is not None):
             if state is None:
@@ -540,7 +546,7 @@ class Maxout(Layer):
                                  ('mean_x.max_u', v_mean.max()),
                                  ('mean_x.mean_u', v_mean.mean()),
                                  ('mean_x.min_u', v_mean.min())]:
-                    rval[prefix+key] = val
+                    rval[prefix + key] = val
 
         return rval
 
@@ -574,7 +580,7 @@ class Maxout(Layer):
 
         last_start = self.detector_layer_dim - self.pool_size
         for i in xrange(self.pool_size):
-            cur = z[:, i:last_start+i+1:self.pool_stride]
+            cur = z[:, i:last_start + i + 1:self.pool_stride]
             if p is None:
                 p = cur
             else:
@@ -880,9 +886,9 @@ class MaxoutConvC01B(Layer):
 
         row_norms = T.sqrt(sq_W.sum(axis=(0, 1, 2)))
 
-        return OrderedDict([('kernel_norms_min',  row_norms.min()),
+        return OrderedDict([('kernel_norms_min', row_norms.min()),
                             ('kernel_norms_mean', row_norms.mean()),
-                            ('kernel_norms_max',  row_norms.max()), ])
+                            ('kernel_norms_max', row_norms.max()), ])
 
     @functools.wraps(Layer.fprop)
     def fprop(self, state_below):
@@ -1014,19 +1020,19 @@ class MaxoutConvC01B(Layer):
             # something like that because I want mean_x.* to appear next to
             # each other in the alphabetical list, as these are commonly
             # plotted together
-            for key, val in [('max_x.max_u',    v_max.max()),
-                             ('max_x.mean_u',   v_max.mean()),
-                             ('max_x.min_u',    v_max.min()),
-                             ('min_x.max_u',    v_min.max()),
-                             ('min_x.mean_u',   v_min.mean()),
-                             ('min_x.min_u',    v_min.min()),
-                             ('range_x.max_u',  v_range.max()),
+            for key, val in [('max_x.max_u', v_max.max()),
+                             ('max_x.mean_u', v_max.mean()),
+                             ('max_x.min_u', v_max.min()),
+                             ('min_x.max_u', v_min.max()),
+                             ('min_x.mean_u', v_min.mean()),
+                             ('min_x.min_u', v_min.min()),
+                             ('range_x.max_u', v_range.max()),
                              ('range_x.mean_u', v_range.mean()),
-                             ('range_x.min_u',  v_range.min()),
-                             ('mean_x.max_u',   v_mean.max()),
-                             ('mean_x.mean_u',  v_mean.mean()),
-                             ('mean_x.min_u',   v_mean.min())]:
-                rval[prefix+key] = val
+                             ('range_x.min_u', v_range.min()),
+                             ('mean_x.max_u', v_mean.max()),
+                             ('mean_x.mean_u', v_mean.mean()),
+                             ('mean_x.min_u', v_mean.min())]:
+                rval[prefix + key] = val
 
         return rval
 
@@ -1042,9 +1048,9 @@ class MaxoutConvC01B(Layer):
 
         row_norms = T.sqrt(sq_W.sum(axis=(0, 1, 2)))
 
-        rval = OrderedDict([('kernel_norms_min',  row_norms.min()),
+        rval = OrderedDict([('kernel_norms_min', row_norms.min()),
                             ('kernel_norms_mean', row_norms.mean()),
-                            ('kernel_norms_max',  row_norms.max()), ])
+                            ('kernel_norms_max', row_norms.max()), ])
 
         if (state is not None) or (state_below is not None):
             if state is None:
@@ -1069,19 +1075,19 @@ class MaxoutConvC01B(Layer):
                 # mean_x.* to appear next to each other in the
                 # alphabetical list, as these are commonly plotted
                 # together
-                for key, val in [('max_x.max_u',    v_max.max()),
-                                 ('max_x.mean_u',   v_max.mean()),
-                                 ('max_x.min_u',    v_max.min()),
-                                 ('min_x.max_u',    v_min.max()),
-                                 ('min_x.mean_u',   v_min.mean()),
-                                 ('min_x.min_u',    v_min.min()),
-                                 ('range_x.max_u',  v_range.max()),
+                for key, val in [('max_x.max_u', v_max.max()),
+                                 ('max_x.mean_u', v_max.mean()),
+                                 ('max_x.min_u', v_max.min()),
+                                 ('min_x.max_u', v_min.max()),
+                                 ('min_x.mean_u', v_min.mean()),
+                                 ('min_x.min_u', v_min.min()),
+                                 ('range_x.max_u', v_range.max()),
                                  ('range_x.mean_u', v_range.mean()),
-                                 ('range_x.min_u',  v_range.min()),
-                                 ('mean_x.max_u',   v_mean.max()),
-                                 ('mean_x.mean_u',  v_mean.mean()),
-                                 ('mean_x.min_u',   v_mean.min())]:
-                    rval[prefix+key] = val
+                                 ('range_x.min_u', v_range.min()),
+                                 ('mean_x.max_u', v_mean.max()),
+                                 ('mean_x.mean_u', v_mean.mean()),
+                                 ('mean_x.min_u', v_mean.min())]:
+                    rval[prefix + key] = val
 
         return rval
 
@@ -1502,9 +1508,9 @@ class MaxoutLocalC01B(Layer):
 
         filter_norms = self.get_filter_norms()
 
-        return OrderedDict([('filter_norms_min',  filter_norms.min()),
+        return OrderedDict([('filter_norms_min', filter_norms.min()),
                             ('filter_norms_mean', filter_norms.mean()),
-                            ('filter_norms_max',  filter_norms.max()), ])
+                            ('filter_norms_max', filter_norms.max()), ])
 
     @functools.wraps(Layer.fprop)
     def fprop(self, state_below):
@@ -1645,19 +1651,19 @@ class MaxoutLocalC01B(Layer):
             # something like that because I want mean_x.* to appear next to
             # each other in the alphabetical list, as these are commonly
             # plotted together
-            for key, val in [('max_x.max_u',    v_max.max()),
-                             ('max_x.mean_u',   v_max.mean()),
-                             ('max_x.min_u',    v_max.min()),
-                             ('min_x.max_u',    v_min.max()),
-                             ('min_x.mean_u',   v_min.mean()),
-                             ('min_x.min_u',    v_min.min()),
-                             ('range_x.max_u',  v_range.max()),
+            for key, val in [('max_x.max_u', v_max.max()),
+                             ('max_x.mean_u', v_max.mean()),
+                             ('max_x.min_u', v_max.min()),
+                             ('min_x.max_u', v_min.max()),
+                             ('min_x.mean_u', v_min.mean()),
+                             ('min_x.min_u', v_min.min()),
+                             ('range_x.max_u', v_range.max()),
                              ('range_x.mean_u', v_range.mean()),
-                             ('range_x.min_u',  v_range.min()),
-                             ('mean_x.max_u',   v_mean.max()),
-                             ('mean_x.mean_u',  v_mean.mean()),
-                             ('mean_x.min_u',   v_mean.min())]:
-                rval[prefix+key] = val
+                             ('range_x.min_u', v_range.min()),
+                             ('mean_x.max_u', v_mean.max()),
+                             ('mean_x.mean_u', v_mean.mean()),
+                             ('mean_x.min_u', v_mean.min())]:
+                rval[prefix + key] = val
 
         return rval
 
@@ -1667,9 +1673,9 @@ class MaxoutLocalC01B(Layer):
 
         filter_norms = self.get_filter_norms()
 
-        rval = OrderedDict([('filter_norms_min',  filter_norms.min()),
+        rval = OrderedDict([('filter_norms_min', filter_norms.min()),
                             ('filter_norms_mean', filter_norms.mean()),
-                            ('filter_norms_max',  filter_norms.max()), ])
+                            ('filter_norms_max', filter_norms.max()), ])
 
         if (state is not None) or (state_below is not None):
             if state is None:
@@ -1694,18 +1700,18 @@ class MaxoutLocalC01B(Layer):
                 # mean_x.* to appear next to each other in the
                 # alphabetical list, as these are commonly plotted
                 # together
-                for key, val in [('max_x.max_u',    v_max.max()),
-                                 ('max_x.mean_u',   v_max.mean()),
-                                 ('max_x.min_u',    v_max.min()),
-                                 ('min_x.max_u',    v_min.max()),
-                                 ('min_x.mean_u',   v_min.mean()),
-                                 ('min_x.min_u',    v_min.min()),
-                                 ('range_x.max_u',  v_range.max()),
+                for key, val in [('max_x.max_u', v_max.max()),
+                                 ('max_x.mean_u', v_max.mean()),
+                                 ('max_x.min_u', v_max.min()),
+                                 ('min_x.max_u', v_min.max()),
+                                 ('min_x.mean_u', v_min.mean()),
+                                 ('min_x.min_u', v_min.min()),
+                                 ('range_x.max_u', v_range.max()),
                                  ('range_x.mean_u', v_range.mean()),
-                                 ('range_x.min_u',  v_range.min()),
-                                 ('mean_x.max_u',   v_mean.max()),
-                                 ('mean_x.mean_u',  v_mean.mean()),
-                                 ('mean_x.min_u',   v_mean.min())]:
-                    rval[prefix+key] = val
+                                 ('range_x.min_u', v_range.min()),
+                                 ('mean_x.max_u', v_mean.max()),
+                                 ('mean_x.mean_u', v_mean.mean()),
+                                 ('mean_x.min_u', v_mean.min())]:
+                    rval[prefix + key] = val
 
             return rval

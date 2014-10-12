@@ -6,6 +6,7 @@ import numpy as np
 
 
 class TestMNIST(unittest.TestCase):
+
     def setUp(self):
         skip_if_no_data()
         self.train = MNIST(which_set='train')

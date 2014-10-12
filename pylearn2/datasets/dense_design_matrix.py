@@ -57,6 +57,7 @@ def ensure_tables():
 
 
 class DenseDesignMatrix(Dataset):
+
     """
     A class for representing datasets that can be stored as a dense design
     matrix (and optionally, associated targets).
@@ -1134,6 +1135,7 @@ class DenseDesignMatrix(Dataset):
 
 
 class DenseDesignMatrixPyTables(DenseDesignMatrix):
+
     """
     DenseDesignMatrix based on PyTables
 
@@ -1324,6 +1326,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
 
 
 class DefaultViewConverter(object):
+
     """
     .. todo::
 
@@ -1337,6 +1340,7 @@ class DefaultViewConverter(object):
       The axis ordering to use in topological views of the data. Must be some
       permutation of ('b', 0, 1, 'c'). Default: ('b', 0, 1, 'c')
     """
+
     def __init__(self, shape, axes=('b', 0, 1, 'c')):
         self.shape = shape
         self.pixels_per_channel = 1
@@ -1365,8 +1369,8 @@ class DefaultViewConverter(object):
         """
         Returns a topological view/copy of design matrix.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         design_matrix: numpy.ndarray
           A design matrix with data in rows. Data is assumed to be laid out in
           memory according to the axis order ('b', 'c', 0, 1)
@@ -1418,8 +1422,8 @@ class DefaultViewConverter(object):
         """
         Returns a design matrix view/copy of topological matrix.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         topo_array: numpy.ndarray
           An N-D array with axis order given by self.axes. Non-batch axes'
           dimension sizes must agree with corresponding sizes in self.shape.

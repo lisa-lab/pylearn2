@@ -12,6 +12,7 @@ from pylearn2.testing.skip import skip_if_no_data
 
 
 class TestNORB(unittest.TestCase):
+
     def setUp(self):
         skip_if_no_data()
 
@@ -27,7 +28,9 @@ class TestNORB(unittest.TestCase):
         def test_impl(norb):
             # Get a topological view as a single "(b, s, 0 1, c)" tensor.
             topo_tensor = norb.get_topological_view(single_tensor=True)
-            shape = (norb.X.shape[0], 2) + SmallNORB.original_image_shape + (1, )
+            shape = ((norb.X.shape[0], 2) +
+                     SmallNORB.original_image_shape +
+                     (1, ))
             expected_topo_tensor = norb.X.reshape(shape)
             # We loop to lower the peak memory usage
             for i in range(topo_tensor.shape[0]):

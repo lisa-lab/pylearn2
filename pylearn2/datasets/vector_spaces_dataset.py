@@ -22,6 +22,7 @@ from pylearn2.utils import contains_nan
 
 
 class VectorSpacesDataset(Dataset):
+
     """
     A class representing datasets being stored as a number of VectorSpaces.
 

@@ -421,13 +421,18 @@ class MLP(Layer):
     layer_name : name of the MLP layer. Should be None if the MLP is
         not part of another MLP.
     seed : WRITEME
+    monitor_targets : bool, optional
+        Default: True
+        If true, includes monitoring channels that are functions of the
+        targets. This can be disabled to allow monitoring on monitoring
+        datasets that do not include targets.
     kwargs : dict
         Passed on to the superclass.
     """
 
     def __init__(self, layers, batch_size=None, input_space=None,
                  input_source='features', nvis=None, seed=None,
-                 layer_name=None, **kwargs):
+                 layer_name=None, monitor_targets=True, **kwargs):
         super(MLP, self).__init__(**kwargs)
 
         self.seed = seed
@@ -455,6 +460,8 @@ class MLP(Layer):
         self.force_batch_size = batch_size
 
         self._input_source = input_source
+
+        self.monitor_targets = monitor_targets
 
         if input_space is not None or nvis is not None:
             self._nested = False
@@ -569,7 +576,10 @@ class MLP(Layer):
         for layer in layers:
             assert layer.get_mlp() is None
             layer.set_mlp(self)
-            layer.set_input_space(existing_layers[-1].get_output_space())
+            # In the case of nested MLPs, input/output spaces may have not yet
+            # been initialized
+            if not self._nested or hasattr(self, 'input_space'):
+                layer.set_input_space(existing_layers[-1].get_output_space())
             existing_layers.append(layer)
             assert layer.layer_name not in self.layer_names
             self.layer_names.add(layer.layer_name)
@@ -593,7 +603,11 @@ class MLP(Layer):
         # if the MLP is the outer MLP \
         # (ie MLP is not contained in another structure)
 
-        X, Y = data
+        if self.monitor_targets:
+            X, Y = data
+        else:
+            X = data
+            Y = None
         state = X
         rval = self.get_layer_monitoring_channels(state_below=X,
                                                     targets=Y)
@@ -687,6 +701,9 @@ class MLP(Layer):
         data_specs: TODO
             The data specifications for both inputs and targets.
         """
+
+        if not self.monitor_targets:
+            return (self.get_input_space(), self.get_input_source())
         space = CompositeSpace((self.get_input_space(),
                                 self.get_target_space()))
         source = (self.get_input_source(), self.get_target_source())
@@ -3937,7 +3954,7 @@ def mean_pool(bc01, pool_shape, pool_stride, image_shape):
     pool_stride : tuple
         strides between pooling regions (row stride, col stride)
     image_shape : tuple
-        avoid doing some of the arithmetic in theano
+        (rows, cols) tuple to avoid doing some arithmetic in theano
 
     Returns
     -------
@@ -3947,6 +3964,30 @@ def mean_pool(bc01, pool_shape, pool_stride, image_shape):
     See Also
     --------
     max_pool : Same thing but with max pooling
+
+    Examples
+    --------
+    >>> import theano
+    >>> import theano.tensor as T
+    >>> from pylearn2.models.mlp import mean_pool
+    >>> import numpy as np
+    >>> t = np.array([[1, 1, 3, 3],
+    ...               [1, 1, 3, 3],
+    ...               [5, 5, 7, 7],
+    ...               [5, 5, 7, 7],
+    ...               [9, 9, 11, 11],
+    ...               [9, 9, 11, 11]])
+
+    >>> X = np.zeros((3, t.shape[0], t.shape[1]))
+    >>> X[:] = t
+    >>> X = X[np.newaxis]
+    >>> X_sym = T.tensor4('X')
+    >>> pool_it = mean_pool(X_sym, pool_shape=(2, 2), pool_stride=(2, 2),
+    ...                     image_shape=(6, 4))
+    >>> f = theano.function(inputs=[X_sym], outputs=pool_it)
+
+    This will pool over over windows of size (2, 2) while also stepping by this
+    same amount, shrinking the examples input to [[1, 3], [5, 7], [9, 11]].
     """
     mx = None
     r, c = image_shape
@@ -4642,8 +4683,8 @@ class FlattenerLayer(Layer):
                                       state=None, targets=None):
         return self.raw_layer.get_layer_monitoring_channels(
             state_below=state_below,
-            state=state,
-            targets=targets
+            state=self.get_output_space().format_as(state, self.raw_layer.get_output_space()),
+            targets=self.get_target_space().format_as(targets, self.raw_layer.get_target_space())
             )
 
     @wraps(Layer.get_monitoring_data_specs)

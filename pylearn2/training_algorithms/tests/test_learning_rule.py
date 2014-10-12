@@ -1,21 +1,15 @@
 import numpy as np
-import warnings
 
-import theano.tensor as T
-from theano.tests import disturb_mem
 from theano.compat.six.moves import zip as izip
 
 from pylearn2.costs.cost import SumOfCosts
 from pylearn2.testing.cost import SumOfOneHalfParamsSquared
-from pylearn2.models.model import Model
-from pylearn2.space import VectorSpace
 from pylearn2.testing.cost import SumOfParams
 from pylearn2.testing.datasets import ArangeDataset
 from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.training_algorithms.learning_rule import Momentum
 from pylearn2.training_algorithms.learning_rule import AdaDelta
 from pylearn2.training_algorithms.learning_rule import RMSProp
-from pylearn2.utils import sharedX
 
 from test_sgd import DummyCost, DummyModel
 

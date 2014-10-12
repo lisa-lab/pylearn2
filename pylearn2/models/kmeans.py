@@ -191,7 +191,6 @@ class KMeans(Block, Model):
 
         self.mu = sharedX(mu)
         self._params = [self.mu]
-        return True
 
     @wraps(Model.continue_learning)
     def continue_learning(self):

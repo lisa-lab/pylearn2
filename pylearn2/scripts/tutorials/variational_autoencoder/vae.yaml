@@ -1,0 +1,114 @@
+# Example script showcasing how to use the VAE framework to train variational
+# autoencoders.
+#
+# The VAE trained according to this script should score around 93.8 in terms of
+# NLL on the test set of the binarized MNIST dataset [Larochelle, H. and
+# Murray, I. The neural autoregressive distribution estimator. In Proceedings
+# of the International Conference on Artiﬁcial Intelligence and Statistics
+# (AISTATS), 2011.]
+!obj:pylearn2.train.Train {
+    dataset: &train !obj:pylearn2.datasets.binarized_mnist.BinarizedMNIST {
+        which_set: 'train',
+    },
+    model: !obj:pylearn2.models.vae.VAE {
+        # Input dimensions (x's dimensionality)
+        nvis: &nvis 784,
+        # Number of latent dimensions (z's dimensionality)
+        nhid: &nhid 200,
+        # Object (subclass of `pylearn2.models.vae.kl.KLIntegrator`)
+        # responsible for coordinating the analytical computation of the KL
+        # divergence term. May be left unspecified, in which case VAE will try
+        # to find it automatically in pylearn2.models.vae.kl.
+        kl_integrator: !obj:pylearn2.models.vae.kl.DiagonalGaussianPriorPosteriorKL {},
+        # Object (subclass of `pylearn2.models.vae.prior.Prior`)
+        # responsible for implementing methods related to the prior
+        # distribution p(z).
+        prior: !obj:pylearn2.models.vae.prior.DiagonalGaussianPrior {
+            learn_prior : 1,
+        },
+        # Object (subclass of `pylearn2.models.vae.conditional.Conditional`)
+        # responsible for implementing methods related to the conditional
+        # distribution p(x | z).
+        conditional: !obj:pylearn2.models.vae.conditional.BernoulliVector {
+            # `Conditional` subclasses get passed an `MLP` instance which will
+            # # be fed posterior sample and whose output is used to "decode"
+            # parameters for p(x | z).
+            name: 'conditional',
+            mlp: !obj:pylearn2.models.mlp.MLP {
+                layer_name: "decoder",
+                layers: [
+                    !obj:pylearn2.models.mlp.RectifiedLinear {
+                        layer_name: 'h_d_1',
+                        dim: 200,
+                        irange: 0.001,
+                    },
+                    !obj:pylearn2.models.mlp.RectifiedLinear {
+                        layer_name: 'h_d_2',
+                        dim: 200,
+                        irange: 0.001,
+                    },
+                ],
+            },
+        },
+        # Object (subclass of `pylearn2.models.vae.conditional.Conditional`)
+        # responsible for implementing methods related to the posterior
+        # distribution q(z | x).
+        posterior: !obj:pylearn2.models.vae.conditional.DiagonalGaussian {
+            # `Conditional` subclasses get passed an `MLP` instance which will
+            # be fed training examples and whose output is used to "encode"
+            # parameters for q(z | x).
+            name: 'posterior',
+            mlp: !obj:pylearn2.models.mlp.MLP {
+                layer_name: "encoder",
+                layers: [
+                    !obj:pylearn2.models.mlp.RectifiedLinear {
+                        layer_name: 'h_e_1',
+                        dim: 200,
+                        irange: 0.001,
+                    },
+                ],
+            },
+        },
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        batch_size: 200,
+        learning_rate: 1e-2,
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: 0.05,
+        },
+        monitoring_dataset: {
+            'train' : *train,
+            'valid' : !obj:pylearn2.datasets.binarized_mnist.BinarizedMNIST {
+                which_set: 'valid',
+            },
+            'test' : !obj:pylearn2.datasets.binarized_mnist.BinarizedMNIST {
+                which_set: 'test',
+            },
+        },
+        cost: !obj:pylearn2.costs.vae.VAECriterion {
+            num_samples: 1,
+        },
+        termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
+            max_epochs: 500
+        },
+        update_callbacks: [
+            !obj:pylearn2.training_algorithms.sgd.ExponentialDecay {
+                decay_factor: 1.0005,
+                min_lr:       0.0001
+            },
+        ],
+    },
+    extensions: [
+        !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
+            channel_name: 'valid_objective',
+            save_path: "${PYLEARN2_TRAIN_FILE_FULL_STEM}_best.pkl",
+        },
+        !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
+            final_momentum: .99,
+            start: 5,
+            saturate: 30
+        },
+    ],
+    save_path: "${PYLEARN2_TRAIN_FILE_FULL_STEM}.pkl",
+    save_freq: 10
+}

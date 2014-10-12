@@ -12,7 +12,8 @@ from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.train import Train
 from pylearn2.models.mlp import (FlattenerLayer, MLP, Linear, Softmax, Sigmoid,
                                  exhaustive_dropout_average,
-                                 sampled_dropout_average, CompositeLayer)
+                                 sampled_dropout_average, CompositeLayer,
+                                 mean_pool)
 from pylearn2.space import VectorSpace, CompositeSpace, Conv2DSpace
 from pylearn2.utils import is_iterable, sharedX
 from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
@@ -450,3 +451,27 @@ def test_init_bias_target_marginals():
             nvis=n_features
         )
     assert_raises(AssertionError, invalid_multiclass_mlp)
+
+
+def test_mean_pool():
+    X_sym = tensor.tensor4('X')
+    pool_it = mean_pool(X_sym, pool_shape=(2, 2), pool_stride=(2, 2),
+                        image_shape=(6, 4))
+
+    f = theano.function(inputs=[X_sym], outputs=pool_it)
+
+    t = np.array([[1, 1, 3, 3],
+                  [1, 1, 3, 3],
+                  [5, 5, 7, 7],
+                  [5, 5, 7, 7],
+                  [9, 9, 11, 11],
+                  [9, 9, 11, 11]], dtype=theano.config.floatX)
+
+    X = np.zeros((3, t.shape[0], t.shape[1]), dtype=theano.config.floatX)
+    X[:] = t
+    X = X[np.newaxis]
+    expected = np.array([[1, 3],
+                         [5, 7],
+                         [9, 11]], dtype=theano.config.floatX)
+    actual = f(X)
+    assert np.allclose(expected, actual)

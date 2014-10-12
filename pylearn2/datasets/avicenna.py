@@ -6,7 +6,9 @@
 from pylearn2.datasets import utlc
 import numpy as N
 
+
 class Avicenna(object):
+
     """
     .. todo::
 
@@ -17,6 +19,7 @@ class Avicenna(object):
     which_set : WRITEME
     standardize : WRITEME
     """
+
     def __init__(self, which_set, standardize):
         train, valid, test = utlc.load_ndarray_dataset('avicenna')
 
@@ -30,7 +33,7 @@ class Avicenna(object):
             assert False
 
         if standardize:
-            union = N.concatenate([train,valid,test],axis=0)
+            union = N.concatenate([train, valid, test], axis=0)
             self.X -= union.mean(axis=0)
             std = union.std(axis=0)
             std[std < 1e-3] = 1e-3
@@ -43,4 +46,3 @@ class Avicenna(object):
             WRITEME
         """
         return self.X
-

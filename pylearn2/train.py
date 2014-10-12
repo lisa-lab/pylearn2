@@ -140,13 +140,9 @@ class Train(object):
         t0 = datetime.now()
         self.setup()
         if self.algorithm is None:
+            self.run_callbacks_and_monitoring()
             while True:
                 if self.exceeded_time_budget(t0, time_budget):
-                    break
-                continue_learning = self.model.continue_learning()
-                extension_continue = self.run_callbacks_and_monitoring()
-                assert continue_learning in [True, False, 0, 1]
-                if not continue_learning or not extension_continue:
                     break
 
                 rval = self.model.train_all(dataset=self.dataset)
@@ -157,9 +153,13 @@ class Train(object):
                 self.model.monitor.report_epoch()
                 extension_continue = self.run_callbacks_and_monitoring()
                 freq = self.save_freq
-                epochs_seen = self.model.monitor.get_epochs_seen()
-                if freq > 0 and epochs_seen % freq == 0:
+                if freq > 0 and self.model.monitor.get_epochs_seen() % freq == 0:
                     self.save()
+                continue_learning = (self.model.continue_learning() and
+                                     extension_continue)
+                assert continue_learning in [True, False, 0, 1]
+                if not continue_learning:
+                    break
         else:
             if not hasattr(self.model, 'monitor'):
                 # TODO: is this really necessary? I just put this error here
@@ -193,6 +193,7 @@ already been reported."""
                     val=self.total_seconds,
                     data_specs=(NullSpace(), ''),
                     dataset=self.model.monitor._datasets[0])
+            self.run_callbacks_and_monitoring()
 
             while True:
                 if self.exceeded_time_budget(t0, time_budget):
@@ -203,17 +204,6 @@ already been reported."""
                     with log_timing(
                             log, None, final_msg='Time this epoch:',
                             callbacks=[self.training_seconds.set_value]):
-
-                        continue_learning = (
-                            self.algorithm.continue_learning(self.model)
-                        )
-                        extension_continue = (
-                            self.run_callbacks_and_monitoring()
-                        )
-                        assert continue_learning in [True, False, 0, 1]
-                        if not continue_learning or not extension_continue:
-                            break
-
                         rval = self.algorithm.train(dataset=self.dataset)
                     if rval is not None:
                         raise ValueError("TrainingAlgorithm.train should not "
@@ -222,10 +212,17 @@ already been reported."""
                                          "to control whether learning "
                                          "continues.")
                     self.model.monitor.report_epoch()
-                    freq = self.save_freq
-                    epochs_seen = self.model.monitor.get_epochs_seen()
-                    if freq > 0 and epochs_seen % self.save_freq == 0:
+                    extension_continue = self.run_callbacks_and_monitoring()
+                    if self.save_freq > 0 and \
+                       self.model.monitor.get_epochs_seen() % self.save_freq == 0:
                         self.save()
+                continue_learning = (
+                    self.algorithm.continue_learning(self.model) and
+                    extension_continue
+                )
+                assert continue_learning in [True, False, 0, 1]
+                if not continue_learning:
+                    break
 
         self.model.monitor.training_succeeded = True
 
