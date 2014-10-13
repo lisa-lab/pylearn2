@@ -3,9 +3,9 @@
 """
 Interactive viewer for the convolutional weights in a pickled model.
 
-Unlike ./show_weights, this shows one unit's weights at a time. This allows it
-to display weights from higher levels (which can have 100s of input channels),
-not just the first.
+Unlike ./show_weights, this shows one unit's weights at a time. This
+allows it to display weights from higher levels (which can have 100s
+of input channels), not just the first.
 """
 
 import os, sys, warnings, argparse, pdb
@@ -38,19 +38,6 @@ def _parse_args():
         sys.exit(1)
 
     return result
-
-
-def _draw(canvas, conv_layer, unit_index):
-    '''
-    Draws the channels of a single convolutional unit.
-
-    Parameters
-    ----------
-    canvas: a matplotlib canvas
-    conv_layer: MaxoutConvC01B
-    unit_index: int, or numpy.array (0-dimensional)
-    '''
-    pass
 
 
 def _get_conv_layers(layer, result=None):
@@ -127,8 +114,6 @@ def _num_conv_units(conv_layer):
 def main():
     "Entry point of script."
 
-    # pyplot.ion()
-
     args = _parse_args()
 
     model = serial.load(args.input)
@@ -180,7 +165,6 @@ def main():
     figure, all_axes = get_figure_and_axes(conv_layers)
     title_text = figure.suptitle("title")
     pyplot.tight_layout(h_pad=.1, w_pad=.5)  # in inches
-    # figure.subplots_adjust(left=2, right=2) #wspace=5)
 
     layer_index = numpy.array(0)
     unit_indices = numpy.zeros(len(model.layers), dtype=int)
@@ -210,8 +194,8 @@ def main():
         for axes in unused_axes:
             axes.set_visible(False)
 
-        title_text.set_text("Layer %d, unit %d" %
-                            (layer_index, unit_indices[layer_index]))
+        title_text.set_text("Layer %s, unit %d" %
+                            (layer.layer_name, unit_indices[layer_index]))
 
         figure.canvas.draw()
 
@@ -256,6 +240,7 @@ def main():
     figure.canvas.mpl_connect('key_press_event', on_key_press)
     redraw()
     pyplot.show()
+
 
 if __name__ == '__main__':
     main()
