@@ -1,9 +1,3 @@
-__author__ = "Carlo D'Eramo"
-__copyright__ = "Copyright 2014, Politecnico di Milano"
-__credits__ = ["Carlo D'Eramo"]
-__license__ = "3-clause BSD"
-__email__ = "carlo.deramo@gmail.com"
-
 import os
 import numpy
 
@@ -41,10 +35,7 @@ MF_STEPS = 1 # mf_steps for data augmentation
 def test_train_example():
     
     # path definition
-    path = ''
-    train_path = os.path.join(path, 'dbm')
-    
-    cwd = os.getcwd()
+    train_path = cwd = os.getcwd()
     try:
         os.chdir(train_path)
         
@@ -179,9 +170,9 @@ def test_train_example():
                 dbm = serial.load(os.path.join(train_path, 'dbm_mnist.pkl'))
             
             # dataset & monitoring dataset insertion without .yaml file to avoid problems (don't know how to pass 'model' hyperparameter)
-            train.dataset = mnistaugmented.MNISTAUGMENTED(which_set = 'train', one_hot = 1, model = dbm, start = 0, stop = hyper_params_mlp['train_stop'], mf_steps = MF_STEPS)
-            train.algorithm.monitoring_dataset = {#'valid' : mnistaugmented.MNISTAUGMENTED(which_set = 'train', one_hot = 1, model = dbm, start = hyper_params_mlp['train_stop'], stop = hyper_params_mlp['valid_stop'], mf_steps = mf_steps), 
-                                                  'test' : mnistaugmented.MNISTAUGMENTED(which_set = 'test', one_hot = 1, model = dbm, mf_steps = MF_STEPS)}
+            train.dataset = mnistaugmented.MNISTAUGMENTED(dataset = train.dataset, which_set = 'train', one_hot = 1, model = dbm, start = 0, stop = hyper_params_mlp['train_stop'], mf_steps = MF_STEPS)
+            train.algorithm.monitoring_dataset = {#'valid' : mnistaugmented.MNISTAUGMENTED(dataset = train.algorithm.monitoring_dataset['valid'], which_set = 'train', one_hot = 1, model = dbm, start = hyper_params_mlp['train_stop'], stop = hyper_params_mlp['valid_stop'], mf_steps = mf_steps), 
+                                                  'test' : mnistaugmented.MNISTAUGMENTED(dataset = train.algorithm.monitoring_dataset['test'], which_set = 'test', one_hot = 1, model = dbm, mf_steps = MF_STEPS)}
             
             # DBM TRAINED WEIGHTS CLAMPED FOR FINETUNING AS EXPLAINED BY HINTON
             
