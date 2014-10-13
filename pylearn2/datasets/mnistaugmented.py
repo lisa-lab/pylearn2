@@ -1,4 +1,5 @@
 import cPickle
+import numpy as np
 
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.datasets.augment_input import augment_input
@@ -25,7 +26,15 @@ class MNISTAUGMENTED(DenseDesignMatrix):
                 datasets = load_from_dump(dump_data_dir = path, dump_filename = 'aug_test_dump.pkl.gz')
                 augmented_X, y = datasets[0], datasets[1]
         except:
-            X, y = dataset.X, dataset.y
+            X = dataset.X
+            if one_hot:
+                one_hot = np.zeros((dataset.y.shape[0], 10), dtype='float32')
+                for i in xrange(dataset.y.shape[0]):
+                    label = dataset.y[i]
+                    one_hot[i, label] = 1.
+                y = one_hot
+            else:
+                y = dataset.y
 
             #X, y = X.astype(float), y.astype(float)
             #X /= 255.    
