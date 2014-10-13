@@ -39,7 +39,7 @@ class MNISTAUGMENTED(DenseDesignMatrix):
             else:
                 save_to_dump(var_to_dump = datasets, dump_data_dir = path, dump_filename = 'aug_test_dump.pkl.gz')
         
-        augmented_X, y = augmented_X[self.start:self.stop], y[self.start:self.stop]
+        augmented_X, y = augmented_X[start:stop], y[start:stop]
         super(MNISTAUGMENTED, self).__init__(X = augmented_X, y = y)
 
 def load_from_dump(dump_data_dir, dump_filename):
