@@ -127,6 +127,8 @@ def _num_conv_units(conv_layer):
 def main():
     "Entry point of script."
 
+    # pyplot.ion()
+
     args = _parse_args()
 
     model = serial.load(args.input)
@@ -150,13 +152,21 @@ def main():
 
         assert num_rows * num_columns >= max_num_channels
 
-        window_width = 10
-        window_height = window_width * (float(num_rows) / num_columns)
+        window_width = 15
+
+        # '* 1.8' comse from the fact that rows take up about 1.8 times as much
+        # space as columns, due to the title text.
+        window_height = window_width * ((num_rows * 1.8) / num_columns)
         figure, all_axes = pyplot.subplots(num_rows,
                                            num_columns,
                                            squeeze=False,
                                            figsize=(window_width,
                                                     window_height))
+
+        for unit_index, axes in enumerate(all_axes.flat):
+            subplot_title = axes.set_title('%d' % unit_index)
+            subplot_title.set_size(8)
+            subplot_title.set_color((.3, .3, .3))
 
         # Hides tickmarks
         for axes_row in all_axes:
@@ -168,6 +178,9 @@ def main():
 
     conv_layers = _get_conv_layers(model)
     figure, all_axes = get_figure_and_axes(conv_layers)
+    title_text = figure.suptitle("title")
+    pyplot.tight_layout(h_pad=.1, w_pad=.5)  # in inches
+    # figure.subplots_adjust(left=2, right=2) #wspace=5)
 
     layer_index = numpy.array(0)
     unit_indices = numpy.zeros(len(model.layers), dtype=int)
@@ -184,16 +197,21 @@ def main():
 
         active_axes = axes_list[:weights.shape[0]]
 
-        print("weights.shape: %s, active_axes = %d" % (str(weights.shape),
-                                                       len(active_axes)))
         for axes, weights in safe_zip(active_axes, weights):
             axes.set_visible(True)
             axes.imshow(weights, cmap='gray', interpolation='nearest')
 
-        unused_axes = axes_list[weights.shape[0]:]
+        assert len(frozenset(active_axes)) == len(active_axes)
+
+        unused_axes = axes_list[len(active_axes):]
+        assert len(frozenset(unused_axes)) == len(unused_axes)
+        assert len(axes_list) == len(active_axes) + len(unused_axes)
 
         for axes in unused_axes:
             axes.set_visible(False)
+
+        title_text.set_text("Layer %d, unit %d" %
+                            (layer_index, unit_indices[layer_index]))
 
         figure.canvas.draw()
 
@@ -224,15 +242,13 @@ def main():
             increment(layer_index,
                       len(conv_layers),
                       1 if event.key == 'up' else -1)
-            print("layer %d, unit %d" % (layer_index,
-                                         unit_indices[layer_index]))
+            unit_index = unit_indices[layer_index]
             redraw()
         elif event.key in ('right', 'left'):
-            increment(unit_indices[layer_index, ...],
+            unit_index = unit_indices[layer_index:layer_index + 1]
+            increment(unit_index,
                       _num_conv_units(conv_layers[layer_index]),
                       1 if event.key == 'right' else -1)
-            print("layer %d, unit %d" % (layer_index,
-                                         unit_indices[layer_index]))
             redraw()
         elif event.key == 'q':
             sys.exit(0)
