@@ -24,7 +24,9 @@ except ImportError, import_error:
 
 def _parse_args():
     parser = argparse.ArgumentParser(
-        description="Interactive browser of convolutional weights")
+        description=("Interactive browser of convolutional weights. "
+                     "Up/down keys switch layers. "
+                     "Left/right keys switch units."))
 
     parser.add_argument('-i',
                         '--input',
@@ -195,7 +197,8 @@ def main():
             axes.set_visible(False)
 
         title_text.set_text("Layer %s, unit %d" %
-                            (layer.layer_name, unit_indices[layer_index]))
+                            (layer.layer_name,
+                             unit_indices[layer_index]))
 
         figure.canvas.draw()
 
