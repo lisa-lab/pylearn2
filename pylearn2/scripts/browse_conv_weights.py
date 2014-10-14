@@ -8,7 +8,10 @@ allows it to display weights from higher levels (which can have 100s
 of input channels), not just the first.
 """
 
-import os, sys, warnings, argparse, pdb
+import os
+import sys
+import warnings
+import argparse
 import numpy
 from pylearn2.models.mlp import MLP, ConvElemwise, CompositeLayer
 from pylearn2.models.maxout import MaxoutConvC01B
