@@ -312,6 +312,44 @@ def test_multiple_inputs():
     train.algorithm.termination_criterion = EpochCounter(1)
     train.main_loop()
 
+def test_get_layer_monitor_channels():
+    """
+    Create a MLP with multiple layer types
+    and get layer monitoring channels for MLP.
+    """
+    mlp = MLP(
+        layers=[
+            FlattenerLayer(
+                CompositeLayer(
+                    'composite',
+                    [Linear(10, 'h0', 0.1),
+                     Linear(10, 'h1', 0.1)],
+                    {
+                        0: [1],
+                        1: [0]
+                    }
+                )
+            ),
+            Softmax(5, 'softmax', 0.1)
+        ],
+        input_space=CompositeSpace([VectorSpace(15), VectorSpace(20)]),
+        input_source=('features0', 'features1')
+    )
+    dataset = VectorSpacesDataset(
+        (np.random.rand(20, 20).astype(theano.config.floatX),
+         np.random.rand(20, 15).astype(theano.config.floatX),
+         np.random.rand(20, 5).astype(theano.config.floatX)),
+        (CompositeSpace([
+            VectorSpace(20),
+            VectorSpace(15),
+            VectorSpace(5)]),
+        ('features1', 'features0', 'targets'))
+    )
+    state_below = mlp.get_input_space().make_theano_batch()
+    targets = mlp.get_target_space().make_theano_batch()
+    mlp.get_layer_monitoring_channels(state_below=state_below, 
+            state=None, targets=targets)
+
 
 def test_nested_mlp():
     """
