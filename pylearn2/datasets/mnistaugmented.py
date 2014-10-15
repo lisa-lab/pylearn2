@@ -35,9 +35,6 @@ class MNISTAUGMENTED(DenseDesignMatrix):
                 y = one_hot
             else:
                 y = dataset.y
-
-            #X, y = X.astype(float), y.astype(float)
-            #X /= 255.    
         
             # BUILD AUGMENTED INPUT FOR FINETUNING
             augmented_X = augment_input(X, model, mf_steps)

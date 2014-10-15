@@ -1,9 +1,9 @@
-__authors__ = "Ian Goodfellow, Harm Aarts"
-__copyright__ = "Copyright 2010-2012, Universite de Montreal"
-__credits__ = ["Ian Goodfellow"]
+__authors__ = "Carlo D'Eramo, Francesco Visin, Matteo Matteucci"
+__copyright__ = "Copyright 2014-2015, Politecnico di Milano"
+__credits__ = ["Carlo D'Eramo, Francesco Visin, Matteo Matteucci"]
 __license__ = "3-clause BSD"
-__maintainer__ = "LISA Lab"
-__email__ = "pylearn-dev@googlegroups"
+__maintainer__ = "AIR-lab"
+__email__ = "carlo.deramo@mail.polimi.it, francesco.visin@polimi.it, matteo.matteucci@polimi.it"
 
 import os
 import numpy
