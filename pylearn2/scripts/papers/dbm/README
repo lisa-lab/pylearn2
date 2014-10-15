@@ -11,6 +11,6 @@ mnistaugmented.py in pylearn2/datasets/. The latter takes the mnist dataset and 
 because data augmentation is a time-consuming operation.
 
 NO DROPOUT RESULTS:
-The procedure without dropout does not need to use a softmax layer for the DBM and using all the provided parameters it should give you a test_y_misclass of 0.0094%.
+The procedure without dropout does not use a softmax layer for the DBM and using all the provided parameters it should give you a test_y_misclass of 0.0094%.
 DROPOUT RESULTS:
 The procedure with dropout uses a softmax layer for the DBM and using all the provided parameters it should give you a test_y_misclass of 0.0084%.

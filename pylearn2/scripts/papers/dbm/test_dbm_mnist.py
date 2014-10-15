@@ -1,3 +1,10 @@
+__authors__ = "Ian Goodfellow, Harm Aarts"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
+
 import os
 import numpy
 
@@ -35,7 +42,8 @@ MF_STEPS = 1 # mf_steps for data augmentation
 def test_train_example():
     
     # path definition
-    train_path = cwd = os.getcwd()
+    cwd = os.getcwd()
+    train_path = cwd # change this if you don't want to use the current working directory
     try:
         os.chdir(train_path)
         
