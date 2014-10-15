@@ -196,6 +196,9 @@ class WindowAndFlip(TrainExtension):
 
 class WindowAndFlipC01B(WindowAndFlip):
     """
+    WindowAndFlipC01B is deprecated, use WindowAndFlip.
+    WindowAndFlipC01B will be removed on or after August 25, 2014.
+
     A specialized version of WindowAndFlip accepting datasets with axes C01B.
     It exists due to backward compatibility.
 
