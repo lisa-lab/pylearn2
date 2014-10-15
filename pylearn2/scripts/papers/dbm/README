@@ -1,0 +1,16 @@
+The files in this directory recreate the experiment reported in the
+paper
+
+An efficient learning procedure for Deep Boltzmann Machines. G. Hinton, and R. Salakhutdinov.
+
+The procedure is divided in three phases: pretraining of RBMs, training and finetuning. The test_dbm_mnist script allows to enable each phase of training and to select whether the DBM
+is composed of a softmax layer or not, and whether the MLP has to do finetuning with dropout or not.
+
+As explained in the paper, the finetuning procedure uses an augmented input to feed the MLP and this implementation creates it using augment_input.py and
+mnistaugmented.py in pylearn2/datasets/. The latter takes the mnist dataset and augment it. Eventually, it saves .pkl files of the augmented dataset 
+because data augmentation is a time-consuming operation.
+
+NO DROPOUT RESULTS:
+The procedure without dropout does not use a softmax layer for the DBM and using all the provided parameters it should give you a test_y_misclass of 0.0094%.
+DROPOUT RESULTS:
+The procedure with dropout uses a softmax layer for the DBM and using all the provided parameters it should give you a test_y_misclass of 0.0084%.
