@@ -1,3 +1,4 @@
+import os
 import cPickle
 import numpy as np
 
@@ -15,7 +16,7 @@ class MNISTAUGMENTED(DenseDesignMatrix):
     def __init__(self, dataset, which_set, model, mf_steps, one_hot = True,
                  start = None, stop = None):
         
-        path = "${PYLEARN2_DATA_PATH}/mnist"
+        path = os.path.join('${PYLEARN2_DATA_PATH}', 'mnist')
         path = serial.preprocess(path)
         
         try:
