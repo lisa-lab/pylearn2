@@ -1,3 +1,10 @@
+__authors__ = "Carlo D'Eramo, Francesco Visin, Matteo Matteucci"
+__copyright__ = "Copyright 2014-2015, Politecnico di Milano"
+__credits__ = ["Carlo D'Eramo, Francesco Visin, Matteo Matteucci"]
+__license__ = "3-clause BSD"
+__maintainer__ = "AIR-lab"
+__email__ = "carlo.deramo@mail.polimi.it, francesco.visin@polimi.it, matteo.matteucci@polimi.it"
+
 from pylearn2.utils import sharedX
 from theano import function
 import numpy
