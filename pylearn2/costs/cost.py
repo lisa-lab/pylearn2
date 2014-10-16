@@ -454,26 +454,6 @@ class SumOfCosts(Cost):
         return reduce(merge, descrs)
 
 
-def scaled_cost(cost, scaling):
-    """
-    Deprecated. Switch to SumOfCosts([[scaling, cost]]), or just quit using it.
-
-    Parameters
-    ----------
-    cost : Cost
-        cost to be scaled
-    scaling : float
-        scaling of the cost
-    """
-
-    warnings.warn("""\
-scaled_cost is deprecated and may be removed on or after 2014-08-05.
-SumOfCosts allows you to scale individual terms, and if this is the only cost,
-you may as well just change the learning rate.""")
-
-    return SumOfCosts([[scaling, cost]])
-
-
 class NullDataSpecsMixin(object):
     """
     Use multiple inheritance with both this object and Cost in order to
