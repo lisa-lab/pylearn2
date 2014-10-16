@@ -1143,3 +1143,21 @@ class PolyakAveraging(TrainExtension):
             for param in model.get_params():
                 param.set_value(saved_params[param])
         self._count += 1
+
+class LRAssigning(object):
+    def __init__(self):
+        self.__dict__.update(locals())
+        del self.self
+        self._count = 0
+        self.new_lr = 0
+        
+    def __call__(self, algorithm):
+        if self._count == 0:
+            self._new_lr = algorithm.learning_rate.get_value()
+        else:
+            self.new_lr = 10 / (2000 + self._count) # new learning rate will have this value
+            
+        self._count += 1
+        new_lr = np.cast[config.floatX](self.new_lr)
+        algorithm.learning_rate.set_value(new_lr)
+
