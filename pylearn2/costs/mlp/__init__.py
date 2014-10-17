@@ -82,20 +82,21 @@ class WeightDecay(NullDataSpecsMixin, Cost):
             try:
                 return layer.get_weight_decay(coeff)
             except NotImplementedError:
-                if coef==0.:
+                if coef == 0.:
                     return 0.
                 else:
                     reraise_as(NotImplementedError(str(type(layer)) +
                                " does not implement get_weight_decay."))
 
-        layer_costs = [ wrapped_layer_cost(layer, coeff)
-            for layer, coeff in safe_izip(model.layers, self.coeffs) ]
+        layer_costs = [wrapped_layer_cost(layer, coeff)
+                       for layer, coeff
+                       in safe_izip(model.layers, self.coeffs)]
 
-        assert T.scalar() != 0. # make sure theano semantics do what I want
-        layer_costs = [ cost for cost in layer_costs if cost != 0.]
+        assert T.scalar() != 0.  # make sure theano semantics do what I want
+        layer_costs = [cost for cost in layer_costs if cost != 0.]
 
         if len(layer_costs) == 0:
-            rval =  T.as_tensor_variable(0.)
+            rval = T.as_tensor_variable(0.)
             rval.name = '0_weight_decay'
             return rval
         else:
@@ -146,14 +147,15 @@ class L1WeightDecay(NullDataSpecsMixin, Cost):
             added up for each set of weights.
         """
         self.get_data_specs(model)[0].validate(data)
-        layer_costs = [ layer.get_l1_weight_decay(coeff)
-            for layer, coeff in safe_izip(model.layers, self.coeffs) ]
+        layer_costs = [layer.get_l1_weight_decay(coeff)
+                       for layer, coeff
+                       in safe_izip(model.layers, self.coeffs)]
 
-        assert T.scalar() != 0. # make sure theano semantics do what I want
-        layer_costs = [ cost for cost in layer_costs if cost != 0.]
+        assert T.scalar() != 0.  # make sure theano semantics do what I want
+        layer_costs = [cost for cost in layer_costs if cost != 0.]
 
         if len(layer_costs) == 0:
-            rval =  T.as_tensor_variable(0.)
+            rval = T.as_tensor_variable(0.)
             rval.name = '0_l1_penalty'
             return rval
         else:
