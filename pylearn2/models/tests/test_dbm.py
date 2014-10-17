@@ -1113,24 +1113,25 @@ def check_gradients(expected_grad, actual_grad, corr_tol=0.8, mean_tol=0.05):
 
 class Test_CD(object):
     @staticmethod
-    def check_rbm_pos_phase(rbm, cost, X, theano_rng, variational=False):
+    def check_rbm_pos_phase(rbm, cost, X):
         pos_grads, _ = cost._get_positive_phase(rbm, X)
 
         visible_layer = rbm.visible_layer
         hidden_layer = rbm.hidden_layers[0]
         P_H0_given_X = hidden_layer.mf_update(state_below=visible_layer.upward_state(X),
                                               state_above=None, layer_above=None)[1]
-        H0 = hidden_layer.sample(state_below=visible_layer.upward_state(X),
-                                 state_above=None, layer_above=None,
-                                 theano_rng=theano_rng)[1]
-        dW_pos_act = pos_grads[hidden_layer.transformer.get_params()[0]].eval()
-        if variational:
-            dW_pos_exp = -1 * np.dot(X.eval().T, P_H0_given_X.eval()) / rbm.batch_size
-        else:
-            dW_pos_exp = -1 * np.dot(X.eval().T, H0.eval()) / rbm.batch_size
-        check_gradients(dW_pos_exp, dW_pos_act, corr_tol=0.99)
 
-        return pos_grads
+        dW_pos_exp = -1 * np.dot(X.eval().T, P_H0_given_X.eval()) / rbm.batch_size
+        dW_pos_act = pos_grads[hidden_layer.transformer.get_params()[0]].eval()
+        check_gradients(dW_pos_exp, dW_pos_act, corr_tol=0.8)
+
+        dvb_pos_exp = -np.mean(X.eval(), axis=0)
+        dvb_pos_act = pos_grads[visible_layer.bias].eval()
+        check_gradients(dvb_pos_exp, dvb_pos_act)
+
+        dvh_pos_exp = -np.mean(P_H0_given_X.eval(), axis=0)
+        dvh_pos_act = pos_grads[hidden_layer.b].eval()
+        check_gradients(dvh_pos_exp, dvh_pos_act)
 
     @staticmethod
     def check_rbm_neg_phase(rbm, cost, X, theano_rng):
@@ -1152,7 +1153,15 @@ class Test_CD(object):
         dW_neg_exp = np.dot(V1.eval().T, P_H1_given_V1.eval()) / rbm.batch_size
         check_gradients(dW_neg_exp, dW_neg_act, corr_tol=0.85)
 
-    def test_rbm(self, num_visible=100, num_hidden=50, batch_size=200, variational=False):
+        dvb_neg_exp = np.mean(V1.eval(), axis=0)
+        dvb_neg_act = neg_grads[visible_layer.bias].eval()
+        check_gradients(dvb_neg_exp, dvb_neg_act)
+
+        dvh_neg_exp = np.mean(P_H1_given_V1.eval(), axis=0)
+        dvh_neg_act = neg_grads[hidden_layer.b].eval()
+        check_gradients(dvh_neg_exp, dvh_neg_act)
+
+    def test_rbm(self, num_visible=100, num_hidden=50, batch_size=5000, variational=False):
         rng = np.random.RandomState([2012,11,3])
         theano_rng = MRG_RandomStreams(2024+30+9)
 
@@ -1178,41 +1187,8 @@ class Test_CD(object):
         X = sharedX(rng.randn(batch_size, num_visible))
         # Get the gradients from the cost function
         grads, updates = cost.get_gradients(model, X)
-        Test_CD.check_rbm_pos_phase(model, cost, X, theano_rng, variational=variational)
+        Test_CD.check_rbm_pos_phase(model, cost, X)
         Test_CD.check_rbm_neg_phase(model, cost, X, theano_rng)
-        return
-        # Iterate through the Gibbs chain, collecting P(H|v) when needed.
-        P_H0_given_X = hidden_layer.mf_update(state_below = visible_layer.upward_state(X),
-                                              state_above=None, layer_above=None)[1]
-        H0 = hidden_layer.sample(state_below=visible_layer.upward_state(X),
-                                 state_above=None, layer_above=None,
-                                 theano_rng=theano_rng)[1]
-        V1 = visible_layer.sample(state_above=H0, layer_above=hidden_layer,
-                                  theano_rng=theano_rng)
-        # Find the last visible state from the updates (ignore for now)
-#        V1 = next((updates[update] for update in updates if update.shape.eval()[1] == 100))
-        P_H1_given_V1 = hidden_layer.mf_update(state_below=visible_layer.upward_state(V1),
-                                               state_above=None, layer_above=None)[1]
-
-        # Weight gradients.
-        dW_plus = np.dot(X.eval().T, P_H0_given_X.eval())
-        dW_minus = np.dot(V1.eval().T, P_H1_given_V1.eval())
-        dW_expected = -(dW_plus - dW_minus) / batch_size
-        dW_actual = grads[hidden_layer.transformer.get_params()[0]].eval()
-        check_gradients(dW_expected, dW_actual)
-
-        # Visible bias gradients.
-        dvb_expected = -np.mean(X.eval() - V1.eval(), axis=0)
-        dvb_actual = grads[visible_layer.bias].eval()
-        check_gradients(dvb_expected, dvb_actual)
-
-        # Hidden bias gradients. 
-        dhb_expected = -np.mean(P_H0_given_X.eval() - P_H1_given_V1.eval(), axis=0)
-        dhb_actual = grads[hidden_layer.b].eval()
-        try: check_gradients(dhb_expected, dhb_actual)
-        except AssertionError:
-            print "Ignore the hidden bias for now: for the current setup the variance is too high with random inputs and random weights."
-            pass
 
     def test_rbm_varational(self, num_visible=100, num_hidden=50, batch_size=200):
         self.test_rbm(num_visible, num_hidden, batch_size, variational=True)

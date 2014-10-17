@@ -208,3 +208,84 @@ class GibbsEvenOdd(SamplingProcedure):
                     layer_to_clamp[layer] for layer in layer_to_state])
 
         return layer_to_updated
+
+class GibbsOddEven(SamplingProcedure):
+    """
+    TODO
+    """
+
+    def sample(self, layer_to_state, theano_rng, layer_to_clamp=None, num_steps=1):
+        """
+        .. todo::
+        
+            WRITEME
+        """
+        assert isinstance(num_steps, py_integer_types)
+        assert num_steps > 0
+
+        assert len(self.dbm.hidden_layers) > 0
+
+        if layer_to_clamp is None:
+            layer_to_clamp = OrderedDict()
+        for key in layer_to_clamp:
+            assert key in self.dbm.hidden_layers + [self.dbm.visible_layer]
+        for layer in self.dbm.hidden_layers + [self.dbm.visible_layer]:
+            if layer not in layer_to_clamp:
+                layer_to_clamp[layer] = False
+
+        layer_to_updated = OrderedDict()
+        for layer in [self.dbm.visible_layer] + self.dbm.hidden_layers:
+            layer_to_updated[layer] = layer_to_state[layer]
+
+        def update(i, this_layer):
+            if layer_to_clamp[this_layer]:
+                return
+
+            # States and layers below
+            if i == -1: # visible layer
+                layer_below = None
+                state_below = None
+            else:
+                if i == 0:
+                    layer_below = self.dbm.visible_layer
+                elif i > 0:
+                    layer_below = self.dbm.hidden_layers[i-1]
+                state_below = layer_to_updated[layer_below]
+                state_below = layer_below.upward_state(state_below)
+
+            # States and layers above
+            if i + 1 < len(self.dbm.hidden_layers):
+                layer_above = self.dbm.hidden_layers[i + 1]
+                state_above = layer_to_updated[layer_above]
+                state_above = layer_above.downward_state(state_above)
+            else:
+                layer_above = None
+                state_above = None
+
+            this_sample = this_layer.sample(state_below=state_below,
+                                            state_above=state_above,
+                                            layer_above=layer_above,
+                                            theano_rng=theano_rng)
+
+            layer_to_updated[this_layer] = this_sample
+
+        evens = list(enumerate(self.dbm.hidden_layers))[::2]
+        odds = [(-1, self.dbm.visible_layer)] + list(enumerate(self.dbm.hidden_layers))[1::2]
+
+        for i, this_layer in evens:
+            update(i, this_layer)
+        for s in xrange(num_steps):
+            for i, this_layer in odds:
+                update(i, this_layer)
+            for i, this_layer in evens:
+                update(i, this_layer)
+
+        # Check that all layers were updated
+        assert all([layer in layer_to_updated for layer in layer_to_state])
+        # Check that we didn't accidentally treat any other object as a layer
+        assert all([layer in layer_to_state for layer in layer_to_updated])
+        # Check that clamping worked
+        assert all([(layer_to_state[layer] is layer_to_updated[layer]) ==
+                    layer_to_clamp[layer] for layer in layer_to_state])
+
+        return layer_to_updated

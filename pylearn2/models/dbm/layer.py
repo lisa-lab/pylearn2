@@ -26,6 +26,7 @@ from pylearn2.linear.conv2d_c01b import setup_detector_layer_c01b
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models import Model
 from pylearn2.models.dbm import init_sigmoid_bias_from_marginals
+from pylearn2.models import mlp
 from pylearn2.space import VectorSpace, CompositeSpace, Conv2DSpace, Space
 from pylearn2.utils import is_block_gradient
 from pylearn2.utils import sharedX, safe_zip, py_integer_types, block_gradient
@@ -40,7 +41,6 @@ from pylearn2.utils import safe_union
 
 
 logger = logging.getLogger(__name__)
-
 
 class Layer(Model):
     """
@@ -253,6 +253,11 @@ class Layer(Model):
         """
         pass
 
+    def make_shared_mlp_layer(self):
+        """
+        Function to make a corresponding MLP layer with parameters.
+        """
+        raise NotImplementedError(str(type(self))+" does not implement make_shared_mlp_layer.")
 
 class VisibleLayer(Layer):
     """
@@ -1454,6 +1459,18 @@ class BinaryVectorMaxPool(HiddenLayer):
 
         return p, h
 
+    def make_shared_mlp_layer(self):
+        mlp_layer =  mlp.SoftmaxPool(detector_layer_dim=self.detector_layer_dim,
+                                     layer_name=self.layer_name,
+                                     pool_size=self.pool_size,
+                                     W_lr_scale=self.W_lr_scale,
+                                     b_lr_scale=self.b_lr_scale,
+                                     mask_weights=self.mask_weights,
+                                     max_col_norm=self.max_col_norm)
+        mlp_layer.W = self.W
+        mlp_layer.b = self.b
+        return mlp_layer
+    
 
 class Softmax(HiddenLayer):
     """

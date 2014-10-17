@@ -19,7 +19,10 @@ from pylearn2.models import Model
 from pylearn2.models.dbm import flatten
 from pylearn2.models.dbm.inference_procedure import WeightDoubling
 from pylearn2.models.dbm.inference_procedure import UpDown
+from pylearn2.models.dbm import layer
 from pylearn2.models.dbm.sampling_procedure import GibbsEvenOdd
+from pylearn2.models.dbm.sampling_procedure import GibbsOddEven
+from pylearn2.models import mlp
 from pylearn2.utils import safe_zip, safe_izip
 from pylearn2.utils.rng import make_np_rng
 
@@ -741,4 +744,29 @@ class RBM(DBM):
         self.__dict__.update(locals())
         del self.self
         super(RBM, self).__init__(batch_size, visible_layer, [hidden_layer], niter,
-                                  inference_procedure=UpDown())
+                                  inference_procedure=UpDown(), sampling_procedure=GibbsOddEven())
+
+
+class DBN(model):
+    def __init__(self, batch_size, rbm, lower_model):
+        self.top_rbm = [rbm]
+        if isinstance(lower_model, RBM):
+            self.rbms = [lower_model, rbm]
+        elif isinstance(lower_model, DBN):
+            self.rbms = lower_model.rbms + [rbm]
+        self.mlp_layers = [l.make_shared_mlp_layer() for l in rbms]
+        
+
+def mlp_from_dbm(dbm):
+    """
+    MLP with parameters pretrained from a DBM.
+    """
+
+    def __init__(self, dbm):
+        layers = []
+        for layer in dbm.hidden_layers:
+            mlp_layer = layer.make_mlp_layer()
+            layers.append(mlp_layer)
+        super(MLP_From_DBM, self).__init__(layers=layers,
+                                           batch_size=self.batch_size,
+                                           input_space=visible_layer.space)

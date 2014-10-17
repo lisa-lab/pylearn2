@@ -137,7 +137,7 @@ def toronto_negative_phase(model, layer_to_chains):
 
 # Positive phase methods
 
-def positive_phase(model, X, Y, num_gibbs_steps=None, supervised=False,
+def positive_phase(model, X, Y, num_gibbs_steps=1, supervised=False,
                    theano_rng=None, method="VARIATIONAL"):
     """
     Wrapper function for positive phase.
@@ -152,7 +152,8 @@ def positive_phase(model, X, Y, num_gibbs_steps=None, supervised=False,
     """
 
     if method == "VARIATIONAL":
-        return variational_positive_phase(model, X, Y, supervised=supervised)
+        return variational_positive_phase(model, X, Y,
+                                          supervised=supervised)
     elif method == "SAMPLING":
         return sampling_positive_phase(model, X, Y,
                                        supervised=supervised,
@@ -218,6 +219,8 @@ def sampling_positive_phase(model, X, Y, supervised, num_gibbs_steps, theano_rng
     """
     assert num_gibbs_steps is not None
     assert theano_rng is not None
+    # If there's only one hidden layer, there's no point in sampling.
+    if len(model.hidden_layers) == 1: num_gibbs_steps = 1
     layer_to_clamp = OrderedDict([(model.visible_layer, True)])
     layer_to_pos_samples = OrderedDict([(model.visible_layer, X)])
     if supervised:
@@ -444,7 +447,7 @@ class VariationalCD(BaseCD):
             Contrastive Divergence
     """
 
-    def __init__(self, num_gibbs_steps=1, supervised=False,
+    def __init__(self, num_gibbs_steps=2, supervised=False,
                  toronto_neg=False, theano_rng=None):
         super(VariationalCD, self).__init__(num_gibbs_steps,
                                             supervised=supervised,
