@@ -7,7 +7,7 @@ __credits__ = ["David Warde-Farley"]
 __license__ = "3-clause BSD"
 __email__ = "wardefar@iro"
 __maintainer__ = "David Warde-Farley"
-__all__ = ['one_hot', 'k_hot', "compressed_one_hot"]
+__all__ = ['k_hot', "compressed_one_hot"]
 
 import numpy as np
 import warnings
@@ -90,53 +90,6 @@ def _one_hot_fill(labels, out):
         WRITEME
     """
     out.flat[np.arange(0, out.size, out.shape[1]) + labels] = 1
-
-
-def one_hot(labels, max_label=None, dtype=None, out=None):
-    """
-    Construct a one-hot matrix from a vector of integer labels.
-    Each row will have a single 1 with all other elements 0.
-
-    .. note::
-        `pylearn2.utils.one_hot is deprecated`. Use
-        `pylearn2.format.target_format.OneHotFormatter`
-        instead. `pylearn2.utils.one_hot` will be removed
-        on or after 13 August 2014".
-
-    Parameters
-    ----------
-    labels : array_like, 1-dimensional (or 2-dimensional (nlabels, 1))
-        The integer labels to use to construct the one hot matrix.
-
-    max_label : int, optional
-        The maximum valid label. Must be greater than or equal to
-        `numpy.amax(labels)`.
-
-    dtype : str or dtype object, optional
-        The dtype you wish the returned array to have. Defaults
-        to `labels.dtype` if not provided.
-
-    out : ndarray, optional
-        An array to use in lieu of allocating one. Must be the
-        right shape, i.e. same first dimension as `labels` and
-        second dimension greater than or equal to `labels.max() + 1`.
-
-    Returns
-    -------
-    out : ndarray, (nlabels, max_label + 1)
-        The resulting one-hot matrix.
-    """
-    warnings.warn("pylearn2.utils.one_hot is deprecated. Use "
-                  "pylearn2.format.target_format.OneHotFormatter "
-                  "instead. pylearn2.utils.one_hot will be removed "
-                  "on or after 13 August 2014", stacklevel=2)
-    labels = _validate_labels(labels, 1)
-    max_label = _validate_max_label(labels, max_label)
-    dtype = _validate_dtype(labels, dtype, out)
-    out = _validate_out(labels.shape[0], max_label, dtype, out)
-    out[...] = 0.
-    _one_hot_fill(labels, out)
-    return out
 
 
 def k_hot(labels, max_label=None, dtype=None, out=None):

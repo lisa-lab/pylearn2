@@ -62,7 +62,7 @@ def ais_data(fname, do_exact=True, betas=None):
 
     # load data to set visible biases to ML solution
     from pylearn2.datasets.mnist import MNIST
-    dataset = MNIST(which_set='train', one_hot=True)
+    dataset = MNIST(which_set='train')
     data = numpy.asarray(dataset.X, dtype=config.floatX)
 
     # run ais using B=0 model with ML visible biases

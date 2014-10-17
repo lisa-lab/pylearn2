@@ -1,9 +1,6 @@
 !obj:pylearn2.train.Train {
     dataset: &train !obj:pylearn2.datasets.mnist.MNIST {
         which_set: 'train',
-        # TODO: the one_hot: 1 is only necessary because one_hot: 0 is
-        # broken, remove it after one_hot: 0 is fixed.
-        one_hot: 1,
         start: 0,
         stop: %(train_stop)i
     },

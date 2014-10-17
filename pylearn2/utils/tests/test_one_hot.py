@@ -1,28 +1,7 @@
 import numpy as np
 from numpy.testing import assert_equal, assert_, assert_raises
 
-from pylearn2.utils.one_hot import one_hot, k_hot, compressed_one_hot
-
-
-def test_one_hot_basic():
-    assert_equal(one_hot([1, 2]), [[0, 1, 0], [0, 0, 1]])
-    assert_equal(one_hot([[1], [2], [1]], max_label=3),
-                 [[0, 1, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0]])
-
-
-def test_one_hot_dtypes():
-    int_dt = ['int8', 'int16', 'int32', 'int64']
-    int_dt += ['u' + dt for dt in int_dt]
-    float_dt = ['float64', 'float32', 'complex64', 'complex128']
-    all_dt = int_dt + float_dt
-    assert_(all(one_hot([5], dtype=dt).dtype == np.dtype(dt) for dt in all_dt))
-
-
-def test_one_hot_out():
-    out = np.empty((2, 3), dtype='uint8')
-    assert_equal(one_hot([1, 2], out=out),
-                 [[0, 1, 0], [0, 0, 1]])
-    assert_equal(out, [[0, 1, 0], [0, 0, 1]])
+from pylearn2.utils.one_hot import k_hot, compressed_one_hot
 
 
 def test_k_hot_basic():

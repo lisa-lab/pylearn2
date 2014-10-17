@@ -45,8 +45,8 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
     """
 
     def __init__(self, which_set, center=False, shuffle=False,
-                 one_hot=None, binarize=False, start=None,
-                 stop=None, axes=['b', 0, 1, 'c'],
+                 binarize=False, start=None, stop=None, 
+                 axes=['b', 0, 1, 'c'],
                  preprocessor=None,
                  fit_preprocessor=False,
                  fit_test_preprocessor=False):
@@ -112,13 +112,6 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             topo_view = (topo_view > 0.5).astype('float32')
 
         max_labels = 10
-        if one_hot is not None:
-            warnings.warn("the `one_hot` parameter is deprecated. To get "
-                          "one-hot encoded targets, request that they "
-                          "live in `VectorSpace` through the `data_specs` "
-                          "parameter of MNIST's iterator method. "
-                          "`one_hot` will be removed on or after "
-                          "September 20, 2014.", stacklevel=2)
 
         m, r, c = topo_view.shape
         assert r == 28
@@ -233,19 +226,12 @@ class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
         X = N.cast['float32'](X)
         y = N.asarray(obj['labels'])
 
-        self.one_hot = one_hot
-        if one_hot:
-            one_hot = N.zeros((y.shape[0], 10), dtype='float32')
-            for i in xrange(y.shape[0]):
-                one_hot[i, y[i]] = 1.
-            y = one_hot
-
         if center:
             X -= X.mean(axis=0)
 
         view_converter = dense_design_matrix.DefaultViewConverter((28, 28, 1))
 
         super(MNIST_rotated_background, self).__init__(
-            X=X, y=y, view_converter=view_converter)
+            X=X, y=y, y_labels=10, view_converter=view_converter)
 
         assert not N.any(N.isnan(self.X))

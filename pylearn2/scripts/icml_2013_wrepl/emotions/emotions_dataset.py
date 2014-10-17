@@ -131,16 +131,12 @@ class EmotionsDataset(DenseDesignMatrix):
         X = np.asarray(X_list).astype('float32')
         if expect_labels:
             y = np.asarray(y_list)
-
-            one_hot = np.zeros((y.shape[0],7),dtype='float32')
-            for i in xrange(y.shape[0]):
-                one_hot[i,y[i]] = 1.
-            y = one_hot
         else:
             y = None
+        y_labels = 7
 
         np.save(X_path, X)
         if y is not None:
             np.save(Y_path, y)
 
-        return X, y
+        return X, y, y_labels

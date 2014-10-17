@@ -70,7 +70,6 @@ def get_dataset_cifar10():
 which_set: %s,
 center: 1,
 rescale: 1,
-one_hot: 1
 }"""
     trainset = yaml_parse.load(template % "train")
     testset = yaml_parse.load(template % "test")
@@ -92,7 +91,6 @@ def get_dataset_mnist():
     template = \
 """!obj:pylearn2.datasets.mnist.MNIST {
 which_set: %s,
-one_hot: 1
 }"""
     trainset = yaml_parse.load(template % "train")
     testset = yaml_parse.load(template % "test")

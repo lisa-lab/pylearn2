@@ -66,7 +66,6 @@ class CSVDataset(DenseDesignMatrix):
     def __init__(self,
                  path='train.csv',
                  task='classification',
-                 one_hot=False,
                  expect_labels=True,
                  expect_headers=True,
                  delimiter=',',
@@ -81,7 +80,6 @@ class CSVDataset(DenseDesignMatrix):
         """
         self.path = path
         self.task = task
-        self.one_hot = one_hot
         self.expect_labels = expect_labels
         self.expect_headers = expect_headers
         self.delimiter = delimiter
@@ -128,7 +126,7 @@ class CSVDataset(DenseDesignMatrix):
         self.path = preprocess(self.path)
         X, y = self._load_data()
 
-        super(CSVDataset, self).__init__(X=X, y=y)
+        super(CSVDataset, self).__init__(X=X, y=y, y_labels=len(np.unique(y)))
 
     def _load_data(self):
         """
@@ -171,16 +169,10 @@ class CSVDataset(DenseDesignMatrix):
             labels = np.unique(y)
             labels = dict((x, i) for (i, x) in enumerate(labels))
 
-            if self.one_hot:
-                one_hot = np.zeros((y.shape[0], len(labels)), dtype='float32')
-                for i in xrange(y.shape[0]):
-                    label = y[i]
-                    label_position = labels[label]
-                    one_hot[i, label_position] = 1.
-                y = one_hot
-            else:
-                if self.task == 'regression':
-                    y = y.reshape((y.shape[0], 1))
+            # what should we do if it is regression? Shall we pass a
+            # sign or something?
+            if self.task == 'regression':
+                y = y.reshape((y.shape[0], 1))
 
         else:
             X = data

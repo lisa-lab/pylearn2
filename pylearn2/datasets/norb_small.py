@@ -92,7 +92,6 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
     scale : WRITEME
     start : WRITEME
     stop : WRITEME
-    one_hot : WRITEME
     restrict_instances : WRITEME
     preprocessor : WRITEME
     """
@@ -113,7 +112,7 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         return data
 
     def __init__(self, which_set, center=False, scale=False,
-                 start=None, stop=None, one_hot=False, restrict_instances=None,
+                 start=None, stop=None, restrict_instances=None,
                  preprocessor=None):
 
         self.args = locals()
