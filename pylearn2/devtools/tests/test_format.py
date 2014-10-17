@@ -525,7 +525,6 @@ whitelist_docstrings = [
     'costs/gsn.py',
     'costs/__init__.py',
     'costs/mlp/__init__.py',
-    'costs/mlp/dropout.py',
     'costs/mlp/missing_target_cost.py',
     'costs/dbm.py',
     'costs/autoencoder.py',
