@@ -18,13 +18,16 @@ from theano import tensor as T, config
 from pylearn2.models import Model
 from pylearn2.models.dbm import flatten
 from pylearn2.models.dbm.inference_procedure import WeightDoubling
+from pylearn2.models.dbm.inference_procedure import UpDown
+from pylearn2.models.dbm import layer
 from pylearn2.models.dbm.sampling_procedure import GibbsEvenOdd
+from pylearn2.models.dbm.sampling_procedure import GibbsOddEven
+from pylearn2.models import mlp
 from pylearn2.utils import safe_zip, safe_izip
 from pylearn2.utils.rng import make_np_rng
 
 
 logger = logging.getLogger(__name__)
-
 
 class DBM(Model):
     """
@@ -148,6 +151,7 @@ class DBM(Model):
 
             WRITEME
         """
+
         self.setup_inference_procedure()
         return self.inference_procedure.mf(*args, **kwargs)
 
@@ -224,8 +228,15 @@ class DBM(Model):
         """
         if not hasattr(self, 'inference_procedure') or \
                 self.inference_procedure is None:
-            self.inference_procedure = WeightDoubling()
+            if len(self.hidden_layers) == 1:
+                self.inference_procedure = UpDown()
+            else:
+                self.inference_procedure = WeightDoubling()
             self.inference_procedure.set_dbm(self)
+        elif len(self.hidden_layers) == 1:
+            assert isinstance(self.inference_procedure, UpDown),\
+                "A DBM with a single layer (a.k.a an RBM) should use %r as the inference_procedure, "\
+                "not %r" %(UpDown, type(self.inference_procedure))
 
     def setup_sampling_procedure(self):
         """
@@ -415,7 +426,7 @@ class DBM(Model):
         .. todo::
 
             WRITEME
-        """
+        """        
         return self.hidden_layers[0].get_weights_topo()
 
     def make_layer_to_state(self, num_examples, rng=None):
@@ -626,7 +637,6 @@ class DBM(Model):
             ch = layer.get_monitoring_channels_from_state(state)
             for key in ch:
                 rval['mf_' + layer.layer_name + '_' + key] = ch[key]
-
         if len(history) > 1:
             prev_q = history[-2]
 
@@ -656,6 +666,10 @@ class DBM(Model):
                 denom = np.cast[config.floatX](denom)
                 rval['mean_'+layer.layer_name+'_var_param_diff'] = \
                     sum_diff / denom
+
+        X_hat = self.reconstruct(X)
+        reconstruction_cost = self.visible_layer.recons_cost(X, X_hat)
+        rval['reconstruction_cost'] = reconstruction_cost
 
         return rval
 
@@ -702,3 +716,57 @@ class DBM(Model):
         """
         self.setup_inference_procedure()
         return self.inference_procedure.do_inpainting(*args, **kwargs)
+
+
+class RBM(DBM):
+    """
+    A restricted Boltzmann machine.
+
+    The special case of a DBM with only one hidden layer designed to keep things simple
+    for researchers interested only in a single layer of latent variables.
+
+    Parameters
+    ----------
+    batch_size : int
+        The batch size the model should use. Some convolutional
+        LinearTransforms require a compile-time hardcoded batch size,
+        otherwise this would not be part of the model specification.
+    visible_layer : DBM.VisibleLayer
+        The visible layer of the DBM.
+    hidden_layers : List of DBM.HiddenLayer
+        The hidden layers. A list of HiddenLayer objects. The first
+        layer in the list is connected to the visible layer.
+    niter : int
+        Number of mean field iterations for variational inference
+        for the positive phase.
+    """
+    def __init__(self, batch_size, visible_layer, hidden_layer, niter):
+        self.__dict__.update(locals())
+        del self.self
+        super(RBM, self).__init__(batch_size, visible_layer, [hidden_layer], niter,
+                                  inference_procedure=UpDown(), sampling_procedure=GibbsOddEven())
+
+
+class DBN(model):
+    def __init__(self, batch_size, rbm, lower_model):
+        self.top_rbm = [rbm]
+        if isinstance(lower_model, RBM):
+            self.rbms = [lower_model, rbm]
+        elif isinstance(lower_model, DBN):
+            self.rbms = lower_model.rbms + [rbm]
+        self.mlp_layers = [l.make_shared_mlp_layer() for l in rbms]
+        
+
+def mlp_from_dbm(dbm):
+    """
+    MLP with parameters pretrained from a DBM.
+    """
+
+    def __init__(self, dbm):
+        layers = []
+        for layer in dbm.hidden_layers:
+            mlp_layer = layer.make_mlp_layer()
+            layers.append(mlp_layer)
+        super(MLP_From_DBM, self).__init__(layers=layers,
+                                           batch_size=self.batch_size,
+                                           input_space=visible_layer.space)

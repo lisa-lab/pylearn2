@@ -20,7 +20,7 @@
             stop: %(train_stop)i
         }
     },
-    model: !obj:pylearn2.models.dbm.DBM {
+    model: !obj:pylearn2.models.dbm.RBM {
         batch_size: 100,
         # 1 mean field iteration reaches convergence in the RBM
         niter: 1,
@@ -35,7 +35,7 @@
             # about correct from the start and helps speed up learning.
             bias_from_marginals: *raw_train,
         },
-        hidden_layers: [
+        hidden_layer:
             # This RBM has one hidden layer, consisting of a binary vector.
             # Optionally, one can do max pooling on top of this vector, but
             # here we don't, by setting pool_size = 1.
@@ -55,7 +55,6 @@
                 # number. This helps to learn a sparse representation.
                 init_bias: -2.,
             }
-       ]
     },
     # We train the model using stochastic gradient descent.
     # One benefit of using pylearn2 is that we can use the exact same piece of
@@ -65,7 +64,7 @@
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
                # We initialize the learning rate and momentum here. Down below
                # we can control the way they decay with various callbacks.
-               learning_rate: 1e-3,
+               learning_rate: 1e-2,
                # Compute new model parameters using SGD + Momentum
                learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
                    init_momentum: 0.5,
@@ -82,7 +81,7 @@
                         # For the RBM, the variational approximation is exact, so
                         # this is really just PCD. In deeper models, it means we
                         # use mean field rather than Gibbs sampling in the positive phase.
-                        !obj:pylearn2.costs.dbm.VariationalPCD {
+                        !obj:pylearn2.costs.dbm.VariationalCD {
                            # Here we specify how many fantasy particles to maintain
                            num_chains: 100,
                            # Here we specify how many steps of Gibbs sampling to do between

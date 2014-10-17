@@ -26,6 +26,7 @@ from pylearn2.linear.conv2d_c01b import setup_detector_layer_c01b
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models import Model
 from pylearn2.models.dbm import init_sigmoid_bias_from_marginals
+from pylearn2.models import mlp
 from pylearn2.space import VectorSpace, CompositeSpace, Conv2DSpace, Space
 from pylearn2.utils import is_block_gradient
 from pylearn2.utils import sharedX, safe_zip, py_integer_types, block_gradient
@@ -40,7 +41,6 @@ from pylearn2.utils import safe_union
 
 
 logger = logging.getLogger(__name__)
-
 
 class Layer(Model):
     """
@@ -228,7 +228,7 @@ class Layer(Model):
         Parameters
         ----------
         state_below : WRITEME
-            Upward state of the layer below.
+           Upward state of the layer below.
         state : WRITEME
             Total state of this layer
         average_below : bool
@@ -253,6 +253,11 @@ class Layer(Model):
         """
         pass
 
+    def make_shared_mlp_layer(self):
+        """
+        Function to make a corresponding MLP layer with parameters.
+        """
+        raise NotImplementedError(str(type(self))+" does not implement make_shared_mlp_layer.")
 
 class VisibleLayer(Layer):
     """
@@ -838,6 +843,21 @@ class BinaryVectorMaxPool(HiddenLayer):
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
+
+    def get_l1_weight_decay(self, coeff):
+        """
+        Returns the L1 norm of the weights.
+
+        Paramters
+        ---------
+        coeff: float, str(float)
+            multiplicative coefficient for the L1 norm.
+        """
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W ,= self.transformer.get_params()
+        return coeff * abs(W).sum()
 
     def get_weights(self):
         """
@@ -1439,6 +1459,18 @@ class BinaryVectorMaxPool(HiddenLayer):
 
         return p, h
 
+    def make_shared_mlp_layer(self):
+        mlp_layer =  mlp.SoftmaxPool(detector_layer_dim=self.detector_layer_dim,
+                                     layer_name=self.layer_name,
+                                     pool_size=self.pool_size,
+                                     W_lr_scale=self.W_lr_scale,
+                                     b_lr_scale=self.b_lr_scale,
+                                     mask_weights=self.mask_weights,
+                                     max_col_norm=self.max_col_norm)
+        mlp_layer.W = self.W
+        mlp_layer.b = self.b
+        return mlp_layer
+    
 
 class Softmax(HiddenLayer):
     """
@@ -2285,6 +2317,18 @@ class GaussianVisLayer(VisibleLayer):
         rval = theano_rng.normal(size = z.shape, avg = z, dtype = z.dtype,
                        std = 1. / T.sqrt(self.beta))
         return rval
+
+    def make_symbolic_state(self, num_examples, theano_rng):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        if not hasattr(self, 'copies'):
+            self.copies = 1
+        if self.copies != 1:
+            raise NotImplementedError()
+        rval = theano_rng.normal(size=(num_examples, self.nvis), avg = self.mu, dtype=theano.config.floatX)
 
     def recons_cost(self, V, V_hat_unmasked, drop_mask = None, use_sum=False):
         """

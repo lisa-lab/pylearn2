@@ -250,6 +250,7 @@ def block(l):
 # Make known modules inside this package
 # this needs to come after e.g. flatten(), since DBM depends on flatten()
 from pylearn2.models.dbm.dbm import DBM
+from pylearn2.models.dbm.dbm import RBM
 from pylearn2.models.dbm.inference_procedure import BiasInit
 from pylearn2.models.dbm.inference_procedure import InferenceProcedure
 from pylearn2.models.dbm.inference_procedure import MoreConsistent
