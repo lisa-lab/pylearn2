@@ -13,7 +13,7 @@ def augment_input(X, model, mf_steps):
     for x in X[:]:
         init_data[0] = x
         data = sharedX(init_data, name = 'v')
-        marginal_posterior = model.mf(V = data, niter = mf_steps)[1] # mean field inference of second hidden layer (niter: number of mean field updates)
+        marginal_posterior = model.mf(V = data, niter = mf_steps)[1]  # mean field inference of second hidden layer (niter: number of mean field updates)
         mp = function([], marginal_posterior)
         mp = mp()[0][0]
         if i == 0:
