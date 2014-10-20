@@ -121,8 +121,7 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
                                                                   axes)
 
         # init the super class
-        super(TFD, self).__init__(X=data_x,
-                                  y=data_y, y_labels=7,
+        super(TFD, self).__init__(X=data_x, y=data_y, y_labels=7,
                                   view_converter=view_converter)
 
         assert not contains_nan(self.X)

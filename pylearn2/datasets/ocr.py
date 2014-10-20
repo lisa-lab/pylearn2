@@ -74,8 +74,8 @@ class OCR(dense_design_matrix.DenseDesignMatrix):
 
         view_converter = dense_design_matrix.DefaultViewConverter(
             (16, 8, 1), axes)
-        super(OCR, self).__init__(
-            X=data_x, y=data_y, y_labels=len(letters), view_converter=view_converter)
+        super(OCR, self).__init__(X=data_x, y=data_y, y_labels=len(letters), 
+                                  view_converter=view_converter)
 
         assert not contains_nan(self.X)
         self.fold = data_fold

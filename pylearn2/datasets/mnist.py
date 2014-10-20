@@ -45,7 +45,7 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
     """
 
     def __init__(self, which_set, center=False, shuffle=False,
-                 binarize=False, start=None, stop=None, 
+                 binarize=False, start=None, stop=None,
                  axes=['b', 0, 1, 'c'],
                  preprocessor=None,
                  fit_preprocessor=False,

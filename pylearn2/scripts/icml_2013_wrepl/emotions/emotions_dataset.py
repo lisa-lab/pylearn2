@@ -79,7 +79,7 @@ class EmotionsDataset(DenseDesignMatrix):
 
         view_converter = DefaultViewConverter(shape=[48,48,1], axes=axes)
 
-        super(EmotionsDataset, self).__init__(X=X, y=y, view_converter=view_converter)
+        super(EmotionsDataset, self).__init__(X=X, y=y, y_labels=7, view_converter=view_converter)
 
         if preprocessor:
             preprocessor.apply(self, can_fit=fit_preprocessor)
@@ -133,10 +133,9 @@ class EmotionsDataset(DenseDesignMatrix):
             y = np.asarray(y_list)
         else:
             y = None
-        y_labels = 7
 
         np.save(X_path, X)
         if y is not None:
             np.save(Y_path, y)
 
-        return X, y, y_labels
+        return X, y

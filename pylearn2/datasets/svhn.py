@@ -142,12 +142,8 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
         def design_matrix_view(data_x):
             """reshape data_x to deisng matrix view
             """
-
             data_x = numpy.transpose(data_x, axes=[3, 2, 0, 1])
             data_x = data_x.reshape((data_x.shape[0], 32 * 32 * 3))
-            # TODO assuming one_hot as default for now
-            # I think here we dont need to cast data_y into one_hot, so this 
-            # part of the function is just removed. max(y) is 10.
             return data_x
 
         def load_data(path):
@@ -321,7 +317,7 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
 
         view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3),
                                                                   axes)
-        super(SVHN_On_Memory, self).__init__(X=data_x, y=data_y,
+        super(SVHN_On_Memory, self).__init__(X=data_x, y=data_y, y_labels=10,
                                              view_converter=view_converter)
 
         if preprocessor:
@@ -361,10 +357,8 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
         def design_matrix_view(data_x):
             """reshape data_x to deisng matrix view
             """
-
             data_x = numpy.transpose(data_x, axes=[3, 2, 0, 1])
             data_x = data_x.reshape((data_x.shape[0], 32 * 32 * 3))
-            # TODO assuming one_hot as default for now. max(daya_y)=10.
             return data_x
 
         def load_data(path):

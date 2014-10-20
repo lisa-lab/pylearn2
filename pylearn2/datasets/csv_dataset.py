@@ -122,11 +122,14 @@ class CSVDataset(DenseDesignMatrix):
                                  " just not together.")
 
         # and go
-
         self.path = preprocess(self.path)
         X, y = self._load_data()
+        
+        if self.task == 'regression':
+            super(CSVDataset, self).__init__(X=X, y=y)
+        else:
+            super(CSVDataset, self).__init__(X=X, y=y, y_labels=np.max(y)+1 )
 
-        super(CSVDataset, self).__init__(X=X, y=y, y_labels=len(np.unique(y)))
 
     def _load_data(self):
         """
@@ -164,16 +167,6 @@ class CSVDataset(DenseDesignMatrix):
         if self.expect_labels:
             y = data[:, 0]
             X = data[:, 1:]
-
-            # get unique labels and map them to one-hot positions
-            labels = np.unique(y)
-            labels = dict((x, i) for (i, x) in enumerate(labels))
-
-            # what should we do if it is regression? Shall we pass a
-            # sign or something?
-            if self.task == 'regression':
-                y = y.reshape((y.shape[0], 1))
-
         else:
             X = data
             y = None

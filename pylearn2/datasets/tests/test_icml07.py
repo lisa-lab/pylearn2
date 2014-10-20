@@ -55,4 +55,3 @@ def test_split():
                                            split=(n_train, n_valid, n_test))
     assert data.X.shape[0] == n_test, "Unexpected size of test set"
     assert data.y.shape[0] == n_test, "Unexpected size of test set"
-
