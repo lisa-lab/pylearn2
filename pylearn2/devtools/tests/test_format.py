@@ -161,7 +161,6 @@ whitelist_pep8 = [
     "models/tests/test_mlp.py",
     "models/tests/test_maxout.py",
     "models/tests/test_convelemwise_sigm.py",
-    "models/mlp.py",
     "models/dbm/sampling_procedure.py",
     "models/svm.py",
     "models/rbm.py",
