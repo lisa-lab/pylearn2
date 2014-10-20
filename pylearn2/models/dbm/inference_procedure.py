@@ -1,7 +1,5 @@
 """
-.. todo::
-
-    WRITEME
+Various InferenceProcedures for use with the DBM class.
 """
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
@@ -9,11 +7,14 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 
+import functools
 import logging
+
 from theano import gof
 import theano.tensor as T
 import theano
 from theano.gof.op import get_debug_values
+
 from pylearn2.models.dbm import block, flatten
 from pylearn2.models.dbm.layer import Softmax
 from pylearn2.utils import safe_izip, block_gradient, safe_zip
@@ -24,24 +25,57 @@ logger = logging.getLogger(__name__)
 
 class InferenceProcedure(object):
     """
-    .. todo::
-
-        WRITEME
+    A class representing a procedure for performing mean field inference in a
+    DBM.
+    Different subclasses can implement different specific procedures, such as
+    updating the layers in different orders, or using different strategies to
+    initialize the mean field expectations.
     """
 
     def set_dbm(self, dbm):
         """
-        .. todo::
+        Associates the InferenceProcedure with a specific DBM.
 
-            WRITEME
+        Parameters
+        ----------
+        dbm : pylearn2.models.dbm.DBM instance
+            The model to perform inference in.
         """
         self.dbm = dbm
 
     def mf(self, V, Y = None, return_history = False, niter = None, block_grad = None):
         """
-        .. todo::
+        Perform mean field inference. Subclasses must implement.
 
-            WRITEME
+        Parameters
+        ----------
+        V : Input space batch
+            The values of the input features modeled by the DBM.
+        Y : (Optional) Target space batch
+            The values of the labels modeled by the DBM. Must be omitted
+            if the DBM does not model labels. If the DBM does model
+            labels, they may be included to perform inference over the
+            hidden layers only, or included to perform inference over the
+            labels.
+        return_history : (Optional) bool
+            Default: False
+            If True, returns the full sequence of mean field updates.
+        niter : (Optional) int
+        block_grad : (Optional) int
+            Default: None
+            If not None, blocks the gradient after `block_grad`
+            iterations, so that only the last `niter` - `block_grad`
+            iterations need to be stored when using the backpropagation
+            algorithm.
+
+        Returns
+        -------
+        result : list
+            If not `return_history` (default), a list with one element
+            per inferred layer, containing the full mean field state
+            of that layer.
+            Otherwise, a list of such lists, with the outer list
+            containing one element for each step of inference.
         """
         raise NotImplementedError(str(type(self))+" does not implement mf.")
 
@@ -49,23 +83,114 @@ class InferenceProcedure(object):
         """
         If the inference procedure is dependent on a batch size at all, makes
         the necessary internal configurations to work with that batch size.
+
+        Parameters
+        ----------
+        batch_size : int
+            The number of examples in the batch
         """
-        # TODO : was this supposed to be implemented?
+        # Default implementation is no-op, because default procedure does not depend
+        # on the batch size.
+
+    def multi_infer(self, V, return_history = False, niter = None, block_grad = None):
+        """
+        Inference using "the multi-inference trick." See
+        "Multi-prediction deep Boltzmann machines", Goodfellow et al 2013.
+
+        Subclasses may implement this method, however it is not needed for
+        any training algorithm, and only expected to work at evaluation
+        time if the model was trained with multi-prediction training.
+
+        Parameters
+        ----------
+        V : input space batch
+        return_history : bool
+            If True, returns the complete history of the mean field
+            iterations, rather than just the final values
+        niter : int
+            The number of mean field iterations to run
+        block_grad : int
+            If not None, block the gradient after this number of iterations
+
+        Returns
+        -------
+        result : list
+            A list of mean field states, or if return_history is True, a
+            list of such lists with one element per mean field iteration
+        """
+
+        raise NotImplementedError(str(type(self)) + " does not implement"
+                " multi_infer.")
+
+    def do_inpainting(self, V, Y = None, drop_mask = None, drop_mask_Y = None,
+            return_history = False, noise = False, niter = None, block_grad = None):
+        """
+        Does the inference required for multi-prediction training.
+
+        If you use this method in your research work, please cite:
+
+            Multi-prediction deep Boltzmann machines. Ian J. Goodfellow,
+            Mehdi Mirza, Aaron Courville, and Yoshua Bengio. NIPS 2013.
+
+
+        Gives the mean field expression for units masked out by drop_mask.
+        Uses self.niter mean field updates.
+
+        Comes in two variants, unsupervised and supervised:
+
+        * unsupervised: Y and drop_mask_Y are not passed to the method. The
+          method produces V_hat, an inpainted version of V
+        * supervised: Y and drop_mask_Y are passed to the method. The method
+          produces V_hat and Y_hat
+
+        Parameters
+        ----------
+        V : tensor_like
+            Theano batch in `model.input_space`
+        Y : tensor_like
+            Theano batch in `model.output_space`, i.e. in the output space of
+            the last hidden layer. (It's not really a hidden layer anymore,
+            but oh well. It's convenient to code it this way because the
+            labels are sort of "on top" of everything else.) *** Y is always
+            assumed to be a matrix of one-hot category labels. ***
+        drop_mask : tensor_like
+            Theano batch in `model.input_space`. Should be all binary, with
+            1s indicating that the corresponding element of X should be
+            "dropped", i.e. hidden from the algorithm and filled in as part
+            of the inpainting process
+        drop_mask_Y : tensor_like
+            Theano vector. Since we assume Y is a one-hot matrix, each row is
+            a single categorical variable. `drop_mask_Y` is a binary mask
+            specifying which *rows* to drop.
+        return_history : bool, optional
+            WRITEME
+        noise : bool, optional
+            WRITEME
+        niter : int, optional
+            WRITEME
+        block_grad : WRITEME
+
+        Returns
+        -------
+        WRITEME
+        """
+
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "do_inpainting.")
 
 
 class WeightDoubling(InferenceProcedure):
     """
-    .. todo::
-
-        WRITEME
+    An inference procedure that initializes all states to zero and
+    doubles the bottom-up weights on the first pass of mean field
+    inference. The weight doubling helps to compensate for the
+    lack of top-down input on the first pass. This approach is
+    described in "Deep Boltzmann Machines", Salakhutdinov and
+    Hinton, 2008.
     """
 
+    @functools.wraps(InferenceProcedure.mf)
     def mf(self, V, Y = None, return_history = False, niter = None, block_grad = None):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         dbm = self.dbm
 
@@ -94,7 +219,7 @@ class WeightDoubling(InferenceProcedure):
                     state_below = dbm.hidden_layers[i-1].upward_state(H_hat[i-1]),
                     iter_name = '0'))
 
-        #last layer does not need its weights doubled, even on the first pass
+        # last layer does not need its weights doubled, even on the first pass
         if len(dbm.hidden_layers) > 1:
             H_hat.append(dbm.hidden_layers[-1].mf_update(
                 state_above = None,
@@ -133,7 +258,7 @@ class WeightDoubling(InferenceProcedure):
         history = [ list(H_hat) ]
 
 
-        #we only need recurrent inference if there are multiple layers
+        # we only need recurrent inference if there are multiple layers
         if len(H_hat) > 1:
             for i in xrange(1, niter):
                 for j in xrange(0,len(H_hat),2):
@@ -204,20 +329,8 @@ class WeightDoubling(InferenceProcedure):
         else:
             return H_hat
 
-
-class SuperWeightDoubling(WeightDoubling):
-    """
-    .. todo::
-
-        WRITEME
-    """
-
+    @functools.wraps(InferenceProcedure.multi_infer)
     def multi_infer(self, V, return_history = False, niter = None, block_grad = None):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         dbm = self.dbm
 
@@ -545,16 +658,24 @@ class SuperWeightDoubling(WeightDoubling):
                 return V_hat, Y_hat
             return V_hat
 
+# Originally WeightDoubling did not support multi-prediction training,
+# while a separate class called SuperWeightDoubling did. Now they are
+# the same class, but we maintain the SuperWeightDoubling class for
+# backwards compatibility. May be removed on or after 2015-04-20.
+SuperWeightDoubling = WeightDoubling
 
-class MoreConsistent(SuperWeightDoubling):
+
+class MoreConsistent(WeightDoubling):
     """
-    There's an oddity in SuperWeightDoubling where during the inpainting, we
-    initialize Y_hat to sigmoid(biases) if a clean Y is passed in and 2 * weights
-    otherwise. I believe but ought to check that mf always does weight doubling.
-    This class makes the two more consistent by just implementing mf as calling
-    inpainting with Y masked out.
+    There's an oddity in WeightDoubling where during the inpainting, we
+    initialize Y_hat to sigmoid(biases) if a clean Y is passed in and
+    2 * weights otherwise. I believe but ought to check that mf always
+    does weight doubling.
+    This class makes the two more consistent by just implementing mf as
+    calling inpainting with Y masked out.
     """
 
+    @functools.wraps(InferenceProcedure.mf)
     def mf(self, V, Y = None, return_history = False, niter = None, block_grad = None):
         """
         .. todo::
@@ -606,65 +727,14 @@ class MoreConsistent(SuperWeightDoubling):
 
 class MoreConsistent2(WeightDoubling):
     """
-    .. todo::
-
-        WRITEME
+    Makes `do_inpainting` even more consistent with `mf` than in the
+    `MoreConsistent` class. TODO-- look up exactly which inconsistency
+    was removed.
     """
 
+    @functools.wraps(InferenceProcedure.do_inpainting)
     def do_inpainting(self, V, Y = None, drop_mask = None, drop_mask_Y = None,
             return_history = False, noise = False, niter = None, block_grad = None):
-        """
-        .. todo::
-
-            WRITEME properly
-
-        If you use this method in your research work, please cite:
-
-            Multi-prediction deep Boltzmann machines. Ian J. Goodfellow,
-            Mehdi Mirza, Aaron Courville, and Yoshua Bengio. NIPS 2013.
-
-
-        Gives the mean field expression for units masked out by drop_mask.
-        Uses self.niter mean field updates.
-
-        Comes in two variants, unsupervised and supervised:
-
-        * unsupervised: Y and drop_mask_Y are not passed to the method. The
-          method produces V_hat, an inpainted version of V
-        * supervised: Y and drop_mask_Y are passed to the method. The method
-          produces V_hat and Y_hat
-
-        Parameters
-        ----------
-        V : tensor_like
-            Theano batch in `model.input_space`
-        Y : tensor_like
-            Theano batch in `model.output_space`, i.e. in the output space of
-            the last hidden layer. (It's not really a hidden layer anymore,
-            but oh well. It's convenient to code it this way because the
-            labels are sort of "on top" of everything else.) *** Y is always
-            assumed to be a matrix of one-hot category labels. ***
-        drop_mask : tensor_like
-            Theano batch in `model.input_space`. Should be all binary, with
-            1s indicating that the corresponding element of X should be
-            "dropped", i.e. hidden from the algorithm and filled in as part
-            of the inpainting process
-        drop_mask_Y : tensor_like
-            Theano vector. Since we assume Y is a one-hot matrix, each row is
-            a single categorical variable. `drop_mask_Y` is a binary mask
-            specifying which *rows* to drop.
-        return_history : bool, optional
-            WRITEME
-        noise : bool, optional
-            WRITEME
-        niter : int, optional
-            WRITEME
-        block_grad : WRITEME
-
-        Returns
-        -------
-        WRITEME
-        """
 
         dbm = self.dbm
         """TODO: Should add unit test that calling this with a batch of
@@ -837,17 +907,14 @@ class MoreConsistent2(WeightDoubling):
 
 class BiasInit(InferenceProcedure):
     """
-    An InferenceProcedure that initializes the mean field parameters based on the
-    biases in the model. This InferenceProcedure uses the same weights at every
-    iteration, rather than doubling the weights on the first pass.
+    An InferenceProcedure that initializes the mean field parameters
+    based on the biases in the model. This InferenceProcedure uses
+    the same weights at every iteration, rather than doubling the
+    weights on the first pass.
     """
 
+    @functools.wraps(InferenceProcedure.mf)
     def mf(self, V, Y = None, return_history = False, niter = None, block_grad = None):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         dbm = self.dbm
 
@@ -968,10 +1035,6 @@ class BiasInit(InferenceProcedure):
     def do_inpainting(self, V, Y = None, drop_mask = None, drop_mask_Y = None,
             return_history = False, noise = False, niter = None, block_grad = None):
         """
-        .. todo::
-
-            WRITEME properly
-
         Gives the mean field expression for units masked out by drop_mask.
         Uses self.niter mean field updates.
 
@@ -1135,11 +1198,13 @@ class BiasInit(InferenceProcedure):
 
 class UpDown(InferenceProcedure):
     """
-    An InferenceProcedure that initializes the mean field parameters based on the
-    biases in the model, then alternates between updating each of the layers bottom-to-top
+    An InferenceProcedure that initializes the mean field parameters
+    based on the biases in the model, then alternates between updating
+    each of the layers bottom-to-top
     and updating each of the layers top-to-bottom.
     """
 
+    @functools.wraps(InferenceProcedure.mf)
     def mf(self, V, Y = None, return_history = False, niter = None, block_grad = None):
         """
         .. todo::
