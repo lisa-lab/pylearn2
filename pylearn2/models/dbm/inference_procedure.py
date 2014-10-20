@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class InferenceProcedure(object):
+
     """
     A class representing a procedure for performing mean field inference in a
     DBM.
@@ -43,7 +44,7 @@ class InferenceProcedure(object):
         """
         self.dbm = dbm
 
-    def mf(self, V, Y = None, return_history = False, niter = None, block_grad = None):
+    def mf(self, V, Y=None, return_history=False, niter=None, block_grad=None):
         """
         Perform mean field inference. Subclasses must implement.
 
@@ -77,7 +78,7 @@ class InferenceProcedure(object):
             Otherwise, a list of such lists, with the outer list
             containing one element for each step of inference.
         """
-        raise NotImplementedError(str(type(self))+" does not implement mf.")
+        raise NotImplementedError(str(type(self)) + " does not implement mf.")
 
     def set_batch_size(self, batch_size):
         """
@@ -92,7 +93,7 @@ class InferenceProcedure(object):
         # Default implementation is no-op, because default procedure does not depend
         # on the batch size.
 
-    def multi_infer(self, V, return_history = False, niter = None, block_grad = None):
+    def multi_infer(self, V, return_history=False, niter=None, block_grad=None):
         """
         Inference using "the multi-inference trick." See
         "Multi-prediction deep Boltzmann machines", Goodfellow et al 2013.
@@ -122,8 +123,8 @@ class InferenceProcedure(object):
         raise NotImplementedError(str(type(self)) + " does not implement"
                 " multi_infer.")
 
-    def do_inpainting(self, V, Y = None, drop_mask = None, drop_mask_Y = None,
-            return_history = False, noise = False, niter = None, block_grad = None):
+    def do_inpainting(self, V, Y=None, drop_mask=None, drop_mask_Y=None,
+            return_history=False, noise=False, niter=None, block_grad=None):
         """
         Does the inference required for multi-prediction training.
 
@@ -180,6 +181,7 @@ class InferenceProcedure(object):
 
 
 class WeightDoubling(InferenceProcedure):
+
     """
     An inference procedure that initializes all states to zero and
     doubles the bottom-up weights on the first pass of mean field
@@ -190,7 +192,7 @@ class WeightDoubling(InferenceProcedure):
     """
 
     @functools.wraps(InferenceProcedure.mf)
-    def mf(self, V, Y = None, return_history = False, niter = None, block_grad = None):
+    def mf(self, V, Y=None, return_history=False, niter=None, block_grad=None):
 
         dbm = self.dbm
 
@@ -204,30 +206,31 @@ class WeightDoubling(InferenceProcedure):
             niter = dbm.niter
 
         H_hat = []
-        for i in xrange(0,len(dbm.hidden_layers)-1):
-            #do double weights update for_layer_i
+        for i in xrange(0, len(dbm.hidden_layers) - 1):
+            # do double weights update for_layer_i
             if i == 0:
                 H_hat.append(dbm.hidden_layers[i].mf_update(
-                    state_above = None,
-                    double_weights = True,
-                    state_below = dbm.visible_layer.upward_state(V),
-                    iter_name = '0'))
+                    state_above=None,
+                    double_weights=True,
+                    state_below=dbm.visible_layer.upward_state(V),
+                    iter_name='0'))
             else:
                 H_hat.append(dbm.hidden_layers[i].mf_update(
-                    state_above = None,
-                    double_weights = True,
-                    state_below = dbm.hidden_layers[i-1].upward_state(H_hat[i-1]),
-                    iter_name = '0'))
+                    state_above=None,
+                    double_weights=True,
+                    state_below=dbm.hidden_layers[
+                        i - 1].upward_state(H_hat[i - 1]),
+                    iter_name='0'))
 
         # last layer does not need its weights doubled, even on the first pass
         if len(dbm.hidden_layers) > 1:
             H_hat.append(dbm.hidden_layers[-1].mf_update(
-                state_above = None,
-                state_below = dbm.hidden_layers[-2].upward_state(H_hat[-1])))
+                state_above=None,
+                state_below=dbm.hidden_layers[-2].upward_state(H_hat[-1])))
         else:
             H_hat.append(dbm.hidden_layers[-1].mf_update(
-                state_above = None,
-                state_below = dbm.visible_layer.upward_state(V)))
+                state_above=None,
+                state_below=dbm.visible_layer.upward_state(V)))
 
         # Make corrections for if we're also running inference on Y
         if Y is not None:
@@ -243,57 +246,58 @@ class WeightDoubling(InferenceProcedure):
                 state_below = dbm.visible_layer.upward_state(V)
 
             H_hat[-2] = dbm.hidden_layers[-2].mf_update(
-                            state_below = state_below,
-                            state_above = state_above,
-                            layer_above = layer_above)
+                state_below=state_below,
+                state_above=state_above,
+                layer_above=layer_above)
 
             # Last layer is clamped to Y
             H_hat[-1] = Y
 
-
-
         if block_grad == 1:
             H_hat = block(H_hat)
 
-        history = [ list(H_hat) ]
-
+        history = [list(H_hat)]
 
         # we only need recurrent inference if there are multiple layers
         if len(H_hat) > 1:
             for i in xrange(1, niter):
-                for j in xrange(0,len(H_hat),2):
+                for j in xrange(0, len(H_hat), 2):
                     if j == 0:
                         state_below = dbm.visible_layer.upward_state(V)
                     else:
-                        state_below = dbm.hidden_layers[j-1].upward_state(H_hat[j-1])
+                        state_below = dbm.hidden_layers[
+                            j - 1].upward_state(H_hat[j - 1])
                     if j == len(H_hat) - 1:
                         state_above = None
                         layer_above = None
                     else:
-                        state_above = dbm.hidden_layers[j+1].downward_state(H_hat[j+1])
-                        layer_above = dbm.hidden_layers[j+1]
+                        state_above = dbm.hidden_layers[
+                            j + 1].downward_state(H_hat[j + 1])
+                        layer_above = dbm.hidden_layers[j + 1]
                     H_hat[j] = dbm.hidden_layers[j].mf_update(
-                            state_below = state_below,
-                            state_above = state_above,
-                            layer_above = layer_above)
+                        state_below=state_below,
+                        state_above=state_above,
+                        layer_above=layer_above)
 
                 if Y is not None:
                     H_hat[-1] = Y
 
-                for j in xrange(1,len(H_hat),2):
-                    state_below = dbm.hidden_layers[j-1].upward_state(H_hat[j-1])
+                for j in xrange(1, len(H_hat), 2):
+                    state_below = dbm.hidden_layers[
+                        j - 1].upward_state(H_hat[j - 1])
                     if j == len(H_hat) - 1:
                         state_above = None
                         state_above = None
                     else:
-                        state_above = dbm.hidden_layers[j+1].downward_state(H_hat[j+1])
-                        layer_above = dbm.hidden_layers[j+1]
+                        state_above = dbm.hidden_layers[
+                            j + 1].downward_state(H_hat[j + 1])
+                        layer_above = dbm.hidden_layers[j + 1]
                     H_hat[j] = dbm.hidden_layers[j].mf_update(
-                            state_below = state_below,
-                            state_above = state_above,
-                            layer_above = layer_above)
-                    #end ifelse
-                #end for odd layer
+                        state_below=state_below,
+                        state_above=state_above,
+                        layer_above=layer_above)
+                    # end ifelse
+                # end for odd layer
 
                 if Y is not None:
                     H_hat[-1] = Y
@@ -330,7 +334,7 @@ class WeightDoubling(InferenceProcedure):
             return H_hat
 
     @functools.wraps(InferenceProcedure.multi_infer)
-    def multi_infer(self, V, return_history = False, niter = None, block_grad = None):
+    def multi_infer(self, V, return_history=False, niter=None, block_grad=None):
 
         dbm = self.dbm
 
@@ -339,79 +343,91 @@ class WeightDoubling(InferenceProcedure):
         if niter is None:
             niter = dbm.niter
 
-        new_V = 0.5 * V + 0.5 * dbm.visible_layer.init_inpainting_state(V,drop_mask = None,noise = False, return_unmasked = False)
+        new_V = 0.5 * V + 0.5 * dbm.visible_layer.init_inpainting_state(
+            V, drop_mask=None, noise=False, return_unmasked=False)
 
         H_hat = []
-        for i in xrange(0,len(dbm.hidden_layers)-1):
-            #do double weights update for_layer_i
+        for i in xrange(0, len(dbm.hidden_layers) - 1):
+            # do double weights update for_layer_i
             if i == 0:
                 H_hat.append(dbm.hidden_layers[i].mf_update(
-                                                            state_above = None,
-                                                            double_weights = True,
-                                                            state_below = dbm.visible_layer.upward_state(new_V),
-                                                            iter_name = '0'))
+                    state_above=None,
+                    double_weights=True,
+                    state_below=dbm.visible_layer.upward_state(
+                    new_V),
+                    iter_name='0'))
             else:
                 H_hat.append(dbm.hidden_layers[i].mf_update(
-                                                            state_above = None,
-                                                            double_weights = True,
-                                                            state_below = dbm.hidden_layers[i-1].upward_state(H_hat[i-1]),
-                                                            iter_name = '0'))
+                    state_above=None,
+                    double_weights=True,
+                    state_below=dbm.hidden_layers[
+                    i - 1].upward_state(
+                        H_hat[
+                            i - 1]),
+                    iter_name='0'))
 
-        #last layer does not need its weights doubled, even on the first pass
+        # last layer does not need its weights doubled, even on the first pass
         if len(dbm.hidden_layers) > 1:
             H_hat.append(dbm.hidden_layers[-1].mf_update(
-                                                         state_above = None,
-                                                         state_below = dbm.hidden_layers[-2].upward_state(H_hat[-1])))
+                         state_above=None,
+                                                         state_below=dbm.hidden_layers[-2].upward_state(H_hat[-1])))
         else:
             H_hat.append(dbm.hidden_layers[-1].mf_update(
-                                                         state_above = None,
-                                                         state_below = dbm.visible_layer.upward_state(V)))
+                         state_above=None,
+                                                         state_below=dbm.visible_layer.upward_state(V)))
 
         if block_grad == 1:
             H_hat = block(H_hat)
 
-        history = [ (new_V, list(H_hat)) ]
+        history = [(new_V, list(H_hat))]
 
-
-        #we only need recurrent inference if there are multiple layers
+        # we only need recurrent inference if there are multiple layers
         if len(H_hat) > 1:
             for i in xrange(1, niter):
-                for j in xrange(0,len(H_hat),2):
+                for j in xrange(0, len(H_hat), 2):
                     if j == 0:
                         state_below = dbm.visible_layer.upward_state(new_V)
                     else:
-                        state_below = dbm.hidden_layers[j-1].upward_state(H_hat[j-1])
+                        state_below = dbm.hidden_layers[
+                            j - 1].upward_state(H_hat[j - 1])
                     if j == len(H_hat) - 1:
                         state_above = None
                         layer_above = None
                     else:
-                        state_above = dbm.hidden_layers[j+1].downward_state(H_hat[j+1])
-                        layer_above = dbm.hidden_layers[j+1]
+                        state_above = dbm.hidden_layers[
+                            j + 1].downward_state(H_hat[j + 1])
+                        layer_above = dbm.hidden_layers[j + 1]
                     H_hat[j] = dbm.hidden_layers[j].mf_update(
-                                                              state_below = state_below,
-                                                              state_above = state_above,
-                                                              layer_above = layer_above)
+                        state_below=state_below,
+                        state_above=state_above,
+                        layer_above=layer_above)
                 V_hat = dbm.visible_layer.inpaint_update(
-                                                                                 state_above = dbm.hidden_layers[0].downward_state(H_hat[0]),
-                                                                                 layer_above = dbm.hidden_layers[0],
-                                                                                 V = V,
-                                                                                 drop_mask = None)
+                    state_above=dbm.hidden_layers[
+                        0].downward_state(
+                            H_hat[
+                                0]),
+                    layer_above=dbm.hidden_layers[
+                        0],
+                    V=V,
+                    drop_mask=None)
                 new_V = 0.5 * V_hat + 0.5 * V
 
-                for j in xrange(1,len(H_hat),2):
-                    state_below = dbm.hidden_layers[j-1].upward_state(H_hat[j-1])
+                for j in xrange(1, len(H_hat), 2):
+                    state_below = dbm.hidden_layers[
+                        j - 1].upward_state(H_hat[j - 1])
                     if j == len(H_hat) - 1:
                         state_above = None
                         state_above = None
                     else:
-                        state_above = dbm.hidden_layers[j+1].downward_state(H_hat[j+1])
-                        layer_above = dbm.hidden_layers[j+1]
+                        state_above = dbm.hidden_layers[
+                            j + 1].downward_state(H_hat[j + 1])
+                        layer_above = dbm.hidden_layers[j + 1]
                     H_hat[j] = dbm.hidden_layers[j].mf_update(
-                                                              state_below = state_below,
-                                                              state_above = state_above,
-                                                              layer_above = layer_above)
-                #end ifelse
-                #end for odd layer
+                        state_below=state_below,
+                        state_above=state_above,
+                        layer_above=layer_above)
+                # end ifelse
+                # end for odd layer
 
                 if block_grad == i:
                     H_hat = block(H_hat)
@@ -436,8 +452,8 @@ class WeightDoubling(InferenceProcedure):
         else:
             return H_hat[-1]
 
-    def do_inpainting(self, V, Y = None, drop_mask = None, drop_mask_Y = None,
-            return_history = False, noise = False, niter = None, block_grad = None):
+    def do_inpainting(self, V, Y=None, drop_mask=None, drop_mask_Y=None,
+            return_history=False, noise=False, niter=None, block_grad=None):
         """
         .. todo::
 
@@ -524,37 +540,40 @@ class WeightDoubling(InferenceProcedure):
 
         history = []
 
-        V_hat, V_hat_unmasked = dbm.visible_layer.init_inpainting_state(V,drop_mask,noise, return_unmasked = True)
+        V_hat, V_hat_unmasked = dbm.visible_layer.init_inpainting_state(
+            V, drop_mask, noise, return_unmasked=True)
         assert V_hat_unmasked.ndim > 1
 
         H_hat = []
-        for i in xrange(0,len(dbm.hidden_layers)-1):
-            #do double weights update for_layer_i
+        for i in xrange(0, len(dbm.hidden_layers) - 1):
+            # do double weights update for_layer_i
             if i == 0:
                 H_hat.append(dbm.hidden_layers[i].mf_update(
-                    state_above = None,
-                    double_weights = True,
-                    state_below = dbm.visible_layer.upward_state(V_hat),
-                    iter_name = '0'))
+                    state_above=None,
+                    double_weights=True,
+                    state_below=dbm.visible_layer.upward_state(V_hat),
+                    iter_name='0'))
             else:
                 H_hat.append(dbm.hidden_layers[i].mf_update(
-                    state_above = None,
-                    double_weights = True,
-                    state_below = dbm.hidden_layers[i-1].upward_state(H_hat[i-1]),
-                    iter_name = '0'))
+                    state_above=None,
+                    double_weights=True,
+                    state_below=dbm.hidden_layers[
+                        i - 1].upward_state(H_hat[i - 1]),
+                    iter_name='0'))
         # Last layer does not need its weights doubled, even on the first pass
         if len(dbm.hidden_layers) > 1:
             H_hat.append(dbm.hidden_layers[-1].mf_update(
-                state_above = None,
-                #layer_above = None,
-                state_below = dbm.hidden_layers[-2].upward_state(H_hat[-1])))
+                state_above=None,
+                # layer_above = None,
+                state_below=dbm.hidden_layers[-2].upward_state(H_hat[-1])))
         else:
             H_hat.append(dbm.hidden_layers[-1].mf_update(
-                state_above = None,
-                state_below = dbm.visible_layer.upward_state(V_hat)))
+                state_above=None,
+                state_below=dbm.visible_layer.upward_state(V_hat)))
 
         if Y is not None:
-            Y_hat_unmasked = dbm.hidden_layers[-1].init_inpainting_state(Y, noise)
+            Y_hat_unmasked = dbm.hidden_layers[
+                -1].init_inpainting_state(Y, noise)
             dirty_term = drop_mask_Y * Y_hat_unmasked
             clean_term = (1 - drop_mask_Y) * Y
             Y_hat = dirty_term + clean_term
@@ -563,21 +582,22 @@ class WeightDoubling(InferenceProcedure):
                 i = len(dbm.hidden_layers) - 2
                 if i == 0:
                     H_hat[i] = dbm.hidden_layers[i].mf_update(
-                        state_above = Y_hat,
-                        layer_above = dbm.hidden_layers[-1],
-                        state_below = dbm.visible_layer.upward_state(V_hat),
-                        iter_name = '0')
+                        state_above=Y_hat,
+                        layer_above=dbm.hidden_layers[-1],
+                        state_below=dbm.visible_layer.upward_state(V_hat),
+                        iter_name='0')
                 else:
                     H_hat[i] = dbm.hidden_layers[i].mf_update(
-                        state_above = Y_hat,
-                        layer_above = dbm.hidden_layers[-1],
-                        state_below = dbm.hidden_layers[i-1].upward_state(H_hat[i-1]),
-                        iter_name = '0')
-
+                        state_above=Y_hat,
+                        layer_above=dbm.hidden_layers[-1],
+                        state_below=dbm.hidden_layers[
+                            i - 1].upward_state(H_hat[i - 1]),
+                        iter_name='0')
 
         def update_history():
             assert V_hat_unmasked.ndim > 1
-            d =  { 'V_hat' :  V_hat, 'H_hat' : list(H_hat), 'V_hat_unmasked' : V_hat_unmasked }
+            d = {'V_hat':  V_hat, 'H_hat': list(
+                H_hat), 'V_hat_unmasked': V_hat_unmasked}
             if Y is not None:
                 d['Y_hat_unmasked'] = Y_hat_unmasked
                 d['Y_hat'] = H_hat[-1]
@@ -589,57 +609,62 @@ class WeightDoubling(InferenceProcedure):
             H_hat = block(H_hat)
         update_history()
 
-        for i in xrange(niter-1):
+        for i in xrange(niter - 1):
             for j in xrange(0, len(H_hat), 2):
                 if j == 0:
                     state_below = dbm.visible_layer.upward_state(V_hat)
                 else:
-                    state_below = dbm.hidden_layers[j-1].upward_state(H_hat[j-1])
+                    state_below = dbm.hidden_layers[
+                        j - 1].upward_state(H_hat[j - 1])
                 if j == len(H_hat) - 1:
                     state_above = None
                     layer_above = None
                 else:
-                    state_above = dbm.hidden_layers[j+1].downward_state(H_hat[j+1])
-                    layer_above = dbm.hidden_layers[j+1]
+                    state_above = dbm.hidden_layers[
+                        j + 1].downward_state(H_hat[j + 1])
+                    layer_above = dbm.hidden_layers[j + 1]
                 H_hat[j] = dbm.hidden_layers[j].mf_update(
-                        state_below = state_below,
-                        state_above = state_above,
-                        layer_above = layer_above)
+                        state_below=state_below,
+                        state_above=state_above,
+                        layer_above=layer_above)
                 if Y is not None and j == len(dbm.hidden_layers) - 1:
                     Y_hat_unmasked = H_hat[j]
                     H_hat[j] = drop_mask_Y * H_hat[j] + (1 - drop_mask_Y) * Y
 
             V_hat, V_hat_unmasked = dbm.visible_layer.inpaint_update(
-                    state_above = dbm.hidden_layers[0].downward_state(H_hat[0]),
-                    layer_above = dbm.hidden_layers[0],
-                    V = V,
-                    drop_mask = drop_mask, return_unmasked = True)
+                    state_above=dbm.hidden_layers[
+                        0].downward_state(H_hat[0]),
+                    layer_above=dbm.hidden_layers[0],
+                    V=V,
+                    drop_mask=drop_mask, return_unmasked=True)
             V_hat.name = 'V_hat[%d](V_hat = %s)' % (i, V_hat.name)
 
-            for j in xrange(1,len(H_hat),2):
-                state_below = dbm.hidden_layers[j-1].upward_state(H_hat[j-1])
+            for j in xrange(1, len(H_hat), 2):
+                state_below = dbm.hidden_layers[
+                    j - 1].upward_state(H_hat[j - 1])
                 if j == len(H_hat) - 1:
                     state_above = None
                     layer_above = None
                 else:
-                    state_above = dbm.hidden_layers[j+1].downward_state(H_hat[j+1])
-                    layer_above = dbm.hidden_layers[j+1]
-                #end if j
+                    state_above = dbm.hidden_layers[
+                        j + 1].downward_state(H_hat[j + 1])
+                    layer_above = dbm.hidden_layers[j + 1]
+                # end if j
                 H_hat[j] = dbm.hidden_layers[j].mf_update(
-                        state_below = state_below,
-                        state_above = state_above,
-                        layer_above = layer_above)
+                        state_below=state_below,
+                        state_above=state_above,
+                        layer_above=layer_above)
                 if Y is not None and j == len(dbm.hidden_layers) - 1:
                     Y_hat_unmasked = H_hat[j]
                     H_hat[j] = drop_mask_Y * H_hat[j] + (1 - drop_mask_Y) * Y
-                #end if y
-            #end for j
+                # end if y
+            # end for j
             if block_grad == i:
                 V_hat = block_gradient(V_hat)
                 V_hat_unmasked = block_gradient(V_hat_unmasked)
                 H_hat = block(H_hat)
             update_history()
-        #end for i
+        # end for i
 
         # debugging, make sure V didn't get changed in this function
         assert V is orig_V
@@ -666,6 +691,7 @@ SuperWeightDoubling = WeightDoubling
 
 
 class MoreConsistent(WeightDoubling):
+
     """
     There's an oddity in WeightDoubling where during the inpainting, we
     initialize Y_hat to sigmoid(biases) if a clean Y is passed in and
@@ -676,7 +702,7 @@ class MoreConsistent(WeightDoubling):
     """
 
     @functools.wraps(InferenceProcedure.mf)
-    def mf(self, V, Y = None, return_history = False, niter = None, block_grad = None):
+    def mf(self, V, Y=None, return_history=False, niter=None, block_grad=None):
         """
         .. todo::
 
@@ -712,12 +738,12 @@ class MoreConsistent(WeightDoubling):
             niter=niter,
             block_grad=block_grad)
 
-        assert history[-1]['H_hat'][0] is not history[-2]['H_hat'][0] # rm
+        assert history[-1]['H_hat'][0] is not history[-2]['H_hat'][0]  # rm
 
         if return_history:
             return [elem['H_hat'] for elem in history]
 
-        rval =  history[-1]['H_hat']
+        rval = history[-1]['H_hat']
 
         if 'Y_hat_unmasked' in history[-1]:
             rval[-1] = history[-1]['Y_hat_unmasked']
@@ -726,6 +752,7 @@ class MoreConsistent(WeightDoubling):
 
 
 class MoreConsistent2(WeightDoubling):
+
     """
     Makes `do_inpainting` even more consistent with `mf` than in the
     `MoreConsistent` class. TODO-- look up exactly which inconsistency
@@ -733,8 +760,8 @@ class MoreConsistent2(WeightDoubling):
     """
 
     @functools.wraps(InferenceProcedure.do_inpainting)
-    def do_inpainting(self, V, Y = None, drop_mask = None, drop_mask_Y = None,
-            return_history = False, noise = False, niter = None, block_grad = None):
+    def do_inpainting(self, V, Y=None, drop_mask=None, drop_mask_Y=None,
+            return_history=False, noise=False, niter=None, block_grad=None):
 
         dbm = self.dbm
         """TODO: Should add unit test that calling this with a batch of
@@ -768,34 +795,36 @@ class MoreConsistent2(WeightDoubling):
 
         history = []
 
-        V_hat, V_hat_unmasked = dbm.visible_layer.init_inpainting_state(V,drop_mask,noise, return_unmasked = True)
+        V_hat, V_hat_unmasked = dbm.visible_layer.init_inpainting_state(
+            V, drop_mask, noise, return_unmasked=True)
         assert V_hat_unmasked.ndim > 1
 
         H_hat = []
-        for i in xrange(0,len(dbm.hidden_layers)-1):
-            #do double weights update for_layer_i
+        for i in xrange(0, len(dbm.hidden_layers) - 1):
+            # do double weights update for_layer_i
             if i == 0:
                 H_hat.append(dbm.hidden_layers[i].mf_update(
-                    state_above = None,
-                    double_weights = True,
-                    state_below = dbm.visible_layer.upward_state(V_hat),
-                    iter_name = '0'))
+                    state_above=None,
+                    double_weights=True,
+                    state_below=dbm.visible_layer.upward_state(V_hat),
+                    iter_name='0'))
             else:
                 H_hat.append(dbm.hidden_layers[i].mf_update(
-                    state_above = None,
-                    double_weights = True,
-                    state_below = dbm.hidden_layers[i-1].upward_state(H_hat[i-1]),
-                    iter_name = '0'))
+                    state_above=None,
+                    double_weights=True,
+                    state_below=dbm.hidden_layers[
+                        i - 1].upward_state(H_hat[i - 1]),
+                    iter_name='0'))
         # Last layer does not need its weights doubled, even on the first pass
         if len(dbm.hidden_layers) > 1:
             H_hat.append(dbm.hidden_layers[-1].mf_update(
-                state_above = None,
-                #layer_above = None,
-                state_below = dbm.hidden_layers[-2].upward_state(H_hat[-1])))
+                state_above=None,
+                # layer_above = None,
+                state_below=dbm.hidden_layers[-2].upward_state(H_hat[-1])))
         else:
             H_hat.append(dbm.hidden_layers[-1].mf_update(
-                state_above = None,
-                state_below = dbm.visible_layer.upward_state(V_hat)))
+                state_above=None,
+                state_below=dbm.visible_layer.upward_state(V_hat)))
 
         if Y is not None:
             Y_hat_unmasked = H_hat[-1]
@@ -820,10 +849,10 @@ class MoreConsistent2(WeightDoubling):
                         iter_name = '0')
             """
 
-
         def update_history():
             assert V_hat_unmasked.ndim > 1
-            d =  { 'V_hat' :  V_hat, 'H_hat' : list(H_hat), 'V_hat_unmasked' : V_hat_unmasked }
+            d = {'V_hat':  V_hat, 'H_hat': list(
+                H_hat), 'V_hat_unmasked': V_hat_unmasked}
             if Y is not None:
                 d['Y_hat_unmasked'] = Y_hat_unmasked
                 d['Y_hat'] = H_hat[-1]
@@ -835,57 +864,62 @@ class MoreConsistent2(WeightDoubling):
             H_hat = block(H_hat)
         update_history()
 
-        for i in xrange(niter-1):
+        for i in xrange(niter - 1):
             for j in xrange(0, len(H_hat), 2):
                 if j == 0:
                     state_below = dbm.visible_layer.upward_state(V_hat)
                 else:
-                    state_below = dbm.hidden_layers[j-1].upward_state(H_hat[j-1])
+                    state_below = dbm.hidden_layers[
+                        j - 1].upward_state(H_hat[j - 1])
                 if j == len(H_hat) - 1:
                     state_above = None
                     layer_above = None
                 else:
-                    state_above = dbm.hidden_layers[j+1].downward_state(H_hat[j+1])
-                    layer_above = dbm.hidden_layers[j+1]
+                    state_above = dbm.hidden_layers[
+                        j + 1].downward_state(H_hat[j + 1])
+                    layer_above = dbm.hidden_layers[j + 1]
                 H_hat[j] = dbm.hidden_layers[j].mf_update(
-                        state_below = state_below,
-                        state_above = state_above,
-                        layer_above = layer_above)
+                        state_below=state_below,
+                        state_above=state_above,
+                        layer_above=layer_above)
                 if Y is not None and j == len(dbm.hidden_layers) - 1:
                     Y_hat_unmasked = H_hat[j]
                     H_hat[j] = drop_mask_Y * H_hat[j] + (1 - drop_mask_Y) * Y
 
             V_hat, V_hat_unmasked = dbm.visible_layer.inpaint_update(
-                    state_above = dbm.hidden_layers[0].downward_state(H_hat[0]),
-                    layer_above = dbm.hidden_layers[0],
-                    V = V,
-                    drop_mask = drop_mask, return_unmasked = True)
+                    state_above=dbm.hidden_layers[
+                        0].downward_state(H_hat[0]),
+                    layer_above=dbm.hidden_layers[0],
+                    V=V,
+                    drop_mask=drop_mask, return_unmasked=True)
             V_hat.name = 'V_hat[%d](V_hat = %s)' % (i, V_hat.name)
 
-            for j in xrange(1,len(H_hat),2):
-                state_below = dbm.hidden_layers[j-1].upward_state(H_hat[j-1])
+            for j in xrange(1, len(H_hat), 2):
+                state_below = dbm.hidden_layers[
+                    j - 1].upward_state(H_hat[j - 1])
                 if j == len(H_hat) - 1:
                     state_above = None
                     layer_above = None
                 else:
-                    state_above = dbm.hidden_layers[j+1].downward_state(H_hat[j+1])
-                    layer_above = dbm.hidden_layers[j+1]
-                #end if j
+                    state_above = dbm.hidden_layers[
+                        j + 1].downward_state(H_hat[j + 1])
+                    layer_above = dbm.hidden_layers[j + 1]
+                # end if j
                 H_hat[j] = dbm.hidden_layers[j].mf_update(
-                        state_below = state_below,
-                        state_above = state_above,
-                        layer_above = layer_above)
+                        state_below=state_below,
+                        state_above=state_above,
+                        layer_above=layer_above)
                 if Y is not None and j == len(dbm.hidden_layers) - 1:
                     Y_hat_unmasked = H_hat[j]
                     H_hat[j] = drop_mask_Y * H_hat[j] + (1 - drop_mask_Y) * Y
-                #end if y
-            #end for j
+                # end if y
+            # end for j
             if block_grad == i:
                 V_hat = block_gradient(V_hat)
                 V_hat_unmasked = block_gradient(V_hat_unmasked)
                 H_hat = block(H_hat)
             update_history()
-        #end for i
+        # end for i
 
         # debugging, make sure V didn't get changed in this function
         assert V is orig_V
@@ -906,6 +940,7 @@ class MoreConsistent2(WeightDoubling):
 
 
 class BiasInit(InferenceProcedure):
+
     """
     An InferenceProcedure that initializes the mean field parameters
     based on the biases in the model. This InferenceProcedure uses
@@ -914,7 +949,7 @@ class BiasInit(InferenceProcedure):
     """
 
     @functools.wraps(InferenceProcedure.mf)
-    def mf(self, V, Y = None, return_history = False, niter = None, block_grad = None):
+    def mf(self, V, Y=None, return_history=False, niter=None, block_grad=None):
 
         dbm = self.dbm
 
@@ -927,63 +962,67 @@ class BiasInit(InferenceProcedure):
         if niter is None:
             niter = dbm.niter
 
-        H_hat = [None] + [layer.init_mf_state() for layer in dbm.hidden_layers[1:]]
+        H_hat = [None] + [layer.init_mf_state()
+                                              for layer in dbm.hidden_layers[1:]]
 
         # Make corrections for if we're also running inference on Y
         if Y is not None:
             # Last layer is clamped to Y
             H_hat[-1] = Y
 
-        history = [ list(H_hat) ]
+        history = [list(H_hat)]
 
-        #we only need recurrent inference if there are multiple layers
+        # we only need recurrent inference if there are multiple layers
         assert (niter > 1) == (len(dbm.hidden_layers) > 1)
 
         for i in xrange(niter):
-            for j in xrange(0,len(H_hat),2):
+            for j in xrange(0, len(H_hat), 2):
                 if j == 0:
                     state_below = dbm.visible_layer.upward_state(V)
                 else:
-                    state_below = dbm.hidden_layers[j-1].upward_state(H_hat[j-1])
+                    state_below = dbm.hidden_layers[
+                        j - 1].upward_state(H_hat[j - 1])
                 if j == len(H_hat) - 1:
                     state_above = None
                     layer_above = None
                 else:
-                    state_above = dbm.hidden_layers[j+1].downward_state(H_hat[j+1])
-                    layer_above = dbm.hidden_layers[j+1]
+                    state_above = dbm.hidden_layers[
+                        j + 1].downward_state(H_hat[j + 1])
+                    layer_above = dbm.hidden_layers[j + 1]
                 H_hat[j] = dbm.hidden_layers[j].mf_update(
-                        state_below = state_below,
-                        state_above = state_above,
-                        layer_above = layer_above)
+                        state_below=state_below,
+                        state_above=state_above,
+                        layer_above=layer_above)
 
             if Y is not None:
                 H_hat[-1] = Y
 
-            for j in xrange(1,len(H_hat),2):
-                state_below = dbm.hidden_layers[j-1].upward_state(H_hat[j-1])
+            for j in xrange(1, len(H_hat), 2):
+                state_below = dbm.hidden_layers[
+                    j - 1].upward_state(H_hat[j - 1])
                 if j == len(H_hat) - 1:
                     state_above = None
                     state_above = None
                 else:
-                    state_above = dbm.hidden_layers[j+1].downward_state(H_hat[j+1])
-                    layer_above = dbm.hidden_layers[j+1]
+                    state_above = dbm.hidden_layers[
+                        j + 1].downward_state(H_hat[j + 1])
+                    layer_above = dbm.hidden_layers[j + 1]
                 H_hat[j] = dbm.hidden_layers[j].mf_update(
-                        state_below = state_below,
-                        state_above = state_above,
-                        layer_above = layer_above)
-                #end ifelse
-            #end for odd layer
+                        state_below=state_below,
+                        state_above=state_above,
+                        layer_above=layer_above)
+                # end ifelse
+            # end for odd layer
 
             if Y is not None:
                 H_hat[-1] = Y
 
             for i, elem in enumerate(H_hat):
                 if elem is Y:
-                    assert i == len(H_hat) -1
+                    assert i == len(H_hat) - 1
                     continue
                 else:
                     assert elem not in history[-1]
-
 
             if block_grad == i + 1:
                 H_hat = block(H_hat)
@@ -1032,8 +1071,8 @@ class BiasInit(InferenceProcedure):
         else:
             return H_hat
 
-    def do_inpainting(self, V, Y = None, drop_mask = None, drop_mask_Y = None,
-            return_history = False, noise = False, niter = None, block_grad = None):
+    def do_inpainting(self, V, Y=None, drop_mask=None, drop_mask_Y=None,
+            return_history=False, noise=False, niter=None, block_grad=None):
         """
         Gives the mean field expression for units masked out by drop_mask.
         Uses self.niter mean field updates.
@@ -1081,7 +1120,6 @@ class BiasInit(InferenceProcedure):
         if niter is None:
             niter = dbm.niter
 
-
         assert drop_mask is not None
         assert return_history in [True, False]
         assert noise in [True, False]
@@ -1106,23 +1144,27 @@ class BiasInit(InferenceProcedure):
 
         history = []
 
-        V_hat, V_hat_unmasked = dbm.visible_layer.init_inpainting_state(V,drop_mask,noise, return_unmasked = True)
+        V_hat, V_hat_unmasked = dbm.visible_layer.init_inpainting_state(
+            V, drop_mask, noise, return_unmasked=True)
         assert V_hat_unmasked.ndim > 1
 
-        H_hat = [None] + [layer.init_mf_state() for layer in dbm.hidden_layers[1:]]
+        H_hat = [None] + [layer.init_mf_state()
+                                              for layer in dbm.hidden_layers[1:]]
 
         if Y is not None:
-            Y_hat_unmasked = dbm.hidden_layers[-1].init_inpainting_state(Y, noise)
+            Y_hat_unmasked = dbm.hidden_layers[
+                -1].init_inpainting_state(Y, noise)
             Y_hat = drop_mask_Y * Y_hat_unmasked + (1 - drop_mask_Y) * Y
             H_hat[-1] = Y_hat
 
         def update_history():
             assert V_hat_unmasked.ndim > 1
-            d =  { 'V_hat' :  V_hat, 'H_hat' : H_hat, 'V_hat_unmasked' : V_hat_unmasked }
+            d = {'V_hat':  V_hat, 'H_hat': H_hat,
+                'V_hat_unmasked': V_hat_unmasked}
             if Y is not None:
                 d['Y_hat_unmasked'] = Y_hat_unmasked
                 d['Y_hat'] = H_hat[-1]
-            history.append( d )
+            history.append(d)
 
         update_history()
 
@@ -1131,52 +1173,57 @@ class BiasInit(InferenceProcedure):
                 if j == 0:
                     state_below = dbm.visible_layer.upward_state(V_hat)
                 else:
-                    state_below = dbm.hidden_layers[j-1].upward_state(H_hat[j-1])
+                    state_below = dbm.hidden_layers[
+                        j - 1].upward_state(H_hat[j - 1])
                 if j == len(H_hat) - 1:
                     state_above = None
                     layer_above = None
                 else:
-                    state_above = dbm.hidden_layers[j+1].downward_state(H_hat[j+1])
-                    layer_above = dbm.hidden_layers[j+1]
+                    state_above = dbm.hidden_layers[
+                        j + 1].downward_state(H_hat[j + 1])
+                    layer_above = dbm.hidden_layers[j + 1]
                 H_hat[j] = dbm.hidden_layers[j].mf_update(
-                        state_below = state_below,
-                        state_above = state_above,
-                        layer_above = layer_above)
+                        state_below=state_below,
+                        state_above=state_above,
+                        layer_above=layer_above)
                 if Y is not None and j == len(dbm.hidden_layers) - 1:
                     Y_hat_unmasked = H_hat[j]
                     H_hat[j] = drop_mask_Y * H_hat[j] + (1 - drop_mask_Y) * Y
 
             V_hat, V_hat_unmasked = dbm.visible_layer.inpaint_update(
-                    state_above = dbm.hidden_layers[0].downward_state(H_hat[0]),
-                    layer_above = dbm.hidden_layers[0],
-                    V = V,
-                    drop_mask = drop_mask, return_unmasked = True)
+                    state_above=dbm.hidden_layers[
+                        0].downward_state(H_hat[0]),
+                    layer_above=dbm.hidden_layers[0],
+                    V=V,
+                    drop_mask=drop_mask, return_unmasked=True)
             V_hat.name = 'V_hat[%d](V_hat = %s)' % (i, V_hat.name)
 
-            for j in xrange(1,len(H_hat),2):
-                state_below = dbm.hidden_layers[j-1].upward_state(H_hat[j-1])
+            for j in xrange(1, len(H_hat), 2):
+                state_below = dbm.hidden_layers[
+                    j - 1].upward_state(H_hat[j - 1])
                 if j == len(H_hat) - 1:
                     state_above = None
                     layer_above = None
                 else:
-                    state_above = dbm.hidden_layers[j+1].downward_state(H_hat[j+1])
-                    layer_above = dbm.hidden_layers[j+1]
-                #end if j
+                    state_above = dbm.hidden_layers[
+                        j + 1].downward_state(H_hat[j + 1])
+                    layer_above = dbm.hidden_layers[j + 1]
+                # end if j
                 H_hat[j] = dbm.hidden_layers[j].mf_update(
-                        state_below = state_below,
-                        state_above = state_above,
-                        layer_above = layer_above)
+                        state_below=state_below,
+                        state_above=state_above,
+                        layer_above=layer_above)
                 if Y is not None and j == len(dbm.hidden_layers) - 1:
                     Y_hat_unmasked = H_hat[j]
                     H_hat[j] = drop_mask_Y * H_hat[j] + (1 - drop_mask_Y) * Y
-                #end if y
-            #end for j
+                # end if y
+            # end for j
             if block_grad == i + 1:
                 V_hat = block_gradient(V_hat)
                 V_hat_unmasked = block_gradient(V_hat_unmasked)
                 H_hat = block(H_hat)
             update_history()
-        #end for i
+        # end for i
 
         # debugging, make sure V didn't get changed in this function
         assert V is orig_V
@@ -1197,6 +1244,7 @@ class BiasInit(InferenceProcedure):
 
 
 class UpDown(InferenceProcedure):
+
     """
     An InferenceProcedure that initializes the mean field parameters
     based on the biases in the model, then alternates between updating
@@ -1205,7 +1253,7 @@ class UpDown(InferenceProcedure):
     """
 
     @functools.wraps(InferenceProcedure.mf)
-    def mf(self, V, Y = None, return_history = False, niter = None, block_grad = None):
+    def mf(self, V, Y=None, return_history=False, niter=None, block_grad=None):
         """
         .. todo::
 
@@ -1223,16 +1271,17 @@ class UpDown(InferenceProcedure):
         if niter is None:
             niter = dbm.niter
 
-        H_hat = [None] + [layer.init_mf_state() for layer in dbm.hidden_layers[1:]]
+        H_hat = [None] + [layer.init_mf_state()
+                                              for layer in dbm.hidden_layers[1:]]
 
         # Make corrections for if we're also running inference on Y
         if Y is not None:
             # Last layer is clamped to Y
             H_hat[-1] = Y
 
-        history = [ list(H_hat) ]
+        history = [list(H_hat)]
 
-        #we only need recurrent inference if there are multiple layers
+        # we only need recurrent inference if there are multiple layers
         assert (niter > 1) == (len(dbm.hidden_layers) > 1)
 
         for i in xrange(niter):
@@ -1250,17 +1299,19 @@ class UpDown(InferenceProcedure):
                 if j == 0:
                     state_below = dbm.visible_layer.upward_state(V)
                 else:
-                    state_below = dbm.hidden_layers[j-1].upward_state(H_hat[j-1])
+                    state_below = dbm.hidden_layers[
+                        j - 1].upward_state(H_hat[j - 1])
                 if j == len(H_hat) - 1:
                     state_above = None
                     layer_above = None
                 else:
-                    state_above = dbm.hidden_layers[j+1].downward_state(H_hat[j+1])
-                    layer_above = dbm.hidden_layers[j+1]
+                    state_above = dbm.hidden_layers[
+                        j + 1].downward_state(H_hat[j + 1])
+                    layer_above = dbm.hidden_layers[j + 1]
                 H_hat[j] = dbm.hidden_layers[j].mf_update(
-                        state_below = state_below,
-                        state_above = state_above,
-                        layer_above = layer_above)
+                        state_below=state_below,
+                        state_above=state_above,
+                        layer_above=layer_above)
                 if Y is not None:
                     H_hat[-1] = Y
 
@@ -1286,8 +1337,8 @@ class UpDown(InferenceProcedure):
         else:
             return H_hat
 
-    def do_inpainting(self, V, Y = None, drop_mask = None, drop_mask_Y = None,
-            return_history = False, noise = False, niter = None, block_grad = None):
+    def do_inpainting(self, V, Y=None, drop_mask=None, drop_mask_Y=None,
+            return_history=False, noise=False, niter=None, block_grad=None):
         """
         .. todo::
 
@@ -1342,7 +1393,6 @@ class UpDown(InferenceProcedure):
         if niter is None:
             niter = model.niter
 
-
         assert drop_mask is not None
         assert return_history in [True, False]
         assert noise in [True, False]
@@ -1367,23 +1417,27 @@ class UpDown(InferenceProcedure):
 
         history = []
 
-        V_hat, V_hat_unmasked = model.visible_layer.init_inpainting_state(V,drop_mask,noise, return_unmasked = True)
+        V_hat, V_hat_unmasked = model.visible_layer.init_inpainting_state(
+            V, drop_mask, noise, return_unmasked=True)
         assert V_hat_unmasked.ndim > 1
 
-        H_hat = [None] + [layer.init_mf_state() for layer in model.hidden_layers[1:]]
+        H_hat = [None] + [layer.init_mf_state()
+                                              for layer in model.hidden_layers[1:]]
 
         if Y is not None:
-            Y_hat_unmasked = model.hidden_layers[-1].init_inpainting_state(Y, noise)
+            Y_hat_unmasked = model.hidden_layers[
+                -1].init_inpainting_state(Y, noise)
             Y_hat = drop_mask_Y * Y_hat_unmasked + (1 - drop_mask_Y) * Y
             H_hat[-1] = Y_hat
 
         def update_history():
             assert V_hat_unmasked.ndim > 1
-            d =  { 'V_hat' :  V_hat, 'H_hat' : H_hat, 'V_hat_unmasked' : V_hat_unmasked }
+            d = {'V_hat':  V_hat, 'H_hat': H_hat,
+                'V_hat_unmasked': V_hat_unmasked}
             if Y is not None:
                 d['Y_hat_unmasked'] = Y_hat_unmasked
                 d['Y_hat'] = H_hat[-1]
-            history.append( d )
+            history.append(d)
 
         update_history()
 
@@ -1397,10 +1451,11 @@ class UpDown(InferenceProcedure):
                     # Don't start by updating V_hat on iteration 0 or this will throw out the
                     # noise
                     V_hat, V_hat_unmasked = model.visible_layer.inpaint_update(
-                            state_above = model.hidden_layers[0].downward_state(H_hat[0]),
-                            layer_above = model.hidden_layers[0],
-                            V = V,
-                            drop_mask = drop_mask, return_unmasked = True)
+                            state_above=model.hidden_layers[
+                                0].downward_state(H_hat[0]),
+                            layer_above=model.hidden_layers[0],
+                            V=V,
+                            drop_mask=drop_mask, return_unmasked=True)
                     V_hat.name = 'V_hat[%d](V_hat = %s)' % (i, V_hat.name)
             else:
                 start = len(H_hat) - 1
@@ -1410,27 +1465,30 @@ class UpDown(InferenceProcedure):
                 if j == 0:
                     state_below = model.visible_layer.upward_state(V_hat)
                 else:
-                    state_below = model.hidden_layers[j-1].upward_state(H_hat[j-1])
+                    state_below = model.hidden_layers[
+                        j - 1].upward_state(H_hat[j - 1])
                 if j == len(H_hat) - 1:
                     state_above = None
                     layer_above = None
                 else:
-                    state_above = model.hidden_layers[j+1].downward_state(H_hat[j+1])
-                    layer_above = model.hidden_layers[j+1]
+                    state_above = model.hidden_layers[
+                        j + 1].downward_state(H_hat[j + 1])
+                    layer_above = model.hidden_layers[j + 1]
                 H_hat[j] = model.hidden_layers[j].mf_update(
-                        state_below = state_below,
-                        state_above = state_above,
-                        layer_above = layer_above)
+                        state_below=state_below,
+                        state_above=state_above,
+                        layer_above=layer_above)
                 if Y is not None and j == len(model.hidden_layers) - 1:
                     Y_hat_unmasked = H_hat[j]
                     H_hat[j] = drop_mask_Y * H_hat[j] + (1 - drop_mask_Y) * Y
 
             if i % 2 == 1:
                 V_hat, V_hat_unmasked = model.visible_layer.inpaint_update(
-                        state_above = model.hidden_layers[0].downward_state(H_hat[0]),
-                        layer_above = model.hidden_layers[0],
-                        V = V,
-                        drop_mask = drop_mask, return_unmasked = True)
+                        state_above=model.hidden_layers[
+                            0].downward_state(H_hat[0]),
+                        layer_above=model.hidden_layers[0],
+                        V=V,
+                        drop_mask=drop_mask, return_unmasked=True)
                 V_hat.name = 'V_hat[%d](V_hat = %s)' % (i, V_hat.name)
 
             if block_grad == i + 1:
@@ -1438,7 +1496,7 @@ class UpDown(InferenceProcedure):
                 V_hat_unmasked = block_gradient(V_hat_unmasked)
                 H_hat = block(H_hat)
             update_history()
-        #end for i
+        # end for i
 
         # debugging, make sure V didn't get changed in this function
         assert V is orig_V
