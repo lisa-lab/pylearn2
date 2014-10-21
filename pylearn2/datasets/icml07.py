@@ -63,7 +63,7 @@ class ICML07DataSet(DenseDesignMatrix):
         data_y = data_y[start:end]
 
         view_converter = DefaultViewConverter((28, 28, 1))
-        super(ICML07DataSet, self).__init__(X=data_x, y=data_y, 
+        super(ICML07DataSet, self).__init__(X=data_x, y=data_y,
             y_labels=data_y.max() + 1, view_converter=view_converter)
 
     def get_test_set(self):

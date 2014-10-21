@@ -386,5 +386,4 @@ def compressed_one_hot(labels, dtype=None, out=None, simplify_binary=True,
         return labels_.reshape((labels_.shape[0], 1)), uniq
     else:
         return OneHotFormatter(len(uniq), dtype=dtype).format(
-        labels_, mode=mode, sparse=sparse
-    ), uniq
+            labels_, mode=mode, sparse=sparse), uniq

@@ -62,7 +62,6 @@ class CSVDataset(DenseDesignMatrix):
     end_fraction : float
       The fraction of rows, starting at the end of the file, to load.
     """
-
     def __init__(self,
                  path='train.csv',
                  task='classification',
@@ -124,12 +123,11 @@ class CSVDataset(DenseDesignMatrix):
         # and go
         self.path = preprocess(self.path)
         X, y = self._load_data()
-        
+
         if self.task == 'regression':
             super(CSVDataset, self).__init__(X=X, y=y)
         else:
-            super(CSVDataset, self).__init__(X=X, y=y, y_labels=np.max(y)+1 )
-
+            super(CSVDataset, self).__init__(X=X, y=y, y_labels=np.max(y)+1)
 
     def _load_data(self):
         """
@@ -167,6 +165,9 @@ class CSVDataset(DenseDesignMatrix):
         if self.expect_labels:
             y = data[:, 0]
             X = data[:, 1:]
+            
+            if self.task == 'regression':
+                y = y.reshape((y.shape[0], 1))
         else:
             X = data
             y = None

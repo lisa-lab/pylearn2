@@ -42,7 +42,7 @@ class ToyDataset(DenseDesignMatrix):
         positive = numpy.random.binomial(1, 0.5, [1000])
         self.y[:,0]=positive
         self.y[:,1]=1-positive
-        super(ToyDataset, self).__init__(X=data, y=self.y)
+        super(ToyDataset, self).__init__(X=data, y=self.y, y_labels=2)
 
 def get_dataset_toy():
     """

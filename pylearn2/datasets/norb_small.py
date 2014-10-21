@@ -71,7 +71,7 @@ class NORBSmall(dense_design_matrix.DenseDesignMatrix):
 
         view_converter = dense_design_matrix.DefaultViewConverter((96, 96, 2))
 
-        super(NORBSmall, self).__init__(X=X, y=y, y_labels=np.max(y),
+        super(NORBSmall, self).__init__(X=X, y=y, y_labels=np.max(y)+1,
                                         view_converter=view_converter)
 
 
@@ -144,7 +144,7 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         view_converter = retina.RetinaCodingViewConverter((96, 96, 2),
                                                           (8, 4, 2, 2))
 
-        super(FoveatedNORB, self).__init__(X=X, y=y, y_labels=np.max(y),
+        super(FoveatedNORB, self).__init__(X=X, y=y, y_labels=np.max(y)+1,
                                            view_converter=view_converter,
                                            preprocessor=preprocessor)
 

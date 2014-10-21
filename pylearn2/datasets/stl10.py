@@ -131,7 +131,7 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
 
         view_converter = dense_design_matrix.DefaultViewConverter((96, 96, 3))
 
-        super(STL10, self).__init__(X=X, y=y, y_labels=10, 
+        super(STL10, self).__init__(X=X, y=y, y_labels=10,
                                     view_converter=view_converter)
 
         for i in xrange(self.X.shape[0]):
