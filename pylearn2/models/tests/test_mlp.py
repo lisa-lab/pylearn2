@@ -110,11 +110,11 @@ def test_dropout_input_mask_value():
 
 def test_sigmoid_layer_misclass_reporting():
     mlp = MLP(nvis=3, layers=[Sigmoid(layer_name='h0', dim=1, irange=0.005,
-                                      monitor_style='classification')])
+                                      monitor_style='bit_vector_class')])
     target = theano.tensor.matrix(dtype=theano.config.floatX)
     batch = theano.tensor.matrix(dtype=theano.config.floatX)
-    rval = mlp.layers[0].get_monitoring_channels_from_state(mlp.fprop(batch),
-                                                            target)
+    rval = mlp.layers[0].get_layer_monitoring_channels(state_below=batch, state=mlp.fprop(batch),
+                                                            targets=target)
 
     f = theano.function([batch, target], [tensor.gt(mlp.fprop(batch), 0.5),
                                           rval['misclass']],
@@ -347,7 +347,7 @@ def test_get_layer_monitor_channels():
     )
     state_below = mlp.get_input_space().make_theano_batch()
     targets = mlp.get_target_space().make_theano_batch()
-    mlp.get_layer_monitoring_channels(state_below=state_below, 
+    mlp.get_layer_monitoring_channels(state_below=state_below,
             state=None, targets=targets)
 
 
