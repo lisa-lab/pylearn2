@@ -21,7 +21,6 @@ class CIFAR100(DenseDesignMatrix):
     axes : WRITEME
     start : WRITEME
     stop : WRITEME
-    one_hot : WRITEME
     """
 
     def __init__(self,

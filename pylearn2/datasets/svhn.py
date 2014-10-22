@@ -102,7 +102,7 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
         view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3),
                                                                   axes)
         super(SVHN, self).__init__(X=data.X, y=data.y, 
-                                   y_labels=numpy.max(data.y)+1, 
+                                   y_labels=numpy.max(data.y) + 1, 
                                    view_converter=view_converter)
 
         if preprocessor:

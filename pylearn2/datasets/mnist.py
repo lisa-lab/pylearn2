@@ -34,7 +34,6 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
     which_set : WRITEME
     center : WRITEME
     shuffle : WRITEME
-    one_hot : WRITEME
     binarize : WRITEME
     start : WRITEME
     stop : WRITEME
@@ -137,7 +136,7 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
                 tmp = topo_view[i, :, :, :].copy()
                 topo_view[i, :, :, :] = topo_view[j, :, :, :]
                 topo_view[j, :, :, :] = tmp
-                # Note: slicing with i:i+1 works for one_hot=True/False
+                
                 tmp = y[i:i + 1].copy()
                 y[i] = y[j]
                 y[j] = tmp
@@ -214,10 +213,9 @@ class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
     ----------
     which_set : WRITEME
     center : WRITEME
-    one_hot : WRITEME
     """
 
-    def __init__(self, which_set, center=False, one_hot=False):
+    def __init__(self, which_set, center=False):
         path = "${PYLEARN2_DATA_PATH}/mnist/mnist_rotation_back_image/" \
             + which_set
 

@@ -66,7 +66,7 @@ def test_bad_arguments():
         fmt = OneHotFormatter(max_labels=-10)
     except ValueError:
         raised = True
-    assert raisedd
+    assert raised
 
     raised = False
     try:

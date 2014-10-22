@@ -37,10 +37,6 @@ class CSVDataset(DenseDesignMatrix):
       target variable.  For classification, it is a vector; for regression, a
       matrix.
 
-    one_hot : bool
-      Whether the target variable (i.e. "label") should be encoded as a one-hot
-      vector.
-
     expect_labels : bool
       Whether the CSV file contains a target variable in the first column.
 
@@ -127,7 +123,8 @@ class CSVDataset(DenseDesignMatrix):
         if self.task == 'regression':
             super(CSVDataset, self).__init__(X=X, y=y)
         else:
-            super(CSVDataset, self).__init__(X=X, y=y, y_labels=np.max(y)+1)
+            super(CSVDataset, self).__init__(X=X, y=y, 
+                                             y_labels=np.max(y) + 1)
 
     def _load_data(self):
         """
@@ -165,9 +162,7 @@ class CSVDataset(DenseDesignMatrix):
         if self.expect_labels:
             y = data[:, 0]
             X = data[:, 1:]
-            
-            if self.task == 'regression':
-                y = y.reshape((y.shape[0], 1))
+            y = y.reshape((y.shape[0], 1))
         else:
             X = data
             y = None

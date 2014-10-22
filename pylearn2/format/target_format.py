@@ -323,12 +323,6 @@ def compressed_one_hot(labels, dtype=None, out=None, simplify_binary=True,
     only including columns corresponding to integer labels that
     actually appear.
 
-    .. note::
-        `pylearn2.utils.one_hot is deprecated`. Use
-        `pylearn2.format.target_format.OneHotFormatter`
-        instead. `pylearn2.utils.one_hot` will be removed
-        on or after 13 August 2014".
-
     Parameters
     ----------
     labels : array_like, 1-dimensional (or 2-dimensional (nlabels, 1))
@@ -346,7 +340,7 @@ def compressed_one_hot(labels, dtype=None, out=None, simplify_binary=True,
 
     simplify_binary : bool, optional
         If `True`, if there are only two distinct labels, return
-        an `(nlabels, 1)` matrix with 0 lesser the lesser integer
+        an `(nlabels, 1)` matrix with 0 denoting the lesser integer
         label and 1 denoting the greater, instead of a redundant
         `(nlabels, 2)` matrix.
     mode : string
