@@ -1,7 +1,7 @@
 """
 The main DBM class
 """
-__authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
+__authors__ = ["Ian Goodfellow", "Vincent Dumoulin", "Devon Hjelm"]
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
@@ -12,13 +12,16 @@ import logging
 import numpy as np
 import warnings
 
-from theano.compat import OrderedDict
 from theano import tensor as T, config
+from theano.compat import OrderedDict
+from theano.sandbox.rng_mrg import MRG_RandomStreams
 
 from pylearn2.models import Model
 from pylearn2.models.dbm import flatten
 from pylearn2.models.dbm.inference_procedure import WeightDoubling
+from pylearn2.models.dbm.inference_procedure import UpDown
 from pylearn2.models.dbm.sampling_procedure import GibbsEvenOdd
+from pylearn2.models.dbm.layer import Softmax
 from pylearn2.utils import safe_zip, safe_izip
 from pylearn2.utils.rng import make_np_rng
 
@@ -39,9 +42,9 @@ class DBM(Model):
         The batch size the model should use. Some convolutional
         LinearTransforms require a compile-time hardcoded batch size,
         otherwise this would not be part of the model specification.
-    visible_layer : WRITEME
+    visible_layer : dbm.VisibleLayer
         The visible layer of the DBM.
-    hidden_layers : list
+    hidden_layers : list of dbm.HiddenLayer
         The hidden layers. A list of HiddenLayer objects. The first
         layer in the list is connected to the visible layer.
     niter : int
@@ -82,17 +85,14 @@ class DBM(Model):
 
     def get_all_layers(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns all layers of the DBM in order of visible, hidden.
         """
         return [self.visible_layer] + self.hidden_layers
 
     def energy(self, V, hidden):
         """
-        .. todo::
-
-            WRITEME
+        Point energy of the DBM.
+        Calculated from the states of each unit.
 
         Parameters
         ----------
@@ -144,16 +144,22 @@ class DBM(Model):
 
     def mf(self, *args, **kwargs):
         """
-        .. todo::
+        Mean field inference of model.
 
-            WRITEME
+        Performs the inference procedure on the model.
+
+        Parameters
+        ----------
+        *args: TODO
+        **kwargs: TODO
         """
+
         self.setup_inference_procedure()
         return self.inference_procedure.mf(*args, **kwargs)
 
     def expected_energy(self, V, mf_hidden):
         """
-        WRITEME
+        Expected energy of the DBM given a visible vector and the MF updates.
 
         Parameters
         ----------
@@ -210,28 +216,35 @@ class DBM(Model):
 
     def setup_rng(self):
         """
-        .. todo::
-
-            WRITEME
+        Function to set up the random number generator.
         """
         self.rng = make_np_rng(None, [2012, 10, 17], which_method="uniform")
 
     def setup_inference_procedure(self):
         """
-        .. todo::
-
-            WRITEME
+        Sets up the inference procedure for the DBM.
         """
         if not hasattr(self, 'inference_procedure') or \
                 self.inference_procedure is None:
-            self.inference_procedure = WeightDoubling()
+            if len(self.hidden_layers) == 1:
+                self.inference_procedure = UpDown()
+            else:
+                self.inference_procedure = WeightDoubling()
             self.inference_procedure.set_dbm(self)
+
+        if len(self.hidden_layers) == 1:
+            try:
+                self.inference_procedure.is_rbm_compatible()
+            except NotImplementedError:
+                warnings.warn("Inference procedure %r may have unexpected"
+                              "behavior when used with one hidden layer (RBM)."
+                              "See models/dbn/inference_procedure.py for"
+                              "details." % type(self.inference_procedure))
 
     def setup_sampling_procedure(self):
         """
-        .. todo::
-
-            WRITEME
+        Sets up the sampling procedure.
+        Defaults to GibbsEvenOdd
         """
         if not hasattr(self, 'sampling_procedure') or \
                 self.sampling_procedure is None:
@@ -240,9 +253,7 @@ class DBM(Model):
 
     def get_output_space(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns the output space of the top hidden layer.
         """
         return self.hidden_layers[-1].get_output_space()
 
@@ -271,7 +282,8 @@ class DBM(Model):
 
         Parameters
         ----------
-        layers : WRITEME
+        layers : dbm.HiddenLayer
+            Layer to add to DBM.
         """
 
         # Patch old pickle files
@@ -290,9 +302,11 @@ class DBM(Model):
 
     def freeze(self, parameter_set):
         """
-        .. todo::
+        Freezes the set of parameters.
 
-            WRITEME
+        Parameters
+        ----------
+        parameter_set: WRITEME
         """
         # patch old pickle files
         if not hasattr(self, 'freeze_set'):
@@ -302,9 +316,7 @@ class DBM(Model):
 
     def get_params(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns the parameters of the DBM.
         """
 
         rval = []
@@ -335,9 +347,12 @@ class DBM(Model):
 
     def set_batch_size(self, batch_size):
         """
-        .. todo::
+        Sets the batch size of the DBM.
 
-            WRITEME
+        Parameters
+        ----------
+        batch_size: int
+            The batch size
         """
         self.batch_size = batch_size
         self.force_batch_size = batch_size
@@ -357,9 +372,7 @@ class DBM(Model):
 
     def get_input_space(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns the input space of the visible layer.
         """
         return self.visible_layer.space
 
@@ -388,33 +401,27 @@ class DBM(Model):
 
     def get_weights(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns the weights of the bottom hidden layer.
         """
+
         return self.hidden_layers[0].get_weights()
 
     def get_weights_view_shape(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns shape of weight view.
         """
         return self.hidden_layers[0].get_weights_view_shape()
 
     def get_weights_format(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns the format of the weights as that of the bottom hidden layer.
         """
         return self.hidden_layers[0].get_weights_format()
 
     def get_weights_topo(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns the topologically formatted version of the weights.
+        Uses the bottom hidden layer.
         """
         return self.hidden_layers[0].get_weights_topo()
 
@@ -589,9 +596,14 @@ class DBM(Model):
 
     def get_monitoring_channels(self, data):
         """
-        .. todo::
+        Returns the monitor channels of the DBM.
 
-            WRITEME
+        This is done through the visible and all of the hidden layers of DBM.
+
+        Parameters
+        ----------
+        data: tensor-like
+            Data from which to evaluate model.
         """
         space, source = self.get_monitoring_data_specs()
         space.validate(data)
@@ -612,7 +624,6 @@ class DBM(Model):
             ch = layer.get_monitoring_channels_from_state(state)
             for key in ch:
                 rval['mf_' + layer.layer_name + '_' + key] = ch[key]
-
         if len(history) > 1:
             prev_q = history[-2]
 
@@ -643,6 +654,10 @@ class DBM(Model):
                 rval['mean_'+layer.layer_name+'_var_param_diff'] = \
                     sum_diff / denom
 
+        X_hat = self.reconstruct(X)
+        reconstruction_cost = self.visible_layer.recons_cost(X, X_hat)
+        rval['reconstruction_cost'] = reconstruction_cost
+
         return rval
 
     def get_monitoring_data_specs(self):
@@ -656,17 +671,23 @@ class DBM(Model):
 
     def get_test_batch_size(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns the batch size of the model.
         """
         return self.batch_size
 
     def reconstruct(self, V):
         """
-        .. todo::
+        Reconstructs an input using inpainting method.
 
-            WRITEME
+        Parameters
+        ----------
+        V: tensor-like
+            Input sample.
+
+        Returns
+        -------
+        recons: tensor-like
+            Reconstruction of V.
         """
 
         H = self.mf(V)[0]
@@ -682,9 +703,95 @@ class DBM(Model):
 
     def do_inpainting(self, *args, **kwargs):
         """
-        .. todo::
+        Perform inpainting on model.
 
-            WRITEME
+        Inpainting is defined by the inference procedure.
+
+        Parameters
+        ----------
+        *args: WRITEME
+        **kwargs: WRITEME
         """
         self.setup_inference_procedure()
         return self.inference_procedure.do_inpainting(*args, **kwargs)
+
+    def initialize_chains(self, X, Y, theano_rng):
+        """
+        Function to initialize chains for model when performing the neg phase.
+        TODO: implement in cost functions.
+
+        Parameters
+        ----------
+        X: tensor-like
+            The data. If none, then persistent (TODO)
+        Y: tensor-like
+            Labels.
+        theano_rng: WRITEME
+
+        Returns
+        ------
+        layer_to_chains: OrderedDict
+        """
+
+        if X is None:
+            raise NotImplementedError("Persistent chains not implemented yet.")
+
+        # Initializing to data
+        layer_to_clamp = OrderedDict([(self.visible_layer, True)])
+        layer_to_chains = self.make_layer_to_symbolic_state(1, theano_rng)
+
+        # initialized the visible layer to data
+        layer_to_chains[self.visible_layer] = X
+
+        # if supervised, also clamp targets
+        if Y is not None and self.supervised:
+            # note: if the Y layer changes to something without linear energy,
+            # we'll need to make the expected energy clamp Y in the positive
+            # phase
+            target_layer = self.hidden_layers[-1]
+            assert isinstance(target_layer, Softmax)
+            layer_to_clamp[target_layer] = True
+            layer_to_chains[target_layer] = Y
+
+        # Note that we replace layer_to_chains with a dict mapping to the new
+        # state of the chains
+        # We first initialize the chain by clamping the visible layer and the
+        # target layer (if it exists)
+        layer_to_chains = self.sampling_procedure.sample(
+            layer_to_chains,
+            theano_rng,
+            layer_to_clamp=layer_to_clamp,
+            num_steps=1)
+        return layer_to_chains
+
+
+class RBM(DBM):
+    """
+    A restricted Boltzmann machine.
+
+    The special case of a DBM with only one hidden layer designed to keep
+    things simple for researchers interested only in a single layer of
+    latent variables and DBN.
+
+    Parameters
+    ----------
+    batch_size : int
+        The batch size the model should use. Some convolutional
+        LinearTransforms require a compile-time hardcoded batch size,
+        otherwise this would not be part of the model specification.
+    visible_layer : DBM.VisibleLayer
+        The visible layer of the DBM.
+    hidden_layers : List of DBM.HiddenLayer
+        The hidden layers. A list of HiddenLayer objects. The first
+        layer in the list is connected to the visible layer.
+    niter : int
+        Number of mean field iterations for variational inference
+        for the positive phase.
+    """
+    def __init__(self, batch_size, visible_layer, hidden_layer, niter):
+        self.__dict__.update(locals())
+        del self.self
+        super(RBM, self).__init__(batch_size, visible_layer, [hidden_layer],
+                                  niter,
+                                  inference_procedure=UpDown(),
+                                  sampling_procedure=GibbsEvenOdd())
