@@ -272,8 +272,6 @@ whitelist_pep8 = [
     "devtools/record.py",
     "train_extensions/tests/test_window_flip.py",
     "train_extensions/__init__.py",
-    "train_extensions/window_flip.py",
-    "train_extensions/best_params.py"
 ]
 
 whitelist_docstrings = [
@@ -602,7 +600,6 @@ whitelist_docstrings = [
     'devtools/nan_guard.py',
     'devtools/__init__.py',
     'devtools/record.py',
-    'train_extensions/best_params.py',
     'corruption.py',
     'datasets/tests/test_tl_challenge.py',
     'datasets/tests/test_tfd.py',
