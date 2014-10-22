@@ -1191,6 +1191,8 @@ class Softmax(Layer):
         can be used as the target space. This allows the softmax to compute
         the cost much more quickly than if it needs to convert the targets
         into a VectorSpace.
+    non_redundant : bool
+        If True, learns only n_classes - 1 biases and weight vectors
     """
 
     def __init__(self, n_classes, layer_name, irange=None,
@@ -1199,9 +1201,15 @@ class Softmax(Layer):
                  b_lr_scale=None, max_row_norm=None,
                  no_affine=False,
                  max_col_norm=None, init_bias_target_marginals=None,
-                 binary_target_dim=None):
+                 binary_target_dim=None, non_redundant=False):
 
         super(Softmax, self).__init__()
+
+        if non_redundant:
+            if init_bias_target_marginals:
+                raise NotImplementedError("init_bias_target_marginals "
+                        "currently only works with the overcomplete "
+                        "parameterization.")
 
         if isinstance(W_lr_scale, str):
             W_lr_scale = float(W_lr_scale)
@@ -1222,7 +1230,8 @@ class Softmax(Layer):
 
         self.output_space = VectorSpace(n_classes)
         if not no_affine:
-            self.b = sharedX(np.zeros((n_classes,)), name='softmax_b')
+            self.b = sharedX(np.zeros((n_classes - self.non_redundant,)),
+                    name='softmax_b')
             if init_bias_target_marginals:
 
                 y = init_bias_target_marginals.y
@@ -1263,100 +1272,28 @@ class Softmax(Layer):
 
         return rval
 
-    @wraps(Layer.get_monitoring_channels)
-    def get_monitoring_channels(self):
-        warnings.warn("Layer.get_monitoring_channels is " +
-                      "deprecated. Use get_layer_monitoring_channels " +
-                      "instead. Layer.get_monitoring_channels " +
-                      "will be removed on or after september 24th 2014",
-                      stacklevel=2)
-
-        if self.no_affine:
-            return OrderedDict()
-
-        W = self.W
-
-        assert W.ndim == 2
-
-        sq_W = T.sqr(W)
-
-        row_norms = T.sqrt(sq_W.sum(axis=1))
-        col_norms = T.sqrt(sq_W.sum(axis=0))
-
-        return OrderedDict([('row_norms_min',  row_norms.min()),
-                            ('row_norms_mean', row_norms.mean()),
-                            ('row_norms_max',  row_norms.max()),
-                            ('col_norms_min',  col_norms.min()),
-                            ('col_norms_mean', col_norms.mean()),
-                            ('col_norms_max',  col_norms.max()), ])
-
-    @wraps(Layer.get_monitoring_channels_from_state)
-    def get_monitoring_channels_from_state(self, state, target=None):
-        warnings.warn("Layer.get_monitoring_channels_from_state is " +
-                      "deprecated. Use get_layer_monitoring_channels " +
-                      "instead. Layer.get_monitoring_channels_from_state " +
-                      "will be removed on or after september 24th 2014",
-                      stacklevel=2)
-
-        # channels that does not require state information
-        if self.no_affine:
-            rval = OrderedDict()
-
-        W = self.W
-
-        assert W.ndim == 2
-
-        sq_W = T.sqr(W)
-
-        row_norms = T.sqrt(sq_W.sum(axis=1))
-        col_norms = T.sqrt(sq_W.sum(axis=0))
-
-        rval = OrderedDict([('row_norms_min',  row_norms.min()),
-                            ('row_norms_mean', row_norms.mean()),
-                            ('row_norms_max',  row_norms.max()),
-                            ('col_norms_min',  col_norms.min()),
-                            ('col_norms_mean', col_norms.mean()),
-                            ('col_norms_max',  col_norms.max()), ])
-
-        mx = state.max(axis=1)
-
-        rval.update(OrderedDict([('mean_max_class', mx.mean()),
-                                 ('max_max_class', mx.max()),
-                                 ('min_max_class', mx.min())]))
-
-        if target is not None:
-            y_hat = T.argmax(state, axis=1)
-            y = T.argmax(target, axis=1)
-            misclass = T.neq(y, y_hat).mean()
-            misclass = T.cast(misclass, config.floatX)
-            rval['misclass'] = misclass
-            rval['nll'] = self.cost(Y_hat=state, Y=target)
-
-        return rval
-
     @wraps(Layer.get_layer_monitoring_channels)
     def get_layer_monitoring_channels(self, state_below=None,
                                       state=None, targets=None):
 
-        # channels that does not require state information
-        if self.no_affine:
-            rval = OrderedDict()
+        rval = OrderedDict()
 
-        W = self.W
+        if not self.no_affine:
+            W = self.W
 
-        assert W.ndim == 2
+            assert W.ndim == 2
 
-        sq_W = T.sqr(W)
+            sq_W = T.sqr(W)
 
-        row_norms = T.sqrt(sq_W.sum(axis=1))
-        col_norms = T.sqrt(sq_W.sum(axis=0))
+            row_norms = T.sqrt(sq_W.sum(axis=1))
+            col_norms = T.sqrt(sq_W.sum(axis=0))
 
-        rval = OrderedDict([('row_norms_min',  row_norms.min()),
-                            ('row_norms_mean', row_norms.mean()),
-                            ('row_norms_max',  row_norms.max()),
-                            ('col_norms_min',  col_norms.min()),
-                            ('col_norms_mean', col_norms.mean()),
-                            ('col_norms_max',  col_norms.max()), ])
+            rval.update(OrderedDict([('row_norms_min',  row_norms.min()),
+                                ('row_norms_mean', row_norms.mean()),
+                                ('row_norms_max',  row_norms.max()),
+                                ('col_norms_min',  col_norms.min()),
+                                ('col_norms_mean', col_norms.mean()),
+                                ('col_norms_max',  col_norms.max()), ]))
 
         if (state_below is not None) or (state is not None):
             if state is None:
@@ -1391,7 +1328,7 @@ class Softmax(Layer):
         self.needs_reformat = not isinstance(space, VectorSpace)
 
         if self.no_affine:
-            desired_dim = self.n_classes
+            desired_dim = self.n_classes - self.non_redundant
             assert self.input_dim == desired_dim
         else:
             desired_dim = self.input_dim
@@ -1405,19 +1342,20 @@ class Softmax(Layer):
         if self.no_affine:
             self._params = []
         else:
+            num_cols = self.n_classes - self.non_redundant
             if self.irange is not None:
                 assert self.istdev is None
                 assert self.sparse_init is None
                 W = rng.uniform(-self.irange,
                                 self.irange,
-                                (self.input_dim, self.n_classes))
+                                (self.input_dim, num_cols))
             elif self.istdev is not None:
                 assert self.sparse_init is None
-                W = rng.randn(self.input_dim, self.n_classes) * self.istdev
+                W = rng.randn(self.input_dim, self.num_cols) * self.istdev
             else:
                 assert self.sparse_init is not None
-                W = np.zeros((self.input_dim, self.n_classes))
-                for i in xrange(self.n_classes):
+                W = np.zeros((self.input_dim, self.num_cols))
+                for i in xrange(self.num_cols):
                     for j in xrange(self.sparse_init):
                         idx = rng.randint(0, self.input_dim)
                         while W[idx, i] != 0.:
@@ -1490,6 +1428,14 @@ class Softmax(Layer):
             b = self.b
 
             Z = T.dot(state_below, self.W) + b
+
+        # Patch old pickle files
+        if not hasattr(self, 'non_redundant'):
+            self.non_redundant = False
+
+        if self.non_redundant:
+            zeros = T.alloc(0., Z.shape[0], 1)
+            Z = T.concatenate((zeros, Z), axis=1)
 
         rval = T.nnet.softmax(Z)
 
