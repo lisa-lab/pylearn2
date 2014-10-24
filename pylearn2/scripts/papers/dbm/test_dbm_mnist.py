@@ -12,7 +12,7 @@ import numpy
 from pylearn2.utils import serial
 from pylearn2.config import yaml_parse
 from pylearn2.testing import no_debug_mode
-from pylearn2.datasets import mnistaugmented
+from pylearn2.datasets import mnist_augmented
 from theano import function
 
 # PARAMETERS
@@ -178,11 +178,11 @@ def test_train_example():
 
             # dataset & monitoring dataset insertion without .yaml file to avoid problems 
             # (don't know how to pass 'model' hyperparameter)
-            train.dataset = mnistaugmented.MNISTAUGMENTED(dataset = train.dataset,
+            train.dataset = mnist_augmented.MNIST_AUGMENTED(dataset = train.dataset,
                                                           which_set = 'train', one_hot = 1, model = dbm, start = 0,
                                                           stop = hyper_params_mlp['train_stop'], mf_steps = MF_STEPS)
-            train.algorithm.monitoring_dataset = {  #'valid' : mnistaugmented.MNISTAUGMENTED(dataset = train.algorithm.monitoring_dataset['valid'], which_set = 'train', one_hot = 1, model = dbm, start = hyper_params_mlp['train_stop'], stop = hyper_params_mlp['valid_stop'], mf_steps = mf_steps), 
-                                                  'test' : mnistaugmented.MNISTAUGMENTED(dataset = train.algorithm.monitoring_dataset['test'], 
+            train.algorithm.monitoring_dataset = {  #'valid' : mnist_augmented.MNIST_AUGMENTED(dataset = train.algorithm.monitoring_dataset['valid'], which_set = 'train', one_hot = 1, model = dbm, start = hyper_params_mlp['train_stop'], stop = hyper_params_mlp['valid_stop'], mf_steps = mf_steps), 
+                                                  'test' : mnist_augmented.MNIST_AUGMENTED(dataset = train.algorithm.monitoring_dataset['test'], 
                                                                                         which_set = 'test', one_hot = 1, model = dbm, mf_steps = MF_STEPS)}
 
             # DBM TRAINED WEIGHTS CLAMPED FOR FINETUNING AS EXPLAINED BY HINTON

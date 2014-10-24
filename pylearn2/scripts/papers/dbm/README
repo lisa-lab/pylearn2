@@ -14,3 +14,7 @@ NO DROPOUT RESULTS:
 The procedure without dropout does not use a softmax layer for the DBM and using all the provided parameters it should give you a test_y_misclass of 0.0094%.
 DROPOUT RESULTS:
 The procedure with dropout uses a softmax layer for the DBM and using all the provided parameters it should give you a test_y_misclass of 0.0084%.
+
+Experiments have been performed on Ubuntu 14.04 LTS using a NVIDIA Tesla C1060 GPU and a 8-core Intel(R) Core(TM) i7 CPU 920 @ 2.67GHz. I used openblas-base and numpy version 1.9.0, 
+scipy version 0.13.3, theano version 0.6.0 and pylearn2 with 6264 commits.
+ 

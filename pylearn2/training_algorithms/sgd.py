@@ -1144,7 +1144,12 @@ class PolyakAveraging(TrainExtension):
                 param.set_value(saved_params[param])
         self._count += 1
 
-class LRAssigning(object):
+class CustomizedLROverEpoch(object):
+    """
+    Assigns a different value to learning rate at each 
+    training epoch. This is used when the value to be assigned 
+    is not reproducible with linear or exponential decay.
+    """
     def __init__(self):
         self.__dict__.update(locals())
         del self.self

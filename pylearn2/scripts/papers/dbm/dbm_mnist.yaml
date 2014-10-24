@@ -60,7 +60,7 @@
             max_epochs: %(max_epochs)i
         },
         update_callbacks: [
-            !obj:pylearn2.training_algorithms.sgd.LRAssigning {
+            !obj:pylearn2.training_algorithms.sgd.CustomizedLROverEpoch {
             }
         ]
     },
@@ -74,3 +74,4 @@
     save_path: "%(save_path)s/dbm_mnist.pkl",
     save_freq : %(max_epochs)i
 }
+

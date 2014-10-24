@@ -63,7 +63,7 @@
             max_epochs: %(max_epochs)i
         },
         update_callbacks: [
-            !obj:pylearn2.training_algorithms.sgd.LRAssigning {
+            !obj:pylearn2.training_algorithms.sgd.CustomizedLROverEpoch {
             }
         ]
     },
@@ -80,3 +80,4 @@
         },
     ],
 }
+

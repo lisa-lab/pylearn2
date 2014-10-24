@@ -40,3 +40,4 @@
     save_path: "%(save_path)s/dbm_mnist_l2.pkl",
     save_freq: %(max_epochs)i
 }
+
