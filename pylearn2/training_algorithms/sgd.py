@@ -277,9 +277,7 @@ class SGD(TrainingAlgorithm):
         train_dataset_is_uneven = \
             dataset.get_num_examples() % self.batch_size != 0
 
-        has_monitoring_datasets = \
-            self.monitoring_dataset is not None and \
-            self.monitoring_dataset.values() > 0
+        has_monitoring_datasets = bool(self.monitoring_dataset)
 
         if has_monitoring_datasets:
             monitoring_datasets_are_uneven = \
