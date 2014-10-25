@@ -13,7 +13,7 @@ from pylearn2.utils import serial
 class MNIST_AUGMENTED(DenseDesignMatrix):
 
     def __init__(self, dataset, which_set, model, mf_steps, one_hot=True,
-                 start=None, stop=None):
+                 start=None, stop=None, save_aug=False):
 
         path = os.path.join('${PYLEARN2_DATA_PATH}', 'mnist')
         path = serial.preprocess(path)
@@ -25,6 +25,7 @@ class MNIST_AUGMENTED(DenseDesignMatrix):
             else:
                 datasets = serial.load(filepath=path + 'aug_test_dump.pkl.gz')
                 augmented_X, y = datasets[0], datasets[1]
+            augmented_X, y = augmented_X[start:stop], y[start:stop]
         except:
             X = dataset.X
             if one_hot:
@@ -37,15 +38,16 @@ class MNIST_AUGMENTED(DenseDesignMatrix):
                 y = dataset.y
 
             # BUILD AUGMENTED INPUT FOR FINETUNING
+            X, y = X[start:stop], y[start:stop]
             augmented_X = augment_input(X, model, mf_steps)
 
             datasets = augmented_X, y
-            if which_set == 'train':
-                serial.save(filepath=path + 'aug_train_dump.pkl.gz',
-                            obj=datasets)
-            else:
-                serial.save(filepath=path + 'aug_test_dump.pkl.gz',
-                            obj=datasets)
+            if save_aug == True:
+                if which_set == 'train':
+                    serial.save(filepath=path + 'aug_train_dump.pkl.gz',
+                                obj=datasets)
+                else:
+                    serial.save(filepath=path + 'aug_test_dump.pkl.gz',
+                                obj=datasets)
         
-        augmented_X, y = augmented_X[start:stop], y[start:stop]
         super(MNIST_AUGMENTED, self).__init__(X=augmented_X, y=y)

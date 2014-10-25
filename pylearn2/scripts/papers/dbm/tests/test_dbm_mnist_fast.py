@@ -26,7 +26,7 @@ def test_train_example():
 
         # START PRETRAINING
         # load and train first layer   
-        train_yaml_path = os.path.join(train_path, 'dbm_mnist_l1.yaml')
+        train_yaml_path = os.path.join(train_path, '..', 'dbm_mnist_l1.yaml')
         layer1_yaml = open(train_yaml_path, 'r').read()
         hyper_params_l1 = {'train_stop': 20,
                            'batch_size': 5,
@@ -47,7 +47,7 @@ def test_train_example():
         train.main_loop()
 
         # load and train second layer
-        train_yaml_path = os.path.join(train_path, 'dbm_mnist_l2.yaml')
+        train_yaml_path = os.path.join(train_path, '..', 'dbm_mnist_l2.yaml')
         layer2_yaml = open(train_yaml_path, 'r').read()
         hyper_params_l2 = {'train_stop': 20,
                            'batch_size': 5,
@@ -65,7 +65,7 @@ def test_train_example():
         train.main_loop()
 
         # START TRAINING
-        train_yaml_path = os.path.join(train_path, 'dbm_mnist.yaml')
+        train_yaml_path = os.path.join(train_path, '..', 'dbm_mnist.yaml')
         yaml = open(train_yaml_path, 'r').read()
         hyper_params_dbm = {'train_stop': 20,
                             'valid_stop': 20,
@@ -120,7 +120,7 @@ def test_train_example():
         print '-----------------------------------'
 
         # load dbm as a mlp
-        train_yaml_path = os.path.join(train_path, 'dbm_mnist_mlp.yaml')
+        train_yaml_path = os.path.join(train_path, '..', 'dbm_mnist_mlp.yaml')
         
         mlp_yaml = open(train_yaml_path, 'r').read()
         hyper_params_mlp = {'train_stop': 20,
