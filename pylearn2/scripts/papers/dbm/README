@@ -10,10 +10,13 @@ As explained in the paper, the finetuning procedure uses an augmented input to f
 mnistaugmented.py in pylearn2/datasets/. The latter takes the mnist dataset and augment it. Eventually, it saves .pkl files of the augmented dataset 
 because data augmentation is a time-consuming operation.
 
+There are two tests in /tests. The script to run the whole procedure, with all the right parameters, reaches the result published by Hinton & Salakhutdinov. The fast version of it, is
+suitable to be run on travis. It does not perform well because it uses a very small training set and a very small number of epochs. 
+
 NO DROPOUT RESULTS:
-
+The test returns a 0.094% test error WITHOUT softmax on the top of the DBM and dropout.
 DROPOUT RESULTS:
-
+The test returns a 0.084% test error WITH softmax on the top of the DBM and dropout.
 
 Experiments have been performed on Ubuntu 14.04 LTS using a NVIDIA Tesla C1060 GPU and a 8-core Intel(R) Core(TM) i7 CPU 920 @ 2.67GHz. I used openblas-base and numpy version 1.9.0, 
 scipy version 0.13.3, theano version 0.6.0 and pylearn2 with 6264 commits.
