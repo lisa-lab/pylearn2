@@ -219,7 +219,7 @@ class SGD(TrainingAlgorithm):
         since it may have an effect on `learning_rule.add_channels_to_monitor`
         (that is currently the case for `learning_rule.RMSProp`).
         """
-        if self.monitoring_dataset is not None:
+        if bool(self.monitoring_dataset):
             if (self.monitoring_batch_size is None and
                     self.monitoring_batches is None):
                 self.monitoring_batch_size = self.batch_size
