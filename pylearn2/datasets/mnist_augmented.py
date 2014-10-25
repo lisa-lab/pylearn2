@@ -2,7 +2,7 @@ import os
 import numpy as np
 
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
-from pylearn2.scripts.papers.dbm.augment_input import augment_input
+from pylearn2.scripts.dbm.augment_input import augment_input
 from pylearn2.utils import serial
 
 '''
