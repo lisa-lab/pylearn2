@@ -20,9 +20,11 @@ class MNIST_AUGMENTED(DenseDesignMatrix):
 
         try:
             if which_set == 'train':
-                datasets = serial.load(filepath=path + 'aug_train_dump.pkl.gz')
+                path = os.path.join(path, 'aug_train_dump.pkl.gz')
+                datasets = serial.load(filepath=path)
                 augmented_X, y = datasets[0], datasets[1]
             else:
+                path = os.path.join(path, 'aug_test_dump.pkl.gz')
                 datasets = serial.load(filepath=path + 'aug_test_dump.pkl.gz')
                 augmented_X, y = datasets[0], datasets[1]
             augmented_X, y = augmented_X[start:stop], y[start:stop]
@@ -44,10 +46,10 @@ class MNIST_AUGMENTED(DenseDesignMatrix):
             datasets = augmented_X, y
             if save_aug == True:
                 if which_set == 'train':
-                    serial.save(filepath=path + 'aug_train_dump.pkl.gz',
-                                obj=datasets)
+                    path = os.path.join(path, 'aug_train_dump.pkl.gz')
+                    serial.save(filepath=path, obj=datasets)
                 else:
-                    serial.save(filepath=path + 'aug_test_dump.pkl.gz',
-                                obj=datasets)
+                    path = os.path.join(path, 'aug_test_dump.pkl.gz')
+                    serial.save(filepath=path, obj=datasets)
         
         super(MNIST_AUGMENTED, self).__init__(X=augmented_X, y=y)
