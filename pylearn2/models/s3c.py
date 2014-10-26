@@ -25,6 +25,8 @@ from pylearn2.expr.information_theory import entropy_binary_vector
 from pylearn2.models import Model
 from pylearn2.space import VectorSpace
 from pylearn2.utils.rng import make_np_rng
+from pylearn2.utils import contains_nan
+from pylearn2.utils import isfinite
 from pylearn2.expr.basic import (full_min,
         full_max, numpy_norms, theano_norms)
 
@@ -914,9 +916,9 @@ class S3C(Model, Block):
 
 
         for t12, t3, t4 in get_debug_values(term1_plus_term2, term3, term4):
-            debug_assert(not np.any(np.isnan(t12)))
-            debug_assert(not np.any(np.isnan(t3)))
-            debug_assert(not np.any(np.isnan(t4)))
+            debug_assert(not contains_nan(t12))
+            debug_assert(not contains_nan(t3))
+            debug_assert(not contains_nan(t4))
 
         rval = term1_plus_term2 + term3 + term4
 
@@ -1500,23 +1502,22 @@ class S3C(Model, Block):
             WRITEME
         """
         b = self.bias_hid.get_value(borrow=True)
-        assert not np.any(np.isnan(b))
+        assert not contains_nan(b)
         p = 1./(1.+np.exp(-b))
         logger.info('p: ({0}, {1}, {2})'.format(p.min(), p.mean(), p.max()))
         B = self.B_driver.get_value(borrow=True)
-        assert not np.any(np.isnan(B))
+        assert not contains_nan(B)
         logger.info('B: ({0}, {1}, {2})'.format(B.min(), B.mean(), B.max()))
         mu = self.mu.get_value(borrow=True)
-        assert not np.any(np.isnan(mu))
+        assert not contains_nan(mu)
         logger.info('mu: ({0}, {1}, {2})'.format(mu.min(), mu.mean(),
                                                  mu.max()))
         alpha = self.alpha.get_value(borrow=True)
-        assert not np.any(np.isnan(alpha))
+        assert not contains_nan(alpha)
         logger.info('alpha: ({0}, {1}, {2})'.format(alpha.min(), alpha.mean(),
                                                     alpha.max()))
         W = self.W.get_value(borrow=True)
-        assert not np.any(np.isnan(W))
-        assert not np.any(np.isinf(W))
+        assert isfinite(W)
         logger.info('W: ({0}, {1}, {2})'.format(W.min(), W.mean(), W.max()))
         norms = numpy_norms(W)
         logger.info('W norms: '
@@ -1870,8 +1871,8 @@ class E_Step(object):
 
 
         for entropy, energy in get_debug_values(entropy_term, energy_term):
-            debug_assert(not np.any(np.isnan(entropy)))
-            debug_assert(not np.any(np.isnan(energy)))
+            debug_assert(not contains_nan(entropy))
+            debug_assert(not contains_nan(energy))
 
         KL = entropy_term + energy_term
 

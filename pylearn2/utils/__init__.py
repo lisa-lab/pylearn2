@@ -6,13 +6,13 @@
 import logging
 import warnings
 
-from .general import is_iterable
+from .general import is_iterable, contains_nan, contains_inf, isfinite
 import theano
+from theano.compat.six.moves import zip as izip
 # Delay import of pylearn2.config.yaml_parse and pylearn2.datasets.control
 # to avoid circular imports
 yaml_parse = None
 control = None
-from itertools import izip
 cuda = None
 
 import numpy as np

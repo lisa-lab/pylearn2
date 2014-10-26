@@ -142,7 +142,7 @@ class Conv2D(LinearTransform):
         op_axes = ('c', 0, 1, 'b')
 
         if tuple(x_axes) != op_axes:
-            x = x.dimshuffle(*[x_axes.index(axis) for axis in x_axes])
+            x = x.dimshuffle(*[x_axes.index(axis) for axis in op_axes])
 
         x = gpu_contiguous(x)
 

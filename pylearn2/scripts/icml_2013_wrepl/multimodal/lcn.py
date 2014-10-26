@@ -6,6 +6,7 @@ import sys
 from pylearn2.utils import image
 from pylearn2.utils import serial
 from pylearn2.utils.string_utils import preprocess
+from pylearn2.utils import isfinite
 
 def usage():
     print """
@@ -103,8 +104,7 @@ for path in paths:
         img = np.concatenate(channels, axis=3)
         img = img[0,:,:,:]
 
-        assert not np.any(np.isnan(img))
-        assert not np.any(np.isinf(img))
+        assert isfinite(img)
 
         path = outdir + '/' + raw_path
         path = path[0:-3]

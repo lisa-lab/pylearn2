@@ -7,9 +7,11 @@ import numpy as np
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
 from pylearn2.utils.rng import make_np_rng
+from pylearn2.utils import contains_nan
 
 
 class TFD(dense_design_matrix.DenseDesignMatrix):
+
     """
     Pylearn2 wrapper for the Toronto Face Dataset.
     http://aclab.ca/users/josh/TFD.html
@@ -131,7 +133,7 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
                                   y=data_y,
                                   view_converter=view_converter)
 
-        assert not np.any(np.isnan(self.X))
+        assert not contains_nan(self.X)
 
         self.y_identity = data_y_identity
         self.axes = axes

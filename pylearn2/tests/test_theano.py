@@ -121,7 +121,7 @@ dataset: &train
             },
         },
         extensions: [
-            !obj:pylearn2.training_algorithms.sgd.MomentumAdjustor {
+            !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
                 start: 1,
                 saturate: 250,
                 final_momentum: .7

@@ -3,7 +3,7 @@ from pylearn2.models.dbm.layer import BinaryVector, BinaryVectorMaxPool, Softmax
 
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012, Universite de Montreal"
-__credits__ = ["Ian Goodfellow"]
+__credits__ = ["Ian Goodfellow", "Devon Hjelm"]
 __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 
@@ -25,98 +25,113 @@ from pylearn2.utils import sharedX
 from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import DataSpecsMapping
 
-def check_binary_samples(value, expected_shape, expected_mean, tol):
+
+class DummyLayer(object):
     """
-    Tests that a matrix of binary samples (observations in rows, variables
+    A layer that we build for the test that just uses a state
+    as its downward message.
+    """
+
+    def downward_state(self, state):
+        return state
+
+    def downward_message(self, state):
+        return state
+
+
+class DummyDBM(object):
+    """
+    A dummy DBM for some of the tests below.
+    """
+    def __init__(self, rng):
+        self.rng = rng
+
+
+class TestBinaryVector:
+    """
+    Testing class for DBM BinaryVector.
+    """
+    def setUp(self):
+        pass
+    @staticmethod
+    def check_samples(value, expected_shape, expected_mean, tol):
+        """
+        Tests that a matrix of binary samples (observations in rows, variables
         in columns)
-    1) Has the right shape
-    2) Is binary
-    3) Converges to the right mean
-    """
-    assert value.shape == expected_shape
-    assert is_binary(value)
-    mean = value.mean(axis=0)
-    max_error = np.abs(mean-expected_mean).max()
-    print 'Actual mean:'
-    print mean
-    print 'Expected mean:'
-    print expected_mean
-    print 'Maximal error:', max_error
-    if max_error > tol:
-        raise ValueError("Samples don't seem to have the right mean.")
-
-def test_binary_vis_layer_make_state():
-
-    # Verifies that BinaryVector.make_state creates
-    # a shared variable whose value passes check_binary_samples
-
-    n = 5
-    num_samples = 1000
-    tol = .04
-
-    layer = BinaryVector(nvis = n)
-
-    rng = np.random.RandomState([2012,11,1])
-
-    mean = rng.uniform(1e-6, 1. - 1e-6, (n,))
-
-    z = inverse_sigmoid_numpy(mean)
-
-    layer.set_biases(z.astype(config.floatX))
-
-    init_state = layer.make_state(num_examples=num_samples,
-            numpy_rng=rng)
-
-    value = init_state.get_value()
-
-    check_binary_samples(value, (num_samples, n), mean, tol)
-
-def test_binary_vis_layer_sample():
-
-    # Verifies that BinaryVector.sample returns an expression
-    # whose value passes check_binary_samples
-
-    assert hasattr(np, 'exp')
-
-    n = 5
-    num_samples = 1000
-    tol = .04
-
-    class DummyLayer(object):
+        1) Has the right shape
+        2) Is binary
+        3) Converges to the right mean
         """
-        A layer that we build for the test that just uses a state
-        as its downward message.
-        """
+        assert value.shape == expected_shape
+        assert is_binary(value)
+        mean = value.mean(axis=0)
+        max_error = np.abs(mean-expected_mean).max()
+        print 'Actual mean:'
+        print mean
+        print 'Expected mean:'
+        print expected_mean
+        print 'Maximal error:', max_error
+        if max_error > tol:
+            raise ValueError("Samples don't seem to have the right mean.")
 
-        def downward_state(self, state):
-            return state
+    def test_make_state(self):
+        # Verifies that BinaryVector.make_state creates
+        # a shared variable whose value passes check_samples
 
-        def downward_message(self, state):
-            return state
+        n = 5
+        num_samples = 1000
+        tol = .04
 
-    vis = BinaryVector(nvis=n)
-    hid = DummyLayer()
+        layer = BinaryVector(nvis = n)
 
-    rng = np.random.RandomState([2012,11,1,259])
+        rng = np.random.RandomState([2012,11,1])
 
-    mean = rng.uniform(1e-6, 1. - 1e-6, (n,))
+        mean = rng.uniform(1e-6, 1. - 1e-6, (n,))
 
-    ofs = rng.randn(n)
+        z = inverse_sigmoid_numpy(mean)
 
-    vis.set_biases(ofs.astype(config.floatX))
+        layer.set_biases(z.astype(config.floatX))
 
-    z = inverse_sigmoid_numpy(mean) - ofs
+        init_state = layer.make_state(num_examples=num_samples,
+                                      numpy_rng=rng)
 
-    z_var = sharedX(np.zeros((num_samples, n)) + z)
+        value = init_state.get_value()
 
-    theano_rng = MRG_RandomStreams(2012+11+1)
+        TestBinaryVector.check_samples(value, (num_samples, n), mean, tol)
 
-    sample = vis.sample(state_above=z_var, layer_above=hid,
-            theano_rng=theano_rng)
+    def test_sample(self):
+        # Verifies that BinaryVector.sample returns an expression
+        # whose value passes check_samples
 
-    sample = sample.eval()
+        assert hasattr(np, 'exp')
 
-    check_binary_samples(sample, (num_samples, n), mean, tol)
+        n = 5
+        num_samples = 1000
+        tol = .04
+
+        vis = BinaryVector(nvis=n)
+        hid = DummyLayer()
+
+        rng = np.random.RandomState([2012,11,1,259])
+
+        mean = rng.uniform(1e-6, 1. - 1e-6, (n,))
+
+        ofs = rng.randn(n)
+
+        vis.set_biases(ofs.astype(config.floatX))
+
+        z = inverse_sigmoid_numpy(mean) - ofs
+
+        z_var = sharedX(np.zeros((num_samples, n)) + z)
+
+        theano_rng = MRG_RandomStreams(2012+11+1)
+
+        sample = vis.sample(state_above=z_var, layer_above=hid,
+                            theano_rng=theano_rng)
+
+        sample = sample.eval()
+
+        TestBinaryVector.check_samples(sample, (num_samples, n), mean, tol)
 
 
 def check_gaussian_samples(value, nsamples, nvis, rows, cols, channels, expected_mean, tol):
@@ -1189,3 +1204,4 @@ def test_extra():
         return
     from galatea.dbm.pylearn2_bridge import run_unit_tests
     run_unit_tests()
+

@@ -1,5 +1,5 @@
 from pylearn2.datasets.mnist import MNIST
-from pylearn2.testing.skip import skip_if_no_sklearn
+from pylearn2.testing.skip import skip_if_no_sklearn, skip_if_no_data
 import numpy as np
 import unittest
 DenseMulticlassSVM = None
@@ -8,6 +8,7 @@ class TestSVM(unittest.TestCase):
     def setUp(self):
         global DenseMulticlassSVM
         skip_if_no_sklearn()
+        skip_if_no_data()
         import pylearn2.models.svm
         DenseMulticlassSVM = pylearn2.models.svm.DenseMulticlassSVM
 

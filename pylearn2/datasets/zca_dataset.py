@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 class ZCA_Dataset(DenseDesignMatrix):
+
     """
     A Dataset that was created by ZCA whitening a DenseDesignMatrix.
     Supports viewing the data both in the new ZCA whitened space and
@@ -50,7 +51,7 @@ class ZCA_Dataset(DenseDesignMatrix):
     def __init__(self,
                  preprocessed_dataset,
                  preprocessor,
-                 convert_to_one_hot=True,
+                 convert_to_one_hot=None,
                  start=None,
                  stop=None,
                  axes=['b', 0, 1, 'c']):
@@ -71,25 +72,21 @@ class ZCA_Dataset(DenseDesignMatrix):
 
         self.y = preprocessed_dataset.y
         self.y_labels = preprocessed_dataset.y_labels
-        if convert_to_one_hot:
-            if not (self.y.min() == 0):
-                raise AssertionError("Expected y.min == 0 but y.min == %g" %
-                                     self.y.min())
-            nclass = self.y.max() + 1
-            y = np.zeros((self.y.shape[0], nclass), dtype='float32')
-            for i in xrange(self.y.shape[0]):
-                y[i, self.y[i]] = 1.
-            self.y = y
-            assert self.y is not None
-            space, source = self.data_specs
-            space.components[source.index('targets')].dim = nclass
+
+        if convert_to_one_hot is not None:
+            warnings.warn("the `convert_to_one_hot` parameter is deprecated. To get "
+                          "one-hot encoded targets, request that they "
+                          "live in `VectorSpace` through the `data_specs` "
+                          "parameter of dataset iterator method. "
+                          "`convert_to_one_hot` will be removed on or after "
+                          "September 20, 2014.", stacklevel=2)
 
         if control.get_load_data():
             if start is not None:
                 self.X = preprocessed_dataset.X[start:stop, :]
                 if self.y is not None:
                     self.y = self.y[start:stop, :]
-                assert self.X.shape[0] == stop-start
+                assert self.X.shape[0] == stop - start
             else:
                 self.X = preprocessed_dataset.X
         else:
@@ -98,8 +95,8 @@ class ZCA_Dataset(DenseDesignMatrix):
             if self.y is not None:
                 assert self.y.shape[0] == self.X.shape[0]
 
-        #self.mn = self.X.min()
-        #self.mx = self.X.max()
+        # self.mn = self.X.min()
+        # self.mx = self.X.max()
 
         if getattr(preprocessor, "inv_P_", None) is None:
             warnings.warn("ZCA preprocessor.inv_P_ was none. Computing "
@@ -127,14 +124,14 @@ class ZCA_Dataset(DenseDesignMatrix):
 
             WRITEME
         """
-        #rval = X - self.mn
-        #rval /= (self.mx-self.mn)
+        # rval = X - self.mn
+        # rval /= (self.mx-self.mn)
 
-        #rval *= 2.
-        #rval -= 1.
+        # rval *= 2.
+        # rval -= 1.
         rval = X.copy()
 
-        #rval = np.clip(rval,-1.,1.)
+        # rval = np.clip(rval,-1.,1.)
 
         for i in xrange(rval.shape[0]):
             rval[i, :] /= np.abs(rval[i, :]).max() + 1e-12
@@ -147,11 +144,11 @@ class ZCA_Dataset(DenseDesignMatrix):
 
             WRITEME
         """
-        #rval = X - self.mn
-        #rval /= (self.mx-self.mn)
+        # rval = X - self.mn
+        # rval /= (self.mx-self.mn)
 
-        #rval *= 2.
-        #rval -= 1.
+        # rval *= 2.
+        # rval -= 1.
 
         assert X.shape == other.shape, (X.shape, other.shape)
 

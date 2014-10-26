@@ -38,16 +38,23 @@ def test_window_flip_coverage():
 
 
 def check_window_flip_coverage_C01B(flip, use_old_c01b=False):
+    # 4 5x5x2 images (stored in a 2x5x5x4 tensor)
     ddata = DummyDataset(axes=('c', 0, 1, 'b'))
     topo = ddata.get_topological_view()
+
+    # ref_win[b]: a set of hashes, computed from all possible 3x3 windows of
+    #             topo[..., b].
     ref_win = [set() for _ in xrange(4)]
     for b in xrange(topo.shape[-1]):
+        # get all possible 3x3 windows within the 5x5 images.
         for i in xrange(3):
             for j in xrange(3):
                 window = topo[:, i:i + 3, j:j + 3, b]
                 assert_equal((3, 3), window.shape[1:])
+                # Add a SHA1 digest of the window to set ref_win[b]
                 ref_win[b].add(_hash_array(window))
                 if flip:
+                    # Also add the hash of the window with axis 1 flipped
                     ref_win[b].add(_hash_array(window[:, :, ::-1]))
     actual_win = [set() for _ in xrange(4)]
 
@@ -56,8 +63,10 @@ def check_window_flip_coverage_C01B(flip, use_old_c01b=False):
     else:
         wf_cls = WindowAndFlip
 
+    # no zero-padding.
     wf = wf_cls(window_shape=(3, 3), randomize=[ddata], flip=flip)
-    wf.setup(None, ddata, None)
+    wf.setup(None, ddata, None)  # ddata argument is ignored
+
     curr_topo = ddata.get_topological_view()
     assert_equal((2, 3, 3, 4), curr_topo.shape)
     for b in xrange(topo.shape[-1]):
@@ -127,7 +136,7 @@ def check_padding(axes, use_old_c01b=False):
         wf_cls = WindowAndFlip
 
     wf = wf_cls(window_shape=(5, 5), randomize=[ddata],
-                           pad_randomized=padding)
+                pad_randomized=padding)
     wf.setup(None, None, None)
     new_topo = ddata.get_topological_view()
     assert_equal(topo.shape, new_topo.shape)

@@ -242,6 +242,32 @@ def is_binary(x):
     return np.all( (x == 0) + (x == 1))
 
 
+def log_sum_exp(log_A, axis=None):
+    """
+    A numerically stable expression for
+    `T.log(T.exp(log_A).sum(axis=axis))`
+
+    Parameters
+    ----------
+    log_A : tensor_like
+        Log of tensor A
+    axis : int, optional
+        Axis along which to sum
+    """
+    log_A_max = T.max(log_A, axis=axis, keepdims=True)
+    B = (
+        T.log(T.sum(T.exp(log_A - log_A_max), axis=axis, keepdims=True)) +
+        log_A_max
+    )
+    if axis is None:
+        return B.dimshuffle(())
+    else:
+        if type(axis) is int:
+            axis = [axis]
+        return B.dimshuffle([i for i in range(B.ndim) if
+                             i % B.ndim not in axis])
+
+
 class Identity(Block):
     """
     A Block that computes the identity transformation. Mostly useful as

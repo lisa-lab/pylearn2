@@ -9,6 +9,7 @@ __maintainer__ = "Steven Kearnes"
 
 import numpy as np
 import warnings
+
 try:
     from sklearn.cross_validation import (KFold, StratifiedKFold, ShuffleSplit,
                                           StratifiedShuffleSplit)

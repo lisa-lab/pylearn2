@@ -23,6 +23,7 @@ import sys
 from pylearn2.utils import serial
 from theano.printing import _TagGenerator
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
+from pylearn2.utils import contains_nan, contains_inf
 import argparse
 
 channels = {}
@@ -237,10 +238,10 @@ def main():
 
             y = np.asarray(channel.val_record)
 
-            if np.any(np.isnan(y)):
+            if contains_nan(y):
                 print channel_name + ' contains NaNs'
 
-            if np.any(np.isinf(y)):
+            if contains_inf(y):
                 print channel_name + 'contains infinite values'
 
             if x_axis == 'example':

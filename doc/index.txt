@@ -12,7 +12,7 @@ the bug doesn't come back!
 Pylearn2 is a machine learning library. Most of its functionality is built on top of
 `Theano <http://deeplearning.net/software/theano/>`_. 
 This means you can write Pylearn2 plugins (new models, algorithms, etc) using
-mathematical expressions, and theano will optimize and stabilize those expressions for
+mathematical expressions, and Theano will optimize and stabilize those expressions for
 you, and compile them to a backend of your choice (CPU or GPU).
 
 .. _welcome_vision:

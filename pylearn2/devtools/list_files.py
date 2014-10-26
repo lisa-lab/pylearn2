@@ -63,7 +63,7 @@ def _list_files(path, suffix=""):
                 flattened.append(elem)
         return flattened
     else:
-        assert os.path.exists(path)
+        assert os.path.exists(path), "couldn't find file '%s'" % path
         if path.endswith(suffix):
             return [path]
         return []

@@ -4,6 +4,7 @@ import logging
 import numpy as np
 
 from pylearn2.utils import serial
+from pylearn2.utils import contains_nan, contains_inf
 
 
 logger = logging.getLogger(__name__)
@@ -23,15 +24,15 @@ class Simulator(object):
         self.algorithm.setup(agent=self.agent, environment=self.environment)
         i = 0
         for param in self.agent.get_params():
-            assert not np.any(np.isnan(param.get_value())), (i, param.name)
-            assert not np.any(np.isinf(param.get_value())), (i, param.name)
+            assert not contains_nan(param.get_value()), (i, param.name)
+            assert not contains_inf(param.get_value()), (i, param.name)
         while True:
             rval = self.algorithm.train()
             assert rval is None
             i += 1
             for param in self.agent.get_params():
-                assert not np.any(np.isnan(param.get_value())), (i, param.name)
-                assert not np.any(np.isinf(param.get_value())), (i, param.name)
+                assert not contains_nan(param.get_value()), (i, param.name)
+                assert not contains_inf(param.get_value()), (i, param.name)
             if i % 1000 == 0:
                 serial.save(self.save_path, self.agent)
                 logger.info('saved!')

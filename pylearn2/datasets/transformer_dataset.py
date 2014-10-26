@@ -17,6 +17,7 @@ from pylearn2.utils import wraps
 
 
 class TransformerDataset(Dataset):
+
     """
         A dataset that applies a transformation on the fly
         as examples are requested.
@@ -185,6 +186,7 @@ class TransformerDataset(Dataset):
 
 
 class TransformerIterator(object):
+
     """
     .. todo::
 

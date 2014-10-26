@@ -19,15 +19,15 @@ class DataSpecsMapping(object):
     Parameters
     ----------
     data_specs : WRITEME
-        WRITEME
+    WRITEME
 
     Attributes
     ----------
     specs_to_index : dict
-        Maps one elementary (not composite) data_specs pair to its
-        index in the flattened space.  Not sure if this one should
-        be a member, or passed as a parameter to _fill_mapping. It
-        might be us
+    Maps one elementary (not composite) data_specs pair to its
+    index in the flattened space.  Not sure if this one should
+    be a member, or passed as a parameter to _fill_mapping. It
+    might be us
     """
     #might be useful to get the index of one data_specs later
     #but if it is not, then we should remove it.

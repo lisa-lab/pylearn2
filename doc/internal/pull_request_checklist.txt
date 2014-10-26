@@ -147,8 +147,9 @@ Are you creating a sequence and then immediately iterating over it?
 
 If so, consider using the faster and more memory efficient versions.
 
-* `xrange` instead of `range`
-* `itertools.izip` instead of `zip`
+* `xrange` instead of `range`.
+* `from theano.compat.six.moves import zip as izip` instead of `zip`.
+  This import is for Python 3 compatibility.
 
 
 Are you using `zip()`/`izip()` on sequences you expect to be the same length?
@@ -245,6 +246,13 @@ whether you can get away with a cast.
 
 If you really need to, use `isinstance(foo, pylearn2.utils.py_complex_types)`.
 This checks against Python builtins as well as NumPy-defined complex types.
+
+Are you checking for the presence of `np.nan` or `np.inf` in an array?
+----------------------------------------------------------------------
+If so, use `pylearn2.utils.contains_nan` or `pylearn2.utils.contains_inf`.  To
+check for either `np.nan` or `np.inf`, use `pylearn2.utils.isfinite`.  These
+functions are faster and more memory effecient than `np.any(np.isnan(X))` or
+`np.any(np.isinf(X))`.
 
 Are you creating Theano functions?
 ==================================

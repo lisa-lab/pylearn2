@@ -4,8 +4,11 @@ import numpy
 from theano import config
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 
+
 class NpyDataset(DenseDesignMatrix):
+
     """A dense dataset based on a single array stored as a .npy file."""
+
     def __init__(self, file, mmap_mode=None):
         """
         Creates an NpyDataset object.
@@ -61,7 +64,9 @@ class NpyDataset(DenseDesignMatrix):
 
 
 class NpzDataset(DenseDesignMatrix):
+
     """A dense dataset based on a .npz archive."""
+
     def __init__(self, file, key, target_key=None):
         """
         Creates an NpzDataset object.
@@ -83,16 +88,17 @@ class NpzDataset(DenseDesignMatrix):
             "zipped groups of arrays (.npz) only"
         )
         assert key in loaded, "%s not found in loaded NPZFile" % key
-        
-        if target_key != None:
-            assert target_key in loaded, "%s not found in loaded NPZFile" % target_key
+
+        if target_key is not None:
+            assert target_key in loaded, \
+                "%s not found in loaded NPZFile" % target_key
             y = loaded[target_key]
         else:
             y = None
-        
+
         if len(loaded[key].shape) == 2:
             super(NpzDataset, self).__init__(X=loaded[key], y=y)
         else:
             super(NpzDataset, self).__init__(topo_view=loaded[key], y=y)
 
-        loaded.close ()
+        loaded.close()

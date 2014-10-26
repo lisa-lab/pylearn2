@@ -1,9 +1,23 @@
 #!/usr/bin/env python
 
-import sys, argparse, pickle
+import sys
+import argparse
+import pickle
+import warnings
+import exceptions
 import numpy
-from matplotlib import pyplot
+try:
+    from matplotlib import pyplot
+except ImportError, import_error:
+    warnings.warn("Can't use this script without matplotlib.")
+    pyplot = None
+
 from pylearn2.datasets import norb
+
+warnings.warn("This script is deprecated. Please use ./browse_norb.py "
+              "instead. It is kept around as a tester for deprecated class "
+              "datasets.norb.SmallNORB",
+              exceptions.DeprecationWarning)
 
 
 def main():

@@ -3,13 +3,13 @@ Autoencoders, denoising autoencoders, and stacked DAEs.
 """
 # Standard library imports
 import functools
-from itertools import izip
 import operator
 
 # Third-party imports
 import numpy
 import theano
 from theano import tensor
+from theano.compat.six.moves import zip as izip
 
 # Local imports
 from pylearn2.blocks import Block, StackedBlocks
