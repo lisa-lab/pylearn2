@@ -437,7 +437,6 @@ def test_softmax_bin_targets_channels(seed=0):
     for channel_name in ['misclass', 'nll']:
         vec_val = channel_value(channel_name, mlp_vec, y_vec, y_vec_data)
         bin_val = channel_value(channel_name, mlp_bin, y_bin, y_bin_data)
-        print channel_name, vec_val, bin_val
         np.testing.assert_allclose(vec_val, bin_val)
     
 def test_set_get_weights_Softmax():
