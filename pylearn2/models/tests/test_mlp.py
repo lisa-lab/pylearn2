@@ -400,6 +400,43 @@ def test_softmax_binary_targets():
     np.testing.assert_allclose(cost_bin(X_data, y_bin_data),
                                cost_vec(X_data, y_vec_data))
 
+def test_softmax_bin_targets_misclass(seed=0):
+    """
+    Constructs softmax layers with binary target and with vector targets
+    to check that they give the same cost.
+    """
+    np.random.seed(seed)
+    num_classes = 2
+    batch_size = 4
+    mlp_bin = MLP(
+        layers=[Softmax(num_classes, 's1', irange=0.1,
+                        binary_target_dim=1)],
+        nvis=100
+    )
+    mlp_vec = MLP(
+        layers=[Softmax(num_classes, 's1', irange=0.1)],
+        nvis=100
+    )
+
+    X = mlp_bin.get_input_space().make_theano_batch()
+    y_bin = mlp_bin.get_target_space().make_theano_batch()
+    y_vec = mlp_vec.get_target_space().make_theano_batch()
+
+    X_data = np.random.random(size=(batch_size, 100))
+    y_bin_data = np.random.randint(low=0, high=num_classes,
+                                   size=(batch_size, 1))
+    y_vec_data = np.zeros((batch_size, num_classes))
+    y_vec_data[np.arange(batch_size),y_bin_data.flatten()] = 1
+
+    def get_misclass(model, y, y_data):
+        chans = model.get_monitoring_channels((X,y))
+        f_misclass = theano.function([X,y], chans['s1_misclass'])
+        return f_misclass(X_data, y_data)
+
+    vec_misclass = get_misclass(mlp_vec, y_vec, y_vec_data)
+    bin_misclass = get_misclass(mlp_bin, y_bin, y_bin_data)
+    np.testing.assert_allclose(vec_misclass, bin_misclass)
+    
 def test_set_get_weights_Softmax():
     """
     Tests setting and getting weights for Softmax layer.
