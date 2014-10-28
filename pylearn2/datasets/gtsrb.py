@@ -9,8 +9,7 @@ from pylearn2.utils import serial
 
 # User can select whether he wants to select all images or just a smaller set of them in order not to add too much noise
 # after the resizing 
-bound_train = 1000
-bound_test = 1000
+bound = 2
 
 class GTSRB(DenseDesignMatrix):
 
@@ -92,6 +91,7 @@ class GTSRB(DenseDesignMatrix):
         print "\nloading data...\n"
 
         first = True
+        bad_images = 0  # images that does not satisfy the size requirements
 
         if self.which_set == 'train':
 
@@ -103,7 +103,12 @@ class GTSRB(DenseDesignMatrix):
                     reader.next() # skip header
                     for row in reader:
                         img = Image.open(prefix + '/' + row[0])
-                        if img.size[0] + bound_train >= self.img_size[0]:
+                        # crop images to get a squared image
+                        if img.size[0] > img.size[1]:
+                            img = img.crop(0, 0, img.size[1], img.size[1])
+                        elif img.size[0] < img.size[1]:
+                            img = img.crop(0, 0, img.size[0], img.size[0])
+                        if img.size[0] + bound >= self.img_size[0]:
                             img = img.resize(self.img_size, Image.ANTIALIAS) #resize
                             if first:
                                 X = numpy.asarray([img.getdata()])
@@ -112,6 +117,8 @@ class GTSRB(DenseDesignMatrix):
                             else:
                                 X = numpy.append(X, [img.getdata()], axis = 0)
                                 y = numpy.append(y, row[7])
+                        else:
+                            bad_images += 1
 
             # shuffle
             assert X.shape[0] == y.shape[0]
@@ -136,7 +143,12 @@ class GTSRB(DenseDesignMatrix):
                 for c in xrange(12630):
                     for row in reader:
                         img = Image.open(self.path + '/' + row[0])
-                        if img.size[0] + bound_train >= self.img_size[0]:
+                        # crop images to get a squared image
+                        if img.size[0] > img.size[1]:
+                            img = img.crop(0, 0, img.size[1], img.size[1])
+                        elif img.size[0] < img.size[1]:
+                            img = img.crop(0, 0, img.size[0], img.size[0])
+                        if img.size[0] + bound >= self.img_size[0]:
                             img = img.resize(self.img_size, Image.ANTIALIAS) #resize
                             if first:
                                 X = numpy.asarray([img.getdata()])
@@ -153,5 +165,7 @@ class GTSRB(DenseDesignMatrix):
                 one_hot[i,y[i]] = 1.
             y = one_hot
 
+        
         X /= 255.
+        print '\n' + str(bad_images) + 'images have been discarded for not respecting size requirements\n'
         return X, y
