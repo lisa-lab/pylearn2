@@ -62,10 +62,10 @@ class GTSRB(DenseDesignMatrix):
 
                 datasets = X, y # not augmented datasets is saved in order not to waste time reloading gtsrb each time
                 if which_set == 'train':
-                    path = os.path.join(path, '..', 'train_dump.pkl.gz')
+                    path = os.path.join(path, '..', 'train_dump.pkl')
                     serial.save(filepath=path, obj=datasets)
                 else:
-                    path = os.path.join(path, '..', 'test_dump.pkl.gz')
+                    path = os.path.join(path, '..', 'test_dump.pkl')
                     serial.save(filepath=path, obj=datasets)
 
             X, y = X[start:stop], y[start:stop]
@@ -77,10 +77,10 @@ class GTSRB(DenseDesignMatrix):
                 aug_datasets = augmented_X, y
                 if save_aug == True:
                     if which_set == 'train':
-                        path = os.path.join(path, '..', 'aug_train_dump.pkl.gz')
+                        path = os.path.join(path, '..', 'aug_train_dump.pkl')
                         serial.save(filepath=path, obj=aug_datasets)
                     else:
-                        path = os.path.join(path, '..', 'aug_test_dump.pkl.gz')
+                        path = os.path.join(path, '..', 'aug_test_dump.pkl')
                         serial.save(filepath=path, obj=aug_datasets)
                 
                 X = augmented_X
