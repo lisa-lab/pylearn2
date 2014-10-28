@@ -105,9 +105,9 @@ class GTSRB(DenseDesignMatrix):
                         img = Image.open(prefix + '/' + row[0])
                         # crop images to get a squared image
                         if img.size[0] > img.size[1]:
-                            img = img.crop(0, 0, img.size[1], img.size[1])
+                            img = img.crop([0, 0, img.size[1], img.size[1]])
                         elif img.size[0] < img.size[1]:
-                            img = img.crop(0, 0, img.size[0], img.size[0])
+                            img = img.crop([0, 0, img.size[0], img.size[0]])
                         if img.size[0] + bound >= self.img_size[0]:
                             img = img.resize(self.img_size, Image.ANTIALIAS) #resize
                             if first:
@@ -145,9 +145,9 @@ class GTSRB(DenseDesignMatrix):
                         img = Image.open(self.path + '/' + row[0])
                         # crop images to get a squared image
                         if img.size[0] > img.size[1]:
-                            img = img.crop(0, 0, img.size[1], img.size[1])
+                            img = img.crop([0, 0, img.size[1], img.size[1]])
                         elif img.size[0] < img.size[1]:
-                            img = img.crop(0, 0, img.size[0], img.size[0])
+                            img = img.crop([0, 0, img.size[0], img.size[0]])
                         if img.size[0] + bound >= self.img_size[0]:
                             img = img.resize(self.img_size, Image.ANTIALIAS) #resize
                             if first:
