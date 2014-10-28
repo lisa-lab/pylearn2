@@ -59,12 +59,12 @@ class GTSRB(DenseDesignMatrix):
                 X, y = self.load_data()
                 print "\ndata loaded!\n"
 
-                datasets = X, y # not augmented datasets is saved in order not to waste time reloading gtsrb each time
+                datasets = X, y  # not augmented datasets is saved in order not to waste time reloading gtsrb each time
                 if which_set == 'train':
-                    path = os.path.join(self.path, 'train_dump.pkl')
+                    path = os.path.join(self.path, 'train_dump.pkl.gz')
                     serial.save(filepath=path, obj=datasets)
                 else:
-                    path = os.path.join(self.path, 'test_dump.pkl')
+                    path = os.path.join(self.path, 'test_dump.pkl.gz')
                     serial.save(filepath=path, obj=datasets)
 
             X, y = X[start:stop], y[start:stop]
@@ -76,10 +76,10 @@ class GTSRB(DenseDesignMatrix):
                 aug_datasets = augmented_X, y
                 if save_aug == True:
                     if which_set == 'train':
-                        path = os.path.join(self.path, 'aug_train_dump.pkl')
+                        path = os.path.join(self.path, 'aug_train_dump.pkl.gz')
                         serial.save(filepath=path, obj=aug_datasets)
                     else:
-                        path = os.path.join(self.path, 'aug_test_dump.pkl')
+                        path = os.path.join(self.path, 'aug_test_dump.pkl.gz')
                         serial.save(filepath=path, obj=aug_datasets)
                 
                 X = augmented_X
@@ -97,10 +97,10 @@ class GTSRB(DenseDesignMatrix):
 
             # loop over all 43 classes
             for c in xrange(43):
-                prefix = self.path + '/' + format(c, '05d') + '/' # subdirectory for class
-                with open(prefix + 'GT-'+ format(c, '05d') + '.csv') as f:# annotations file
-                    reader = csv.reader(f, delimiter = self.delimiter) # csv parser for annotations file
-                    reader.next() # skip header
+                prefix = self.path + '/' + format(c, '05d') + '/'  # subdirectory for class
+                with open(prefix + 'GT-'+ format(c, '05d') + '.csv') as f:  # annotations file
+                    reader = csv.reader(f, delimiter = self.delimiter)  # csv parser for annotations file
+                    reader.next()  # skip header
                     for row in reader:
                         img = Image.open(prefix + '/' + row[0])
                         # crop images to get a squared image
@@ -124,7 +124,7 @@ class GTSRB(DenseDesignMatrix):
             assert X.shape[0] == y.shape[0]
 
             indices = numpy.arange(X.shape[0])
-            rng = numpy.random.RandomState()  # if given an int argument will give reproducible results
+            rng = numpy.random.RandomState()   # if given an int argument will give reproducible results
             rng.shuffle(indices)
             # shuffle both the arrays consistently
             i = 0
@@ -138,7 +138,7 @@ class GTSRB(DenseDesignMatrix):
         else:
 
             with open(self.path + '/' + "GT-final_test.csv") as f:
-                reader = csv.reader(f, delimiter = self.delimiter) # csv parser for annotations file
+                reader = csv.reader(f, delimiter = self.delimiter)  # csv parser for annotations file
                 reader.next() # skip header
                 for c in xrange(12630):
                     for row in reader:
@@ -149,7 +149,7 @@ class GTSRB(DenseDesignMatrix):
                         elif img.size[0] < img.size[1]:
                             img = img.crop([0, 0, img.size[0], img.size[0]])
                         if img.size[0] + bound >= self.img_size[0]:
-                            img = img.resize(self.img_size, Image.ANTIALIAS) #resize
+                            img = img.resize(self.img_size, Image.ANTIALIAS)  # resize
                             if first:
                                 X = numpy.asarray([img.getdata()])
                                 y = row[7]
