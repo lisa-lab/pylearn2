@@ -15,16 +15,16 @@ class MNIST_AUGMENTED(DenseDesignMatrix):
     def __init__(self, dataset, which_set, model, mf_steps, one_hot=True,
                  start=None, stop=None, save_aug=False):
 
-        path = os.path.join('${PYLEARN2_DATA_PATH}', 'mnist')
-        path = serial.preprocess(path)
+        self.path = os.path.join('${PYLEARN2_DATA_PATH}', 'mnist')
+        self.path = serial.preprocess(self.path)
 
         try:
             if which_set == 'train':
-                path = os.path.join(path, 'aug_train_dump.pkl.gz')
+                path = os.path.join(self.path, 'aug_train_dump.pkl.gz')
                 datasets = serial.load(filepath=path)
                 augmented_X, y = datasets[0], datasets[1]
             else:
-                path = os.path.join(path, 'aug_test_dump.pkl.gz')
+                path = os.path.join(self.path, 'aug_test_dump.pkl.gz')
                 datasets = serial.load(filepath=path)
                 augmented_X, y = datasets[0], datasets[1]
             augmented_X, y = augmented_X[start:stop], y[start:stop]
@@ -46,10 +46,10 @@ class MNIST_AUGMENTED(DenseDesignMatrix):
             if save_aug == True:
                 datasets = augmented_X, y
                 if which_set == 'train':
-                    path = os.path.join(path, 'aug_train_dump.pkl.gz')
+                    path = os.path.join(self.path, 'aug_train_dump.pkl.gz')
                     serial.save(filepath=path, obj=datasets)
                 else:
-                    path = os.path.join(path, 'aug_test_dump.pkl.gz')
+                    path = os.path.join(self.path, 'aug_test_dump.pkl.gz')
                     serial.save(filepath=path, obj=datasets)
         
         super(MNIST_AUGMENTED, self).__init__(X=augmented_X, y=y)
