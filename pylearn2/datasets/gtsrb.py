@@ -32,11 +32,11 @@ class GTSRB(DenseDesignMatrix):
         try:
             # check the presence of saved augmented datasets
             if which_set == 'train':
-                path = os.path.join(path, '..', 'aug_train_dump.pkl.gz')
+                path = os.path.join(path, 'aug_train_dump.pkl.gz')
                 aug_datasets = serial.load(filepath=path)
                 augmented_X, y = aug_datasets[0], aug_datasets[1]
             else:
-                path = os.path.join(path, '..', 'aug_test_dump.pkl.gz')
+                path = os.path.join(path, 'aug_test_dump.pkl.gz')
                 aug_datasets = serial.load(filepath=path)
                 augmented_X, y = aug_datasets[0], aug_datasets[1]
 
@@ -48,11 +48,11 @@ class GTSRB(DenseDesignMatrix):
             # and augment them
             try:
                 if which_set == 'train':
-                    path = os.path.join(path, '..', 'train_dump.pkl.gz')
+                    path = os.path.join(path, 'train_dump.pkl.gz')
                     datasets = serial.load(filepath=path)
                     X, y = datasets[0], datasets[1]
                 else:
-                    path = os.path.join(path, '..', 'test_dump.pkl.gz')
+                    path = os.path.join(path, 'test_dump.pkl.gz')
                     datasets = serial.load(filepath=path)
                     X, y = datasets[0], datasets[1]
 
@@ -62,10 +62,11 @@ class GTSRB(DenseDesignMatrix):
 
                 datasets = X, y # not augmented datasets is saved in order not to waste time reloading gtsrb each time
                 if which_set == 'train':
-                    path = os.path.join(path, '..', 'train_dump.pkl')
+                    path = 
+                    path = os.path.join(path, 'train_dump.pkl')
                     serial.save(filepath=path, obj=datasets)
                 else:
-                    path = os.path.join(path, '..', 'test_dump.pkl')
+                    path = os.path.join(path, 'test_dump.pkl')
                     serial.save(filepath=path, obj=datasets)
 
             X, y = X[start:stop], y[start:stop]
@@ -77,10 +78,10 @@ class GTSRB(DenseDesignMatrix):
                 aug_datasets = augmented_X, y
                 if save_aug == True:
                     if which_set == 'train':
-                        path = os.path.join(path, '..', 'aug_train_dump.pkl')
+                        path = os.path.join(path, 'aug_train_dump.pkl')
                         serial.save(filepath=path, obj=aug_datasets)
                     else:
-                        path = os.path.join(path, '..', 'aug_test_dump.pkl')
+                        path = os.path.join(path, 'aug_test_dump.pkl')
                         serial.save(filepath=path, obj=aug_datasets)
                 
                 X = augmented_X
@@ -91,31 +92,27 @@ class GTSRB(DenseDesignMatrix):
 
         print "\nloading data...\n"
 
+        first = True
+
         if self.which_set == 'train':
 
-            first = True
-
             # loop over all 43 classes
-            for c in xrange(43): #43
+            for c in xrange(43):
                 prefix = self.path + '/' + format(c, '05d') + '/' # subdirectory for class
-                f = open(prefix + 'GT-'+ format(c, '05d') + '.csv') # annotations file
-                reader = csv.reader(f, delimiter = self.delimiter) # csv parser for annotations file
-                reader.next() # skip header
-                for row in reader:
-                    img = Image.open(prefix + '/' + row[0])
-                    if img.size[0] + bound_train >= self.img_size[0]:
-                        img = img.convert('L')  # grayscale
-                        img = img.resize(self.img_size, Image.ANTIALIAS) #resize
-                        if first:
-                            X = numpy.asarray([img.getdata()])
-                            X /= 255.
-                            y = numpy.asarray(row[7])
-                            first = False
-                        else:
-                            X = numpy.append(X, [img.getdata()], axis = 0)
-                            X /= 255.
-                            y = numpy.append(y, row[7])
-                f.close()
+                with open(prefix + 'GT-'+ format(c, '05d') + '.csv') as f:# annotations file
+                    reader = csv.reader(f, delimiter = self.delimiter) # csv parser for annotations file
+                    reader.next() # skip header
+                    for row in reader:
+                        img = Image.open(prefix + '/' + row[0])
+                        if img.size[0] + bound_train >= self.img_size[0]:
+                            img = img.resize(self.img_size, Image.ANTIALIAS) #resize
+                            if first:
+                                X = numpy.asarray([img.getdata()])
+                                y = numpy.asarray(row[7])
+                                first = False
+                            else:
+                                X = numpy.append(X, [img.getdata()], axis = 0)
+                                y = numpy.append(y, row[7])
 
             # shuffle
             assert X.shape[0] == y.shape[0]
@@ -134,28 +131,21 @@ class GTSRB(DenseDesignMatrix):
 
         else:
 
-            first = True
-
-            f = open(self.path + '/' + "GT-final_test.csv")
-            reader = csv.reader(f, delimiter = self.delimiter) # csv parser for annotations file
-            reader.next() # skip header
-
-            for c in xrange(12630):
-                for row in reader:
-                    img = Image.open(self.path + '/' + row[0])
-                    if img.size[0] + bound_train >= self.img_size[0]:
-                        img = img.convert('L')  # grayscale
-                        img = img.resize(self.img_size, Image.ANTIALIAS) #resize
-                        if first:
-                            X = numpy.asarray([img.getdata()])
-                            X /= 255.
-                            y = row[7]
-                            first = False
-                        else:
-                            X = numpy.append(X, [img.getdata()], axis = 0)
-                            X /= 255.
-                            y = numpy.append(y, row[7])
-            f.close()
+            with open(self.path + '/' + "GT-final_test.csv") as f:
+                reader = csv.reader(f, delimiter = self.delimiter) # csv parser for annotations file
+                reader.next() # skip header
+                for c in xrange(12630):
+                    for row in reader:
+                        img = Image.open(self.path + '/' + row[0])
+                        if img.size[0] + bound_train >= self.img_size[0]:
+                            img = img.resize(self.img_size, Image.ANTIALIAS) #resize
+                            if first:
+                                X = numpy.asarray([img.getdata()])
+                                y = row[7]
+                                first = False
+                            else:
+                                X = numpy.append(X, [img.getdata()], axis = 0)
+                                y = numpy.append(y, row[7])
 
         # build the one_hot matrix used to specify labels       
         if self.one_hot:
@@ -164,4 +154,5 @@ class GTSRB(DenseDesignMatrix):
                 one_hot[i,y[i]] = 1.
             y = one_hot
 
+        X /= 255.
         return X, y
