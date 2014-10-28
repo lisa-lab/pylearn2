@@ -1315,7 +1315,8 @@ class Softmax(Layer):
 
             if targets is not None:
                 y_hat = T.argmax(state, axis=1)
-                y = T.argmax(targets, axis=1)
+                y = (targets.reshape(y_hat.shape) if self._has_binary_target
+                     else T.argmax(targets, axis=1))
                 misclass = T.neq(y, y_hat).mean()
                 misclass = T.cast(misclass, config.floatX)
                 rval['misclass'] = misclass
