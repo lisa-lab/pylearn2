@@ -43,8 +43,8 @@ class MNIST_AUGMENTED(DenseDesignMatrix):
             X, y = X[start:stop], y[start:stop]
             augmented_X = augment_input(X, model, mf_steps)
 
-            datasets = augmented_X, y
             if save_aug == True:
+		datasets = augmented_X, y
                 if which_set == 'train':
                     path = os.path.join(path, 'aug_train_dump.pkl.gz')
                     serial.save(filepath=path, obj=datasets)
