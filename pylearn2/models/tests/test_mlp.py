@@ -403,7 +403,7 @@ def test_softmax_binary_targets():
 def test_softmax_bin_targets_misclass(seed=0):
     """
     Constructs softmax layers with binary target and with vector targets
-    to check that they give the same cost.
+    to check that they give the same 'misclass' channel value.
     """
     np.random.seed(seed)
     num_classes = 2
