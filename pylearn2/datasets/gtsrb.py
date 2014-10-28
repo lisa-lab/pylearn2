@@ -165,7 +165,7 @@ class GTSRB(DenseDesignMatrix):
                 one_hot[i,y[i]] = 1.
             y = one_hot
 
-        
+
         X /= 255.
         print '\n' + str(bad_images) + 'images have been discarded for not respecting size requirements\n'
         return X, y
