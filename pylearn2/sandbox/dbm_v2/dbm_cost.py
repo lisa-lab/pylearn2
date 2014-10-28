@@ -432,6 +432,27 @@ class VariationalCD(BaseCD):
 
 
 
+def fix(l):
+    """
+    Parameters
+    ----------
+    l : object
+    Returns
+    -------
+    l : object
+        If `l` is anything but a string, the return is the
+        same as the input, but it may have been modified in place.
+        If `l` is a string, the return value is `l` converted to a float.
+        If `l` is a list, this function explores all nested lists inside
+        `l` and turns all string members into floats.
+    """
+    if isinstance(l, list):
+        return [fix(elem) for elem in l]
+    if isinstance(l, str):
+        return float(l)
+    return l
+
+
 class MF_L1_ActCost(DefaultDataSpecsMixin, Cost):
     """
     L1 activation cost on the mean field parameters.
