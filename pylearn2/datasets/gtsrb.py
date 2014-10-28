@@ -62,7 +62,6 @@ class GTSRB(DenseDesignMatrix):
 
                 datasets = X, y # not augmented datasets is saved in order not to waste time reloading gtsrb each time
                 if which_set == 'train':
-                    path = 
                     path = os.path.join(path, 'train_dump.pkl')
                     serial.save(filepath=path, obj=datasets)
                 else:
