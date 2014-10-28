@@ -25,7 +25,7 @@ class MNIST_AUGMENTED(DenseDesignMatrix):
                 augmented_X, y = datasets[0], datasets[1]
             else:
                 path = os.path.join(path, 'aug_test_dump.pkl.gz')
-                datasets = serial.load(filepath=path + 'aug_test_dump.pkl.gz')
+                datasets = serial.load(filepath=path)
                 augmented_X, y = datasets[0], datasets[1]
             augmented_X, y = augmented_X[start:stop], y[start:stop]
         except:
