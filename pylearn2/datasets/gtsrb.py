@@ -1,10 +1,11 @@
 from PIL import Image
 import numpy
 import csv
-import cPickle
+import os
 
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
-from pylearn2.datasets.augment_input import augment_input
+from pylearn2.scripts.dbm import augment_input
+from pylearn2.utils import serial
 
 # User can select whether he wants to select all images or just a smaller set of them in order not to add too much noise
 # after the resizing 
@@ -12,75 +13,85 @@ bound_train = 1000
 bound_test = 1000
 
 class GTSRB(DenseDesignMatrix):
-    
+
     def __init__(self, which_set, model = None, mf_steps = None, one_hot = True,
-                 start = None, stop = None, img_size = None):
-        
-        #path = "${PYLEARN2_DATA_PATH}/gtsrb"
-        first_path = "/home/deramo/workspace/datasets/gtsrb"
+                 start = None, stop = None, img_size = None, save_aug=False):
+
+        path = "${PYLEARN2_DATA_PATH}/gtsrb"
+        path = serial.preprocess(path)
         if which_set == 'train':
-            path = first_path + "/Final_Training/Images"
+            path = path + "/Final_Training/Images"
         else:
-            path = first_path + "/Final_Test/Images"
-        self.path = path
-        self.which_set = which_set
+            path = path + "/Final_Test/Images"
         self.delimiter = ';'
-        self.img_size = img_size
         self.one_hot = one_hot
-        self.start = start
-        self.stop = stop
-        
+
         try:
+            # check the presence of saved augmented datasets
             if which_set == 'train':
-                datasets = load_from_dump(dump_data_dir = self.path, dump_filename = 'train_dump.pkl.gz')
-                X, y = datasets[0], datasets[1]
+                path = os.path.join(path, '..', 'aug_train_dump.pkl.gz')
+                aug_datasets = serial.load(filepath=path)
+                augmented_X, y = aug_datasets[0], aug_datasets[1]
             else:
-                datasets = load_from_dump(dump_data_dir = self.path, dump_filename = 'test_dump.pkl.gz')
-                X, y = datasets[0], datasets[1]
+                path = os.path.join(path, '..', 'aug_test_dump.pkl.gz')
+                aug_datasets = serial.load(filepath=path)
+                augmented_X, y = aug_datasets[0], aug_datasets[1]
+
+            augmented_X, y = augmented_X[start:stop], y[start:stop]
+            X = augmented_X
         except:
+            # if there're not saved augmented datasets, if there're saved 
+            # normal datasets, it loads and augment them, otherwise it creates
+            # and augment them
             try:
                 if which_set == 'train':
-                    datasets = load_from_dump(dump_data_dir = self.path, dump_filename = 'noaug_train_dump.pkl.gz')
+                    path = os.path.join(path, '..', 'train_dump.pkl.gz')
+                    datasets = serial.load(filepath=path)
                     X, y = datasets[0], datasets[1]
                 else:
-                    datasets = load_from_dump(dump_data_dir = self.path, dump_filename = 'noaug_test_dump.pkl.gz')
+                    path = os.path.join(path, '..', 'test_dump.pkl.gz')
+                    datasets = serial.load(filepath=path)
                     X, y = datasets[0], datasets[1]
-                    X, y = X[0:12600], y[0:12600] # temporaneo
-            
+
             except:
                 X, y = self.load_data()
                 print "\ndata loaded!\n"
-                
-                noaug_datasets = X, y # not augmented datasets is saved in order not to waste time reloading gtsrb each time
+
+                datasets = X, y # not augmented datasets is saved in order not to waste time reloading gtsrb each time
                 if which_set == 'train':
-                    save_to_dump(var_to_dump = noaug_datasets, dump_data_dir = self.path, dump_filename = 'noaug_train_dump.pkl.gz')
+                    path = os.path.join(path, '..', 'train_dump.pkl.gz')
+                    serial.save(filepath=path, obj=datasets)
                 else:
-                    save_to_dump(var_to_dump = noaug_datasets, dump_data_dir = self.path, dump_filename = 'noaug_test_dump.pkl.gz')
-            
-            X, y = X.astype(float), y.astype(float)
-            
+                    path = os.path.join(path, '..', 'test_dump.pkl.gz')
+                    serial.save(filepath=path, obj=datasets)
+
+            X, y = X[start:stop], y[start:stop]
+
             # BUILD AUGMENTED INPUT FOR FINETUNING
             if mf_steps is not None:
                 augmented_X = augment_input(X, model, mf_steps)
-                X = augmented_X
+
+                aug_datasets = augmented_X, y
+                if save_aug == True:
+                    if which_set == 'train':
+                        path = os.path.join(path, '..', 'aug_train_dump.pkl.gz')
+                        serial.save(filepath=path, obj=aug_datasets)
+                    else:
+                        path = os.path.join(path, '..', 'aug_test_dump.pkl.gz')
+                        serial.save(filepath=path, obj=aug_datasets)
                 
-                datasets = augmented_X, y
-                if which_set == 'train':
-                    save_to_dump(var_to_dump = datasets, dump_data_dir = self.path, dump_filename = 'train_dump.pkl.gz')
-                else:
-                    save_to_dump(var_to_dump = datasets, dump_data_dir = self.path, dump_filename = 'test_dump.pkl.gz')
-        
-        X, y = X[self.start:self.stop], y[self.start:self.stop]
-        super(GTSRB, self).__init__(X = X, y = y)
-        
+                X = augmented_X
+
+        super(GTSRB, self).__init__(X=X, y=y)
+
     def load_data(self):
-        
+
         print "\nloading data...\n"
 
         if self.which_set == 'train':
-        
+
             first = True
-            
+
             # loop over all 43 classes
             for c in xrange(43): #43
                 prefix = self.path + '/' + format(c, '05d') + '/' # subdirectory for class
@@ -102,10 +113,10 @@ class GTSRB(DenseDesignMatrix):
                             X /= 255.
                             y = numpy.append(y, row[7])
                 f.close()
-                
+
             # shuffle
             assert X.shape[0] == y.shape[0]
-            
+
             indices = numpy.arange(X.shape[0])
             rng = numpy.random.RandomState()  # if given an int argument will give reproducible results
             rng.shuffle(indices)
@@ -117,15 +128,15 @@ class GTSRB(DenseDesignMatrix):
                 X[i] = temp_X[idx]
                 y[i] = temp_y[idx]
                 i += 1
-        
+
         else:
-            
+
             first = True
-            
+
             f = open(self.path + '/' + "GT-final_test.csv")
             reader = csv.reader(f, delimiter = self.delimiter) # csv parser for annotations file
             reader.next() # skip header
-            
+
             for c in xrange(12630):
                 for row in reader:
                     img = Image.open(self.path + '/' + row[0])
@@ -142,23 +153,12 @@ class GTSRB(DenseDesignMatrix):
                             X /= 255.
                             y = numpy.append(y, row[7])
             f.close()
-        
+
         # build the one_hot matrix used to specify labels       
         if self.one_hot:
             one_hot = numpy.zeros((y.shape[0], 43))
             for i in xrange(y.shape[0]):
                 one_hot[i,y[i]] = 1.
             y = one_hot
-        
-        return X, y
-        
-def load_from_dump(dump_data_dir, dump_filename):
-    load_file = open(dump_data_dir + "/" + dump_filename)
-    unpickled_var = cPickle.load(load_file)
-    load_file.close()
-    return unpickled_var
 
-def save_to_dump(var_to_dump, dump_data_dir, dump_filename):
-    save_file = open(dump_data_dir + "/" + dump_filename, 'wb')  # this will overwrite current contents
-    cPickle.dump(var_to_dump, save_file, -1)  # the -1 is for HIGHEST_PROTOCOL
-    save_file.close()
+        return X, y
