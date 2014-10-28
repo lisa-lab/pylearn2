@@ -23,8 +23,11 @@ class GTSRB(DenseDesignMatrix):
             path = path + "/Final_Training/Images"
         else:
             path = path + "/Final_Test/Images"
+        self.path = path
         self.delimiter = ';'
         self.one_hot = one_hot
+        self.which_set = which_set
+        self.img_size = img_size
 
         try:
             # check the presence of saved augmented datasets
