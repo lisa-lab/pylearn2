@@ -1207,9 +1207,9 @@ class Softmax(Layer):
 
         if non_redundant:
             if init_bias_target_marginals:
-                raise NotImplementedError("init_bias_target_marginals "
-                        "currently only works with the overcomplete "
-                        "parameterization.")
+                msg = ("init_bias_target_marginals currently only works "
+                       "with the overcomplete parameterization.")
+                raise NotImplementedError(msg)
 
         if isinstance(W_lr_scale, str):
             W_lr_scale = float(W_lr_scale)
@@ -1231,7 +1231,7 @@ class Softmax(Layer):
         self.output_space = VectorSpace(n_classes)
         if not no_affine:
             self.b = sharedX(np.zeros((n_classes - self.non_redundant,)),
-                    name='softmax_b')
+                             name='softmax_b')
             if init_bias_target_marginals:
 
                 y = init_bias_target_marginals.y
@@ -1253,6 +1253,14 @@ class Softmax(Layer):
                 self.b.set_value(b)
         else:
             assert init_bias_target_marginals is None
+
+    def __setstate__(self, state):
+        super(Softmax, self).__setstate__(state)
+        # Patch old pickle files
+        if not hasattr(self, 'non_redundant'):
+            self.non_redundant = False
+        if not hasattr(self, 'mask_weights'):
+            self.mask_weights = None
 
     @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
@@ -1289,11 +1297,11 @@ class Softmax(Layer):
             col_norms = T.sqrt(sq_W.sum(axis=0))
 
             rval.update(OrderedDict([('row_norms_min',  row_norms.min()),
-                                ('row_norms_mean', row_norms.mean()),
-                                ('row_norms_max',  row_norms.max()),
-                                ('col_norms_min',  col_norms.min()),
-                                ('col_norms_mean', col_norms.mean()),
-                                ('col_norms_max',  col_norms.max()), ]))
+                        ('row_norms_mean', row_norms.mean()),
+                        ('row_norms_max',  row_norms.max()),
+                        ('col_norms_min',  col_norms.min()),
+                        ('col_norms_mean', col_norms.mean()),
+                        ('col_norms_max',  col_norms.max()), ]))
 
         if (state_below is not None) or (state is not None):
             if state is None:
@@ -1428,10 +1436,6 @@ class Softmax(Layer):
             b = self.b
 
             Z = T.dot(state_below, self.W) + b
-
-        # Patch old pickle files
-        if not hasattr(self, 'non_redundant'):
-            self.non_redundant = False
 
         if self.non_redundant:
             zeros = T.alloc(0., Z.shape[0], 1)
@@ -1676,10 +1680,6 @@ class SoftmaxPool(Layer):
 
     @wraps(Layer._modify_updates)
     def _modify_updates(self, updates):
-
-        # Patch old pickle files
-        if not hasattr(self, 'mask_weights'):
-            self.mask_weights = None
 
         if self.mask_weights is not None:
             W, = self.transformer.get_params()
