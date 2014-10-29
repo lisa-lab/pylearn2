@@ -3,6 +3,7 @@ import numpy
 import csv
 import os
 
+from copy import deepcopy
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.scripts.dbm import augment_input
 from pylearn2.utils import serial
@@ -13,8 +14,8 @@ bound = 2
 
 class GTSRB(DenseDesignMatrix):
 
-    def __init__(self, which_set, model = None, mf_steps = None, one_hot = True,
-                 start = None, stop = None, img_size = None, save_aug=False):
+    def __init__(self, which_set, model=None, mf_steps=None, one_hot=True,
+                 start=None, stop=None, img_size=None, save_aug=False):
 
         path = "${PYLEARN2_DATA_PATH}/gtsrb"
         path = serial.preprocess(path)
@@ -109,7 +110,7 @@ class GTSRB(DenseDesignMatrix):
                         elif img.size[0] < img.size[1]:
                             img = img.crop([0, 0, img.size[0], img.size[0]])
                         if img.size[0] + bound >= self.img_size[0]:
-                            img = img.resize(self.img_size, Image.ANTIALIAS) #resize
+                            img = img.resize(self.img_size, Image.ANTIALIAS)  # resize
                             if first:
                                 X = numpy.asarray([img.getdata()])
                                 y = numpy.asarray(row[7])
@@ -120,20 +121,7 @@ class GTSRB(DenseDesignMatrix):
                         else:
                             bad_images += 1
 
-            # shuffle
-            assert X.shape[0] == y.shape[0]
-
-            indices = numpy.arange(X.shape[0])
-            rng = numpy.random.RandomState()   # if given an int argument will give reproducible results
-            rng.shuffle(indices)
-            # shuffle both the arrays consistently
-            i = 0
-            temp_X = X
-            temp_y = y
-            for idx in indices:
-                X[i] = temp_X[idx]
-                y[i] = temp_y[idx]
-                i += 1
+            X, y = self.shuffle(X, y)
 
         else:
 
@@ -157,15 +145,52 @@ class GTSRB(DenseDesignMatrix):
                             else:
                                 X = numpy.append(X, [img.getdata()], axis = 0)
                                 y = numpy.append(y, row[7])
+        
+        X = self.split_rgb(X)
+        y = self.make_one_hot(y)
+        
+        X /= 255.
+        print '\n' + str(bad_images) + ' images have been discarded for not respecting size requirements\n'
+        return X, y
 
+    def shuffle(self, X, y):
+        # shuffle
+        assert X.shape[0] == y.shape[0]
+
+        indices = numpy.arange(X.shape[0])
+        rng = numpy.random.RandomState()   # if given an int argument will give reproducible results
+        rng.shuffle(indices)
+        # shuffle both the arrays consistently
+        i = 0
+        temp_X = deepcopy(X)
+        temp_y = deepcopy(y)
+        for idx in indices:
+            X[i] = temp_X[idx]
+            y[i] = temp_y[idx]
+            i += 1
+
+    def split_rgb(self, X):
+        ''' 
+            modify the matrix in such a way that each image 
+            is stored with a rgb configuration (all reds, 
+            all greens and all blues
+        '''
+        
+        first = True
+        for img in X:
+            r, g, b = img[:, 0], img[:, 1], img[:, 2]
+            if first == True:
+                rgb = numpy.asarray([numpy.concatenate([r, g, b])])
+                first = False
+            else:
+                rgb = numpy.append(rgb, [numpy.concatenate([r, g, b])], axis=0)
+
+        return rgb
+
+    def make_one_hot(self, y):
         # build the one_hot matrix used to specify labels       
         if self.one_hot:
             one_hot = numpy.zeros((y.shape[0], 43))
             for i in xrange(y.shape[0]):
                 one_hot[i,y[i]] = 1.
             y = one_hot
-
-
-        X /= 255.
-        print '\n' + str(bad_images) + 'images have been discarded for not respecting size requirements\n'
-        return X, y
