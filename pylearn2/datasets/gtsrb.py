@@ -166,6 +166,8 @@ class GTSRB(DenseDesignMatrix):
             X[i] = temp_X[idx]
             y[i] = temp_y[idx]
             i += 1
+        
+        return X, y
 
     def split_rgb(self, X):
         ''' 
@@ -191,4 +193,5 @@ class GTSRB(DenseDesignMatrix):
             one_hot = numpy.zeros((y.shape[0], 43))
             for i in xrange(y.shape[0]):
                 one_hot[i,y[i]] = 1.
-            y = one_hot
+        
+        return one_hot
