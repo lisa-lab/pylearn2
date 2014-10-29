@@ -10,7 +10,7 @@ from pylearn2.utils import serial
 
 # User can select whether he wants to select all images or just a smaller set of them in order not to add too much noise
 # after the resizing 
-bound = 2
+bound = 50
 
 class GTSRB(DenseDesignMatrix):
 
@@ -92,7 +92,6 @@ class GTSRB(DenseDesignMatrix):
         print "\nloading data...\n"
 
         first = True
-        bad_images = 0  # images that does not satisfy the size requirements
 
         if self.which_set == 'train':
 
@@ -118,8 +117,6 @@ class GTSRB(DenseDesignMatrix):
                             else:
                                 X = numpy.append(X, [img.getdata()], axis = 0)
                                 y = numpy.append(y, row[7])
-                        else:
-                            bad_images += 1
 
             X, y = self.shuffle(X, y)
 
@@ -148,9 +145,10 @@ class GTSRB(DenseDesignMatrix):
         
         X = self.split_rgb(X)
         y = self.make_one_hot(y)
-        
+        X = X.astype(float)
         X /= 255.
-        print '\n' + str(bad_images) + ' images have been discarded for not respecting size requirements\n'
+        
+        #print '\n' + str(bad_images) + ' images have been discarded for not respecting size requirements\n'
         return X, y
 
     def shuffle(self, X, y):
