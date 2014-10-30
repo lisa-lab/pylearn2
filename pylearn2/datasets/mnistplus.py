@@ -87,7 +87,7 @@ class MNISTPlus(dense_design_matrix.DenseDesignMatrix):
 
         # init the super class
         super(MNISTPlus, self).__init__(
-            X=data_x, y=data_y, y_labels=np.max(data_y) + 1, 
+            X=data_x, y=data_y, y_labels=np.max(data_y) + 1,
             view_converter=view_converter)
 
         assert not contains_nan(self.X)

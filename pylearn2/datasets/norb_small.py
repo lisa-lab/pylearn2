@@ -144,7 +144,7 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         view_converter = retina.RetinaCodingViewConverter((96, 96, 2),
                                                           (8, 4, 2, 2))
 
-        super(FoveatedNORB, self).__init__(X=X, y=y, 
+        super(FoveatedNORB, self).__init__(X=X, y=y,
                                            y_labels=np.max(y) + 1,
                                            view_converter=view_converter,
                                            preprocessor=preprocessor)

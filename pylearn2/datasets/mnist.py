@@ -136,7 +136,7 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
                 tmp = topo_view[i, :, :, :].copy()
                 topo_view[i, :, :, :] = topo_view[j, :, :, :]
                 topo_view[j, :, :, :] = tmp
-                
+
                 tmp = y[i:i + 1].copy()
                 y[i] = y[j]
                 y[j] = tmp

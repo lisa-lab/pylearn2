@@ -4,6 +4,7 @@ from numpy.testing import assert_equal, assert_, assert_raises
 from theano.scalar.basic import all_types
 from pylearn2.format.target_format import OneHotFormatter, compressed_one_hot
 
+
 def test_one_hot_formatter_simple():
     def check_one_hot_formatter(seed, max_labels, dtype, ncases):
         rng = numpy.random.RandomState(seed)
@@ -19,6 +20,7 @@ def test_one_hot_formatter_simple():
                dtype, rng.random_integers(1, 100))
     fmt = OneHotFormatter(max_labels=10)
     assert fmt.format(numpy.zeros((1, 1), dtype='uint8')).shape == (1, 1, 10)
+
 
 def test_one_hot_formatter_symbolic():
     def check_one_hot_formatter_symbolic(seed, max_labels, dtype, ncases):
@@ -105,16 +107,24 @@ def test_one_hot_formatter_merge_simple():
     def check_one_hot_formatter(seed, max_labels, dtype, ncases, nmultis):
         rng = numpy.random.RandomState(seed)
         fmt = OneHotFormatter(max_labels=max_labels, dtype=dtype)
-        integer_labels = rng.random_integers(0, max_labels - 1, 
-            size=ncases*nmultis).reshape(ncases, nmultis)
+        integer_labels = rng.random_integers(
+            0, max_labels - 1, size=ncases*nmultis
+        ).reshape(ncases, nmultis)
+        
         one_hot_labels = fmt.format(integer_labels, mode='merge')
-        assert len(zip(*one_hot_labels.nonzero())) == ncases * nmultis
+        n_ones = numpy.concatenate([
+            numpy.unique(l) for l in numpy.split(
+                integer_labels, integer_labels.shape[0]
+            )
+        ])
+        assert len(zip(*one_hot_labels.nonzero())) == len(n_ones)
         for case, label in enumerate(integer_labels):
-            assert one_hot_labels[case, label] == 1
+            assert numpy.sum(one_hot_labels[case, label]) == nmultis
+
     rng = numpy.random.RandomState(0)
     for seed, dtype in enumerate(all_types):
         yield (check_one_hot_formatter, seed, rng.random_integers(11, 30),
-               dtype, rng.random_integers(1, 100), 
+               dtype, rng.random_integers(1, 100),
                rng.random_integers(1, 10))
 
 
