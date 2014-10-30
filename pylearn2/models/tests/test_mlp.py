@@ -423,21 +423,22 @@ def test_softmax_bin_targets_channels(seed=0):
     y_vec = mlp_vec.get_target_space().make_theano_batch()
 
     X_data = np.random.random(size=(batch_size, 100))
+    X_data = X_data.astype(dtype=theano.config.floatX)
     y_bin_data = np.random.randint(low=0, high=num_classes,
                                    size=(batch_size, 1))
-    y_vec_data = np.zeros((batch_size, num_classes))
+    y_vec_data = np.zeros((batch_size, num_classes), dtype=theano.config.floatX)
     y_vec_data[np.arange(batch_size),y_bin_data.flatten()] = 1
 
-    def get_misclass(channel_name, model, y, y_data):
+    def channel_value(channel_name, model, y, y_data):
         chans = model.get_monitoring_channels((X,y))
         f_channel = theano.function([X,y], chans['s1_'+channel_name])
         return f_channel(X_data, y_data)
 
     for channel_name in ['misclass', 'nll']:
-      vec_val = get_misclass(channel_name, mlp_vec, y_vec, y_vec_data)
-      bin_val = get_misclass(channel_name, mlp_bin, y_bin, y_bin_data)
-      print channel_name, vec_val, bin_val
-      np.testing.assert_allclose(vec_val, bin_val)
+        vec_val = channel_value(channel_name, mlp_vec, y_vec, y_vec_data)
+        bin_val = channel_value(channel_name, mlp_bin, y_bin, y_bin_data)
+        print channel_name, vec_val, bin_val
+        np.testing.assert_allclose(vec_val, bin_val)
     
 def test_set_get_weights_Softmax():
     """
