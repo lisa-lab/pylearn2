@@ -101,21 +101,22 @@ class GTSRB(DenseDesignMatrix):
                     reader = csv.reader(f, delimiter = self.delimiter)  # csv parser for annotations file
                     reader.next()  # skip header
                     for row in reader:
-                        with Image.open(prefix + '/' + row[0]) as img:
-                            # crop images to get a squared image
-                            if img.size[0] > img.size[1]:
-                                img = img.crop([0, 0, img.size[1], img.size[1]])
-                            elif img.size[0] < img.size[1]:
-                                img = img.crop([0, 0, img.size[0], img.size[0]])
-                            if img.size[0] + bound >= self.img_size[0]:
-                                img = img.resize(self.img_size, Image.ANTIALIAS)  # resize
-                                if first:
-                                    X = numpy.asarray([img.getdata()])
-                                    y = numpy.asarray(row[7])
-                                    first = False
-                                else:
-                                    X = numpy.append(X, [img.getdata()], axis = 0)
-                                    y = numpy.append(y, row[7])
+                        img = Image.open(prefix + '/' + row[0])
+                        # crop images to get a squared image
+                        if img.size[0] > img.size[1]:
+                            img = img.crop([0, 0, img.size[1], img.size[1]])
+                        elif img.size[0] < img.size[1]:
+                            img = img.crop([0, 0, img.size[0], img.size[0]])
+                        if img.size[0] + bound >= self.img_size[0]:
+                            img = img.resize(self.img_size, Image.ANTIALIAS)  # resize
+                            if first:
+                                X = numpy.asarray([img.getdata()])
+                                y = numpy.asarray(row[7])
+                                first = False
+                            else:
+                                X = numpy.append(X, [img.getdata()], axis = 0)
+                                y = numpy.append(y, row[7])
+                        img.close()
 
             X, y = self.shuffle(X, y)
 
@@ -126,21 +127,22 @@ class GTSRB(DenseDesignMatrix):
                 reader.next() # skip header
                 for c in xrange(12630):
                     for row in reader:
-                        with Image.open(self.path + '/' + row[0]) as img:
-                            # crop images to get a squared image
-                            if img.size[0] > img.size[1]:
-                                img = img.crop([0, 0, img.size[1], img.size[1]])
-                            elif img.size[0] < img.size[1]:
-                                img = img.crop([0, 0, img.size[0], img.size[0]])
-                            if img.size[0] + bound >= self.img_size[0]:
-                                img = img.resize(self.img_size, Image.ANTIALIAS)  # resize
-                                if first:
-                                    X = numpy.asarray([img.getdata()])
-                                    y = row[7]
-                                    first = False
-                                else:
-                                    X = numpy.append(X, [img.getdata()], axis = 0)
-                                    y = numpy.append(y, row[7])
+                        img = Image.open(self.path + '/' + row[0])
+                        # crop images to get a squared image
+                        if img.size[0] > img.size[1]:
+                            img = img.crop([0, 0, img.size[1], img.size[1]])
+                        elif img.size[0] < img.size[1]:
+                            img = img.crop([0, 0, img.size[0], img.size[0]])
+                        if img.size[0] + bound >= self.img_size[0]:
+                            img = img.resize(self.img_size, Image.ANTIALIAS)  # resize
+                            if first:
+                                X = numpy.asarray([img.getdata()])
+                                y = row[7]
+                                first = False
+                            else:
+                                X = numpy.append(X, [img.getdata()], axis = 0)
+                                y = numpy.append(y, row[7])
+                        img.close()
         
         X = self.split_rgb(X)
         y = self.make_one_hot(y)
