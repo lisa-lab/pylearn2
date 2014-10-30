@@ -40,8 +40,7 @@ class GTSRB(DenseDesignMatrix):
                 aug_datasets = serial.load(filepath=path)
                 augmented_X, y = aug_datasets[0], aug_datasets[1]
 
-            augmented_X, y = augmented_X[start:stop], y[start:stop]
-            X = augmented_X
+            X, y = augmented_X[start:stop], y[start:stop]
         except:
             # if there're not saved augmented datasets, if there're saved 
             # normal datasets, it loads and augment them, otherwise it creates
@@ -102,21 +101,21 @@ class GTSRB(DenseDesignMatrix):
                     reader = csv.reader(f, delimiter = self.delimiter)  # csv parser for annotations file
                     reader.next()  # skip header
                     for row in reader:
-                        img = Image.open(prefix + '/' + row[0])
-                        # crop images to get a squared image
-                        if img.size[0] > img.size[1]:
-                            img = img.crop([0, 0, img.size[1], img.size[1]])
-                        elif img.size[0] < img.size[1]:
-                            img = img.crop([0, 0, img.size[0], img.size[0]])
-                        if img.size[0] + bound >= self.img_size[0]:
-                            img = img.resize(self.img_size, Image.ANTIALIAS)  # resize
-                            if first:
-                                X = numpy.asarray([img.getdata()])
-                                y = numpy.asarray(row[7])
-                                first = False
-                            else:
-                                X = numpy.append(X, [img.getdata()], axis = 0)
-                                y = numpy.append(y, row[7])
+                        with Image.open(prefix + '/' + row[0]) as img:
+                            # crop images to get a squared image
+                            if img.size[0] > img.size[1]:
+                                img = img.crop([0, 0, img.size[1], img.size[1]])
+                            elif img.size[0] < img.size[1]:
+                                img = img.crop([0, 0, img.size[0], img.size[0]])
+                            if img.size[0] + bound >= self.img_size[0]:
+                                img = img.resize(self.img_size, Image.ANTIALIAS)  # resize
+                                if first:
+                                    X = numpy.asarray([img.getdata()])
+                                    y = numpy.asarray(row[7])
+                                    first = False
+                                else:
+                                    X = numpy.append(X, [img.getdata()], axis = 0)
+                                    y = numpy.append(y, row[7])
 
             X, y = self.shuffle(X, y)
 
@@ -127,21 +126,21 @@ class GTSRB(DenseDesignMatrix):
                 reader.next() # skip header
                 for c in xrange(12630):
                     for row in reader:
-                        img = Image.open(self.path + '/' + row[0])
-                        # crop images to get a squared image
-                        if img.size[0] > img.size[1]:
-                            img = img.crop([0, 0, img.size[1], img.size[1]])
-                        elif img.size[0] < img.size[1]:
-                            img = img.crop([0, 0, img.size[0], img.size[0]])
-                        if img.size[0] + bound >= self.img_size[0]:
-                            img = img.resize(self.img_size, Image.ANTIALIAS)  # resize
-                            if first:
-                                X = numpy.asarray([img.getdata()])
-                                y = row[7]
-                                first = False
-                            else:
-                                X = numpy.append(X, [img.getdata()], axis = 0)
-                                y = numpy.append(y, row[7])
+                        with Image.open(self.path + '/' + row[0]) as img:
+                            # crop images to get a squared image
+                            if img.size[0] > img.size[1]:
+                                img = img.crop([0, 0, img.size[1], img.size[1]])
+                            elif img.size[0] < img.size[1]:
+                                img = img.crop([0, 0, img.size[0], img.size[0]])
+                            if img.size[0] + bound >= self.img_size[0]:
+                                img = img.resize(self.img_size, Image.ANTIALIAS)  # resize
+                                if first:
+                                    X = numpy.asarray([img.getdata()])
+                                    y = row[7]
+                                    first = False
+                                else:
+                                    X = numpy.append(X, [img.getdata()], axis = 0)
+                                    y = numpy.append(y, row[7])
         
         X = self.split_rgb(X)
         y = self.make_one_hot(y)
