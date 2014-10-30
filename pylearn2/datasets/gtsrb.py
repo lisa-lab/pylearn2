@@ -81,7 +81,7 @@ class GTSRB(DenseDesignMatrix):
                     else:
                         path = os.path.join(self.path, 'aug_test_dump.pkl.gz')
                         serial.save(filepath=path, obj=aug_datasets)
-                
+
                 X = augmented_X
 
         super(GTSRB, self).__init__(X=X, y=y)
@@ -143,12 +143,12 @@ class GTSRB(DenseDesignMatrix):
                                 X = numpy.append(X, [img.getdata()], axis = 0)
                                 y = numpy.append(y, row[7])
                         img.close()
-        
+
         X = self.split_rgb(X)
         y = self.make_one_hot(y)
         X = X.astype(float)
         X /= 255.
-        
+
         #print '\n' + str(bad_images) + ' images have been discarded for not respecting size requirements\n'
         return X, y
 
@@ -167,7 +167,7 @@ class GTSRB(DenseDesignMatrix):
             X[i] = temp_X[idx]
             y[i] = temp_y[idx]
             i += 1
-        
+
         return X, y
 
     def split_rgb(self, X):
@@ -176,7 +176,7 @@ class GTSRB(DenseDesignMatrix):
             is stored with a rgb configuration (all reds, 
             all greens and all blues
         '''
-        
+
         first = True
         for img in X:
             r, g, b = img[:, 0], img[:, 1], img[:, 2]
@@ -194,5 +194,5 @@ class GTSRB(DenseDesignMatrix):
             one_hot = numpy.zeros((y.shape[0], 43))
             for i in xrange(y.shape[0]):
                 one_hot[i,y[i]] = 1.
-        
+
         return one_hot
