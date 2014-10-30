@@ -110,7 +110,7 @@ def test_one_hot_formatter_merge_simple():
         integer_labels = rng.random_integers(
             0, max_labels - 1, size=ncases*nmultis
         ).reshape(ncases, nmultis)
-        
+
         one_hot_labels = fmt.format(integer_labels, mode='merge')
         n_ones = numpy.concatenate([
             numpy.unique(l) for l in numpy.split(
