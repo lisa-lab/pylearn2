@@ -131,7 +131,8 @@ class GTSRB(DenseDesignMatrix):
         first = True
         
         for row in reader:
-            img = Image.open(prefix + '/' + row[0])
+            if prefix is not None:
+                img = Image.open(prefix + '/' + row[0])
             # crop images to get a squared image
             if img.size[0] > img.size[1]:
                 img = img.crop([0, 0, img.size[1], img.size[1]])
