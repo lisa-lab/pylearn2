@@ -90,64 +90,63 @@ class GTSRB(DenseDesignMatrix):
 
         print "\nloading data...\n"
 
-        first = True
-
         if self.which_set == 'train':
-
+            
+            first = True
+            
             # loop over all 43 classes
             for c in xrange(43):
                 prefix = self.path + '/' + format(c, '05d') + '/'  # subdirectory for class
                 with open(prefix + 'GT-'+ format(c, '05d') + '.csv') as f:  # annotations file
                     reader = csv.reader(f, delimiter = self.delimiter)  # csv parser for annotations file
                     reader.next()  # skip header
-                    for row in reader:
-                        img = Image.open(prefix + '/' + row[0])
-                        # crop images to get a squared image
-                        if img.size[0] > img.size[1]:
-                            img = img.crop([0, 0, img.size[1], img.size[1]])
-                        elif img.size[0] < img.size[1]:
-                            img = img.crop([0, 0, img.size[0], img.size[0]])
-                        if img.size[0] + bound >= self.img_size[0]:
-                            img = img.resize(self.img_size, Image.ANTIALIAS)  # resize
-                            if first:
-                                X = numpy.asarray([img.getdata()])
-                                y = numpy.asarray(row[7])
-                                first = False
-                            else:
-                                X = numpy.append(X, [img.getdata()], axis = 0)
-                                y = numpy.append(y, row[7])
-
-            X, y = self.shuffle(X, y)
+                    if first == True:
+                        X = numpy.asarray(self.make_matrices(reader, prefix)[0])
+                        y = numpy.asarray(self.make_matrices(reader, prefix)[1])
+                        first = False
+                    else:
+                        X = numpy.append(X, self.make_matrices(reader, prefix)[0], axis=0)
+                        y = numpy.append(y, self.make_matrices(reader, prefix)[1], axis=0)
 
         else:
 
             with open(self.path + '/' + "GT-final_test.csv") as f:
                 reader = csv.reader(f, delimiter = self.delimiter)  # csv parser for annotations file
                 reader.next() # skip header
-                for c in xrange(12630):
-                    for row in reader:
-                        img = Image.open(self.path + '/' + row[0])
-                        # crop images to get a squared image
-                        if img.size[0] > img.size[1]:
-                            img = img.crop([0, 0, img.size[1], img.size[1]])
-                        elif img.size[0] < img.size[1]:
-                            img = img.crop([0, 0, img.size[0], img.size[0]])
-                        if img.size[0] + bound >= self.img_size[0]:
-                            img = img.resize(self.img_size, Image.ANTIALIAS)  # resize
-                            if first:
-                                X = numpy.asarray([img.getdata()])
-                                y = row[7]
-                                first = False
-                            else:
-                                X = numpy.append(X, [img.getdata()], axis = 0)
-                                y = numpy.append(y, row[7])
-
+                X, y = self.make_matrices(reader)
+        
+        if self.which_set == 'train':            
+            X, y = self.shuffle(X, y)
+            
         X = self.split_rgb(X)
         y = self.make_one_hot(y)
         X = X.astype(float)
         X /= 255.
 
         #print '\n' + str(bad_images) + ' images have been discarded for not respecting size requirements\n'
+        return X, y
+
+    def make_matrices(self, reader, prefix = None):
+        
+        first = True
+        
+        for row in reader:
+            img = Image.open(prefix + '/' + row[0])
+            # crop images to get a squared image
+            if img.size[0] > img.size[1]:
+                img = img.crop([0, 0, img.size[1], img.size[1]])
+            elif img.size[0] < img.size[1]:
+                img = img.crop([0, 0, img.size[0], img.size[0]])
+            if img.size[0] + bound >= self.img_size[0]:
+                img = img.resize(self.img_size, Image.ANTIALIAS)  # resize
+                if first:
+                    X = numpy.asarray([img.getdata()])
+                    y = numpy.asarray(row[7])
+                    first = False
+                else:
+                    X = numpy.append(X, [img.getdata()], axis = 0)
+                    y = numpy.append(y, row[7])
+        
         return X, y
 
     def shuffle(self, X, y):
