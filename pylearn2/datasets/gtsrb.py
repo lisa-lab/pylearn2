@@ -100,13 +100,14 @@ class GTSRB(DenseDesignMatrix):
                 with open(prefix + 'GT-'+ format(c, '05d') + '.csv') as f:  # annotations file
                     reader = csv.reader(f, delimiter = self.delimiter)  # csv parser for annotations file
                     reader.next()  # skip header
-                    if first == True:
+                    if first:
                         X = self.make_matrices(reader, prefix)[0]
                         y = self.make_matrices(reader, prefix)[1]
                         first = False
                     else:
-                        X = numpy.append(X, self.make_matrices(reader, prefix)[0], axis=0)
-                        y = numpy.append(y, self.make_matrices(reader, prefix)[1], axis=0)
+                        next_X, next_y = self.make_matrices(reader, prefix)
+                        X = numpy.append(X, next_X, axis=0)
+                        y = numpy.append(y, next_y, axis=0)
 
         else:
 
