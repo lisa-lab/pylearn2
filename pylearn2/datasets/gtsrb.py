@@ -28,7 +28,7 @@ class GTSRB(DenseDesignMatrix):
         self.one_hot = one_hot
         self.which_set = which_set
         self.img_size = img_size
-
+        
         try:
             # check the presence of saved augmented datasets
             if which_set == 'train':
@@ -116,7 +116,6 @@ class GTSRB(DenseDesignMatrix):
                             else:
                                 X = numpy.append(X, [img.getdata()], axis = 0)
                                 y = numpy.append(y, row[7])
-                        img.close()
 
             X, y = self.shuffle(X, y)
 
@@ -142,7 +141,6 @@ class GTSRB(DenseDesignMatrix):
                             else:
                                 X = numpy.append(X, [img.getdata()], axis = 0)
                                 y = numpy.append(y, row[7])
-                        img.close()
 
         X = self.split_rgb(X)
         y = self.make_one_hot(y)
