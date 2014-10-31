@@ -101,8 +101,7 @@ class GTSRB(DenseDesignMatrix):
                     reader = csv.reader(f, delimiter = self.delimiter)  # csv parser for annotations file
                     reader.next()  # skip header
                     if first:
-                        X = self.make_matrices(reader, prefix)[0]
-                        y = self.make_matrices(reader, prefix)[1]
+                        X, y = self.make_matrices(reader, prefix)
                         first = False
                     else:
                         next_X, next_y = self.make_matrices(reader, prefix)
