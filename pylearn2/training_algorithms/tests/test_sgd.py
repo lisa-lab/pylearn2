@@ -1436,6 +1436,40 @@ def test_batch_size_specialization():
     train.main_loop()
 
 
+def test_empty_monitoring_datasets():
+    """
+    Test that handling of monitoring datasets dictionnary
+    does not fail when it is empty.
+    """
+
+    learning_rate = 1e-3
+    batch_size = 5
+
+    dim = 3
+
+    rng = np.random.RandomState([25, 9, 2012])
+
+    train_dataset = DenseDesignMatrix(X=rng.randn(10, dim))
+
+    model = SoftmaxModel(dim)
+
+    cost = DummyCost()
+
+    algorithm = SGD(learning_rate, cost,
+                    batch_size=batch_size,
+                    monitoring_dataset={},
+                    termination_criterion=EpochCounter(2))
+
+    train = Train(train_dataset,
+                  model,
+                  algorithm,
+                  save_path=None,
+                  save_freq=0,
+                  extensions=None)
+
+    train.main_loop()
+
+
 def test_uneven_batch_size():
     """
     Testing extensively sgd parametrisations for datasets with a number of

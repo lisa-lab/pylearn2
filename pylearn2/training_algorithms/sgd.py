@@ -219,7 +219,7 @@ class SGD(TrainingAlgorithm):
         since it may have an effect on `learning_rule.add_channels_to_monitor`
         (that is currently the case for `learning_rule.RMSProp`).
         """
-        if self.monitoring_dataset is not None:
+        if bool(self.monitoring_dataset):
             if (self.monitoring_batch_size is None and
                     self.monitoring_batches is None):
                 self.monitoring_batch_size = self.batch_size
@@ -277,9 +277,7 @@ class SGD(TrainingAlgorithm):
         train_dataset_is_uneven = \
             dataset.get_num_examples() % self.batch_size != 0
 
-        has_monitoring_datasets = \
-            self.monitoring_dataset is not None and \
-            self.monitoring_dataset.values() > 0
+        has_monitoring_datasets = bool(self.monitoring_dataset)
 
         if has_monitoring_datasets:
             monitoring_datasets_are_uneven = \
