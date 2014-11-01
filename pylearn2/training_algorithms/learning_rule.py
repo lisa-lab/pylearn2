@@ -318,6 +318,73 @@ class AdaDelta(LearningRule):
         return updates
 
 
+class AdaGrad(LearningRule):
+    """
+    Implements the AdaGrad learning rule as described in:
+    "Adaptive subgradient methods for online learning and
+    stochastic optimization", Duchi J, Hazan E, Singer Y.
+    """
+
+    def add_channels_to_monitor(self, monitor, monitoring_dataset):
+        """
+        .. todo::
+
+            WRITEME
+
+        Parameters
+        ----------
+        monitor : pylearn2.monitor.Monitor
+            Monitor object, to which the rule should register additional
+            monitoring channels.
+        monitoring_dataset : pylearn2.datasets.dataset.Dataset or dict
+            Dataset instance or dictionary whose values are Dataset objects.
+        """
+        # TODO: add channels worth monitoring
+        return
+
+    def get_updates(self, learning_rate, grads, lr_scalers=None):
+        """
+        .. todo::
+
+            WRITEME
+
+        Parameters
+        ----------
+        learning_rate : float
+            Learning rate coefficient.
+        grads : dict
+            A dictionary mapping from the model's parameters to their
+            gradients.
+        lr_scalers : dict
+            A dictionary mapping from the model's parameters to a learning
+            rate multiplier.
+        """
+        updates = OrderedDict()
+        for param in grads.keys():
+
+            # sum_square_grad := \sum g^2
+            sum_square_grad = sharedX(param.get_value() * 0.)
+
+            if param.name is not None:
+                sum_square_grad.name = 'sum_square_grad_' + param.name
+
+            # Accumulate gradient
+            new_sum_squared_grad = (
+                sum_square_grad + T.sqr(grads[param])
+            )
+
+            # Compute update
+            epsilon = lr_scalers.get(param, 1.) * learning_rate
+            delta_x_t = (- epsilon / T.sqrt(new_sum_squared_grad)
+                         * grads[param])
+
+            # Apply update
+            updates[sum_square_grad] = new_sum_squared_grad
+            updates[param] = param + delta_x_t
+
+        return updates
+
+
 class RMSProp(LearningRule):
     """
     Implements the RMSProp learning rule.
