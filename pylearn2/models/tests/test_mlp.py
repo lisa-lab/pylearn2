@@ -423,7 +423,7 @@ def test_softmax_bin_targets_channels(seed=0):
     y_vec = mlp_vec.get_target_space().make_theano_batch()
 
     X_data = np.random.random(size=(batch_size, 100))
-    X_data = X_data.astype(dtype=theano.config.floatX)
+    X_data = X_data.astype(theano.config.floatX)
     y_bin_data = np.random.randint(low=0, high=num_classes,
                                    size=(batch_size, 1))
     y_vec_data = np.zeros((batch_size, num_classes), dtype=theano.config.floatX)
