@@ -1135,7 +1135,7 @@ class Test_CD(object):
     """
 
     @staticmethod
-    def check_rbm_pos_phase(rbm, cost, X, tol=0.8):
+    def check_rbm_pos_phase(rbm, cost, X, tol=0.90):
 
         pos_grads, updates = cost._get_positive_phase(rbm, X)
 
@@ -1159,7 +1159,7 @@ class Test_CD(object):
         return pos_grads, updates
 
     @staticmethod
-    def check_rbm_neg_phase(rbm, cost, X, theano_rng=None, tol=0.85):
+    def check_rbm_neg_phase(rbm, cost, X, theano_rng=None, tol=0.90):
 
         assert theano_rng is not None
 
@@ -1203,8 +1203,11 @@ class Test_CD(object):
         else:
             cost = BaseCD(num_gibbs_steps=1)
 
-        # Set the data
-        X = sharedX(rng.randn(batch_size, num_visible))
+        # Set the data to a noisy version of the weights.
+        assert batch_size % num_hidden == 0, "Need to replicate weights evenly across batches for now."
+        W, _ = rbm.hidden_layers[0].get_params()
+        X = sharedX(np.tile(W.T.eval(), (batch_size // num_hidden, 1)) +\
+                    theano_rng.normal(std=np.std(W.T.eval()) / 10., size=(batch_size, num_visible)).eval())
         # Get the gradients from the cost function
         grads, updates = cost.get_gradients(rbm, X)
         Test_CD.check_rbm_pos_phase(rbm, cost, X)
