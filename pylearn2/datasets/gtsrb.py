@@ -13,7 +13,12 @@ from pylearn2.utils import serial
 bound = 50
 
 class GTSRB(DenseDesignMatrix):
-
+    '''
+        Wrapper class for gtsrb dataset. It loads training and test set and
+        saves them. When the augmentation set is needed, it is created and
+        saved. Augmented dataset is saved only if save_aug flag is True. If
+        the datasets already exist, they are loaded from the pkl files.
+    '''
     def __init__(self, which_set, model=None, mf_steps=None, one_hot=True,
                  start=None, stop=None, img_size=None, save_aug=False):
 
@@ -93,7 +98,7 @@ class GTSRB(DenseDesignMatrix):
         if self.which_set == 'train':
             
             first = True
-            
+
             # loop over all 43 classes
             for c in xrange(43):
                 prefix = self.path + '/' + format(c, '05d') + '/'  # subdirectory for class
@@ -114,11 +119,12 @@ class GTSRB(DenseDesignMatrix):
                 reader = csv.reader(f, delimiter = self.delimiter)  # csv parser for annotations file
                 reader.next() # skip header
                 X, y = self.make_matrices(reader)
-        
+
+        X = self.split_rgb(X)
+
         if self.which_set == 'train':            
             X, y = self.shuffle(X, y)
-            
-        X = self.split_rgb(X)
+
         y = self.make_one_hot(y)
         X = X.astype(float)
         X /= 255.
@@ -131,7 +137,7 @@ class GTSRB(DenseDesignMatrix):
         first = True
         
         for row in reader:
-            if prefix is not None:
+            if self.which_set == 'train':
                 img = Image.open(prefix + '/' + row[0])
             else:
                 img = Image.open(self.path + '/' + row[0])
@@ -174,7 +180,7 @@ class GTSRB(DenseDesignMatrix):
         ''' 
             modify the matrix in such a way that each image 
             is stored with a rgb configuration (all reds, 
-            all greens and all blues
+            all greens and all blues)
         '''
 
         first = True
