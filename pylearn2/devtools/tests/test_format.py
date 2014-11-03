@@ -236,7 +236,6 @@ whitelist_pep8 = [
     "optimization/test_linear_cg.py",
     "optimization/linesearch.py",
     "costs/mlp/__init__.py",
-    "costs/cost.py",
     "costs/dbm.py",
     "linear/tests/test_conv2d.py",
     "linear/tests/test_conv2d_c01b.py",
