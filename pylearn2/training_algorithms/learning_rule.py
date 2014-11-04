@@ -35,7 +35,7 @@ class LearningRule():
         monitoring_dataset : pylearn2.datasets.dataset.Dataset or dict
             Dataset instance or dictionary whose values are Dataset objects.
         """
-        raise NotImplementedError()
+        pass
 
     def get_updates(self, learning_rate, grads, lr_scalers=None):
         """
@@ -246,28 +246,9 @@ class AdaDelta(LearningRule):
         assert decay < 1.
         self.decay = decay
 
-    def add_channels_to_monitor(self, monitor, monitoring_dataset):
-        """
-        .. todo::
-
-            WRITEME
-
-        Parameters
-        ----------
-        monitor : pylearn2.monitor.Monitor
-            Monitor object, to which the rule should register additional
-            monitoring channels.
-        monitoring_dataset : pylearn2.datasets.dataset.Dataset or dict
-            Dataset instance or dictionary whose values are Dataset objects.
-        """
-        # TODO: add channels worth monitoring
-        return
-
     def get_updates(self, learning_rate, grads, lr_scalers=None):
         """
-        .. todo::
-
-            WRITEME
+        Compute the AdaDelta updates
 
         Parameters
         ----------
@@ -325,28 +306,9 @@ class AdaGrad(LearningRule):
     stochastic optimization", Duchi J, Hazan E, Singer Y.
     """
 
-    def add_channels_to_monitor(self, monitor, monitoring_dataset):
-        """
-        .. todo::
-
-            WRITEME
-
-        Parameters
-        ----------
-        monitor : pylearn2.monitor.Monitor
-            Monitor object, to which the rule should register additional
-            monitoring channels.
-        monitoring_dataset : pylearn2.datasets.dataset.Dataset or dict
-            Dataset instance or dictionary whose values are Dataset objects.
-        """
-        # TODO: add channels worth monitoring
-        return
-
     def get_updates(self, learning_rate, grads, lr_scalers=None):
         """
-        .. todo::
-
-            WRITEME
+        Compute the AdaGrad updates
 
         Parameters
         ----------
