@@ -73,10 +73,6 @@ class GTSRB(DenseDesignMatrix):
                     serial.save(filepath=path, obj=datasets)
 
             X, y = X[start:stop], y[start:stop]
-            
-            # edit loaded images that, until this point, have only been
-            # cropped and resized
-            X, y = self.edit(X, y)
 
             # BUILD AUGMENTED INPUT FOR FINETUNING
             if mf_steps is not None:
@@ -124,6 +120,9 @@ class GTSRB(DenseDesignMatrix):
                 reader.next() # skip header
                 X, y = self.make_matrices(reader)
 
+        # edit loaded images that, until this point, have only been
+        # cropped and resized
+        X, y = self.edit(X, y)
         #print '\n' + str(bad_images) + ' images have been discarded for not respecting size requirements\n'
         return X, y
 
