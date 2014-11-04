@@ -37,11 +37,11 @@ class GTSRB(DenseDesignMatrix):
         try:
             # check the presence of saved augmented datasets
             if which_set == 'train':
-                path = os.path.join(self.path, 'aug_train_dump.pkl.gz')
+                path = os.path.join(self.path, 'aug_train_dump_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
                 aug_datasets = serial.load(filepath=path)
                 augmented_X, y = aug_datasets[0], aug_datasets[1]
             else:
-                path = os.path.join(self.path, 'aug_test_dump.pkl.gz')
+                path = os.path.join(self.path, 'aug_test_dump_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
                 aug_datasets = serial.load(filepath=path)
                 augmented_X, y = aug_datasets[0], aug_datasets[1]
 
@@ -52,11 +52,11 @@ class GTSRB(DenseDesignMatrix):
             # and augment them
             try:
                 if which_set == 'train':
-                    path = os.path.join(self.path, 'train_dump.pkl.gz')
+                    path = os.path.join(self.path, 'train_dump_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
                     datasets = serial.load(filepath=path)
                     X, y = datasets[0], datasets[1]
                 else:
-                    path = os.path.join(self.path, 'test_dump.pkl.gz')
+                    path = os.path.join(self.path, 'test_dump_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
                     datasets = serial.load(filepath=path)
                     X, y = datasets[0], datasets[1]
 
@@ -66,13 +66,17 @@ class GTSRB(DenseDesignMatrix):
 
                 datasets = X, y  # not augmented datasets is saved in order not to waste time reloading gtsrb each time
                 if which_set == 'train':
-                    path = os.path.join(self.path, 'train_dump.pkl.gz')
+                    path = os.path.join(self.path, 'train_dump_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
                     serial.save(filepath=path, obj=datasets)
                 else:
-                    path = os.path.join(self.path, 'test_dump.pkl.gz')
+                    path = os.path.join(self.path, 'test_dump_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
                     serial.save(filepath=path, obj=datasets)
 
             X, y = X[start:stop], y[start:stop]
+            
+            # edit loaded images that, until this point, have only been
+            # cropped and resized
+            X, y = self.edit(X, y)
 
             # BUILD AUGMENTED INPUT FOR FINETUNING
             if mf_steps is not None:
@@ -81,10 +85,10 @@ class GTSRB(DenseDesignMatrix):
                 aug_datasets = augmented_X, y
                 if save_aug == True:
                     if which_set == 'train':
-                        path = os.path.join(self.path, 'aug_train_dump.pkl.gz')
+                        path = os.path.join(self.path, 'aug_train_dump_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
                         serial.save(filepath=path, obj=aug_datasets)
                     else:
-                        path = os.path.join(self.path, 'aug_test_dump.pkl.gz')
+                        path = os.path.join(self.path, 'aug_test_dump_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
                         serial.save(filepath=path, obj=aug_datasets)
 
                 X = augmented_X
@@ -119,15 +123,6 @@ class GTSRB(DenseDesignMatrix):
                 reader = csv.reader(f, delimiter = self.delimiter)  # csv parser for annotations file
                 reader.next() # skip header
                 X, y = self.make_matrices(reader)
-
-        X = self.split_rgb(X)
-
-        if self.which_set == 'train':            
-            X, y = self.shuffle(X, y)
-
-        y = self.make_one_hot(y)
-        X = X.astype(float)
-        X /= 255.
 
         #print '\n' + str(bad_images) + ' images have been discarded for not respecting size requirements\n'
         return X, y
@@ -202,3 +197,14 @@ class GTSRB(DenseDesignMatrix):
                 one_hot[i,y[i]] = 1.
 
         return one_hot
+
+    def edit(self, X, y):
+
+        X = self.split_rgb(X)
+        if self.which_set == 'train':            
+            X, y = self.shuffle(X, y)    
+        y = self.make_one_hot(y)
+        X = X.astype(float)
+        X /= 255.
+
+        return X, y
