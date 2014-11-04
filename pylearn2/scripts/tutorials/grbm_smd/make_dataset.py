@@ -24,9 +24,7 @@ from pylearn2.datasets import preprocessing
 
 if __name__ == "__main__":
     # Our raw training set is 32x32 color images
-    # TODO: the one_hot=True is only necessary because one_hot=False is
-    # broken, remove it after one_hot=False is fixed.
-    train = cifar10.CIFAR10(which_set="train", one_hot=True)
+    train = cifar10.CIFAR10(which_set="train")
 
     # We'd like to do several operations on them, so we'll set up a pipeline to
     # do so.

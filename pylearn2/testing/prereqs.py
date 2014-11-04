@@ -23,5 +23,4 @@ class ReadVerifyPrereq(object):
         # get the right one
         assert X[0,0] == self.counter_idx
         prereq_counter = self.counter
-        prereq_counter.set_value(
-            prereq_counter.get_value()+1)
+        prereq_counter.set_value(prereq_counter.get_value() + 1)

@@ -9,7 +9,6 @@
       raw: &raw_train !obj:pylearn2.datasets.mnist.MNIST {
         which_set: "train",
         shuffle: 0,
-        one_hot: 1,
         start: 0,
         stop: 50000
     }},
@@ -55,7 +54,6 @@
             raw_valid: !obj:pylearn2.datasets.mnist.MNIST {
                                 which_set: "train",
                                 shuffle: 0,
-                                one_hot: 1,
                                 start: 50000,
                                 stop: 60000
                             },

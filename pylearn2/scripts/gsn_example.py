@@ -37,7 +37,7 @@ MAX_EPOCHS = 100
 BATCHES_PER_EPOCH = None # covers full training set
 BATCH_SIZE = 100
 
-ds = MNIST(which_set='train', one_hot=True)
+ds = MNIST(which_set='train')
 
 def test_train_ae():
     """
@@ -168,7 +168,7 @@ def test_classify():
     # turn off corruption
     gsn._corrupt_switch = False
 
-    ds = MNIST(which_set='test', one_hot=True)
+    ds = MNIST(which_set='test')
     mb_data = ds.X
     y = ds.y
 
@@ -190,7 +190,7 @@ def test_sample_supervised(idxs=None, noisy=True):
 
     gsn._corrupt_switch = noisy
 
-    ds = MNIST(which_set='test', one_hot=True)
+    ds = MNIST(which_set='test')
 
     if idxs is None:
         data = ds.X[100:150]

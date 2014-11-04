@@ -1,7 +1,6 @@
 !obj:pylearn2.train.Train {
     dataset: &train !obj:pylearn2.datasets.mnist.MNIST {
         which_set: 'train',
-        one_hot: 1,
     },
     model: !obj:pylearn2.monitor.push_monitor {
         model: !pkl: "mnist_pi_best.pkl",
@@ -18,13 +17,11 @@
                 'train' : *train,
                 'valid' : !obj:pylearn2.datasets.mnist.MNIST {
                               which_set: 'train',
-                              one_hot: 1,
                               start: 50000,
                               stop:  60000
                           },
                 'test'  : !obj:pylearn2.datasets.mnist.MNIST {
                               which_set: 'test',
-                              one_hot: 1,
                           }
             },
         cost: !obj:pylearn2.costs.mlp.dropout.Dropout {

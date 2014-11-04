@@ -179,8 +179,7 @@ def test_prereqs():
 
     prereq_counter = sharedX(0.)
     def prereq(*data):
-        prereq_counter.set_value(
-                prereq_counter.get_value()+1.)
+        prereq_counter.set_value(prereq_counter.get_value() + 1.)
 
     name = 'num_prereq_calls'
 

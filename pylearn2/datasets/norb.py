@@ -187,6 +187,7 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
         super(SmallNORB, self).__init__(X=X,
                                         y=y,
+                                        y_labels=numpy.max(y) + 1,
                                         view_converter=view_converter)
 
     @classmethod

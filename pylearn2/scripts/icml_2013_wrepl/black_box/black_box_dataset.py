@@ -90,7 +90,7 @@ class BlackBoxDataset(DenseDesignMatrix):
                 y = y[start:stop, :]
 
 
-        super(BlackBoxDataset, self).__init__(X=X, y=y)
+        super(BlackBoxDataset, self).__init__(X=X, y=y, y_labels=9)
 
         if preprocessor:
             preprocessor.apply(self, can_fit=fit_preprocessor)
@@ -140,11 +140,6 @@ class BlackBoxDataset(DenseDesignMatrix):
         X = np.asarray(X_list).astype('float32')
         if expect_labels:
             y = np.asarray(y_list)
-
-            one_hot = np.zeros((y.shape[0],9),dtype='float32')
-            for i in xrange(y.shape[0]):
-                one_hot[i,y[i] - 1] = 1.
-            y = one_hot
         else:
             y = None
 
