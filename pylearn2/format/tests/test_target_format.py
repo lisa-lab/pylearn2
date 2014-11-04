@@ -112,11 +112,15 @@ def test_one_hot_formatter_merge_simple():
         ).reshape(ncases, nmultis)
 
         one_hot_labels = fmt.format(integer_labels, mode='merge')
-        n_ones = numpy.concatenate([
-            numpy.unique(l) for l in numpy.split(
-                integer_labels, integer_labels.shape[0]
-            )
-        ])
+        # n_ones was expected to be equal to ncases * nmultis if integer_labels
+        # do not contain duplicated tags. (i.e., those labels like
+        # [1, 2, 2, 3, 5, 6].) Because that we are not depreciating this kind
+        # of duplicated labels, which allows different cases belong to
+        # different number of classes, and those duplicated tags will only
+        # activate one neuron in the k-hot representation, we need to use
+        # numpy.unique() here to eliminate those duplications while counting
+        # "1"s in the final k-hot representation.
+        n_ones = numpy.concatenate([numpy.unique(l) for l in integer_labels])
         assert len(zip(*one_hot_labels.nonzero())) == len(n_ones)
         for case, label in enumerate(integer_labels):
             assert numpy.sum(one_hot_labels[case, label]) == nmultis
