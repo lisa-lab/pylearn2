@@ -711,14 +711,19 @@ class VariationalCD(DefaultDataSpecsMixin, BaseCD):
         # state of the chains
         # We first initialize the chain by clamping the visible layer and the
         # target layer (if it exists)
-        layer_to_chains = model.mcmc_steps(layer_to_chains,
-                                           self.theano_rng,
-                                           layer_to_clamp=layer_to_clamp,
-                                           num_steps=1)
+        layer_to_chains = model.sampling_procedure.sample(
+            layer_to_chains,
+            self.theano_rng,
+            layer_to_clamp=layer_to_clamp,
+            num_steps=1
+        )
+
         # We then do the required mcmc steps
-        layer_to_chains = model.mcmc_steps(layer_to_chains,
-                                           self.theano_rng,
-                                           num_steps=self.num_gibbs_steps)
+        layer_to_chains = model.sampling_procedure.sample(
+            layer_to_chains,
+            self.theano_rng,
+            num_steps=self.num_gibbs_steps
+        )
 
         if self.toronto_neg:
             neg_phase_grads = self._get_toronto_neg(model, layer_to_chains)
