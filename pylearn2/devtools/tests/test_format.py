@@ -87,7 +87,6 @@ whitelist_pep8 = [
     "dataset_get/dataset-get.py",
     "dataset_get/helper-scripts/make-archive.py",
     "dataset_get/dataset_resolver.py",
-    "monitor.py",
     "optimization/batch_gradient_descent.py",
     "optimization/minres.py",
     "costs/ebm_estimation.py",
