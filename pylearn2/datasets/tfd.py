@@ -109,10 +109,12 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
             if shuffle:
                 data_y = data_y[rand_idx]
                 data_y_identity = data_y_identity[rand_idx]
+            y_labels = 7
 
         else:
             data_y = None
             data_y_identity = None
+            y_labels = None
 
         # create view converting for retrieving topological view
         view_converter = dense_design_matrix.DefaultViewConverter((image_size,
@@ -121,7 +123,7 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
                                                                   axes)
 
         # init the super class
-        super(TFD, self).__init__(X=data_x, y=data_y, y_labels=7,
+        super(TFD, self).__init__(X=data_x, y=data_y, y_labels=y_labels,
                                   view_converter=view_converter)
 
         assert not contains_nan(self.X)
