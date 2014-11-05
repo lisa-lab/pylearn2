@@ -5,7 +5,7 @@ import os
 
 from copy import deepcopy
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
-from pylearn2.scripts.dbm import augment_input
+from pylearn2.scripts.dbm.augment_input import augment_input
 from pylearn2.utils import serial
 
 # User can select whether he wants to select all images or just a smaller set of them in order not to add too much noise
