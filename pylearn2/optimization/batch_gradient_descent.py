@@ -251,8 +251,8 @@ class BatchGradientDescent(object):
 
             assert grad not in grad_to_old_grad
 
-            make_conjugate_updates =
-            [(g_, g_ + beta * grad_to_old_grad[g_]) for g_ in grad_ordered]
+            make_conjugate_updates = \
+                [(g_, g_ + beta * grad_to_old_grad[g_]) for g_ in grad_ordered]
 
             mode = self.theano_function_mode
             if mode is not None and hasattr(mode, 'record'):
@@ -264,10 +264,10 @@ class BatchGradientDescent(object):
                         'BatchGradientDescent._make_conjugate update '
                         + var_descriptor(u) + '\n')
 
-            self._make_conjugate =
-            function([], updates=make_conjugate_updates,
-                     mode=self.theano_function_mode,
-                     name='BatchGradientDescent._make_conjugate')
+            self._make_conjugate = \
+                function([], updates=make_conjugate_updates,
+                         mode=self.theano_function_mode,
+                         name='BatchGradientDescent._make_conjugate')
 
             if mode is not None and hasattr(mode, 'record'):
                 for output in self._make_conjugate.maker.fgraph.outputs:
@@ -464,7 +464,7 @@ class BatchGradientDescent(object):
                             elem = results[i]
                             ex = elem[0]
                             if x == ex:
-                                raise AssertionError(str(ex) + " is
+                                raise AssertionError(str(ex) + "is \
                                                      already in the list.")
                             if x > ex:
                                 if i + 1 == len(results) \
@@ -632,7 +632,7 @@ class Accumulator(object):
         """
         for batch in batches:
             if not isinstance(batch, list):
-                raise TypeError("Expected each argument to be a list,
+                raise TypeError("Expected each argument to be a list, \
                                 but one argument is " +
                                 str(batch) + " of type "+str(type(batch)))
         total_examples = np.cast[config.floatX](
