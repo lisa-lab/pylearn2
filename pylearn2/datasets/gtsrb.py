@@ -33,7 +33,7 @@ class GTSRB(DenseDesignMatrix):
         self.one_hot = one_hot
         self.which_set = which_set
         self.img_size = img_size
-        
+
         try:
             # check the presence of saved augmented datasets
             if which_set == 'train':
@@ -96,7 +96,7 @@ class GTSRB(DenseDesignMatrix):
         print "\nloading data...\n"
 
         if self.which_set == 'train':
-            
+
             first = True
 
             # loop over all 43 classes
@@ -127,9 +127,9 @@ class GTSRB(DenseDesignMatrix):
         return X, y
 
     def make_matrices(self, reader, prefix = None):
-        
+
         first = True
-        
+
         for row in reader:
             if self.which_set == 'train':
                 img = Image.open(prefix + '/' + row[0])
@@ -149,7 +149,7 @@ class GTSRB(DenseDesignMatrix):
                 else:
                     X = numpy.append(X, [img.getdata()], axis = 0)
                     y = numpy.append(y, row[7])
-        
+
         return X, y
 
     def shuffle(self, X, y):
