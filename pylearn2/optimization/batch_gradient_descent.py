@@ -201,30 +201,30 @@ class BatchGradientDescent(object):
         # useful for monitoring
         self.ave_grad_size = sharedX(0.)
         self.new_weight = sharedX(1.)
-        normalize_grad_updates[self.ave_grad_size] =
-        self.new_weight * norm + (1.-self.new_weight) * self.ave_grad_size
+        normalize_grad_updates[self.ave_grad_size] = \
+            self.new_weight * norm + (1.-self.new_weight) * self.ave_grad_size
 
-        self._normalize_grad =
-        function([],
-                 norm,
-                 updates=normalize_grad_updates,
-                 mode=self.theano_function_mode,
-                 name='BatchGradientDescent._normalize_grad')
+        self._normalize_grad = \
+            function([],
+                     norm,
+                     updates=normalize_grad_updates,
+                     mode=self.theano_function_mode,
+                     name='BatchGradientDescent._normalize_grad')
 
         if self.conjugate:
             grad_shared = self.param_to_grad_shared.values()
 
             grad_to_old_grad = OrderedDict()
             for elem in grad_shared:
-                grad_to_old_grad[elem] =
-                sharedX(elem.get_value(), 'old_'+elem.name)
+                grad_to_old_grad[elem] = \
+                    sharedX(elem.get_value(), 'old_'+elem.name)
 
-            self._store_old_grad =
-            function([norm],
-                     updates=OrderedDict([(grad_to_old_grad[g_], g_ * norm)
-                                         for g_ in grad_to_old_grad]),
-                     mode=self.theano_function_mode,
-                     name='BatchGradientDescent._store_old_grad')
+            self._store_old_grad = \
+                function([norm],
+                         updates=OrderedDict([(grad_to_old_grad[g_], g_ * norm)
+                                             for g_ in grad_to_old_grad]),
+                         mode=self.theano_function_mode,
+                         name='BatchGradientDescent._store_old_grad')
 
             grad_ordered = list(grad_to_old_grad.keys())
             old_grad_ordered = [grad_to_old_grad[g_] for g_ in grad_ordered]
