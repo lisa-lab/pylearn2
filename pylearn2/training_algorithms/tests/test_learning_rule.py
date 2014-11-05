@@ -9,6 +9,7 @@ from pylearn2.testing.datasets import ArangeDataset
 from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.training_algorithms.learning_rule import Momentum
 from pylearn2.training_algorithms.learning_rule import AdaDelta
+from pylearn2.training_algorithms.learning_rule import AdaGrad
 from pylearn2.training_algorithms.learning_rule import RMSProp
 
 from test_sgd import DummyCost, DummyModel
@@ -163,6 +164,63 @@ def test_adadelta():
                in izip(manual, model.get_params()))
 
     manual = adadelta_manual(model, state)
+    sgd.train(dataset=dataset)
+    assert all(np.allclose(manual_param, sgd_param.get_value())
+               for manual_param, sgd_param in
+               izip(manual, model.get_params()))
+
+
+def test_adagrad():
+    """
+    Make sure that learning_rule.AdaGrad obtains the same parameter values as
+    with a hand-crafted AdaGrad implementation, given a dummy model and
+    learning rate scaler for each parameter.
+
+    Reference:
+    "Adaptive subgradient methods for online learning and
+    stochastic optimization", Duchi J, Hazan E, Singer Y.
+    """
+
+    # We include a cost other than SumOfParams so that data is actually
+    # queried from the training set, and the expected number of updates
+    # are applied.
+    cost = SumOfCosts([SumOfOneHalfParamsSquared(), (0., DummyCost())])
+    model = DummyModel(shapes, lr_scalers=scales)
+    dataset = ArangeDataset(1)
+
+    sgd = SGD(cost=cost,
+              learning_rate=learning_rate,
+              learning_rule=AdaGrad(),
+              batch_size=1)
+
+    sgd.setup(model=model, dataset=dataset)
+
+    state = {}
+    for param in model.get_params():
+        param_shape = param.get_value().shape
+        state[param] = {}
+        state[param]['sg2'] = np.zeros(param_shape)
+
+    def adagrad_manual(model, state):
+        rval = []
+        for scale, param in izip(scales, model.get_params()):
+            pstate = state[param]
+            param_val = param.get_value()
+            # begin adadelta
+            pstate['sg2'] += param_val ** 2
+            dx_t = - (scale * learning_rate
+                      / np.sqrt(pstate['sg2'])
+                      * param_val)
+            rval += [param_val + dx_t]
+        return rval
+
+    manual = adagrad_manual(model, state)
+    sgd.train(dataset=dataset)
+    assert all(np.allclose(manual_param, sgd_param.get_value())
+               for manual_param, sgd_param
+               in izip(manual, model.get_params()))
+
+    manual = adagrad_manual(model, state)
     sgd.train(dataset=dataset)
     assert all(np.allclose(manual_param, sgd_param.get_value())
                for manual_param, sgd_param in
