@@ -1131,7 +1131,7 @@ class MLP(Layer):
         This is useful if cost_from_X is used in a MethodCost.
         """
         space = CompositeSpace((self.get_input_space(),
-                                self.get_output_space()))
+                                self.get_target_space()))
         source = (self.get_input_source(), self.get_target_source())
         return (space, source)
 
@@ -1315,7 +1315,8 @@ class Softmax(Layer):
 
             if targets is not None:
                 y_hat = T.argmax(state, axis=1)
-                y = T.argmax(targets, axis=1)
+                y = (targets.reshape(y_hat.shape) if self._has_binary_target
+                     else T.argmax(targets, axis=1))
                 misclass = T.neq(y, y_hat).mean()
                 misclass = T.cast(misclass, config.floatX)
                 rval['misclass'] = misclass
