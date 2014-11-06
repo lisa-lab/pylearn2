@@ -637,13 +637,13 @@ class Monitor(object):
             elif hasattr(dataset, 'get_data_specs'):
                 dataset_space, dataset_source = dataset.get_data_specs()
                 if (len(ipt) == 1 and
-                        dataset_source is not None and
+                            dataset_source is not None and
                         (not isinstance(dataset_source, tuple) or
-                            len(dataset_source) == 1) and
-                        'features' in dataset_source):
+                                 len(dataset_source) == 1) and
+                            'features' in dataset_source):
                     data_specs = (dataset_space, dataset_source)
                 elif (len(ipt) == 2 and
-                        dataset_source == ('features', 'targets')):
+                              dataset_source == ('features', 'targets')):
                     data_specs = (dataset_space, dataset_source)
                 else:
                     raise ValueError("Cannot infer default data_specs for " +
@@ -660,7 +660,7 @@ class Monitor(object):
         inputs = theano.gof.graph.inputs([val])
         for elem in inputs:
             if not hasattr(elem, 'get_value') and \
-               not isinstance(elem, theano.gof.graph.Constant):
+                    not isinstance(elem, theano.gof.graph.Constant):
                 if elem not in flat_ipt:
                     raise ValueError("Unspecified input: " + str(elem) +
                                      ". This may be due to an incorrect " +
@@ -671,7 +671,7 @@ class Monitor(object):
 
         mode = self.theano_function_mode
         if mode is not None and hasattr(mode, 'record'):
-            mode.record.handle_line('Adding monitor channel '+name+'\n')
+            mode.record.handle_line('Adding monitor channel ' + name + '\n')
             assert isinstance(flat_ipt, tuple)
             if len(flat_ipt) != 1:
                 for elem in flat_ipt:
@@ -1221,6 +1221,7 @@ def get_monitor_doc(var):
         doc = var.__doc__
 
     return doc
+
 
 _err_no_data = "You tried to add a channel to a Monitor that has no dataset."
 _err_ambig_data = ("You added a channel to a Monitor that has multiple " +
