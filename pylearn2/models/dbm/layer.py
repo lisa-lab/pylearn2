@@ -3026,8 +3026,8 @@ class ConvC01B_MaxPool(HiddenLayer):
         """ Note: this resets parameters!"""
 
         setup_detector_layer_c01b(layer=self,
-                input_space=space, rng=self.dbm.rng,
-                irange=self.irange)
+                                  input_space=space,
+                                  rng=self.dbm.rng,)
 
         if not tuple(space.axes) == ('c', 0, 1, 'b'):
             raise AssertionError("You're not using c01b inputs. Ian is enforcing c01b inputs while developing his pipeline to make sure it runs at maximal speed. If you really don't want to use c01b inputs, you can remove this check and things should work. If they don't work it's only because they're not tested.")

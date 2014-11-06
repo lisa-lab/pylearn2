@@ -513,8 +513,8 @@ class DBM(Model):
 
         It thus implies that the samples are represented as shared variables.
         If you want an expression for a sampling step applied to arbitrary
-        theano variables, use the 'mcmc_steps' method. This is a wrapper around
-        that method.
+        theano variables, use the `DBM.sampling_procedure.sample` method.
+        This is a wrapper around that method.
 
         Parameters
         ----------
