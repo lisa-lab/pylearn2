@@ -87,13 +87,8 @@ class TestFilterActs(unittest.TestCase):
         # instead.
         def left_op(imgs):
             return self.op(imgs, self.s_filters)
-        try:
-            verify_grad(left_op, [self.s_images.get_value()],
+        verify_grad(left_op, [self.s_images.get_value()],
                     mode=self.mode)
-        except verify_grad.E_grad, e:
-            print e.num_grad.gf
-            print e.analytic_grad
-            raise
 
     def test_grad_right(self):
         # test only the right so that the left can be a shared variable,
@@ -105,14 +100,9 @@ class TestFilterActs(unittest.TestCase):
                     filters.name)
             assert rval.dtype == filters.dtype
             return rval
-        try:
-            verify_grad(right_op, [self.s_filters.get_value()],
-                        eps=1e-3,
-                        mode=self.mode)
-        except verify_grad.E_grad, e:
-            print e.num_grad.gf
-            print e.analytic_grad
-            raise
+        verify_grad(right_op, [self.s_filters.get_value()],
+                    eps=1e-3,
+                    mode=self.mode)
 
     def test_dtype_mismatch(self):
         self.assertRaises(TypeError,
@@ -173,14 +163,9 @@ class TestWeightActs(unittest.TestCase):
     def test_grad(self):
         def op2(imgs, hids):
             return self.op(imgs, hids, self.frows, self.fcols)
-        try:
-            verify_grad(op2,
+        verify_grad(op2,
                     [self.s_images.get_value(),
-                        self.s_hidacts.get_value()])
-        except verify_grad.E_grad, e:
-            print e.num_grad.gf
-            print e.analytic_grad
-            raise
+                     self.s_hidacts.get_value()])
 
     def test_dtype_mismatch(self):
         self.assertRaises(TypeError,
@@ -235,14 +220,9 @@ class TestImgActs(unittest.TestCase):
     def test_grad(self):
         def op2(imgs, hids):
             return self.op(imgs, hids, self.irows, self.icols)
-        try:
-            verify_grad(op2,
+        verify_grad(op2,
                     [self.s_filters.get_value(),
-                        self.s_hidacts.get_value()])
-        except verify_grad.E_grad, e:
-            print e.num_grad.gf
-            print e.analytic_grad
-            raise
+                     self.s_hidacts.get_value()])
 
     def test_dtype_mismatch(self):
         self.assertRaises(TypeError,
