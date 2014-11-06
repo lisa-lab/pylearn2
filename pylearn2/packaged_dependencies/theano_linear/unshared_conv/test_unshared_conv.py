@@ -1,11 +1,13 @@
-import sys
 import unittest
 
 import numpy
 
 import theano
-from theano.sandbox.cuda.var import float32_shared_constructor
-from theano.tests.unittest_tools import verify_grad
+from theano.tests.unittest_tools import verify_grad as new_verify_grad
+
+# wrapper to restore the old interface
+def verify_grad(*args, **kwargs):
+    return new_verify_grad(*args, cast_to_output_type=False, **kwargs)
 
 from .unshared_conv import FilterActs
 from .unshared_conv import WeightActs
