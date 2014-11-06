@@ -315,7 +315,7 @@ class BaseCD(Cost):
                 return x.zeros_like()
             layer_to_pos_samples[layer] = recurse_zeros(mf_state)
 
-        layer_to_pos_samples = model.mcmc_steps(
+        layer_to_pos_samples = model.sampling_procedure.sample(
             layer_to_state=layer_to_pos_samples,
             layer_to_clamp=layer_to_clamp,
             num_steps=self.num_gibbs_steps,
