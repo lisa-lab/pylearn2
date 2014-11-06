@@ -12,16 +12,16 @@ from pylearn2.utils.exc import reraise_as
 
 
 class Default(DefaultDataSpecsMixin, Cost):
-    """
-    The default Cost to use with an MLP.
-
+    """The default Cost to use with an MLP. 
+    
     It simply calls the MLP's cost_from_X method.
     """
 
     supervised = True
 
     def expr(self, model, data, **kwargs):
-        """
+        """Returns a theano expression for the cost function.
+        
         Parameters
         ----------
         model : MLP
@@ -41,10 +41,9 @@ class Default(DefaultDataSpecsMixin, Cost):
 
 
 class WeightDecay(NullDataSpecsMixin, Cost):
-    """
-    coeff * sum(sqr(weights))
-
-    for each set of weights.
+    """MLP with L2 regularization.
+  
+    coeff * sum(sqr(weights)) for each set of weights.
 
     Parameters
     ----------
@@ -61,7 +60,8 @@ class WeightDecay(NullDataSpecsMixin, Cost):
         del self.self
 
     def expr(self, model, data, ** kwargs):
-        """
+        """Returns a theano expression for the cost function.
+        
         Parameters
         ----------
         model : MLP
@@ -111,10 +111,9 @@ class WeightDecay(NullDataSpecsMixin, Cost):
 
 
 class L1WeightDecay(NullDataSpecsMixin, Cost):
-    """
-    coeff * sum(abs(weights))
-
-    for each set of weights.
+    """MLP with L1 regularization.
+    
+    coeff * sum(abs(weights)) for each set of weights.
 
     Parameters
     ----------
@@ -131,7 +130,8 @@ class L1WeightDecay(NullDataSpecsMixin, Cost):
         del self.self
 
     def expr(self, model, data, ** kwargs):
-        """
+        """Returns a theano expression for the cost function.
+        
         Parameters
         ----------
         model : MLP
