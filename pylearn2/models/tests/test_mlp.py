@@ -405,10 +405,11 @@ def test_softmax_weight_init():
     Constructs softmax layers with different weight initialization
     parameters.
     """
+    nvis=5
     num_classes = 10
-    Softmax(num_classes, 's', irange=0.1)
-    Softmax(num_classes, 's', istdev=0.1)
-    Softmax(num_classes, 's', sparse_init=2)
+    MLP(layers=[Softmax(num_classes, 's', irange=0.1)], nvis=nvis)
+    MLP(layers=[Softmax(num_classes, 's', istdev=0.1)], nvis=nvis)
+    MLP(layers=[Softmax(num_classes, 's', sparse_init=2)], nvis=nvis)
 
 def test_softmax_bin_targets_channels(seed=0):
     """
