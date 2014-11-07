@@ -191,8 +191,8 @@ class BatchGradientDescent(object):
                                     mode=self.theano_function_mode, name=
                                     'BatchGradientDescent._goto_alpha')
 
-        norm = T.sqrt(sum([T.sqr(elem).sum()
-                      for elem in self.param_to_grad_shared.values()]))
+        norm = T.sqrt(sum([T.sqr(elem).sum() for elem in
+                           self.param_to_grad_shared.values()]))
         norm.name = 'BatchGradientDescent.norm'
         normalize_grad_updates = OrderedDict()
         for grad_shared in self.param_to_grad_shared.values():
@@ -543,8 +543,8 @@ class BatchGradientDescent(object):
         # really are trying to absolutely minimize the objective for the
         # current inputs.
         # if norm > 1e-2:
-        #    warnings.warn(str(norm)+ \
-        #        " seems pretty big for a gradient at convergence...")
+        #    warnings.warn(str(norm)+  " seems pretty big for "
+        #                  "a gradient at convergence...")
 
         return best_obj
 
@@ -578,7 +578,8 @@ class Accumulator(object):
         transformed_updates = OrderedDict()
         self.has_updates = updates is not None
         if self.has_updates:
-            self._clear = function([], updates=[(var, 0. * var)
+            self._clear = function([],
+                                   updates=[(var, 0. * var)
                                    for var in updates])
             for var in updates:
                 update = updates[var]
@@ -632,8 +633,8 @@ class Accumulator(object):
         """
         for batch in batches:
             if not isinstance(batch, list):
-                raise TypeError("Expected each argument to be a list, \
-                                but one argument is " +
+                raise TypeError("Expected each argument to be a list,"
+                                " but one argument is " +
                                 str(batch) + " of type "+str(type(batch)))
         total_examples = np.cast[config.floatX](
             sum([batch[0].shape[0] for batch in batches]))
