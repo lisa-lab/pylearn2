@@ -18,17 +18,10 @@ class Dataset(object):
         return self.iterator()
 
     def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 topo=None, targets=False, rng=None):
+                 rng=None):
         """
         Return an iterator for this dataset with the specified
         behaviour. Unspecified values are filled-in by the default.
-
-        .. todo::
-
-            Parameters : targets
-
-            DWF or LD should fill this in, but IG thinks it is just
-            a bool saying whether to include the targets or not
 
         Parameters
         ----------
@@ -44,10 +37,6 @@ class Dataset(object):
             The total number of batches. Unnecessary if `mode` is
             'sequential' and `batch_size` is specified (number of
             batches will be calculated based on full dataset size).
-        topo : boolean, optional
-            Whether batches returned by the iterator should present
-            examples in a topological view or not. Defaults to
-            `False`.
         rng : int, object or array_like, optional
             Either an instance of `numpy.random.RandomState` (or
             something with a compatible interface), or a seed value
@@ -59,8 +48,6 @@ class Dataset(object):
             through the dataset and may potentially be shared by
             multiple iterator objects simultaneously (see "Notes"
             below).
-        targets: TODO
-            TODO
 
         Returns
         -------
