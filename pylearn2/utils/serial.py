@@ -31,7 +31,7 @@ def raise_cannot_open(path):
         WRITEME
     """
     pieces = path.split('/')
-    for i in xrange(1,len(pieces)+1):
+    for i in xrange(1, len(pieces) + 1):
         so_far = '/'.join(pieces[0:i])
         if not os.path.exists(so_far):
             if i == 1:

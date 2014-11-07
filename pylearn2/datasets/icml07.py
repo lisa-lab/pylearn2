@@ -27,10 +27,9 @@ class ICML07DataSet(DenseDesignMatrix):
     All these datasets can be displayed as 28x28 pixel datapoints.
     """
 
-    def __init__(self, npy_filename, which_set, one_hot, split):
+    def __init__(self, npy_filename, which_set, split):
         assert which_set in ['train', 'valid', 'test']
 
-        self.one_hot = one_hot
         self.split = split
 
         # Load data from .npy file
@@ -63,18 +62,11 @@ class ICML07DataSet(DenseDesignMatrix):
         data_x = data_x[start:end]
         data_y = data_y[start:end]
 
-        if one_hot:
-            n_examples = data_y.shape[0]
-            n_classes = data_y.max() + 1
-
-            data_oh = np.zeros((n_examples, n_classes), dtype='float32')
-            for i in xrange(data_y.shape[0]):
-                data_oh[i, data_y[i]] = 1.
-            data_y = data_oh
-
         view_converter = DefaultViewConverter((28, 28, 1))
         super(ICML07DataSet, self).__init__(
-            X=data_x, y=data_y, view_converter=view_converter)
+            X=data_x, y=data_y, y_labels=data_y.max() + 1,
+            view_converter=view_converter
+        )
 
     def get_test_set(self):
         """
@@ -83,7 +75,6 @@ class ICML07DataSet(DenseDesignMatrix):
             WRITEME
         """
         return self.__class__(which_set='test',
-                              one_hot=self.one_hot,
                               split=self.split)
 
 #
@@ -94,7 +85,7 @@ class MNIST_rotated_background(ICML07DataSet):
 
     """ ICML07: Rotated MNIST dataset with background."""
 
-    def __init__(self, which_set, one_hot=False, split=(10000, 2000, 10000)):
+    def __init__(self, which_set, split=(10000, 2000, 10000)):
         """
         Load ICML07 Rotated MNIST with background dataset.
 
@@ -102,8 +93,6 @@ class MNIST_rotated_background(ICML07DataSet):
         ----------
         which_set : 'train', 'valid', 'test'
             Choose a dataset
-        one_hot : bool
-            Encode labels one-hot
         split : (n_train, n_valid, n_test)
             Choose a split into train, validateion and test datasets
 
@@ -111,7 +100,7 @@ class MNIST_rotated_background(ICML07DataSet):
                        dataset.
         """
         super(MNIST_rotated_background, self).__init__(
-            'mnist_rotated_background_images', which_set, one_hot, split)
+            'mnist_rotated_background_images', which_set, split)
 
 
 class Convex(ICML07DataSet):
@@ -122,7 +111,7 @@ class Convex(ICML07DataSet):
     All data values are binary, and the classification task is binary.
     """
 
-    def __init__(self, which_set, one_hot=False, split=(6000, 2000, 50000)):
+    def __init__(self, which_set, split=(6000, 2000, 50000)):
         """
         Load ICML07 Convex shapes dataset.
 
@@ -130,15 +119,13 @@ class Convex(ICML07DataSet):
         ----------
         which_set : 'train', 'valid', 'test'
             Choose a dataset
-        one_hot : bool
-            Encode labels one-hot
         split : (n_train, n_valid, n_test)
             Choose a split into train, validateion and test datasets
 
         Default split: 6000 training, 2000 validation and 50000 in test
                        dataset.
         """
-        super(Convex, self).__init__('convex', which_set, one_hot, split)
+        super(Convex, self).__init__('convex', which_set, split)
 
 
 class Rectangles(ICML07DataSet):
@@ -149,7 +136,7 @@ class Rectangles(ICML07DataSet):
     All data values are binary, and the classification task is binary.
     """
 
-    def __init__(self, which_set, one_hot=False, split=(1000, 200, 50000)):
+    def __init__(self, which_set, split=(1000, 200, 50000)):
         """
         Load ICML07 Rectangle dataset:
 
@@ -157,15 +144,13 @@ class Rectangles(ICML07DataSet):
         ----------
         which_set : 'train', 'valid', 'test'
             Choose a dataset
-        one_hot : bool
-            Encode labels one-hot
         split : (n_train, n_valid, n_test)
             Choose a split into train, validateion and test datasets
 
         Default split: 1000 training, 200 validation and 50000 in test dataset.
         """
         super(Rectangles, self).__init__(
-            'rectangles', which_set, one_hot, split)
+            'rectangles', which_set, split)
 
 
 class RectanglesImage(ICML07DataSet):
@@ -176,7 +161,7 @@ class RectanglesImage(ICML07DataSet):
     The classification task is binary.
     """
 
-    def __init__(self, which_set, one_hot=False, split=(10000, 2000, 50000)):
+    def __init__(self, which_set, split=(10000, 2000, 50000)):
         """
         Load ICML07 Rectangles/images dataset:
 
@@ -184,8 +169,6 @@ class RectanglesImage(ICML07DataSet):
         ----------
         which_set : 'train', 'valid', 'test'
             Choose a dataset
-        one_hot : bool
-            Encode labels one-hot
         split : (n_train, n_valid, n_test)
             Choose a split into train, validateion and test datasets
 
@@ -193,4 +176,4 @@ class RectanglesImage(ICML07DataSet):
                        dataset.
         """
         super(RectanglesImage, self).__init__(
-            'rectangles_images', which_set, one_hot, split)
+            'rectangles_images', which_set, split)

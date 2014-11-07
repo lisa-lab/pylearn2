@@ -34,15 +34,11 @@ import numpy
 
 class ToyDataset(DenseDesignMatrix):
     def __init__(self):
-
         # simulated random dataset
         rng = numpy.random.RandomState(seed=42)
         data = rng.normal(size=(1000, 10))
-        self.y = numpy.ones((1000, 2))
-        positive = numpy.random.binomial(1, 0.5, [1000])
-        self.y[:,0]=positive
-        self.y[:,1]=1-positive
-        super(ToyDataset, self).__init__(X=data, y=self.y)
+        self.y = numpy.random.binomial(1, 0.5, (1000, 1))
+        super(ToyDataset, self).__init__(X=data, y=self.y, y_labels=2)
 
 def get_dataset_toy():
     """
@@ -70,7 +66,6 @@ def get_dataset_cifar10():
 which_set: %s,
 center: 1,
 rescale: 1,
-one_hot: 1
 }"""
     trainset = yaml_parse.load(template % "train")
     testset = yaml_parse.load(template % "test")
@@ -92,7 +87,6 @@ def get_dataset_mnist():
     template = \
 """!obj:pylearn2.datasets.mnist.MNIST {
 which_set: %s,
-one_hot: 1
 }"""
     trainset = yaml_parse.load(template % "train")
     testset = yaml_parse.load(template % "test")

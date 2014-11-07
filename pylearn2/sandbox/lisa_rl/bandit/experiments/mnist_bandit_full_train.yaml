@@ -2,7 +2,6 @@
     environment: !obj:pylearn2.sandbox.lisa_rl.bandit.classifier_bandit.ClassifierBandit {
         dataset: &train !obj:pylearn2.datasets.mnist.MNIST {
             which_set: 'train',
-            one_hot: 1,
         },
         batch_size: 100
     },

@@ -430,6 +430,7 @@ class NORB(DenseDesignMatrix):
 
         super(NORB, self).__init__(X=images,
                                    y=labels,
+                                   y_labels=numpy.max(labels) + 1,
                                    view_converter=view_converter)
 
         # Needed for pickling / unpickling.

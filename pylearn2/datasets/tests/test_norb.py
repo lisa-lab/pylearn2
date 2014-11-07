@@ -20,8 +20,7 @@ class TestNORB(unittest.TestCase):
 
         # Test that the FoveatedNORB class can be instantiated
         norb_train = FoveatedNORB(which_set="train",
-                                  scale=1, restrict_instances=[4, 6, 7, 8],
-                                  one_hot=1)
+                                  scale=1, restrict_instances=[4, 6, 7, 8])
 
     def test_get_topological_view(self):
 

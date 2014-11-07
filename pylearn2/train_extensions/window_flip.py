@@ -1,7 +1,6 @@
-"""
-TrainExtensions for doing random spatial windowing and flipping of an
-image dataset on every epoch.
-"""
+""" TrainExtensions for doing random spatial windowing and flipping of an
+    image dataset on every epoch. TODO: fill out properly."""
+
 import warnings
 import numpy
 from . import TrainExtension
@@ -147,9 +146,9 @@ class WindowAndFlip(TrainExtension):
 
         # maps each dataset in randomize_now to a zero-padded topological view
         # of its data.
-        self._original = dict((data,
-                               _zero_pad(data.get_topological_view().astype('float32'),
-                                         self._pad_randomized))
+        self._original = dict((data, _zero_pad(
+                               data.get_topological_view().astype('float32'),
+                               self._pad_randomized))
                               for data in randomize_now)
 
         # For each dataset, for each image, extract a randomly positioned and

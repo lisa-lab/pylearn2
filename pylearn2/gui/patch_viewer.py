@@ -404,7 +404,7 @@ class PatchViewer(object):
             best_c = -1
             best_ratio = 0
 
-            for r in xrange(1,int(np.sqrt(n))+1):
+            for r in xrange(1, int(np.sqrt(n)) + 1):
                 if n % r != 0:
                     continue
                 c = n / r
