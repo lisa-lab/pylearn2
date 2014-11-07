@@ -139,10 +139,11 @@ class BatchGradientDescent(object):
         if self.accumulate:
             self._compute_grad = Accumulator(inputs, updates=updates)
         else:
-            self._compute_grad = function(inputs, updates=updates,
-                                          mode=self.theano_function_mode,
-                                          name=
-                                          'BatchGradientDescent._compute_grad')
+            self._compute_grad = function(
+                inputs,
+                updates=updates,
+                mode=self.theano_function_mode,
+                name='BatchGradientDescent._compute_grad')
         if self.verbose:
             t2 = time.time()
             logger.info('done. Took {0}'.format(t2-t1))
@@ -169,8 +170,8 @@ class BatchGradientDescent(object):
             else:
                 param_name = param.name
             cache_name = 'BatchGradientDescent.param_to_cache[%s]' % param_name
-            self.param_to_cache[param] = sharedX(param.get_value(borrow=
-                                                 False), name=cache_name)
+            self.param_to_cache[param] = sharedX(param.get_value(borrow=False),
+                                                 name=cache_name)
             cache_updates[self.param_to_cache[param]] = param
             cached = self.param_to_cache[param]
             g = self.param_to_grad_shared[param]
@@ -181,15 +182,19 @@ class BatchGradientDescent(object):
             mul = scaled_alpha * g
             diff = cached - mul
             goto_updates[param] = diff
-        self._cache_values = function([], updates=cache_updates,
-                                      mode=self.theano_function_mode, name=
-                                      'BatchGradientDescent._cache_values')
+        self._cache_values = function(
+            [],
+            updates=cache_updates,
+            mode=self.theano_function_mode,
+            name='BatchGradientDescent._cache_values')
         assert isinstance(param_constrainers, (list, tuple))
         for param_constrainer in param_constrainers:
             param_constrainer(goto_updates)
-        self._goto_alpha = function([alpha], updates=goto_updates,
-                                    mode=self.theano_function_mode, name=
-                                    'BatchGradientDescent._goto_alpha')
+        self._goto_alpha = function(
+            [alpha],
+            updates=goto_updates,
+            mode=self.theano_function_mode,
+            name='BatchGradientDescent._goto_alpha')
 
         norm = T.sqrt(sum([T.sqr(elem).sum() for elem in
                            self.param_to_grad_shared.values()]))
