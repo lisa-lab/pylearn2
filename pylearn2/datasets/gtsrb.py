@@ -207,11 +207,17 @@ class GTSRB(DenseDesignMatrix):
         
         # image preprocessing
         pipeline = preprocessing.Pipeline()
+        # WARNING: questo elimina la y perchè viene usato solo per le rbm
         pipeline.items.append(
             preprocessing.ExtractPatches(patch_shape=(8, 8), num_patches=150000))
+        
         pipeline.items.append(preprocessing.GlobalContrastNormalization(sqrt_bias=10., use_std=True))
         pipeline.items.append(preprocessing.ZCA())
-        X.apply_preprocessor(preprocessor=pipeline, can_fit=True)
-        y.apply_preprocessor(preprocessor=pipeline, can_fit=True)
+        if self.which_set == 'train':
+            can_fit = True
+        else:
+            can_fit = False
+        X.apply_preprocessor(preprocessor=pipeline, can_fit=can_fit)
+        y.apply_preprocessor(preprocessor=pipeline, can_fit=can_fit)
         
         return X, y
