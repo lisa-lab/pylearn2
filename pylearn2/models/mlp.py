@@ -1360,11 +1360,11 @@ class Softmax(Layer):
                                 (self.input_dim, num_cols))
             elif self.istdev is not None:
                 assert self.sparse_init is None
-                W = rng.randn(self.input_dim, self.num_cols) * self.istdev
+                W = rng.randn(self.input_dim, num_cols) * self.istdev
             else:
                 assert self.sparse_init is not None
-                W = np.zeros((self.input_dim, self.num_cols))
-                for i in xrange(self.num_cols):
+                W = np.zeros((self.input_dim, num_cols))
+                for i in xrange(num_cols):
                     for j in xrange(self.sparse_init):
                         idx = rng.randint(0, self.input_dim)
                         while W[idx, i] != 0.:
