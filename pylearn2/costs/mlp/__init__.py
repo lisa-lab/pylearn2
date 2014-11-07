@@ -41,7 +41,7 @@ class Default(DefaultDataSpecsMixin, Cost):
 
 
 class WeightDecay(NullDataSpecsMixin, Cost):
-    """MLP with L2 regularization.
+    """L2 regularization cost for MLP.
   
     coeff * sum(sqr(weights)) for each set of weights.
 
@@ -111,7 +111,7 @@ class WeightDecay(NullDataSpecsMixin, Cost):
 
 
 class L1WeightDecay(NullDataSpecsMixin, Cost):
-    """MLP with L1 regularization.
+    """L1 regularization cost for MLP.
     
     coeff * sum(abs(weights)) for each set of weights.
 
