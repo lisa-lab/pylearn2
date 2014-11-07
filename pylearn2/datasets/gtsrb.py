@@ -210,6 +210,7 @@ class GTSRB(DenseDesignMatrix):
         pipeline.items.append(
             preprocessing.ExtractPatches(patch_shape=(8, 8), num_patches=150000))
         pipeline.items.append(preprocessing.GlobalContrastNormalization(sqrt_bias=10., use_std=True))
+        pipeline.items.append(preprocessing.ZCA())
         X.apply_preprocessor(preprocessor=pipeline, can_fit=True)
         y.apply_preprocessor(preprocessor=pipeline, can_fit=True)
         
