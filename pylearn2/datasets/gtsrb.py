@@ -7,6 +7,7 @@ from copy import deepcopy
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.scripts.dbm.augment_input import augment_input
 from pylearn2.utils import serial
+from pylearn2.datasets import preprocessing
 
 # User can select whether he wants to select all images or just a smaller set of them in order not to add too much noise
 # after the resizing 
@@ -120,9 +121,9 @@ class GTSRB(DenseDesignMatrix):
                 reader.next() # skip header
                 X, y = self.make_matrices(reader)
 
-        # edit loaded images that, until this point, have only been
+        # preprocess loaded images that, until this point, have only been
         # cropped and resized
-        X, y = self.edit(X, y)
+        X, y = self.preprocess(X, y)
         #print '\n' + str(bad_images) + ' images have been discarded for not respecting size requirements\n'
         return X, y
 
@@ -197,13 +198,19 @@ class GTSRB(DenseDesignMatrix):
 
         return one_hot
 
-    def edit(self, X, y):
+    def preprocess(self, X, y):
 
         X = self.split_rgb(X)
         if self.which_set == 'train':            
             X, y = self.shuffle(X, y)    
         y = self.make_one_hot(y)
-        X = X.astype(float)
-        X /= 255.
-
+        
+        # image preprocessing
+        pipeline = preprocessing.Pipeline()
+        pipeline.items.append(
+            preprocessing.ExtractPatches(patch_shape=(8, 8), num_patches=150000))
+        pipeline.items.append(preprocessing.GlobalContrastNormalization(sqrt_bias=10., use_std=True))
+        X.apply_preprocessor(preprocessor=pipeline, can_fit=True)
+        y.apply_preprocessor(preprocessor=pipeline, can_fit=True)
+        
         return X, y
