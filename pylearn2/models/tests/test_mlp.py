@@ -400,6 +400,16 @@ def test_softmax_binary_targets():
     np.testing.assert_allclose(cost_bin(X_data, y_bin_data),
                                cost_vec(X_data, y_vec_data))
 
+def test_softmax_weight_init():
+    """
+    Constructs softmax layers with different weight initialization
+    parameters.
+    """
+    num_classes = 10
+    Softmax(num_classes, 's', irange=0.1)
+    Softmax(num_classes, 's', istdev=0.1)
+    Softmax(num_classes, 's', sparse_init=2)
+
 def test_softmax_bin_targets_channels(seed=0):
     """
     Constructs softmax layers with binary target and with vector targets
