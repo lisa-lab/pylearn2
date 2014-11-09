@@ -225,8 +225,9 @@ class GTSRB(DenseDesignMatrix):
         
         # image preprocessing
         pipeline = preprocessing.Pipeline()
-        # WARNING: questo elimina la y perchè viene usato solo per le rbm
-        '''pipeline.items.append(
+        # WARNING: questo elimina la y dato che viene usato solo per le rbm
+        '''
+        pipeline.items.append(
             preprocessing.ExtractPatches(patch_shape=(8, 8), num_patches=150000))
         '''
         
