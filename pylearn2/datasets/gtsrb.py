@@ -80,6 +80,8 @@ class GTSRB(DenseDesignMatrix):
             else:
                 path = os.path.join(self.path, 'test_' + str(self.img_size[0]) + 'x' + str(self.img_size[0]) + '.pkl.gz')
                 serial.save(filepath=path, obj=datasets)
+        
+        return X, y
 
     def make_matrices(self, reader, prefix = None):
 
