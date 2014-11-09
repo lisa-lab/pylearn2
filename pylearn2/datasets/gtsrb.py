@@ -151,10 +151,9 @@ class GTSRB(DenseDesignMatrix):
         return rgb
 
     def make_one_hot(self, y):
-        # build the one_hot matrix used to specify labels       
-        if self.one_hot:
-            one_hot = numpy.zeros((y.shape[0], 43))
-            for i in xrange(y.shape[0]):
-                one_hot[i,y[i]] = 1.
+        # build the one_hot matrix used to specify labels
+        one_hot = numpy.zeros((y.shape[0], 43))
+        for i in xrange(y.shape[0]):
+            one_hot[i,y[i]] = 1.
 
         return one_hot
