@@ -38,11 +38,11 @@ class GTSRB(DenseDesignMatrix):
         try:
             # check the presence of saved augmented datasets
             if which_set == 'train':
-                path = os.path.join(self.path, 'aug_train_dump_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
+                path = os.path.join(self.path, 'aug_train_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
                 aug_datasets = serial.load(filepath=path)
                 augmented_X, y = aug_datasets[0], aug_datasets[1]
             else:
-                path = os.path.join(self.path, 'aug_test_dump_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
+                path = os.path.join(self.path, 'aug_test_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
                 aug_datasets = serial.load(filepath=path)
                 augmented_X, y = aug_datasets[0], aug_datasets[1]
 
@@ -53,24 +53,24 @@ class GTSRB(DenseDesignMatrix):
             # and augment them
             try:
                 if which_set == 'train':
-                    path = os.path.join(self.path, 'train_dump_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
+                    path = os.path.join(self.path, 'preprocessed_train_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
                     datasets = serial.load(filepath=path)
                     X, y = datasets[0], datasets[1]
                 else:
-                    path = os.path.join(self.path, 'test_dump_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
+                    path = os.path.join(self.path, 'preprocessed_test_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
                     datasets = serial.load(filepath=path)
                     X, y = datasets[0], datasets[1]
 
             except:
-                X, y = self.load_data()
+                X, y = self.load_preprocessed_data()
                 print "\ndata loaded!\n"
 
                 datasets = X, y  # not augmented datasets is saved in order not to waste time reloading gtsrb each time
                 if which_set == 'train':
-                    path = os.path.join(self.path, 'train_dump_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
+                    path = os.path.join(self.path, 'preprocessed_train_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
                     serial.save(filepath=path, obj=datasets)
                 else:
-                    path = os.path.join(self.path, 'test_dump_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
+                    path = os.path.join(self.path, 'preprocessed_test_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
                     serial.save(filepath=path, obj=datasets)
 
             X, y = X[start:stop], y[start:stop]
@@ -82,49 +82,67 @@ class GTSRB(DenseDesignMatrix):
                 aug_datasets = augmented_X, y
                 if save_aug == True:
                     if which_set == 'train':
-                        path = os.path.join(self.path, 'aug_train_dump_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
+                        path = os.path.join(self.path, 'aug_train_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
                         serial.save(filepath=path, obj=aug_datasets)
                     else:
-                        path = os.path.join(self.path, 'aug_test_dump_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
+                        path = os.path.join(self.path, 'aug_test_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
                         serial.save(filepath=path, obj=aug_datasets)
 
                 X = augmented_X
 
         super(GTSRB, self).__init__(X=X, y=y)
 
-    def load_data(self):
+    def load_preprocessed_data(self):
 
         print "\nloading data...\n"
-
-        if self.which_set == 'train':
-
-            first = True
-
-            # loop over all 43 classes
-            for c in xrange(43):
-                prefix = self.path + '/' + format(c, '05d') + '/'  # subdirectory for class
-                with open(prefix + 'GT-'+ format(c, '05d') + '.csv') as f:  # annotations file
+        
+        try:
+            if self.which_set == 'train':
+                path = os.path.join(self.path, 'train_' + str(self.img_size[0]) + 'x' + str(self.img_size[0]) + '.pkl.gz')
+                datasets = serial.load(filepath=path)
+                X, y = datasets[0], datasets[1]
+            else:
+                path = os.path.join(self.path, 'test_' + str(self.img_size[0]) + 'x' + str(self.img_size[0]) + '.pkl.gz')
+                datasets = serial.load(filepath=path)
+                X, y = datasets[0], datasets[1]
+        except:
+            
+            if self.which_set == 'train':
+    
+                first = True
+    
+                # loop over all 43 classes
+                for c in xrange(43):
+                    prefix = self.path + '/' + format(c, '05d') + '/'  # subdirectory for class
+                    with open(prefix + 'GT-'+ format(c, '05d') + '.csv') as f:  # annotations file
+                        reader = csv.reader(f, delimiter = self.delimiter)  # csv parser for annotations file
+                        reader.next()  # skip header
+                        if first:
+                            X, y = self.make_matrices(reader, prefix)
+                            first = False
+                        else:
+                            next_X, next_y = self.make_matrices(reader, prefix)
+                            X = numpy.append(X, next_X, axis=0)
+                            y = numpy.append(y, next_y, axis=0)
+    
+            else:
+    
+                with open(self.path + '/' + "GT-final_test.csv") as f:
                     reader = csv.reader(f, delimiter = self.delimiter)  # csv parser for annotations file
-                    reader.next()  # skip header
-                    if first:
-                        X, y = self.make_matrices(reader, prefix)
-                        first = False
-                    else:
-                        next_X, next_y = self.make_matrices(reader, prefix)
-                        X = numpy.append(X, next_X, axis=0)
-                        y = numpy.append(y, next_y, axis=0)
-
-        else:
-
-            with open(self.path + '/' + "GT-final_test.csv") as f:
-                reader = csv.reader(f, delimiter = self.delimiter)  # csv parser for annotations file
-                reader.next() # skip header
-                X, y = self.make_matrices(reader)
+                    reader.next() # skip header
+                    X, y = self.make_matrices(reader)
+        
+            datasets = X, y
+            if self.which_set == 'train':
+                path = os.path.join(self.path, 'train_' + str(self.img_size[0]) + 'x' + str(self.img_size[0]) + '.pkl.gz')
+                serial.save(filepath=path, obj=datasets)
+            else:
+                path = os.path.join(self.path, 'test_' + str(self.img_size[0]) + 'x' + str(self.img_size[0]) + '.pkl.gz')
+                serial.save(filepath=path, obj=datasets)
 
         # preprocess loaded images that, until this point, have only been
         # cropped and resized
         X, y = self.preprocess(X, y)
-        #print '\n' + str(bad_images) + ' images have been discarded for not respecting size requirements\n'
         return X, y
 
     def make_matrices(self, reader, prefix = None):
@@ -208,8 +226,9 @@ class GTSRB(DenseDesignMatrix):
         # image preprocessing
         pipeline = preprocessing.Pipeline()
         # WARNING: questo elimina la y perchè viene usato solo per le rbm
-        pipeline.items.append(
+        '''pipeline.items.append(
             preprocessing.ExtractPatches(patch_shape=(8, 8), num_patches=150000))
+        '''
         
         pipeline.items.append(preprocessing.GlobalContrastNormalization(sqrt_bias=10., use_std=True))
         pipeline.items.append(preprocessing.ZCA())
