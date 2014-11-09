@@ -35,7 +35,7 @@ class GTSRB(DenseDesignMatrix):
 
     def load_data(self):
 
-        print "\nloading data...\n"
+        print 'Loading ' + self.which_set + ' data...'
 
         try:
             if self.which_set == 'train':
@@ -47,11 +47,11 @@ class GTSRB(DenseDesignMatrix):
                 datasets = serial.load(filepath=path)
                 X, y = datasets[0], datasets[1]
         except:
-            
+
             if self.which_set == 'train':
-    
+
                 first = True
-    
+
                 # loop over all 43 classes
                 for c in xrange(43):
                     prefix = self.path + '/' + format(c, '05d') + '/'  # subdirectory for class
@@ -65,14 +65,19 @@ class GTSRB(DenseDesignMatrix):
                             next_X, next_y = self.make_matrices(reader, prefix)
                             X = numpy.append(X, next_X, axis=0)
                             y = numpy.append(y, next_y, axis=0)
-    
+
             else:
-    
+
                 with open(self.path + '/' + "GT-final_test.csv") as f:
                     reader = csv.reader(f, delimiter = self.delimiter)  # csv parser for annotations file
                     reader.next() # skip header
                     X, y = self.make_matrices(reader)
-        
+
+            X = self.split_rgb(X)
+            y = self.make_one_hot(y)        
+            if self.which_set == 'train':
+                X, y = self.shuffle(X, y)
+
             datasets = X, y
             if self.which_set == 'train':
                 path = os.path.join(self.path, 'train_' + str(self.img_size[0]) + 'x' + str(self.img_size[0]) + '.pkl.gz')
