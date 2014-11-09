@@ -5,9 +5,7 @@ import os
 
 from copy import deepcopy
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
-from pylearn2.scripts.dbm.augment_input import augment_input
 from pylearn2.utils import serial
-from pylearn2.datasets import preprocessing
 
 # User can select whether he wants to select all images or just a smaller set of them in order not to add too much noise
 # after the resizing 
@@ -16,12 +14,9 @@ bound = 50
 class GTSRB(DenseDesignMatrix):
     '''
         Wrapper class for gtsrb dataset. It loads training and test set and
-        saves them. When the augmentation set is needed, it is created and
-        saved. Augmented dataset is saved only if save_aug flag is True. If
-        the datasets already exist, they are loaded from the pkl files.
+        saves them.
     '''
-    def __init__(self, which_set, model=None, mf_steps=None, one_hot=True,
-                 start=None, stop=None, img_size=None, save_aug=False):
+    def __init__(self, which_set, img_size=None):
 
         path = "${PYLEARN2_DATA_PATH}/gtsrb"
         path = serial.preprocess(path)
@@ -31,71 +26,17 @@ class GTSRB(DenseDesignMatrix):
             path = path + "/Final_Test/Images"
         self.path = path
         self.delimiter = ';'
-        self.one_hot = one_hot
         self.which_set = which_set
         self.img_size = img_size
 
-        try:
-            # check the presence of saved augmented datasets
-            if which_set == 'train':
-                path = os.path.join(self.path, 'aug_train_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
-                aug_datasets = serial.load(filepath=path)
-                augmented_X, y = aug_datasets[0], aug_datasets[1]
-            else:
-                path = os.path.join(self.path, 'aug_test_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
-                aug_datasets = serial.load(filepath=path)
-                augmented_X, y = aug_datasets[0], aug_datasets[1]
-
-            X, y = augmented_X[start:stop], y[start:stop]
-        except:
-            # if there're not saved augmented datasets, if there're saved 
-            # normal datasets, it loads and augment them, otherwise it creates
-            # and augment them
-            try:
-                if which_set == 'train':
-                    path = os.path.join(self.path, 'preprocessed_train_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
-                    datasets = serial.load(filepath=path)
-                    X, y = datasets[0], datasets[1]
-                else:
-                    path = os.path.join(self.path, 'preprocessed_test_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
-                    datasets = serial.load(filepath=path)
-                    X, y = datasets[0], datasets[1]
-
-            except:
-                X, y = self.load_preprocessed_data()
-                print "\ndata loaded!\n"
-
-                datasets = X, y  # not augmented datasets is saved in order not to waste time reloading gtsrb each time
-                if which_set == 'train':
-                    path = os.path.join(self.path, 'preprocessed_train_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
-                    serial.save(filepath=path, obj=datasets)
-                else:
-                    path = os.path.join(self.path, 'preprocessed_test_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
-                    serial.save(filepath=path, obj=datasets)
-
-            X, y = X[start:stop], y[start:stop]
-
-            # BUILD AUGMENTED INPUT FOR FINETUNING
-            if mf_steps is not None:
-                augmented_X = augment_input(X, model, mf_steps)
-
-                aug_datasets = augmented_X, y
-                if save_aug == True:
-                    if which_set == 'train':
-                        path = os.path.join(self.path, 'aug_train_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
-                        serial.save(filepath=path, obj=aug_datasets)
-                    else:
-                        path = os.path.join(self.path, 'aug_test_' + str(img_size[0]) + 'x' + str(img_size[0]) + '.pkl.gz')
-                        serial.save(filepath=path, obj=aug_datasets)
-
-                X = augmented_X
+        X, y = self.load_data()
 
         super(GTSRB, self).__init__(X=X, y=y)
 
-    def load_preprocessed_data(self):
+    def load_data(self):
 
         print "\nloading data...\n"
-        
+
         try:
             if self.which_set == 'train':
                 path = os.path.join(self.path, 'train_' + str(self.img_size[0]) + 'x' + str(self.img_size[0]) + '.pkl.gz')
@@ -139,11 +80,6 @@ class GTSRB(DenseDesignMatrix):
             else:
                 path = os.path.join(self.path, 'test_' + str(self.img_size[0]) + 'x' + str(self.img_size[0]) + '.pkl.gz')
                 serial.save(filepath=path, obj=datasets)
-
-        # preprocess loaded images that, until this point, have only been
-        # cropped and resized
-        X, y = self.preprocess(X, y)
-        return X, y
 
     def make_matrices(self, reader, prefix = None):
 
@@ -215,29 +151,3 @@ class GTSRB(DenseDesignMatrix):
                 one_hot[i,y[i]] = 1.
 
         return one_hot
-
-    def preprocess(self, X, y):
-
-        X = self.split_rgb(X)
-        if self.which_set == 'train':            
-            X, y = self.shuffle(X, y)    
-        y = self.make_one_hot(y)
-        
-        # image preprocessing
-        pipeline = preprocessing.Pipeline()
-        # WARNING: questo elimina la y dato che viene usato solo per le rbm
-        '''
-        pipeline.items.append(
-            preprocessing.ExtractPatches(patch_shape=(8, 8), num_patches=150000))
-        '''
-        
-        pipeline.items.append(preprocessing.GlobalContrastNormalization(sqrt_bias=10., use_std=True))
-        pipeline.items.append(preprocessing.ZCA())
-        if self.which_set == 'train':
-            can_fit = True
-        else:
-            can_fit = False
-        X.apply_preprocessor(preprocessor=pipeline, can_fit=can_fit)
-        y.apply_preprocessor(preprocessor=pipeline, can_fit=can_fit)
-        
-        return X, y
