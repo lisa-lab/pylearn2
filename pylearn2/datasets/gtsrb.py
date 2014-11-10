@@ -77,6 +77,8 @@ class GTSRB(DenseDesignMatrix):
             y = self.make_one_hot(y)        
             if self.which_set == 'train':
                 X, y = self.shuffle(X, y)
+            X = X.astype(float)
+            X /= 255.
 
             datasets = X, y
             if self.which_set == 'train':
