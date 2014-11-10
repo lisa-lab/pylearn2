@@ -10,6 +10,7 @@ from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import local_optimizer
 from theano.sandbox.cuda.opt import register_opt
 from theano.sandbox.cuda import gpu_from_host, host_from_gpu
+from theano.sandbox.cuda.basic_ops import gpu_contiguous
 
 from .unshared_conv import FilterActs
 from .unshared_conv import WeightActs
@@ -546,7 +547,7 @@ def insert_gpu_weight_acts(node):
                     partial_sum=1)
             return [host_from_gpu(gpu_weight_acts(
                 gpu_from_host(images),
-                gpu_from_host(hidacts),
+                gpu_contiguous(hidacts),
                 frows,
                 fcols,
                 ))]
@@ -784,7 +785,7 @@ def insert_gpu_img_acts(node):
                     partial_sum=1)
             return [host_from_gpu(gpu_img_acts(
                 gpu_from_host(filters),
-                gpu_from_host(hidacts),
+                gpu_contiguous(hidacts),
                 irows,
                 icols,
                 ))]

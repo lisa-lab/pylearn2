@@ -4,7 +4,6 @@ XXX
 
 import numpy
 import theano
-from theano.sandbox.cuda.basic_ops import gpu_contiguous
 
 # Use grad_not_implemented for versions of theano that support it
 try:
@@ -123,7 +122,7 @@ class FilterActs(Base):
                             raise
                     hidacts[gg, :, mR, mC, :] = rc_hidacts
         ostor[0][0] = hidacts
-        
+
         print_sizes = 0
         if print_sizes:
             print 'FilterActs shapes: images', images.shape
@@ -140,7 +139,6 @@ class FilterActs(Base):
         # filters and hidacts must have same dtype, upcast if needed
         if filters.dtype == 'float32' and hidacts.dtype == 'float64':
             filters = theano.tensor.cast(filters, 'float64')
-        hidacts = gpu_contiguous(hidacts)
         gimages = ImgActs(module_stride=self.module_stride)(
                 filters, hidacts, irows, icols)
         # images and hidacts must have same dtype, upcast if needed
