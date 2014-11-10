@@ -19,6 +19,7 @@ from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
 
 import pylearn2.sandbox.cuda_convnet.pthreads
 from theano import config
+from theano.gradient import grad_undefined, DisconnectedType
 
 def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape = None,  start=0):
     """
@@ -611,6 +612,25 @@ class MaxPoolRop(GpuOp):
         return super(MaxPoolRop, self).make_thunk(
                 node, storage_map, storage_map, no_recycling)
 
+    def R_op(self, inp, evals):
+        img, old_ev_img = inp
+        ev_img, new_ev_img = inp
+        if new_ev_img is not None:
+            new_ev_img = gpu_contiguous(new_ev_img)
+            return [self(img, new_ev_img)]
+        else:
+            return [None]
+
+    def grad(self, inp, grads):
+        img, ev_img = inp
+        gz, = grads
+        gz = gpu_contiguous(gz)
+        maxout = MaxPool(self.ds, self.stride, self.start)(img)
+        return [DisconnectedType(),
+                MaxPoolGrad(self.ds, self.stride, self.start)(img, maxout,
+                                                              gz)]
+
+
 
 class MaxPoolGrad(GpuOp):
     """
@@ -919,3 +939,38 @@ class MaxPoolGrad(GpuOp):
 
         return super(MaxPoolGrad, self).make_thunk(
                 node, storage_map, compute_map, no_recycling)
+
+    def R_op(self, inp, evals):
+        imgs, maxout, gz = inp
+        ev_imgs, ev_maxout, ev_gz = evals
+        ## What Computation is this op doing ?
+        if ev_gz is not None:
+            ev_gz = gpu_contiguous(ev_gz)
+            return [self(imgs, maxout, ev_gz)]
+        else:
+            return [None]
+
+        ##
+        ## NB: output is not continous with the change in imgs or maxout
+        ## hence the gradient wrt to them has to be 0
+        ## Code below ignored this
+
+        #if ev_imgs is not None and ev_maxout is not None:
+        #    rval1 = self(ev_imgs, ev_maxout, gz)
+        #if rval0 is not None and rval1 is not None:
+        #    return [rval0 + rval1]
+        #elif rval0 is not None:
+        #    return [rval0]
+        #elif rval1 is not None:
+        #    return [rval1]
+        #else:
+        #    return [None]
+
+    def grad(self, inp, grads):
+        imgs, maxout, gz = inp
+        g_out, = grads
+        return [DisconnectedType(),
+                DisconnectedType(),
+                g_out]
+
+
