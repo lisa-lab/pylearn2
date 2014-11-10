@@ -9,10 +9,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
-import copy
-import time
-import warnings
-import logging
+import copy, time, warnings, logging
 import numpy as np
 from theano.compat import six
 
@@ -427,6 +424,13 @@ class Monitor(object):
             it.append(d.iterator(mode=i, num_batches=n, batch_size=b,
                                  data_specs=self._flat_data_specs,
                                  return_tuple=True))
+        self.num_examples = [np.cast[config.floatX](float(i.num_examples))
+                             for i in it]
+        it = [d.iterator(mode=i, num_batches=n, batch_size=b,
+                         data_specs=self._flat_data_specs,
+                         return_tuple=True)
+              for d, i, n, b in safe_izip(self._datasets, self._iteration_mode,
+                                          self._num_batches, self._batch_size)]
         self.num_examples = [np.cast[config.floatX](float(i.num_examples))
                              for i in it]
         givens = [OrderedDict() for d in self._datasets]
@@ -893,7 +897,7 @@ class Monitor(object):
         custom_channels.update(channels)
 
         if is_stochastic(mode):
-            seed = [[2013, 2, 22]]
+            seed = [[2013, 02, 22]]
         else:
             seed = None
 
