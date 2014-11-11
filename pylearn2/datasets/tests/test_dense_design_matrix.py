@@ -75,3 +75,9 @@ def test_pytables():
 
     it = ds.iterator(mode='sequential', batch_size=1)
     it.next()
+
+
+def test_from_dataset():
+    """
+    Tests whether it supports integer labels. 
+    """
