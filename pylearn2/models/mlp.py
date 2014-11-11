@@ -53,6 +53,8 @@ from pylearn2.expr.nnet import (elemwise_kl, kl, compute_precision,
 from pylearn2.costs.mlp import L1WeightDecay as _L1WD
 from pylearn2.costs.mlp import WeightDecay as _WD
 
+from pylearn2.sandbox.rnn.models.mlp_hook import RNNWrapper
+
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +94,8 @@ class Layer(Model):
     Block interface were upgraded to be that flexible, then we could make this
     a block.
     """
+    # This enables RNN compatibility
+    __metaclass__ = RNNWrapper
 
     # When applying dropout to a layer's input, use this for masked values.
     # Usually this will be 0, but certain kinds of layers may want to override
@@ -1438,6 +1442,7 @@ class Softmax(Layer):
 
             Z = T.dot(state_below, self.W) + b
 
+        Z.tag.softmax_input = self.layer_name
         if self.non_redundant:
             zeros = T.alloc(0., Z.shape[0], 1)
             Z = T.concatenate((zeros, Z), axis=1)
@@ -1454,15 +1459,14 @@ class Softmax(Layer):
 
         assert hasattr(Y_hat, 'owner')
         owner = Y_hat.owner
-        assert owner is not None
-        op = owner.op
-        if isinstance(op, Print):
-            assert len(owner.inputs) == 1
-            Y_hat, = owner.inputs
-            owner = Y_hat.owner
-            op = owner.op
-        assert isinstance(op, T.nnet.Softmax)
-        z, = owner.inputs
+        z = None
+        while owner is not None:
+            if isinstance(owner.op, T.nnet.Softmax):
+                z, = owner.inputs
+                break
+            else:
+                owner = owner.inputs[0].owner
+        assert getattr(z.tag, 'softmax_input', None) == self.layer_name
         assert z.ndim == 2
 
         z = z - z.max(axis=1).dimshuffle(0, 'x')

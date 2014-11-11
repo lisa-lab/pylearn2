@@ -757,6 +757,7 @@ class FiniteDatasetIterator(object):
         self._raw_data = tuple(all_data[dataset_source.index(s)]
                                for s in source)
         self._source = source
+        self._space = sub_spaces
 
         if convert is None:
             self._convert = [None for s in source]
