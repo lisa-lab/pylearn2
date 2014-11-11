@@ -21,6 +21,7 @@ __email__ = "pylearn-dev@googlegroups"
 import gc
 import numpy as np
 import sys
+import os
 
 from theano.compat.six.moves import xrange
 from pylearn2.utils import serial
@@ -71,17 +72,42 @@ def main():
     parser.add_argument("--out")
     parser.add_argument("model_paths", nargs='+')
     options = parser.parse_args()
-    model_paths = options.model_paths
 
-    if options.out is not None:
-      import matplotlib
-      matplotlib.use('Agg')
+    plot_monitor(options.model_paths, options.out)
+
+def plot_monitor(model_paths=[], ouput_image_path=None, show_codes=None, x_axis='example', shorten_file_names=True, file_name_only=False):
+    """
+    Plot channels from a pkl file or files.
+
+    Parameters
+    ----------
+    model_paths : list/tuple
+        The list/tuple of file names.
+    ouput_image_path : str or None
+        The output path to save the rendered plot of channels.
+        None indicates to plot inline.
+    show_codes : list/tuple
+        The list/tuple of channel codes to plot
+    x_axis : str
+        The values to use for the x-axis
+    shorten_file_names : bool
+        Whether to use the legacy logic for file name shortening
+    file_name_only : bool
+        Whether to show the base of the filename or the entire path
+    """
+
+    if ouput_image_path is not None:
+        import matplotlib
+        matplotlib.use('Agg')
     import matplotlib.pyplot as plt
 
     print('generating names...')
     model_names = [model_path.replace('.pkl', '!') for model_path in
             model_paths]
-    model_names = unique_substrings(model_names, min_size=10)
+    if file_name_only:
+        model_names = [os.path.split(model_name)[1] for model_name in model_names]
+    if shorten_file_names:
+        model_names = unique_substrings(model_names, min_size=10)
     model_names = [model_name.replace('!','') for model_name in
             model_names]
     print('...done')
@@ -97,7 +123,7 @@ def main():
             raise
         this_model_channels = model.monitor.channels
 
-        if len(sys.argv) > 2:
+        if len(model_paths) > 1:
             postfix = ":" + model_names[i]
         else:
             postfix = ""
@@ -121,9 +147,6 @@ def main():
             codebook['<'+channel_name+'>'] = channel_name
             sorted_codes.append(code)
 
-        x_axis = 'example'
-        print('set x_axis to example')
-
         if len(channels.values()) == 0:
             print("there are no channels to plot")
             break
@@ -131,8 +154,15 @@ def main():
         # If there is more than one channel in the monitor ask which ones to
         # plot
         prompt = len(channels.values()) > 1
-
-        if prompt:
+        if show_codes:
+            show_codes_new = []
+            for show_code in show_codes:
+                if '*' in show_code:
+                    show_codes_new += [show_code.replace('*', m) for m in model_names]
+                else:
+                    show_codes_new.append(show_code)
+            final_codes = show_codes_new
+        elif prompt:
 
             # Display the codebook
             for code in sorted_codes:
@@ -225,6 +255,8 @@ def main():
         else:
             final_codes ,= set(codebook.keys())
 
+        print('set x_axis to %s' % x_axis)
+
         colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
         styles = list(colors)
         styles += [color+'--' for color in colors]
@@ -236,7 +268,10 @@ def main():
         # plot the requested channels
         for idx, code in enumerate(sorted(final_codes)):
 
-            channel_name= codebook[code]
+            if code in codebook.values():
+                channel_name = code
+            else:
+                channel_name = codebook[code]
             channel = channels[channel_name]
 
             y = np.asarray(channel.val_record)
@@ -280,12 +315,16 @@ def main():
         # 0.046 is the size of 1 legend box
         fig.subplots_adjust(bottom=0.11 + 0.046 * len(final_codes))
 
-        if options.out is None:
+        if len(model_paths) == 1:
+            model_file_name = os.path.split(model_paths[0])[-1]
+            plt.title(model_file_name)
+
+        if ouput_image_path is None:
           plt.show()
         else:
-          plt.savefig(options.out)
+          plt.savefig(ouput_image_path)
 
-        if not prompt:
+        if not prompt or show_codes:
             break
 
 if __name__ == "__main__":
