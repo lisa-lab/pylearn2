@@ -140,7 +140,6 @@ whitelist_pep8 = [
     "utils/iteration.py",
     "utils/track_version.py",
     "scripts/get_version.py",
-    "blocks.py",
     "training_algorithms/tests/test_bgd.py",
     "training_algorithms/tests/test_default.py",
     "training_algorithms/bgd.py",
