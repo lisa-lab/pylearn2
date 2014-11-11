@@ -181,6 +181,32 @@ class InferenceProcedure(object):
         raise NotImplementedError(str(type(self)) + " does not implement "
                                   "do_inpainting.")
 
+    def is_rbm_compatible(self):
+        """
+        Checks whether inference procedure is compatible with an RBM.
+
+        Because an RBM has no interactions between hidden units, the
+        variational posterior used by mean field is identical to the true
+        posterior. This means exact inference in an RBM can be implemented
+        using InferenceProcedure even though InferenceProcedure was designed to
+        perform variational inference in a DBM. However, InferenceProcedures
+        may be configured n a way that is inefficient for use with the RBM
+        (e.g., using multiple fixed point updates even though a single step
+        should converge for an RBM) or use heuristics that deviate from exact
+        inference (e.g. doubling the weights on the first mean field pass).
+        This function is used to identify such procedures and prevent their use
+        for exact RBM inference.
+
+        Returns
+        -------
+        is_compatible : bool
+            True if this InferenceProcedure is appropriate for use as exact
+            inference in an RBM.
+        """
+
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                                  "is_rbm_compatible.")
+
 
 class WeightDoubling(InferenceProcedure):
 
@@ -1508,3 +1534,9 @@ class UpDown(InferenceProcedure):
             if Y is not None:
                 return V_hat, Y_hat
             return V_hat
+
+    def is_rbm_compatible(self):
+        """
+        Is implemented as UpDown is RBM compatible.
+        """
+        return True
