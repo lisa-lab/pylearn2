@@ -13,6 +13,7 @@ from theano.compile import Mode
 import theano
 import numpy as np
 from pylearn2.models.dbm import flatten
+from pylearn2.utils import contains_nan, contains_inf
 
 
 logger = logging.getLogger(__name__)
@@ -55,11 +56,11 @@ class NanGuardMode(Mode):
             """
             error = False
             if nan_is_error:
-                if np.any(np.isnan(var)):
+                if contains_nan(var):
                     logger.error('NaN detected')
                     error = True
             if inf_is_error:
-                if np.any(np.isinf(var)):
+                if contains_inf(var):
                     logger.error('Inf detected')
                     error = True
             if big_is_error:
@@ -104,4 +105,4 @@ class NanGuardMode(Mode):
                 do_check_on(x, node, fn, False)
 
         wrap_linker = theano.gof.WrapLinkerMany([theano.gof.OpWiseCLinker()], [nan_check])
-        super(NanGuardMode, self).__init__(wrap_linker, optimizer='fast_run')
+        super(NanGuardMode, self).__init__(wrap_linker, optimizer=theano.config.optimizer)

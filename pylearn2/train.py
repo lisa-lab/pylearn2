@@ -109,7 +109,6 @@ class Train(object):
         else:
             return False
 
-
     def setup(self):
         """
         Sets up the main loop. This is also called at the start of the
@@ -195,6 +194,7 @@ already been reported."""
                     data_specs=(NullSpace(), ''),
                     dataset=self.model.monitor._datasets[0])
             self.run_callbacks_and_monitoring()
+
             while True:
                 if self.exceeded_time_budget(t0, time_budget):
                     break

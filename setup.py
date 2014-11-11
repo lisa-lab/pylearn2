@@ -55,7 +55,7 @@ class pylearn2_install(install):
         mode = None
         while mode not in ['', 'install', 'develop', 'cancel']:
             if mode is not None:
-                print "Please try again"
+                print("Please try again")
             mode = raw_input("Installation mode: [develop]/install/cancel: ")
         if mode in ['', 'develop']:
             self.distribution.run_command('develop')
@@ -72,7 +72,8 @@ setup(
     description='A machine learning library built on top of Theano.',
     license='BSD 3-clause license',
     long_description=open('README.rst').read(),
-    install_requires=['numpy>=1.5', 'theano', 'pyyaml', 'argparse'],
+    dependency_links=['git+http://github.com/Theano/Theano.git#egg=Theano'],
+    install_requires=['numpy>=1.5', 'pyyaml', 'argparse', "Theano"],
     package_data={
         '': ['*.cu', '*.cuh', '*.h'],
     },

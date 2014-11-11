@@ -28,6 +28,7 @@ from pylearn2.utils.iteration import (
 
 
 class SparseDataset(Dataset):
+
     """
     SparseDataset is a class for representing datasets that can be
     stored as a sparse matrix.
@@ -89,7 +90,7 @@ class SparseDataset(Dataset):
     def get_batch_design(self, batch_size, include_labels=False):
         """Method inherited from Dataset"""
         self.iterator(mode='shuffled_sequential',
-                      batch_size=batch_size, num_batches=None, topo=None)
+                      batch_size=batch_size, num_batches=None)
         return self.next()
 
     @wraps(Dataset.get_batch_topo)
@@ -103,16 +104,8 @@ class SparseDataset(Dataset):
 
     @wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 topo=None, targets=None, rng=None, data_specs=None,
+                 rng=None, data_specs=None,
                  return_tuple=False):
-
-        if topo is not None or targets is not None:
-            warnings.warn("Usage of `topo` and `target` arguments are "
-                          "being deprecated, and will be removed "
-                          "around November 7th, 2013. `data_specs` "
-                          "should be used instead. Here these two "
-                          "arguments are not used",
-                          stacklevel=2)
 
         if data_specs is None:
             data_specs = self._iter_data_specs
@@ -183,7 +176,7 @@ class SparseDataset(Dataset):
         try:
             mini_batch = self.X[indx]
         except IndexError, e:
-            reraise_as(ValueError("Index out of range"+str(e)))
+            reraise_as(ValueError("Index out of range" + str(e)))
             # the ind of minibatch goes beyond the boundary
         return mini_batch
 

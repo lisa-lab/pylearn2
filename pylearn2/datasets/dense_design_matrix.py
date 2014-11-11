@@ -39,6 +39,7 @@ from pylearn2.space import CompositeSpace, Conv2DSpace, VectorSpace, IndexSpace
 from pylearn2.utils import safe_zip
 from pylearn2.utils.exc import reraise_as
 from pylearn2.utils.rng import make_np_rng
+from pylearn2.utils import contains_nan
 from theano import config
 
 
@@ -56,6 +57,7 @@ def ensure_tables():
 
 
 class DenseDesignMatrix(Dataset):
+
     """
     A class for representing datasets that can be stored as a dense design
     matrix (and optionally, associated targets).
@@ -266,75 +268,34 @@ class DenseDesignMatrix(Dataset):
 
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 topo=None, targets=None, rng=None, data_specs=None,
+                 rng=None, data_specs=None,
                  return_tuple=False):
 
-        if topo is not None or targets is not None:
-            if data_specs is not None:
-                raise ValueError('In DenseDesignMatrix.iterator, both the '
-                                 '"data_specs" argument and deprecated '
-                                 'arguments "topo" or "targets" were '
-                                 'provided.',
-                                 (data_specs, topo, targets))
+        if data_specs is None:
+            data_specs = self._iter_data_specs
 
-            warnings.warn("Usage of `topo` and `target` arguments are "
-                          "being deprecated, and will be removed "
-                          "around November 7th, 2013. `data_specs` "
-                          "should be used instead.",
-                          stacklevel=2)
-
-            # build data_specs from topo and targets if needed
-            if topo is None:
-                topo = getattr(self, '_iter_topo', False)
-            if topo:
-                # self.iterator is called without a data_specs, and with
-                # "topo=True", so we use the default topological space
-                # stored in self.X_topo_space
-                assert self.X_topo_space is not None
-                X_space = self.X_topo_space
-            else:
-                X_space = self.X_space
-
-            if targets is None:
-                targets = getattr(self, '_iter_targets', False)
-            if targets:
-                assert self.y is not None
-                y_space = self.data_specs[0].components[1]
-                space = CompositeSpace((X_space, y_space))
-                source = ('features', 'targets')
-            else:
-                space = X_space
-                source = 'features'
-
-            data_specs = (space, source)
-            convert = None
-
+        # If there is a view_converter, we have to use it to convert
+        # the stored data for "features" into one that the iterator
+        # can return.
+        space, source = data_specs
+        if isinstance(space, CompositeSpace):
+            sub_spaces = space.components
+            sub_sources = source
         else:
-            if data_specs is None:
-                data_specs = self._iter_data_specs
+            sub_spaces = (space,)
+            sub_sources = (source,)
 
-            # If there is a view_converter, we have to use it to convert
-            # the stored data for "features" into one that the iterator
-            # can return.
-            space, source = data_specs
-            if isinstance(space, CompositeSpace):
-                sub_spaces = space.components
-                sub_sources = source
+        convert = []
+        for sp, src in safe_zip(sub_spaces, sub_sources):
+            if src == 'features' and \
+               getattr(self, 'view_converter', None) is not None:
+                conv_fn = (lambda batch, self=self, space=sp:
+                           self.view_converter.get_formatted_batch(batch,
+                                                                   space))
             else:
-                sub_spaces = (space,)
-                sub_sources = (source,)
+                conv_fn = None
 
-            convert = []
-            for sp, src in safe_zip(sub_spaces, sub_sources):
-                if src == 'features' and \
-                   getattr(self, 'view_converter', None) is not None:
-                    conv_fn = (lambda batch, self=self, space=sp:
-                               self.view_converter.get_formatted_batch(batch,
-                                                                       space))
-                else:
-                    conv_fn = None
-
-                convert.append(conv_fn)
+            convert.append(conv_fn)
 
         # TODO: Refactor
         if mode is None:
@@ -796,7 +757,7 @@ class DenseDesignMatrix(Dataset):
             training examples.
         axes : WRITEME
         """
-        assert not np.any(np.isnan(V))
+        assert not contains_nan(V)
         rows = V.shape[axes.index(0)]
         cols = V.shape[axes.index(1)]
         channels = V.shape[axes.index('c')]
@@ -807,7 +768,7 @@ class DenseDesignMatrix(Dataset):
         # will be used only when self.iterator is called without a
         # data_specs, and with "topo=True", which is deprecated.
         self.X_topo_space = self.view_converter.topo_space
-        assert not np.any(np.isnan(self.X))
+        assert not contains_nan(self.X)
 
         # Update data specs
         X_space = VectorSpace(dim=self.X.shape[1])
@@ -872,7 +833,7 @@ class DenseDesignMatrix(Dataset):
             WRITEME
         """
         assert len(X.shape) == 2
-        assert not np.any(np.isnan(X))
+        assert not contains_nan(X)
         self.X = X
 
     def get_targets(self):
@@ -1133,6 +1094,7 @@ class DenseDesignMatrix(Dataset):
 
 
 class DenseDesignMatrixPyTables(DenseDesignMatrix):
+
     """
     DenseDesignMatrix based on PyTables
 
@@ -1188,7 +1150,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
             WRITEME
         """
         assert len(X.shape) == 2
-        assert not np.any(np.isnan(X))
+        assert not contains_nan(X)
         DenseDesignMatrixPyTables.fill_hdf5(file_handle=self.h5file,
                                             data_x=X,
                                             start=start)
@@ -1212,14 +1174,14 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
             WRITEME
         start : WRITEME
         """
-        assert not np.any(np.isnan(V))
+        assert not contains_nan(V)
         rows = V.shape[axes.index(0)]
         cols = V.shape[axes.index(1)]
         channels = V.shape[axes.index('c')]
         self.view_converter = DefaultViewConverter([rows, cols, channels],
                                                    axes=axes)
         X = self.view_converter.topo_view_to_design_mat(V)
-        assert not np.any(np.isnan(X))
+        assert not contains_nan(X)
         DenseDesignMatrixPyTables.fill_hdf5(file_handle=self.h5file,
                                             data_x=X,
                                             start=start)
@@ -1323,6 +1285,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
 
 
 class DefaultViewConverter(object):
+
     """
     .. todo::
 
@@ -1330,9 +1293,13 @@ class DefaultViewConverter(object):
 
     Parameters
     ----------
-    shape : WRITEME
-    axes : WRITEME
+    shape : list
+      [num_rows, num_cols, channels]
+    axes : tuple
+      The axis ordering to use in topological views of the data. Must be some
+      permutation of ('b', 0, 1, 'c'). Default: ('b', 0, 1, 'c')
     """
+
     def __init__(self, shape, axes=('b', 0, 1, 'c')):
         self.shape = shape
         self.pixels_per_channel = 1
@@ -1357,35 +1324,44 @@ class DefaultViewConverter(object):
         """
         return self.shape
 
-    def design_mat_to_topo_view(self, X):
+    def design_mat_to_topo_view(self, design_matrix):
         """
-        .. todo::
+        Returns a topological view/copy of design matrix.
 
-            WRITEME
+        Parameters
+        ----------
+        design_matrix: numpy.ndarray
+          A design matrix with data in rows. Data is assumed to be laid out in
+          memory according to the axis order ('b', 'c', 0, 1)
+
+        returns: numpy.ndarray
+          A matrix with axis order given by self.axes and batch shape given by
+          self.shape (if you reordered self.shape to match self.axes, as
+          self.shape is always in 'c', 0, 1 order).
+
+          This will try to return
+          a view into design_matrix if possible; otherwise it will allocate a
+          new ndarray.
         """
-        assert len(X.shape) == 2
-        batch_size = X.shape[0]
+        if len(design_matrix.shape) != 2:
+            raise ValueError("design_matrix must have 2 dimensions, but shape "
+                             "was %s." % str(design_matrix.shape))
 
-        channel_shape = [batch_size, self.shape[0], self.shape[1], 1]
-        dimshuffle_args = [('b', 0, 1, 'c').index(axis) for axis in self.axes]
-        if self.shape[-1] * self.pixels_per_channel != X.shape[1]:
-            raise ValueError('View converter with ' + str(self.shape[-1]) +
-                             ' channels and ' + str(self.pixels_per_channel) +
-                             ' pixels per channel asked to convert design'
-                             ' matrix with ' + str(X.shape[1]) + ' columns.')
+        expected_row_size = np.prod(self.shape)
+        if design_matrix.shape[1] != expected_row_size:
+            raise ValueError("This DefaultViewConverter's self.shape = %s, "
+                             "for a total size of %d, but the design_matrix's "
+                             "row size was different (%d)." %
+                             (str(self.shape),
+                              expected_row_size,
+                              design_matrix.shape[1]))
 
-        def get_channel(channel_index):
-            start = self.pixels_per_channel * channel_index
-            stop = self.pixels_per_channel * (channel_index + 1)
-            data = X[:, start:stop]
-            return data.reshape(*channel_shape).transpose(*dimshuffle_args)
-
-        channels = [get_channel(i) for i in xrange(self.shape[-1])]
-
-        channel_idx = self.axes.index('c')
-        rval = np.concatenate(channels, axis=channel_idx)
-        assert len(rval.shape) == len(self.shape) + 1
-        return rval
+        bc01_shape = tuple([design_matrix.shape[0], ] +  # num. batches
+                           # Maps the (0, 1, 'c') of self.shape to ('c', 0, 1)
+                           [self.shape[i] for i in (2, 0, 1)])
+        topo_array_bc01 = design_matrix.reshape(bc01_shape)
+        axis_order = [('b', 'c', 0, 1).index(axis) for axis in self.axes]
+        return topo_array_bc01.transpose(*axis_order)
 
     def design_mat_to_weights_view(self, X):
         """
@@ -1401,34 +1377,38 @@ class DefaultViewConverter(object):
 
         return rval
 
-    def topo_view_to_design_mat(self, V):
+    def topo_view_to_design_mat(self, topo_array):
         """
-        .. todo::
+        Returns a design matrix view/copy of topological matrix.
 
-            WRITEME
+        Parameters
+        ----------
+        topo_array: numpy.ndarray
+          An N-D array with axis order given by self.axes. Non-batch axes'
+          dimension sizes must agree with corresponding sizes in self.shape.
+
+        returns: numpy.ndarray
+          A design matrix with data in rows. Data, is laid out in memory
+          according to the default axis order ('b', 'c', 0, 1). This will
+          try to return a view into topo_array if possible; otherwise it will
+          allocate a new ndarray.
         """
+        for shape_elem, axis in safe_zip(self.shape, (0, 1, 'c')):
+            if topo_array.shape[self.axes.index(axis)] != shape_elem:
+                raise ValueError(
+                    "topo_array's %s axis has a different size "
+                    "(%d) from the corresponding size (%d) in "
+                    "self.shape.\n"
+                    "  self.shape:       %s (uses standard axis order: 0, 1, "
+                    "'c')\n"
+                    "  self.axes:        %s\n"
+                    "  topo_array.shape: %s (should be in self.axes' order)")
 
-        V = V.transpose(self.axes.index('b'),
-                        self.axes.index(0),
-                        self.axes.index(1),
-                        self.axes.index('c'))
+        topo_array_bc01 = topo_array.transpose([self.axes.index(ax)
+                                                for ax in ('b', 'c', 0, 1)])
 
-        num_channels = self.shape[-1]
-        if np.any(np.asarray(self.shape) != np.asarray(V.shape[1:])):
-            raise ValueError('View converter for views of shape batch size '
-                             'followed by ' + str(self.shape) +
-                             ' given tensor of shape ' + str(V.shape))
-        batch_size = V.shape[0]
-
-        rval = np.zeros((batch_size, self.pixels_per_channel * num_channels),
-                        dtype=V.dtype)
-
-        for i in xrange(num_channels):
-            ppc = self.pixels_per_channel
-            rval[:, i * ppc:(i + 1) * ppc] = V[..., i].reshape(batch_size, ppc)
-        assert rval.dtype == V.dtype
-
-        return rval
+        return topo_array_bc01.reshape((topo_array_bc01.shape[0],
+                                        np.prod(topo_array_bc01.shape[1:])))
 
     def get_formatted_batch(self, batch, dspace):
         """

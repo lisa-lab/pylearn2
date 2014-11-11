@@ -14,11 +14,13 @@ from theano import config
 
 
 class MatlabDataset(dense_design_matrix.DenseDesignMatrix):
+
     """
     .. todo::
 
         WRITEME
     """
+
     def __init__(self, path, which_set):
         """
         .. todo::

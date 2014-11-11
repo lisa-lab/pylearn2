@@ -2,17 +2,21 @@ from itertools import product
 
 import numpy as np
 import theano
-from theano import tensor
+from theano import tensor, config
+from nose.tools import assert_raises
 
 from pylearn2.datasets.vector_spaces_dataset import VectorSpacesDataset
+from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.termination_criteria import EpochCounter
 from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.train import Train
 from pylearn2.models.mlp import (FlattenerLayer, MLP, Linear, Softmax, Sigmoid,
                                  exhaustive_dropout_average,
-                                 sampled_dropout_average, CompositeLayer)
-from pylearn2.space import VectorSpace, CompositeSpace
+                                 sampled_dropout_average, CompositeLayer,
+                                 mean_pool)
+from pylearn2.space import VectorSpace, CompositeSpace, Conv2DSpace
 from pylearn2.utils import is_iterable, sharedX
+from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
 
 
 class IdentityLayer(Linear):
@@ -106,11 +110,11 @@ def test_dropout_input_mask_value():
 
 def test_sigmoid_layer_misclass_reporting():
     mlp = MLP(nvis=3, layers=[Sigmoid(layer_name='h0', dim=1, irange=0.005,
-                                      monitor_style='classification')])
+                                      monitor_style='bit_vector_class')])
     target = theano.tensor.matrix(dtype=theano.config.floatX)
     batch = theano.tensor.matrix(dtype=theano.config.floatX)
-    rval = mlp.layers[0].get_monitoring_channels_from_state(mlp.fprop(batch),
-                                                            target)
+    rval = mlp.layers[0].get_layer_monitoring_channels(state_below=batch, state=mlp.fprop(batch),
+                                                            targets=target)
 
     f = theano.function([batch, target], [tensor.gt(mlp.fprop(batch), 0.5),
                                           rval['misclass']],
@@ -302,11 +306,49 @@ def test_multiple_inputs():
             VectorSpace(20),
             VectorSpace(15),
             VectorSpace(5)]),
-         ('features1', 'features0', 'targets'))
+        ('features1', 'features0', 'targets'))
     )
     train = Train(dataset, mlp, SGD(0.1, batch_size=5))
     train.algorithm.termination_criterion = EpochCounter(1)
     train.main_loop()
+
+def test_get_layer_monitor_channels():
+    """
+    Create a MLP with multiple layer types
+    and get layer monitoring channels for MLP.
+    """
+    mlp = MLP(
+        layers=[
+            FlattenerLayer(
+                CompositeLayer(
+                    'composite',
+                    [Linear(10, 'h0', 0.1),
+                     Linear(10, 'h1', 0.1)],
+                    {
+                        0: [1],
+                        1: [0]
+                    }
+                )
+            ),
+            Softmax(5, 'softmax', 0.1)
+        ],
+        input_space=CompositeSpace([VectorSpace(15), VectorSpace(20)]),
+        input_source=('features0', 'features1')
+    )
+    dataset = VectorSpacesDataset(
+        (np.random.rand(20, 20).astype(theano.config.floatX),
+         np.random.rand(20, 15).astype(theano.config.floatX),
+         np.random.rand(20, 5).astype(theano.config.floatX)),
+        (CompositeSpace([
+            VectorSpace(20),
+            VectorSpace(15),
+            VectorSpace(5)]),
+        ('features1', 'features0', 'targets'))
+    )
+    state_below = mlp.get_input_space().make_theano_batch()
+    targets = mlp.get_target_space().make_theano_batch()
+    mlp.get_layer_monitoring_channels(state_below=state_below,
+            state=None, targets=targets)
 
 
 def test_nested_mlp():
@@ -346,7 +388,7 @@ def test_softmax_binary_targets():
 
     y_hat_bin = mlp_bin.fprop(X)
     y_hat_vec = mlp_vec.fprop(X)
-    cost_bin = theano.function([X, y_bin], mlp_bin.cost(y_bin, y_hat_bin), 
+    cost_bin = theano.function([X, y_bin], mlp_bin.cost(y_bin, y_hat_bin),
                                allow_input_downcast=True)
     cost_vec = theano.function([X, y_vec], mlp_vec.cost(y_vec, y_hat_vec),
                                allow_input_downcast=True)
@@ -355,5 +397,170 @@ def test_softmax_binary_targets():
     y_bin_data = np.random.randint(low=0, high=10, size=(batch_size, 1))
     y_vec_data = np.zeros((batch_size, num_classes))
     y_vec_data[np.arange(batch_size),y_bin_data.flatten()] = 1
-    np.testing.assert_allclose(cost_bin(X_data, y_bin_data), cost_vec(X_data, y_vec_data))
+    np.testing.assert_allclose(cost_bin(X_data, y_bin_data),
+                               cost_vec(X_data, y_vec_data))
 
+def test_softmax_weight_init():
+    """
+    Constructs softmax layers with different weight initialization
+    parameters.
+    """
+    nvis=5
+    num_classes = 10
+    MLP(layers=[Softmax(num_classes, 's', irange=0.1)], nvis=nvis)
+    MLP(layers=[Softmax(num_classes, 's', istdev=0.1)], nvis=nvis)
+    MLP(layers=[Softmax(num_classes, 's', sparse_init=2)], nvis=nvis)
+
+def test_softmax_bin_targets_channels(seed=0):
+    """
+    Constructs softmax layers with binary target and with vector targets
+    to check that they give the same 'misclass' channel value.
+    """
+    np.random.seed(seed)
+    num_classes = 2
+    batch_size = 5
+    mlp_bin = MLP(
+        layers=[Softmax(num_classes, 's1', irange=0.1,
+                        binary_target_dim=1)],
+        nvis=100
+    )
+    mlp_vec = MLP(
+        layers=[Softmax(num_classes, 's1', irange=0.1)],
+        nvis=100
+    )
+
+    X = mlp_bin.get_input_space().make_theano_batch()
+    y_bin = mlp_bin.get_target_space().make_theano_batch()
+    y_vec = mlp_vec.get_target_space().make_theano_batch()
+
+    X_data = np.random.random(size=(batch_size, 100))
+    X_data = X_data.astype(theano.config.floatX)
+    y_bin_data = np.random.randint(low=0, high=num_classes,
+                                   size=(batch_size, 1))
+    y_vec_data = np.zeros((batch_size, num_classes), dtype=theano.config.floatX)
+    y_vec_data[np.arange(batch_size),y_bin_data.flatten()] = 1
+
+    def channel_value(channel_name, model, y, y_data):
+        chans = model.get_monitoring_channels((X,y))
+        f_channel = theano.function([X,y], chans['s1_'+channel_name])
+        return f_channel(X_data, y_data)
+
+    for channel_name in ['misclass', 'nll']:
+        vec_val = channel_value(channel_name, mlp_vec, y_vec, y_vec_data)
+        bin_val = channel_value(channel_name, mlp_bin, y_bin, y_bin_data)
+        print channel_name, vec_val, bin_val
+        np.testing.assert_allclose(vec_val, bin_val)
+    
+def test_set_get_weights_Softmax():
+    """
+    Tests setting and getting weights for Softmax layer.
+    """
+    num_classes = 2
+    dim = 3
+    conv_dim = [3, 4, 5]
+
+    # VectorSpace input space
+    layer = Softmax(num_classes, 's', irange=.1)
+    softmax_mlp = MLP(layers=[layer], input_space=VectorSpace(dim=dim))
+    vec_weights = np.random.randn(dim, num_classes).astype(config.floatX)
+    layer.set_weights(vec_weights)
+    assert np.allclose(layer.W.get_value(), vec_weights)
+    layer.W.set_value(vec_weights)
+    assert np.allclose(layer.get_weights(), vec_weights)
+
+    # Conv2DSpace input space
+    layer = Softmax(num_classes, 's', irange=.1)
+    softmax_mlp = MLP(layers=[layer],
+            input_space=Conv2DSpace(shape=(conv_dim[0], conv_dim[1]),
+                                    num_channels=conv_dim[2]))
+    conv_weights = np.random.randn(conv_dim[0], conv_dim[1], conv_dim[2],
+                                   num_classes).astype(config.floatX)
+    layer.set_weights(conv_weights.reshape(np.prod(conv_dim), num_classes))
+    assert np.allclose(layer.W.get_value(),
+                       conv_weights.reshape(np.prod(conv_dim), num_classes))
+    layer.W.set_value(conv_weights.reshape(np.prod(conv_dim), num_classes))
+    assert np.allclose(layer.get_weights_topo(),
+                       np.transpose(conv_weights, axes=(3, 0, 1, 2)))
+
+def test_init_bias_target_marginals():
+    """
+    Test `Softmax` layer instantiation with `init_bias_target_marginals`.
+    """
+    batch_size = 5
+    n_features = 5
+    n_classes = 3
+    n_targets = 3
+    irange = 0.1
+    learning_rate = 0.1
+
+    X_data = np.random.random(size=(batch_size, n_features))
+
+    Y_categorical = np.asarray([[0],[1],[1],[2],[2]])
+    class_frequencies = np.asarray([.2, .4, .4])
+    categorical_dataset = DenseDesignMatrix(X_data,
+                                            y=Y_categorical,
+                                            y_labels=n_classes)
+
+    Y_continuous = np.random.random(size=(batch_size, n_targets))
+    Y_means = np.mean(Y_continuous, axis=0)
+    continuous_dataset = DenseDesignMatrix(X_data,
+                                           y=Y_continuous)
+
+    Y_multiclass = np.random.randint(n_classes,
+                                     size=(batch_size, n_targets))
+    multiclass_dataset = DenseDesignMatrix(X_data,
+                                           y=Y_multiclass,
+                                           y_labels=n_classes)
+
+    def softmax_layer(dataset):
+        return Softmax(n_classes, 'h0', irange=irange,
+                       init_bias_target_marginals=dataset)
+
+    valid_categorical_mlp = MLP(
+        layers=[softmax_layer(categorical_dataset)],
+        nvis=n_features
+    )
+
+    actual = valid_categorical_mlp.layers[0].b.get_value()
+    expected = pseudoinverse_softmax_numpy(class_frequencies)
+    assert np.allclose(actual, expected)
+
+    valid_continuous_mlp = MLP(
+        layers=[softmax_layer(continuous_dataset)],
+        nvis=n_features
+    )
+
+    actual = valid_continuous_mlp.layers[0].b.get_value()
+    expected = pseudoinverse_softmax_numpy(Y_means)
+    assert np.allclose(actual, expected)
+
+    def invalid_multiclass_mlp():
+        return MLP(
+            layers=[softmax_layer(multiclass_dataset)],
+            nvis=n_features
+        )
+    assert_raises(AssertionError, invalid_multiclass_mlp)
+
+
+def test_mean_pool():
+    X_sym = tensor.tensor4('X')
+    pool_it = mean_pool(X_sym, pool_shape=(2, 2), pool_stride=(2, 2),
+                        image_shape=(6, 4))
+
+    f = theano.function(inputs=[X_sym], outputs=pool_it)
+
+    t = np.array([[1, 1, 3, 3],
+                  [1, 1, 3, 3],
+                  [5, 5, 7, 7],
+                  [5, 5, 7, 7],
+                  [9, 9, 11, 11],
+                  [9, 9, 11, 11]], dtype=theano.config.floatX)
+
+    X = np.zeros((3, t.shape[0], t.shape[1]), dtype=theano.config.floatX)
+    X[:] = t
+    X = X[np.newaxis]
+    expected = np.array([[1, 3],
+                         [5, 7],
+                         [9, 11]], dtype=theano.config.floatX)
+    actual = f(X)
+    assert np.allclose(expected, actual)

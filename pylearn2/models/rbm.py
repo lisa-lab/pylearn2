@@ -3,7 +3,6 @@ Implementations of Restricted Boltzmann Machines and associated sampling
 strategies.
 """
 # Standard library imports
-from itertools import izip
 import logging
 
 # Third-party imports
@@ -12,11 +11,12 @@ N = numpy
 np = numpy
 import theano
 from theano import tensor
+from theano.compat.six.moves import zip as izip
 T = tensor
 from theano.tensor import nnet
-from pylearn2.costs.cost import Cost
 
 # Local imports
+from pylearn2.costs.cost import Cost
 from pylearn2.blocks import Block, StackedBlocks
 from pylearn2.utils import as_floatX, safe_update, sharedX
 from pylearn2.models import Model

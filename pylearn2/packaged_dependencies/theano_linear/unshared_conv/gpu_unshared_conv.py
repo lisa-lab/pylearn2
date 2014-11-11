@@ -401,19 +401,19 @@ class GpuWeightActs(Base):
             %(fail)s;
         }
 
-        if (%(frows)s->nd != 0)
+        if (PyArray_NDIM(%(frows)s) != 0)
         {
             PyErr_Format(PyExc_TypeError,
                 "frows ndim (%%i) must be 0",
-                %(frows)s->nd);
+                PyArray_NDIM(%(frows)s));
             %(fail)s;
         }
 
-        if (%(fcols)s->nd != 0)
+        if (PyArray_NDIM(%(fcols)s) != 0)
         {
             PyErr_Format(PyExc_TypeError,
                 "fcols ndim (%%i) must be 0",
-                %(fcols)s->nd);
+                PyArray_NDIM(%(fcols)s));
             %(fail)s;
         }
 
@@ -434,8 +434,8 @@ class GpuWeightActs(Base):
             int fmodulesR = hrows;
             int fmodulesC = hcols;
             int fcolors = icolors_per_group;
-            int frows = ((dtype_%(frows)s *) (%(frows)s->data))[0];
-            int fcols = ((dtype_%(fcols)s *) (%(fcols)s->data))[0];
+            int frows = ((dtype_%(frows)s *) PyArray_DATA(%(frows)s))[0];
+            int fcols = ((dtype_%(fcols)s *) PyArray_DATA(%(fcols)s))[0];
             int fgroups = hgroups;
             int filters_per_group = hcolors_per_group;
 
@@ -643,19 +643,19 @@ class GpuImgActs(Base):
             %(fail)s;
         }
 
-        if (%(irows)s->nd != 0)
+        if (PyArray_NDIM(%(irows)s) != 0)
         {
             PyErr_Format(PyExc_TypeError,
                 "frows ndim (%%i) must be 0",
-                %(irows)s->nd);
+                PyArray_NDIM(%(irows)s));
             %(fail)s;
         }
 
-        if (%(icols)s->nd != 0)
+        if (PyArray_NDIM(%(icols)s) != 0)
         {
             PyErr_Format(PyExc_TypeError,
                 "fcols ndim (%%i) must be 0",
-                %(icols)s->nd);
+                PyArray_NDIM(%(icols)s));
             %(fail)s;
         }
 
@@ -677,8 +677,8 @@ class GpuImgActs(Base):
 
             int igroups           = fgroups;
             int icolors_per_group = fcolors;
-            int irows             = ((dtype_%(irows)s *) (%(irows)s->data))[0];
-            int icols             = ((dtype_%(icols)s *) (%(icols)s->data))[0];
+            int irows             = ((dtype_%(irows)s *) PyArray_DATA(%(irows)s))[0];
+            int icols             = ((dtype_%(icols)s *) PyArray_DATA(%(icols)s))[0];
             int icount            = hcount;
 
 

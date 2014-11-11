@@ -92,7 +92,7 @@ class Block(object):
             WRITEME
         """
         raise NotImplementedError(
-                "%s does not implement set_input_space yet" % str(type(self)))
+            "%s does not implement set_input_space yet" % str(type(self)))
 
     def get_input_space(self):
         """
@@ -101,7 +101,7 @@ class Block(object):
             WRITEME
         """
         raise NotImplementedError(
-                "%s does not implement get_input_space yet" % str(type(self)))
+            "%s does not implement get_input_space yet" % str(type(self)))
 
     def get_output_space(self):
         """
@@ -110,7 +110,7 @@ class Block(object):
             WRITEME
         """
         raise NotImplementedError(
-                "%s does not implement get_output_space yet" % str(type(self)))
+            "%s does not implement get_output_space yet" % str(type(self)))
 
 
 class StackedBlocks(Block):
@@ -200,9 +200,9 @@ class StackedBlocks(Block):
             inputs = tensor.matrix()
 
         return theano.function(
-                [inputs],
-                outputs=self(inputs)[repr_index],
-                name=name)
+            [inputs],
+            outputs=self(inputs)[repr_index],
+            name=name)
 
     def concat(self, name=None, start_index=-1, end_index=None):
         """
@@ -224,8 +224,10 @@ class StackedBlocks(Block):
         WRITEME
         """
         inputs = tensor.matrix()
-        return theano.function([inputs],
-            outputs=tensor.concatenate(self(inputs)[start_index:end_index]),
+        return theano.function(
+            [inputs],
+            outputs=tensor.concatenate(
+                self(inputs)[start_index:end_index]),
             name=name)
 
     def append(self, layer):

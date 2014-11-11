@@ -232,7 +232,8 @@ def _instantiate_proxy_tuple(proxy, bindings=None):
             obj.yaml_src = proxy.yaml_src
         except AttributeError:  # Some classes won't allow this.
             pass
-        return obj
+        bindings[proxy] = obj
+        return bindings[proxy]
 
 
 def instantiate_all(graph):

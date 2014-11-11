@@ -13,9 +13,11 @@ import warnings
 N = np
 from pylearn2.datasets import cache, dense_design_matrix
 from pylearn2.expr.preprocessing import global_contrast_normalize
+from pylearn2.utils import contains_nan
 
 
 class CIFAR10(dense_design_matrix.DenseDesignMatrix):
+
     """
     .. todo::
 
@@ -30,7 +32,6 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     gcn : float, optional
         Multiplicative constant to use for global contrast normalization.
         No global contrast normalization is applied, if None
-    one_hot : WRITEME
     start : WRITEME
     stop : WRITEME
     axes : WRITEME
@@ -39,7 +40,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     """
 
     def __init__(self, which_set, center=False, rescale=False, gcn=None,
-                 one_hot=None, start=None, stop=None, axes=('b', 0, 1, 'c'),
+                 start=None, stop=None, axes=('b', 0, 1, 'c'),
                  toronto_prepro = False, preprocessor = None):
         # note: there is no such thing as the cifar10 validation set;
         # pylearn1 defined one but really it should be user-configurable
@@ -62,7 +63,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
         # prepare loading
         fnames = ['data_batch_%i' % i for i in range(1, 6)]
-        lenx = N.ceil((ntrain + nvalid) / 10000.)*10000
+        lenx = N.ceil((ntrain + nvalid) / 10000.) * 10000
         x = N.zeros((lenx, self.img_size), dtype=dtype)
         y = N.zeros((lenx, 1), dtype=dtype)
 
@@ -70,8 +71,8 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         nloaded = 0
         for i, fname in enumerate(fnames):
             data = CIFAR10._unpickle(fname)
-            x[i*10000:(i+1)*10000, :] = data['data']
-            y[i*10000:(i+1)*10000, 0] = data['labels']
+            x[i * 10000:(i + 1) * 10000, :] = data['data']
+            y[i * 10000:(i + 1) * 10000, 0] = data['labels']
             nloaded += 10000
             if nloaded >= ntrain + nvalid + ntest:
                 break
@@ -97,13 +98,6 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
             y = y.reshape((y.shape[0], 1))
 
         max_labels = 10
-        if one_hot is not None:
-            warnings.warn("the `one_hot` parameter is deprecated. To get "
-                          "one-hot encoded targets, request that they "
-                          "live in `VectorSpace` through the `data_specs` "
-                          "parameter of MNIST's iterator method. "
-                          "`one_hot` will be removed on or after "
-                          "September 20, 2014.", stacklevel=2)
 
         if center:
             X -= 127.5
@@ -150,7 +144,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         super(CIFAR10, self).__init__(X=X, y=y, view_converter=view_converter,
                                       y_labels=self.n_classes)
 
-        assert not np.any(np.isnan(self.X))
+        assert not contains_nan(self.X)
 
         if preprocessor:
             preprocessor.apply(self)
@@ -252,7 +246,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         fname = os.path.join(string_utils.preprocess('${PYLEARN2_DATA_PATH}'),
                              'cifar10', 'cifar-10-batches-py', file)
         if not os.path.exists(fname):
-            raise IOError(fname+" was not found. You probably need to "
+            raise IOError(fname + " was not found. You probably need to "
                           "download the CIFAR-10 dataset by using the "
                           "download script in "
                           "pylearn2/scripts/datasets/download_cifar10.sh "

@@ -23,6 +23,7 @@ from pylearn2.utils.rng import make_np_rng
 
 
 class MNIST(dense_design_matrix.DenseDesignMatrix):
+
     """
     .. todo::
 
@@ -33,7 +34,6 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
     which_set : WRITEME
     center : WRITEME
     shuffle : WRITEME
-    one_hot : WRITEME
     binarize : WRITEME
     start : WRITEME
     stop : WRITEME
@@ -44,8 +44,8 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
     """
 
     def __init__(self, which_set, center=False, shuffle=False,
-                 one_hot=None, binarize=False, start=None,
-                 stop=None, axes=['b', 0, 1, 'c'],
+                 binarize=False, start=None, stop=None,
+                 axes=['b', 0, 1, 'c'],
                  preprocessor=None,
                  fit_preprocessor=False,
                  fit_test_preprocessor=False):
@@ -111,13 +111,6 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             topo_view = (topo_view > 0.5).astype('float32')
 
         max_labels = 10
-        if one_hot is not None:
-            warnings.warn("the `one_hot` parameter is deprecated. To get "
-                          "one-hot encoded targets, request that they "
-                          "live in `VectorSpace` through the `data_specs` "
-                          "parameter of MNIST's iterator method. "
-                          "`one_hot` will be removed on or after "
-                          "September 20, 2014.", stacklevel=2)
 
         m, r, c = topo_view.shape
         assert r == 28
@@ -135,15 +128,16 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             topo_view -= topo_view.mean(axis=0)
 
         if shuffle:
-            self.shuffle_rng = make_np_rng(None, [1, 2, 3], which_method="shuffle")
+            self.shuffle_rng = make_np_rng(
+                None, [1, 2, 3], which_method="shuffle")
             for i in xrange(topo_view.shape[0]):
                 j = self.shuffle_rng.randint(m)
                 # Copy ensures that memory is not aliased.
                 tmp = topo_view[i, :, :, :].copy()
                 topo_view[i, :, :, :] = topo_view[j, :, :, :]
                 topo_view[j, :, :, :] = tmp
-                # Note: slicing with i:i+1 works for one_hot=True/False
-                tmp = y[i:i+1].copy()
+
+                tmp = y[i:i + 1].copy()
                 y[i] = y[j]
                 y[j] = tmp
 
@@ -209,6 +203,7 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
 
 
 class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
+
     """
     .. todo::
 
@@ -218,10 +213,9 @@ class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
     ----------
     which_set : WRITEME
     center : WRITEME
-    one_hot : WRITEME
     """
 
-    def __init__(self, which_set, center=False, one_hot=False):
+    def __init__(self, which_set, center=False):
         path = "${PYLEARN2_DATA_PATH}/mnist/mnist_rotation_back_image/" \
             + which_set
 
@@ -230,18 +224,12 @@ class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
         X = N.cast['float32'](X)
         y = N.asarray(obj['labels'])
 
-        self.one_hot = one_hot
-        if one_hot:
-            one_hot = N.zeros((y.shape[0], 10), dtype='float32')
-            for i in xrange(y.shape[0]):
-                one_hot[i, y[i]] = 1.
-            y = one_hot
-
         if center:
             X -= X.mean(axis=0)
 
         view_converter = dense_design_matrix.DefaultViewConverter((28, 28, 1))
 
-        super(MNIST_rotated_background, self).__init__(X=X, y=y, view_converter=view_converter)
+        super(MNIST_rotated_background, self).__init__(
+            X=X, y=y, y_labels=10, view_converter=view_converter)
 
         assert not N.any(N.isnan(self.X))

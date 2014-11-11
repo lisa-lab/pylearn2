@@ -67,6 +67,7 @@ def _four_regions_labels(points):
 
 
 class FourRegions(DenseDesignMatrix):
+
     """
     Constructs a dataset based on the four regions
     benchmark by sampling random uniform points in [-1, 1]^2
@@ -89,7 +90,7 @@ class FourRegions(DenseDesignMatrix):
     """
     _default_seed = (2013, 05, 17)
 
-    def __init__(self, num_examples, one_hot=False, rng=(2013, 05, 17)):
+    def __init__(self, num_examples, rng=(2013, 05, 17)):
         """
         .. todo::
 
@@ -97,10 +98,5 @@ class FourRegions(DenseDesignMatrix):
         """
         rng = make_np_rng(rng, self._default_seed, which_method='uniform')
         X = rng.uniform(-1, 1, size=(num_examples, 2))
-        if not one_hot:
-            y = _four_regions_labels(X)
-        else:
-            y = np.zeros((num_examples, 4), dtype=config.floatX)
-            labels = _four_regions_labels(X)
-            y.flat[np.arange(0, 4 * num_examples, 4) + labels] = 1.
-        super(FourRegions, self).__init__(X=X, y=y)
+        y = _four_regions_labels(X)
+        super(FourRegions, self).__init__(X=X, y=y, y_labels=4)

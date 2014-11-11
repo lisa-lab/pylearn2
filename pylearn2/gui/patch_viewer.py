@@ -5,6 +5,7 @@ import numpy as np
 from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
 from pylearn2.utils.image import Image, ensure_Image
 from pylearn2.utils.image import show
+from pylearn2.utils import isfinite
 from pylearn2.utils import py_integer_types
 import warnings
 
@@ -265,7 +266,7 @@ class PatchViewer(object):
 
         temp = patch.copy()
 
-        assert (not np.any(np.isnan(temp))) and (not np.any(np.isinf(temp)))
+        assert isfinite(temp)
 
         if rescale:
             scale = np.abs(temp).max()
@@ -403,7 +404,7 @@ class PatchViewer(object):
             best_c = -1
             best_ratio = 0
 
-            for r in xrange(1,int(np.sqrt(n))+1):
+            for r in xrange(1, int(np.sqrt(n)) + 1):
                 if n % r != 0:
                     continue
                 c = n / r

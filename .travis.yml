@@ -1,70 +1,25 @@
-# After changing this file, check it on:
-# http://lint.travis-ci.org/
-
-## Use language: c to avoid being trapped in a virtualenv,
-# so we can use "apt-get" (instead of "pip" )to install scipy,
-# as pip takes much too long.
-#language: c
-
 language: python
 python:
-#Currently we use functools.cmp_to_key that is available only in python 2.7
   - "2.6"
-
-# command to install dependencies
 before_install:
-#zlib1g-dev is needed to allow PIL to uncompress the dataset.
-  - sudo apt-get install -qq libatlas3gf-base libatlas-dev liblapack-dev gfortran zlib1g-dev
-    libhdf5-serial-dev
-
-# The "|| cat ..." part prints the error log if the pip command fails
+  - sudo apt-get install -qq libatlas3gf-base libatlas-dev liblapack-dev gfortran
+  - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+  - chmod +x miniconda.sh
+  - ./miniconda.sh -b
+  - export PATH=/home/travis/miniconda/bin:$PATH
+  - conda update --yes conda
 install:
-#Make sure the pip version used is linked to the used python version
-  - "cat `which pip`"
-  - "which python"
-  - "python --version"
-# If we don't install numpy before SciPy, the SciPy installations fails.
-# We can't compile scipy 0.9 sparse stuff  with NumPy 1.5/1.5.1 due to a bug.
-  - "travis_retry pip install -q numpy==1.6 --use-mirrors"
-# We support scipy 0.7.2, but it is not available on pypi anymore.
-# So we test with 0.9. Our internal buildbot have 0.7.2.
-# We install it later only for the PART that need it.
-  - "travis_retry pip install -q nose==1.0.0 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "travis_retry pip install -q Pillow --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-#numexpr 2.0 need NumPy 1.6 or above. As we support NumPy 1.5,
-#we need an older numexpr version. numexpr is needed for pytables
-  - "travis_retry pip install -q numexpr==1.4.2 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-#cython is needed by pylearn2/utils/setup.py
-  - "travis_retry pip install -q cython --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "travis_retry pip install -q tables==2.4.0 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "travis_retry pip install -q pyyaml --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "travis_retry pip install -q sphinx --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "travis_retry pip install git+git://github.com/numpy/numpydoc.git@e433d273afe278162b07535f54ab182bff4f2565 || (cat /home/travis/.pip/pip.log; false)"
-  - "travis_retry pip install scipy==0.8 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "travis_retry pip install argparse --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-#More recent version then the one in the os
-  - "travis_retry pip install -q pyflakes --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-
-  - "travis_retry pip install -q git+git://git.assembla.com/jobman.git || (cat /home/travis/.pip/pip.log; false)"
-  - "travis_retry pip install -q --no-deps git+git://github.com/Theano/Theano.git || (cat /home/travis/.pip/pip.log ; false)"
-  - "travis_retry pip install nose-timelimit --use-mirrors"
-  # Change this once we have a unified setup file.
+  - conda create --yes -q -n py26 python=2.6 cython=0.2 pillow numpy=1.6 numpydoc scipy=0.11 pytables=3.0 numexpr=2.2.2 nose=1.1 pyyaml sphinx argparse pyflakes pip
+  - source activate py26
+  - pip install -q git+git://git.assembla.com/jobman.git
+  - pip install -q --no-deps git+git://github.com/Theano/Theano.git
+  - pip install -q nose-exclude
   - python setup.py develop
-
-# command to run tests
 env:
-  - FLAGS=floatX=float64 PART="-e test_autoencoder.py -e test_convelemwise_rect.py -e test_convelemwise_sigm.py -e test_convelemwise_tanh.py -e test_dbm.py -e test_dropout.py -e test_gsn.py -e test_maxout.py -e test_mlp.py -e test_mnd.py -e test_rbm.py -e test_reflection_clip.py -e test_s3c_inference.py -e test_s3c_misc.py -e test_svm.py -e test_windowlayer.py"
+  - FLAGS=floatX=float64 PART="--exclude-dir=pylearn2/models"
   - FLAGS=floatX=float64 PART=pylearn2/models
-#Exclude file inside pylearn2/models, sadly I didn't found a better way.
-  - FLAGS=floatX=float32 PART="-e test_autoencoder.py -e test_convelemwise_rect.py -e test_convelemwise_sigm.py -e test_convelemwise_tanh.py -e test_dbm.py -e test_dropout.py -e test_gsn.py -e test_maxout.py -e test_mlp.py -e test_mnd.py -e test_rbm.py -e test_reflection_clip.py -e test_s3c_inference.py -e test_s3c_misc.py -e test_svm.py -e test_windowlayer.py"
+  - FLAGS=floatX=float32 PART="--exclude-dir=pylearn2/models"
   - FLAGS=floatX=float32 PART=pylearn2/models
   - TEST_DOC=YES
-
-# Start testing
 script:
-#We can't build the test dataset as the original is not present. We can't download the original as it
-# is too big to download each time. If present run: python make_dataset.py
   - sh .travis.sh
-
-after_failure:
-  - cat /home/travis/.pip/pip.log

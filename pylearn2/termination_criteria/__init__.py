@@ -101,7 +101,7 @@ class MonitorBased(TerminationCriterion):
         # called unless the channel value is lower than the best value times
         # the prop_decrease factor, in which case the countdown is reset to N
         # and the best value is updated
-        if v[- 1] < (1. - self.prop_decrease) * self.best_value:
+        if v[-1] < (1. - self.prop_decrease) * self.best_value:
             self.countdown = self.N
         else:
             self.countdown = self.countdown - 1
@@ -200,7 +200,6 @@ class ChannelInf(TerminationCriterion):
         monitor = model.monitor
         channels = monitor.channels
         channel = channels[self.channel_name]
-
         rval = np.isinf(channel.val_record[-1])
         return rval
 
