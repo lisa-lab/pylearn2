@@ -103,7 +103,7 @@ class GTSRB(DenseDesignMatrix):
             elif img.size[0] < img.size[1]:
                 img = img.crop([0, 0, img.size[0], img.size[0]])
             if img.size[0] + bound >= self.img_size[0]:
-                img = img.convert('L')
+                img = img.convert('L') # convert to grayscale
                 img = img.resize(self.img_size, Image.ANTIALIAS)  # resize
                 if first:
                     X = numpy.asarray([img.getdata()])
