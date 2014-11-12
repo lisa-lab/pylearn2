@@ -418,6 +418,7 @@ class SGD(TrainingAlgorithm):
                                        on_unused_input='ignore',
                                        mode=self.theano_function_mode)
         self.params = params
+        self.monitor.set_channels()
 
     def train(self, dataset):
         """
