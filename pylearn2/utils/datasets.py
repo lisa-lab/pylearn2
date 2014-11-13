@@ -12,6 +12,7 @@ import warnings
 # Third-party imports
 import numpy
 import scipy
+from six.moves import xrange
 import theano
 try:
     from matplotlib import pyplot

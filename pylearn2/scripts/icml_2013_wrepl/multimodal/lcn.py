@@ -4,6 +4,7 @@ import numpy as np
 import os
 import sys
 
+from six.moves import xrange
 from pylearn2.utils import image
 from pylearn2.utils import serial
 from pylearn2.utils.string_utils import preprocess

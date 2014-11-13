@@ -4,6 +4,7 @@ from itertools import product
 
 import numpy as np
 import six
+from six.moves import xrange
 import theano
 from theano import tensor, config
 from nose.tools import assert_raises

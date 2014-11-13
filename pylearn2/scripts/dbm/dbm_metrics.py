@@ -34,6 +34,7 @@ import warnings
 import numpy
 import logging
 
+from six.moves import xrange
 import theano
 import theano.tensor as T
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams

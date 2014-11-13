@@ -6,6 +6,7 @@ import warnings
 import theano
 import theano.tensor as TT
 import numpy
+from six.moves import xrange
 from .linesearch import scalar_armijo_search
 from .linesearch import scalar_search_wolfe2
 

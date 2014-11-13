@@ -10,6 +10,7 @@ To read about different sparse formats, see U{http://www-users.cs.umn.edu/~saad/
 import logging
 import numpy
 from scipy import sparse as scipy_sparse
+from six.moves import xrange
 
 import theano
 import theano.sparse

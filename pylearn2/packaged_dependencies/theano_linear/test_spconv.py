@@ -1,3 +1,4 @@
+from six.moves import xrange
 activate_test_spconv = 0
 if activate_test_spconv:
     import sys

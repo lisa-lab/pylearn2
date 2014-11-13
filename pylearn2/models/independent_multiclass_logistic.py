@@ -15,6 +15,7 @@ try:
 except ImportError:
     LogisticRegression = None
 import numpy as np
+from six.moves import xrange
 
 logger = logging.getLogger(__name__)
 

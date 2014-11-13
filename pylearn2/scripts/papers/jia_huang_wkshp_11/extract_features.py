@@ -19,6 +19,7 @@ import warnings
 import time
 import copy
 import numpy as np
+from six.moves import xrange
 from theano import config
 from theano import tensor as T
 from theano import function

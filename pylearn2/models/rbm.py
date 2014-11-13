@@ -9,6 +9,7 @@ import logging
 import numpy
 N = numpy
 np = numpy
+from six.moves import xrange
 import theano
 from theano import tensor
 from theano.compat.six.moves import zip as izip

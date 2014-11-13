@@ -13,6 +13,7 @@ import time
 import warnings
 
 import numpy as np
+from six.moves import xrange
 from theano import config, function
 from theano import scan
 from theano.compat.python2x import OrderedDict

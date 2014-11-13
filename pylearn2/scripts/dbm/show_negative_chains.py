@@ -12,6 +12,7 @@ from pylearn2.utils import serial
 from pylearn2.datasets import control
 from pylearn2.config import yaml_parse
 import numpy as np
+from six.moves import xrange
 from pylearn2.gui.patch_viewer import PatchViewer
 
 ignore, model_path = sys.argv

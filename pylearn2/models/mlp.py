@@ -13,6 +13,7 @@ import sys
 import warnings
 
 import numpy as np
+from six.moves import xrange
 from theano import config
 from theano.compat.python2x import OrderedDict
 from theano.gof.op import get_debug_values

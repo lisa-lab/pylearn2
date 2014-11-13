@@ -14,6 +14,7 @@ import logging
 import time
 
 import numpy as np
+from six.moves import xrange
 
 from theano import config
 from theano.compat.python2x import OrderedDict

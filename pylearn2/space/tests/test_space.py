@@ -7,6 +7,7 @@ import itertools
 import warnings
 
 import numpy as np
+from six.moves import xrange
 import theano
 from theano import tensor
 

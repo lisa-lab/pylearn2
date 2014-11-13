@@ -15,6 +15,7 @@ __email__ = "pylearn-dev@googlegroups"
 
 import argparse
 import numpy as np
+from six.moves import xrange
 from pylearn2.gui import patch_viewer
 from pylearn2.config import yaml_parse
 
