@@ -7,12 +7,6 @@ Your models in Pylearn2
 Who should read this
 ====================
 
-This tutorial is designed for anyone working with Theano who is tired
-of writing the same old code over and over again. Do you have SGD
-implementations scattered in nearly every experiment file? Do you think that Pylearn2 looks
-attractive, but that porting your Theano code is too much of an
-investment? Then this tutorial is for you.
-
 We recommend you spend some time with Pylearn2 and read some of our other tutorials before starting with this minimalistic technique. 
 If you are completely new to Pylearn2, have a look at the 
 `softmax regression tutorial <http://nbviewer.ipython.org/github/lisa-lab/pylearn2/blob/master/pylearn2/scripts/tutorials/softmax_regression/softmax_regression.ipynb>`_.
@@ -47,7 +41,7 @@ Theano-like fashion: write a model as a big monolithic block of hard coded
 Theano expressions, and wrap that up in the minimal amount of code necessary
 to be able to plug a model into Pylearn2. **This bare minimum is what we’ll explain here.**
 
-Sure, every little change to the model is a pain, but it works, right? As you
+The resulting model may be hard to extend, but it represents a good starting point. As you
 explore new ideas and change the code, you can gradually make it more flexible:
 a hard coded input dimension gets factored out as a constructor argument,
 functions being composed are separated into layers, etc.
@@ -116,7 +110,7 @@ Let's look at how the subclass should look:
 The `supervised` class attribute is used by `DefaultDataSpecsMixin` to know how
 to specify the data requirements. If it is set to `True`, the cost will expect
 to receive inputs and targets, and if it is set to `False`, the cost will expect
-to recieve inputs only. In the example, it is assumed that we are doing
+to receive inputs only. In the example, it is assumed that we are doing
 supervised learning, so we set `supervised` to `True`.
 
 The first two lines of `expr` do some basic input checking and should always be
@@ -209,7 +203,8 @@ learning. These attributes should be instances of `pylearn2.space.Space` (and
 generally are instances of `pylearn2.space.VectorSpace`, a subclass of
 `pylearn2.space.Space` used to represent batches of vectors). Broadly, this 
 mechanism allows for automatic conversion between
-different data formats (e.g. if your targets are stored as integer indexes in
+different `data formats <http://deeplearning.net/software/pylearn2/internal/data_specs.html#data-specs>`_
+ (e.g. if your targets are stored as integer indexes in
 the dataset but are required to be one-hot encoded by the model).
 
 The `some_method_for_outputs` method is really where all the magic happens. Remember, 
@@ -220,7 +215,7 @@ and its parameters. What happens in between is up to you, and this is where you
 can put all the Theano code you could possibly hope for, just like you would do
 in pure Theano scripts.
 
-Show me examples
+Examples
 ================
 
 Let's demonstrate these ideas by writing two
@@ -229,8 +224,8 @@ learning.
 
 The data you train these models on is up to you, as long as it is represented in
 a matrix of features (each row being an example) and a matrix of targets (where each
-row is a target for an example.  Obviously this second matrix is only required for
-supervised learning). While this is not the only way to store data in Pylearn2, 
+row is a target for an example).  Obviously this second matrix is only required for
+supervised learning. While this is not the only way to store data in Pylearn2, 
 it is probably the most common method, so we will use it in the remainder of this discussion.
 
 For the purposes of this tutorial, we will train models on the venerable
@@ -259,8 +254,8 @@ files:
 Supervised learning using logistic regression
 ---------------------------------------------
 
-Let's keep things simple by porting to Pylearn2 the _Hello
-World!_ of supervised learning: logistic regression.  For a refresher, we suggest that you first
+Let's keep things simple by porting to Pylearn2 the *Hello
+World!* of supervised learning: logistic regression.  For a refresher, we suggest that you first
 read the `deeplearning.net tutorial <http://www.deeplearning.net/tutorial/logreg.html#logreg>`_ on logistic regression. Here is 
 what we need to do:
 
@@ -288,7 +283,7 @@ Let's start with the `Cost` subclass:
 	    loss = -(targets * T.log(outputs)).sum(axis=1)
 	    return loss.mean()
 
-Easy enough. We assumed our model has a `logistic_regression` method which
+We assumed our model has a `logistic_regression` method which
 accepts a batch of examples and computes the logistic regression output. We will
 implement that method in just a moment. We also computed the loss as the average
 negative log-likelihood of the targets given the logistic regression output, as
@@ -339,7 +334,7 @@ returns a linear transformation of the input followed by a softmax
 non-linearity.
 
 How about we give it a try? Save those two code snippets in a single file (e.g.
-`log_reg.py` and save the following in `log_reg.yaml`:
+`log_reg.py`) and save the following in `log_reg.yaml`:
 
 .. code-block:: yaml
     
@@ -555,7 +550,7 @@ Let's look at how it's done. Add the following to `LogisticRegression`:
             return (space, source)
 
         def get_monitoring_channels(self, data):
-            space, source = self.get_monitoring_data_specs(model)
+            space, source = self.get_monitoring_data_specs()
             space.validate(data)
 
             X, y = data
