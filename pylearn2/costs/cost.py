@@ -222,6 +222,25 @@ class Cost(object):
         raise NotImplementedError(str(type(self)) + " does not implement " +
                                   "get_data_specs.")
 
+    def is_stochastic(self):
+        """
+        Returns True if the cost is stochastic.
+
+        Stochastic costs are incompatible with some optimization algorithms
+        that make multiple updates per minibatch, such as algorithms that
+        use line searches. These optimizations should raise a TypeError if
+        given a stochastic Cost, or issue a warning if given a Cost whose
+        `is_stochastic` method raises NotImplementedError.
+
+        Returns
+        -------
+        is_stochastic : bool
+            Whether the cost is stochastic. For example, dropout is
+            stochastic.
+        """
+
+        raise NotImplementedError()
+
 
 class SumOfCosts(Cost):
     """

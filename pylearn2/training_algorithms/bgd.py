@@ -12,6 +12,8 @@ __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
 import logging
+import warnings
+
 import numpy as np
 from theano import config
 from theano.compat.python2x import OrderedDict
@@ -128,6 +130,15 @@ class BGD(TrainingAlgorithm):
 
         if self.cost is None:
             self.cost = model.get_default_cost()
+
+        try:
+            if self.cost.is_stochastic():
+                raise TypeError("BGD is not compatible with stochastic "
+                                "costs.")
+        except NotImplementedError:
+            warnings.warn("BGD is not compatible with stochastic costs "
+                          "and cannot determine whether the current cost is "
+                          "stochastic.")
 
         if self.batch_size is None:
             self.batch_size = model.force_batch_size
