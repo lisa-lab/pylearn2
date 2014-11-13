@@ -1,7 +1,5 @@
 """
-.. todo::
-
-    WRITEME
+The MNIST dataset.
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
@@ -11,7 +9,6 @@ __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
 import numpy as N
-import warnings
 np = N
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.datasets import control
@@ -23,16 +20,15 @@ from pylearn2.utils.rng import make_np_rng
 
 
 class MNIST(dense_design_matrix.DenseDesignMatrix):
-
     """
-    .. todo::
-
-        WRITEME
+    The MNIST dataset
 
     Parameters
     ----------
-    which_set : WRITEME
-    center : WRITEME
+    which_set : str
+        'train' or 'test'
+    center : bool
+        If True, preprocess so that each pixel has zero mean.
     shuffle : WRITEME
     binarize : WRITEME
     start : WRITEME
