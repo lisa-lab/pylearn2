@@ -9,6 +9,7 @@ from theano import tensor
 from theano.tensor import TensorType
 
 from pylearn2 import space
+from pylearn2.space import Conv2DSpace
 from pylearn2.utils import is_iterable
 
 
@@ -112,14 +113,14 @@ class SequenceDataSpace(space.SimplyTypedSpace):
             if isinstance(space, SequenceDataSpace):
                 if is_numeric:
                     formatted_batch = np.transpose(np.asarray([
-                        self.space._format_as_impl(is_numeric, sample, space.space)
+                        self.space._format_as_impl(is_numeric, sample,
+                                                   space.space)
                         for sample in np.transpose(batch, (1, 0, 2))
                     ]), (1, 0, 2))
                 else:
                     formatted_batch, _ = scan(
-                        fn=lambda elem: self.space._format_as_impl(is_numeric,
-                                                                   elem,
-                                                                   space.space),
+                        fn=lambda elem: self.space._format_as_impl(
+                            is_numeric, elem, space.space),
                         sequences=[batch]
                     )
                 return formatted_batch
@@ -163,7 +164,8 @@ class SequenceDataSpace(space.SimplyTypedSpace):
                     raise ValueError(str(self)+" with total dimension " +
                                      str(my_dimension) +
                                      " can't format a batch into " +
-                                     str(space) + "because its total dimension is " +
+                                     str(space) + "because its total dimension\
+                                             is " +
                                      str(other_dimension))
 
     @wraps(space.Space.get_origin_batch)

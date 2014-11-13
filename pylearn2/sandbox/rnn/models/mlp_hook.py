@@ -93,54 +93,44 @@ class RNNWrapper(MetaLibVersion):
                     state_below, mask = state_below
                 if isinstance(state_below, tuple):
                     ndim = state_below[0].ndim
+                    reshape_size = state_below[0].shape
                 else:
                     ndim = state_below.ndim
+                    reshape_size = state_below.shape
 
                 if ndim > 2:
                     if isinstance(state_below, tuple):
-                        input_shape = ([[state_below[j].shape[0] *
-                                         state_below[j].shape[1]] +
-                                        [state_below[j].shape[i]
-                                         for i in xrange(2, state_below[j].ndim)]
-                                        for j in xrange(len(state_below))])
-                        reshaped_state_below = ()
+                        inp_shape = ([[state_below[j].shape[0] *
+                                       state_below[j].shape[1]] +
+                                      [state_below[j].shape[i]
+                                      for i in xrange(2, state_below[j].ndim)]
+                                      for j in xrange(len(state_below))])
+                        reshaped_below = ()
                         for i in xrange(len(state_below)):
-                            reshaped_state_below += (state_below[i].reshape(input_shape[i]),)
+                            reshaped_below +=\
+                                (state_below[i].reshape(inp_shape[i]),)
                     else:
-                        input_shape = ([state_below.shape[0] *
-                                        state_below.shape[1]] +
-                                       [state_below.shape[i]
-                                        for i in xrange(2, state_below.ndim)])
-                        reshaped_state_below = state_below.reshape(input_shape)
-                    reshaped_state = fprop(self, reshaped_state_below)
-                    if isinstance(reshaped_state, tuple):
-                        if isinstance(state_below, tuple):
-                            output_shape = ([[state_below[-1].shape[0],
-                                              state_below[-1].shape[1]] +
-                                             [reshaped_state[j].shape[i]
-                                              for i in xrange(1, reshaped_state[j].ndim)]
-                                             for j in xrange(len(reshaped_state))])
-                        else:
-                            output_shape = ([[state_below.shape[0],
-                                              state_below.shape[1]] +
-                                             [reshaped_state[j].shape[i]
-                                              for i in xrange(1, reshaped_state[j].ndim)]
-                                             for j in xrange(len(reshaped_state))])
+                        inp_shape = ([state_below.shape[0] *
+                                      state_below.shape[1]] +
+                                     [state_below.shape[i]
+                                     for i in xrange(2, state_below.ndim)])
+                        reshaped_below = state_below.reshape(inp_shape)
+                    reshaped = fprop(self, reshaped_below)
+                    if isinstance(reshaped, tuple):
+                        output_shape = ([[reshape_size[0],
+                                          reshape_size[1]] +
+                                         [reshaped[j].shape[i]
+                                          for i in xrange(1, reshaped[j].ndim)]
+                                         for j in xrange(len(reshaped))])
                         state = ()
-                        for i in xrange(len(reshaped_state)):
-                            state += (reshaped_state[i].reshape(output_shape[i]),)
+                        for i in xrange(len(reshaped)):
+                            state += (reshaped[i].reshape(output_shape[i]),)
                     else:
-                        if isinstance(state_below, tuple):
-                            output_shape = ([state_below[-1].shape[0],
-                                             state_below[-1].shape[1]] +
-                                            [reshaped_state.shape[i]
-                                             for i in xrange(1, reshaped_state.ndim)])
-                        else:
-                            output_shape = ([state_below.shape[0],
-                                             state_below.shape[1]] +
-                                            [reshaped_state.shape[i]
-                                             for i in xrange(1, reshaped_state.ndim)])
-                        state = reshaped_state.reshape(output_shape)
+                        output_shape = ([reshape_size[0],
+                                         reshape_size[1]] +
+                                        [reshaped.shape[i]
+                                         for i in xrange(1, reshaped.nim)])
+                        state = reshaped.reshape(output_shape)
                 else:
                     state = fprop(self, state_below)
                 if self._requires_unmask:
@@ -235,7 +225,8 @@ class RNNWrapper(MetaLibVersion):
                 reshaped_Y = Y.reshape(input_shape)
                 if isinstance(Y_hat, tuple):
                     input_shape = ([[Y_hat[j].shape[0] * Y_hat[j].shape[1]] +
-                                    [Y_hat[j].shape[i] for i in xrange(2, Y_hat[j].ndim)]
+                                    [Y_hat[j].shape[i]
+                                    for i in xrange(2, Y_hat[j].ndim)]
                                     for j in xrange(len(Y_hat))])
                     reshaped_Y_hat = []
                     for i in xrange(len(Y_hat)):
@@ -356,7 +347,8 @@ class RNNWrapper(MetaLibVersion):
         def outer(self):
             if (not self.rnn_friendly and self._requires_reshape and
                     (not isinstance(get_output_space(self), SequenceSpace) and
-                        not isinstance(get_output_space(self), SequenceDataSpace))):
+                        not isinstance(get_output_space(self),
+                                       SequenceDataSpace))):
                 if isinstance(self.mlp.input_space, SequenceSpace):
                     return SequenceSpace(get_output_space(self))
                 elif isinstance(self.mlp.input_space, SequenceDataSpace):
@@ -379,7 +371,8 @@ class RNNWrapper(MetaLibVersion):
         def outer(self):
             if (not self.rnn_friendly and self._requires_reshape and
                     (not isinstance(get_target_space(self), SequenceSpace) and
-                        not isinstance(get_target_space(self), SequenceDataSpace))):
+                        not isinstance(get_target_space(self),
+                                       SequenceDataSpace))):
                 if isinstance(self.mlp.input_space, SequenceSpace):
                     return SequenceSpace(get_target_space(self))
                 elif isinstance(self.mlp.input_space, SequenceDataSpace):
