@@ -115,7 +115,7 @@ def make_local_rfs(dataset, nhid, rf_shape, stride, irange = .05,
     last_row = s[0] - rf_shape[0]
     last_col = s[1] - rf_shape[1]
 
-    rng = make_np_rng(rng, [2012,07,18], which_method='uniform')
+    rng = make_np_rng(rng, [2012, 7, 18], which_method='uniform')
 
 
     if stride is not None:

@@ -75,7 +75,8 @@ setup(
     license='BSD 3-clause license',
     long_description=open('README.rst').read(),
     dependency_links=['git+http://github.com/Theano/Theano.git#egg=Theano'],
-    install_requires=['numpy>=1.5', 'pyyaml', 'argparse', "Theano"],
+    install_requires=['numpy>=1.5', 'pyyaml', 'argparse', "Theano",
+                      "six"],
     package_data={
         '': ['*.cu', '*.cuh', '*.h'],
     },

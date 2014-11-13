@@ -88,9 +88,9 @@ class FourRegions(DenseDesignMatrix):
       Information Processing Systems, 1, (1988) pp 133-140.
       http://books.nips.cc/papers/files/nips01/0133.pdf
     """
-    _default_seed = (2013, 05, 17)
+    _default_seed = (2013, 5, 17)
 
-    def __init__(self, num_examples, rng=(2013, 05, 17)):
+    def __init__(self, num_examples, rng=(2013, 5, 17)):
         """
         .. todo::
 

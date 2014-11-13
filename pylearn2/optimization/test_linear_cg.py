@@ -3,7 +3,7 @@ from __future__ import print_function
 import theano
 from theano import tensor, config
 import numpy
-import linear_cg
+from pylearn2.optimization import linear_cg
 import warnings
 from pylearn2.testing.skip import skip_if_no_scipy
 try:

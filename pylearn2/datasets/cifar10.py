@@ -4,7 +4,7 @@
     WRITEME
 """
 import os
-import cPickle
+from six.moves import cPickle
 import logging
 _logger = logging.getLogger(__name__)
 

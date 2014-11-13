@@ -1,4 +1,5 @@
 """Datasets for working with text"""
+import six
 
 
 class TextDatasetMixin(object):
@@ -89,7 +90,7 @@ class TextDatasetMixin(object):
         assert isinstance(words, list)
         if all(isinstance(word, list) for word in words):
             return [self.words_to_indices(word) for word in words]
-        assert all(isinstance(word, basestring) for word in words)
+        assert all(isinstance(word, six.string_types) for word in words)
         if self.is_case_sensitive:
             return [self.vocabulary.get(word, self.unknown_index)
                     for word in words]

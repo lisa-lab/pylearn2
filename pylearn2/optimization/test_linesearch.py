@@ -6,8 +6,8 @@ import warnings
 import theano
 import theano.tensor as TT
 import numpy
-from linesearch import scalar_armijo_search
-from linesearch import scalar_search_wolfe2
+from .linesearch import scalar_armijo_search
+from .linesearch import scalar_search_wolfe2
 
 
 def line_search_armijo(ftemp, derphi0, old_fval, args=(), c1=1e-4, alpha0=1,

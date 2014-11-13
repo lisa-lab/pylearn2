@@ -11,7 +11,7 @@ from theano.gof.compilelock import get_lock, release_lock
 from theano.sandbox import cuda
 from theano.sandbox.cuda import nvcc_compiler
 
-from shared_code import this_dir
+from .shared_code import this_dir
 
 import pylearn2.sandbox.cuda_convnet.pthreads
 from pylearn2.sandbox.cuda_convnet import check_cuda

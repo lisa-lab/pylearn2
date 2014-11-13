@@ -3,6 +3,7 @@ from __future__ import print_function
 from itertools import product
 
 import numpy as np
+import six
 import theano
 from theano import tensor, config
 from nose.tools import assert_raises
@@ -158,7 +159,7 @@ def test_str():
 
     s = str(mlp)
 
-    assert isinstance(s, basestring)
+    assert isinstance(s, six.string_types)
 
 def test_sigmoid_detection_cost():
     # This is only a smoke test: verifies that it compiles and runs,

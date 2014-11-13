@@ -1,4 +1,4 @@
-import cStringIO
+from six.moves import cStringIO
 import numpy as np
 
 import theano.tensor as T
@@ -238,13 +238,13 @@ def test_determinism():
 
 
 
-    output = cStringIO.StringIO()
+    output = cStringIO()
     record = Record(file_object=output, replay=False)
     record_mode = RecordMode(record)
 
     run_bgd(record_mode)
 
-    output = cStringIO.StringIO(output.getvalue())
+    output = cStringIO(output.getvalue())
     playback = Record(file_object=output, replay=True)
     playback_mode = RecordMode(playback)
 

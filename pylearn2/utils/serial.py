@@ -3,7 +3,12 @@
 
     WRITEME
 """
-import cPickle
+try:
+    import cPickle
+    from cPickle import BadPickleGet
+except ImportError:
+    import pickle as cPickle
+    from pickle import UnpicklingError as BadPickleGet
 import pickle
 import logging
 import numpy as np
@@ -13,7 +18,6 @@ import warnings
 import sys
 from pylearn2.utils.string_utils import preprocess
 from pylearn2.utils.mem import improve_memory_error_message
-from cPickle import BadPickleGet
 io = None
 hdf_reader = None
 import struct

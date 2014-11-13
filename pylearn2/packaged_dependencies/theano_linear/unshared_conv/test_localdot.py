@@ -7,7 +7,7 @@ import numpy as np
 
 import theano
 
-from localdot import LocalDot
+from .localdot import LocalDot
 
 from ..test_matrixmul import SymbolicSelfTestMixin
 

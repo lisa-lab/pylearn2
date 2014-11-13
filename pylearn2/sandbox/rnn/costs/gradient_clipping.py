@@ -3,6 +3,7 @@ Implements gradient clipping as a cost wrapper.
 """
 from functools import wraps
 
+import six
 from theano import tensor
 from theano.compat.python2x import OrderedDict
 
@@ -29,7 +30,7 @@ class GradientClipping(object):
         assert isinstance(clipping_value, py_number_types)
         assert isinstance(cost, Cost)
         assert is_iterable(exclude_params)
-        assert all(isinstance(param_name, basestring)
+        assert all(isinstance(param_name, six.string_types)
                    for param_name in exclude_params)
         self.__dict__.update(locals())
         del self.self

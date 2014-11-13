@@ -18,7 +18,9 @@ Presets:
 from __future__ import division
 import functools
 import inspect
+
 import numpy as np
+import six
 
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_izip, wraps
@@ -675,7 +677,7 @@ def resolve_iterator_class(mode):
         A class instance (i.e., an instance of type `type`) that
         interface defined in :py:class:`SubsetIterator`.
     """
-    if isinstance(mode, basestring) and mode not in _iteration_schemes:
+    if isinstance(mode, six.string_types) and mode not in _iteration_schemes:
         raise ValueError("unknown iteration mode string: %s" % mode)
     elif mode in _iteration_schemes:
         subset_iter_class = _iteration_schemes[mode]

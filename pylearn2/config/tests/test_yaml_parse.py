@@ -6,7 +6,7 @@ from __future__ import print_function
 
 import os
 import numpy as np
-import cPickle
+from six.moves import cPickle
 import tempfile
 from numpy.testing import assert_
 from pylearn2.config.yaml_parse import load, load_path, initialize

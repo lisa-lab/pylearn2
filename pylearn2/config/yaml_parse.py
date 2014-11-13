@@ -9,6 +9,7 @@ from collections import namedtuple
 import logging
 import warnings
 
+import six
 
 is_initialized = False
 additional_environ = None
@@ -287,7 +288,7 @@ def _instantiate(proxy, bindings=None):
         return [_instantiate(v, bindings) for v in proxy]
     # In the future it might be good to consider a dict argument that provides
     # a type->callable mapping for arbitrary transformations like this.
-    elif isinstance(proxy, basestring):
+    elif isinstance(proxy, six.string_types):
         return preprocess(proxy)
     else:
         return proxy
@@ -327,7 +328,7 @@ def load(stream, environ=None, instantiate=True, **kwargs):
         initialize()
     additional_environ = environ
 
-    if isinstance(stream, basestring):
+    if isinstance(stream, six.string_types):
         string = stream
     else:
         string = stream.read()
@@ -482,7 +483,7 @@ def multi_constructor_obj(loader, tag_suffix, node):
     assert hasattr(mapping, 'values')
 
     for key in mapping.keys():
-        if not isinstance(key, basestring):
+        if not isinstance(key, six.string_types):
             message = "Received non string object (%s) as " \
                       "key in mapping." % str(key)
             raise TypeError(message)

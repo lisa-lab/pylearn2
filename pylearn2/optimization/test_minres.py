@@ -6,7 +6,7 @@ import theano
 from theano.compat.python2x import OrderedDict
 import theano.tensor as TT
 
-import minres
+from pylearn2.optimization import minres
 
 
 def test_1():

@@ -4825,7 +4825,7 @@ def sampled_dropout_average(mlp, inputs, num_masks,
                             input_include_probs=None,
                             default_input_scale=2.,
                             input_scales=None,
-                            rng=(2013, 05, 17),
+                            rng=(2013, 5, 17),
                             per_example=False):
     """
     Take the geometric mean over a number of randomly sampled

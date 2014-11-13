@@ -4,7 +4,7 @@ WRITEME
 
 import logging
 from ..linear import LinearTransform
-from unshared_conv import FilterActs, ImgActs
+from .unshared_conv import FilterActs, ImgActs
 from theano.sandbox import cuda
 if cuda.cuda_available:
     import gpu_unshared_conv # register optimizations
