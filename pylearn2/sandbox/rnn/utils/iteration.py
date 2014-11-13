@@ -52,6 +52,7 @@ class SequenceDatasetIterator(FiniteDatasetIterator):
         # the parent constructor
         self._original_source = source
         mask_seen, sequence_seen = False, False
+        self.mask_needed = []
         retain = []
         for i, (subspace, subsource) in enumerate(safe_izip(space.components,
                                                             source)):
@@ -65,11 +66,12 @@ class SequenceDatasetIterator(FiniteDatasetIterator):
                                      "with `_mask` in order to match it to the"
                                      "correct SequenceDataSpace")
                 mask_seen = True
+                self.mask_needed.append(subsource[:-5])
             else:
                 retain.append(i)
                 if isinstance(subspace, SequenceDataSpace):
                     sequence_seen = True
-        if mask_seen != sequence_seen:
+        if mask_seen != sequence_seen and i + 1 != len(retain):
             raise ValueError("SequenceDatasetIterator was asked to iterate "
                              "over a sequence mask without data or vice versa")
         space = space.restrict(retain)
@@ -126,7 +128,8 @@ class SequenceDatasetIterator(FiniteDatasetIterator):
                 rvals.append(rval)
 
                 # Create mask
-                rvals.append(self._create_mask(rval))
+                if source in self.mask_needed:
+                    rvals.append(self._create_mask(rval))
             else:
                 if fn:
                     rval = fn(rval)
