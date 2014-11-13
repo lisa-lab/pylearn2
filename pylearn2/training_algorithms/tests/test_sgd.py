@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import cStringIO
 import numpy as np
 
@@ -184,7 +186,7 @@ def test_sgd_unspec_num_mon_batch():
     monitor()
 
     if False in visited:
-        print visited
+        print(visited)
         assert False
 
 
@@ -1118,7 +1120,7 @@ def test_determinism():
             try:
                 algorithm.train(dataset)
             except ValueError:
-                print mode
+                print(mode)
                 assert mode in unsupported_modes
                 raised = True
             if mode in unsupported_modes:
@@ -1142,8 +1144,8 @@ def test_determinism():
 
         assert len(visited) == 2
 
-        print visited[0]
-        print visited[1]
+        print(visited[0])
+        print(visited[1])
         assert np.all(np.asarray(visited[0]) == np.asarray(visited[1]))
 
 

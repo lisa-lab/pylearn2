@@ -2,6 +2,8 @@
 
 """
 
+from __future__ import print_function
+
 import inspect
 from nose.plugins.skip import SkipTest
 import re
@@ -619,9 +621,9 @@ class FunctionDoc(object):
         try:
             doc = SphinxDocString(doclines)
         except Exception, e:
-            print '*'*78
-            print "ERROR: '%s' while parsing `%s`" % (e, self._f)
-            print '*'*78
+            print('*'*78)
+            print("ERROR: '%s' while parsing `%s`" % (e, self._f))
+            print('*'*78)
             #print "Docstring follows:"
             #print doclines
             #print '='*78
@@ -667,7 +669,7 @@ class ClassDoc(object):
             return '"'*(match.end() - match.start())
 
         for m in self.methods:
-            print "Parsing `%s`" % m
+            print("Parsing `%s`" % m)
             out += str(FunctionDoc(getattr(self._cls,m))) + '\n\n'
             out += '.. index::\n   single: %s; %s\n\n' % (self._name, m)
 
@@ -802,7 +804,7 @@ def docstring_errors(filename, global_dict=None):
 if __name__ == "__main__":
     all_errors = docstring_errors(sys.argv[1])
     if len(all_errors) > 0:
-        print "*" * 30, "docstring errors", "*" * 30
+        print("*" * 30, "docstring errors", "*" * 30)
         for line in all_errors:
-            print ':'.join(line)
+            print(':'.join(line))
     sys.exit(int(len(all_errors) > 0))

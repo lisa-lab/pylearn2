@@ -2,6 +2,8 @@
 Unit tests for ./yaml_parse.py
 """
 
+from __future__ import print_function
+
 import os
 import numpy as np
 import cPickle
@@ -56,7 +58,7 @@ def test_import_colon():
 def test_preproc_rhs():
     environ['TEST_VAR'] = '10'
     loaded = load('a: "${TEST_VAR}"')
-    print "loaded['a'] is %s" % loaded['a']
+    print("loaded['a'] is %s" % loaded['a'])
     assert_(loaded['a'] == "10")
     del environ['TEST_VAR']
 

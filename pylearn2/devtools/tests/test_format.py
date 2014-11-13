@@ -2,6 +2,8 @@
 Unit tests for format checking
 """
 
+from __future__ import print_function
+
 from nose.plugins.skip import SkipTest
 
 import os
@@ -696,12 +698,12 @@ def print_files_information_pep8():
         else:
             if rel_path in whitelist_pep8:
                 non_infracting_files.append(path)
-    print "Files that must be corrected or added to whitelist:"
+    print("Files that must be corrected or added to whitelist:")
     for file in infracting_files:
-        print file
-    print "Files that can be removed from whitelist:"
+        print(file)
+    print("Files that can be removed from whitelist:")
     for file in non_infracting_files:
-        print file
+        print(file)
 
 
 def test_format_docstrings():

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import warnings
 from setuptools import setup, find_packages, Extension
 from setuptools.command.install import install

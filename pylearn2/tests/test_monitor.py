@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import numpy as np
 import warnings
 from nose.tools import assert_raises
@@ -270,10 +272,10 @@ def test_revisit():
                             assert not visited[idx]
                             visited[idx] = True
                             if not np.allclose(previous_batch, X):
-                                print 'Visited different data in batch',idx
-                                print previous_batch
-                                print X
-                                print 'Iteration mode', mode
+                                print('Visited different data in batch',idx)
+                                print(previous_batch)
+                                print(X)
+                                print('Iteration mode', mode)
                                 assert False
                         else:
                             batches[idx] = X
@@ -293,7 +295,7 @@ def test_revisit():
                 try:
                     monitor()
                 except RuntimeError:
-                    print 'monitor raised RuntimeError for iteration mode', mode
+                    print('monitor raised RuntimeError for iteration mode', mode)
                     raise
 
 

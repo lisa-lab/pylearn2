@@ -11,6 +11,8 @@ See the FeatureExtractor.__init__ method for documentation of options.
 """
 
 
+from __future__ import print_function
+
 import os
 from pylearn2.config import yaml_parse
 import warnings
@@ -200,7 +202,7 @@ class FeatureExtractor:
 
     def __call__(self):
 
-        print 'loading model'
+        print('loading model')
         model_path = self.model_path
         self.model = serial.load(model_path)
         self.model.set_dtype('float32')
@@ -288,7 +290,7 @@ class FeatureExtractor:
         if self.restrict is not None:
             assert self.restrict[1]  <= full_X.shape[0]
 
-            print 'restricting to examples ',self.restrict[0],' through ',self.restrict[1],' exclusive'
+            print('restricting to examples ',self.restrict[0],' through ',self.restrict[1],' exclusive')
             full_X = full_X[self.restrict[0]:self.restrict[1],:]
 
             assert self.restrict[1] > self.restrict[0]
@@ -310,7 +312,7 @@ class FeatureExtractor:
         pipeline.items[0] = patchifier
 
 
-        print 'defining features'
+        print('defining features')
         V = T.matrix('V')
 
         mu = model.mu
@@ -319,7 +321,7 @@ class FeatureExtractor:
 
 
         assert feat.dtype == 'float32'
-        print 'compiling theano function'
+        print('compiling theano function')
         f = function([V],feat)
 
         nhid = model.mu.get_value().shape[0]
@@ -358,11 +360,11 @@ class FeatureExtractor:
         depatchifier = ReassembleGridPatches( orig_shape  = (ns, ns), patch_shape=(1,1) )
 
         if len(range(0,num_examples-batch_size+1,batch_size)) <= 0:
-            print num_examples
-            print batch_size
+            print(num_examples)
+            print(batch_size)
 
         for i in xrange(0,num_examples-batch_size+1,batch_size):
-            print i
+            print(i)
             t1 = time.time()
 
             d = copy.copy(dataset)
@@ -420,7 +422,7 @@ class FeatureExtractor:
 
             t6 = time.time()
 
-            print (t6-t1, t2-t1, t3-t2, t4-t3, t5-t4, t6-t5)
+            print((t6-t1, t2-t1, t3-t2, t4-t3, t5-t4, t6-t5))
 
         if self.chunk_size is not None:
             assert save_path.endswith('.npy')

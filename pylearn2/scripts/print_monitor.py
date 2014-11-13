@@ -4,6 +4,8 @@
 
     WRITEME
 """
+from __future__ import print_function
+
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -16,20 +18,20 @@ def print_monitor(args):
     import gc
     for model_path in args:
         if len(args) > 1:
-            print model_path
+            print(model_path)
         model = serial.load(model_path)
         monitor = model.monitor
         del model
         gc.collect()
         channels = monitor.channels
         if not hasattr(monitor, '_epochs_seen'):
-            print 'old file, not all fields parsed correctly'
+            print('old file, not all fields parsed correctly')
         else:
-            print 'epochs seen: ',monitor._epochs_seen
-        print 'time trained: ',max(channels[key].time_record[-1] for key in
-                channels)
+            print('epochs seen: ', monitor._epochs_seen)
+        print('time trained: ', max(channels[key].time_record[-1] for key in
+              channels))
         for key in sorted(channels.keys()):
-            print key, ':', channels[key].val_record[-1]
+            print(key, ':', channels[key].val_record[-1])
 
 
 if __name__ == '__main__':

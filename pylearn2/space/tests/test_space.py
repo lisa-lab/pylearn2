@@ -1,6 +1,8 @@
 """
 Tests for space utilities.
 """
+from __future__ import print_function
+
 import itertools
 import warnings
 
@@ -866,8 +868,8 @@ def test_dtypes():
             except expected_error, ex:
                 assert str(ex).find(expected_error_msg) >= 0
             except Exception, unknown_ex:
-                print "Expected exception of type %s, got %s." % \
-                      (expected_error.__name__, type(unknown_ex))
+                print("Expected exception of type %s, got %s." % 
+                      (expected_error.__name__, type(unknown_ex)))
                 raise unknown_ex
             finally:
                 return
@@ -999,8 +1001,8 @@ def test_dtypes():
             except expected_error, ex:
                 assert expected_message in str(ex)
             except Exception:
-                print "Expected exception of type %s, got %s instead." % \
-                      (expected_error.__name__, type(ex))
+                print("Expected exception of type %s, got %s instead." %
+                      (expected_error.__name__, type(ex)))
                 raise ex
             return
         else:

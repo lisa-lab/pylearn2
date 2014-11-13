@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import numpy
 
 import theano
@@ -40,17 +42,17 @@ def test_1():
                           updates = updates,
                           mode=theano.Mode(linker='cvm'))
     rvals = func()
-    print 'flag', rvals[1]
-    print minres.messages[int(rvals[1])]
-    print 'iters', rvals[2]
-    print 'relres', rvals[3]
-    print 'relAres', rvals[4]
-    print 'Anorm', rvals[5]
-    print 'Acond', rvals[6]
-    print 'xnorm', rvals[7]
-    print 'Axnorm', rvals[8]
-    print 'error', numpy.sqrt(numpy.sum((numpy.dot(rvals[0], A) - b) ** 2))
-    print
+    print('flag', rvals[1])
+    print(minres.messages[int(rvals[1])])
+    print('iters', rvals[2])
+    print('relres', rvals[3])
+    print('relAres', rvals[4])
+    print('Anorm', rvals[5])
+    print('Acond', rvals[6])
+    print('xnorm', rvals[7])
+    print('Axnorm', rvals[8])
+    print('error', numpy.sqrt(numpy.sum((numpy.dot(rvals[0], A) - b) ** 2)))
+    print()
 
 
 def test_2():
@@ -87,16 +89,16 @@ def test_2():
                           updates = updates,
                           mode=theano.Mode(linker='cvm'))
     rvals = func()
-    print 'flag', rvals[1]
-    print minres.messages[int(rvals[1])]
-    print 'iters', rvals[2]
-    print 'relres', rvals[3]
-    print 'relAres', rvals[4]
-    print 'Anorm', rvals[5]
-    print 'Acond', rvals[6]
-    print 'xnorm', rvals[7]
-    print 'Axnorm', rvals[8]
-    print rvals[0]
+    print('flag', rvals[1])
+    print(minres.messages[int(rvals[1])])
+    print('iters', rvals[2])
+    print('relres', rvals[3])
+    print('relAres', rvals[4])
+    print('Anorm', rvals[5])
+    print('Acond', rvals[6])
+    print('xnorm', rvals[7])
+    print('Axnorm', rvals[8])
+    print(rvals[0])
 
 if __name__ == '__main__':
     test_1()

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -84,12 +86,12 @@ def basic_test():
     max_err = err.max()
 
     if not np.allclose(out, ground_out):
-        print 'C01B test failed'
-        print 'error range: ',(err.min(), err.max())
-        print 'output: '
-        print out
-        print 'expected output: '
-        print ground_out
+        print('C01B test failed')
+        print('error range: ',(err.min(), err.max()))
+        print('output: ')
+        print(out)
+        print('expected output: ')
+        print(ground_out)
         assert False
         
     # Perform test for BC01
@@ -113,10 +115,10 @@ def basic_test():
     max_err = err.max()
 
     if not np.allclose(out, ground_out_BC01):
-        print 'BC01 test failed'
-        print 'error range: ',(err.min(), err.max())
-        print 'output: '
-        print out
-        print 'expected output: '
-        print ground_out
+        print('BC01 test failed')
+        print('error range: ',(err.min(), err.max()))
+        print('output: ')
+        print(out)
+        print('expected output: ')
+        print(ground_out)
         assert False

@@ -19,6 +19,8 @@ This script doesn't use batches. If you run out of memory it could be
 resolved by implementing a batch version.
 
 """
+from __future__ import print_function
+
 __authors__ = ["Zygmunt Zając", "Marco De Nadai"]
 __license__ = "GPL"
 
@@ -72,16 +74,16 @@ def predict(model_path, test_path, output_path, predictionType="classification",
         Type of predicted variable (int/float).
     """
 
-    print "loading model..."
+    print("loading model...")
 
     try:
         model = serial.load(model_path)
     except Exception, e:
-        print "error loading {}:".format(model_path)
-        print e
+        print("error loading {}:".format(model_path))
+        print(e)
         quit(-1)
 
-    print "setting up symbolic expressions..."
+    print("setting up symbolic expressions...")
 
     X = model.get_input_space().make_theano_batch()
     Y = model.fprop(X)
@@ -91,7 +93,7 @@ def predict(model_path, test_path, output_path, predictionType="classification",
 
     f = function([X], Y)
 
-    print "loading data and predicting..."
+    print("loading data and predicting...")
 
     # x is a numpy array
     # x = pickle.load(open(test_path, 'rb'))
@@ -99,7 +101,7 @@ def predict(model_path, test_path, output_path, predictionType="classification",
 
     y = f(x)
 
-    print "writing predictions..."
+    print("writing predictions...")
 
     variableType = "%d"
     if outputType != "int":

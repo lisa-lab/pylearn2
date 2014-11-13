@@ -3,6 +3,8 @@
 Usage: print_model.py <pickle file containing a model>
 Prints out a saved model.
 """
+from __future__ import print_function
+
 __author__ = "Ian Goodfellow"
 
 import sys
@@ -14,4 +16,4 @@ if __name__ == "__main__":
 
     model = serial.load(model_path)
 
-    print model
+    print(model)

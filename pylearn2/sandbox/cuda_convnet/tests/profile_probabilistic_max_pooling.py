@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import theano.tensor as T
 import numpy as np
 from theano import config
@@ -10,7 +12,7 @@ from pylearn2.sandbox.cuda_convnet.probabilistic_max_pooling import \
 from pylearn2.expr.probabilistic_max_pooling import max_pool_c01b
 
 def profile(f):
-    print 'profiling ',f
+    print('profiling ',f)
     rng = np.random.RandomState([2012,7,19])
     batch_size = 128
     rows = 30
@@ -30,7 +32,7 @@ def profile(f):
 
     func = function([],updates = { p_shared : p_th, h_shared : h_th} )
 
-    print 'warming up'
+    print('warming up')
     for i in xrange(10):
         func()
 
@@ -42,12 +44,12 @@ def profile(f):
         for j in xrange(10):
             func()
         t2 = time.time()
-        print t2 - t1
+        print(t2 - t1)
         results.append(t2-t1)
-    print 'final: ',sum(results)/float(trials)
+    print('final: ',sum(results)/float(trials))
 
 def profile_grad(f):
-    print 'profiling gradient of ',f
+    print('profiling gradient of ',f)
     rng = np.random.RandomState([2012,7,19])
     batch_size = 128
     rows = 9
@@ -67,7 +69,7 @@ def profile_grad(f):
     func = function([],updates = { grad_shared : T.grad(p_th.sum() +
         h_th.sum(), z_shared)} )
 
-    print 'warming up'
+    print('warming up')
     for i in xrange(10):
         func()
 
@@ -79,9 +81,9 @@ def profile_grad(f):
         for j in xrange(10):
             func()
         t2 = time.time()
-        print t2 - t1
+        print(t2 - t1)
         results.append(t2-t1)
-    print 'final: ',sum(results)/float(trials)
+    print('final: ',sum(results)/float(trials))
 
 if __name__ == '__main__':
     profile(prob_max_pool_c01b)

@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
 __author__ = "Li Yao"
 """
 See readme.txt
@@ -53,7 +55,7 @@ def get_dataset_toy():
 
 def get_dataset_cifar10():
 
-    print 'loading CIFAR-10 dataset...'
+    print('loading CIFAR-10 dataset...')
 
     # We create the dataset by parsing YAML strings describing the dataset.
     # The yaml parser will automatically tag trainset and testset with a
@@ -70,13 +72,13 @@ rescale: 1,
     trainset = yaml_parse.load(template % "train")
     testset = yaml_parse.load(template % "test")
 
-    print '...done loading CIFAR-10.'
+    print('...done loading CIFAR-10.')
 
     return trainset, testset
 
 def get_dataset_mnist():
 
-    print 'loading MNIST dataset...'
+    print('loading MNIST dataset...')
 
     # We create the dataset by parsing YAML strings describing the dataset.
     # The yaml parser will automatically tag trainset and testset with a
@@ -91,7 +93,7 @@ which_set: %s,
     trainset = yaml_parse.load(template % "train")
     testset = yaml_parse.load(template % "test")
 
-    print '...done loading MNIST.'
+    print('...done loading MNIST.')
 
     return trainset, testset
 
@@ -253,17 +255,17 @@ def main(args=None):
 
     # unsupervised pretraining
     for i, layer_trainer in enumerate(layer_trainers[0:3]):
-        print '-----------------------------------'
-        print ' Unsupervised training layer %d, %s'%(i, layers[i].__class__)
-        print '-----------------------------------'
+        print('-----------------------------------')
+        print(' Unsupervised training layer %d, %s'%(i, layers[i].__class__))
+        print('-----------------------------------')
         layer_trainer.main_loop()
 
 
-    print '\n'
-    print '------------------------------------------------------'
-    print ' Unsupervised training done! Start supervised training...'
-    print '------------------------------------------------------'
-    print '\n'
+    print('\n')
+    print('------------------------------------------------------')
+    print(' Unsupervised training done! Start supervised training...')
+    print('------------------------------------------------------')
+    print('\n')
 
     # supervised training
     layer_trainers[-1].main_loop()

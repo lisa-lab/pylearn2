@@ -1,11 +1,11 @@
 #!/usr/bin/env python
+from __future__ import print_function
 
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
-
 
 import sys
 from pylearn2.utils import serial
@@ -24,7 +24,7 @@ dataset = yaml_parse.load(model.dataset_yaml_src)
 try:
     layer_to_chains = model.layer_to_chains
 except AttributeError:
-    print "This model doesn't have negative chains."
+    print("This model doesn't have negative chains.")
     quit(-1)
 
 vis_chains = layer_to_chains[model.visible_layer]

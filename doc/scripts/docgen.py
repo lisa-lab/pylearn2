@@ -1,4 +1,6 @@
 
+from __future__ import print_function
+
 from collections import defaultdict
 import inspect
 import getopt
@@ -14,11 +16,11 @@ if __name__ == '__main__':
     options = defaultdict(bool)
     options.update(dict([x, y or True] for x, y in getopt.getopt(sys.argv[1:], 'o:', ['epydoc', 'rst', 'help', 'nopdf', 'test'])[0]))
     if options['--help']:
-        print 'Usage: %s [OPTIONS]' % sys.argv[0]
-        print '  -o <dir>: output the html files in the specified dir'
-        print '  --rst: only compile the doc (requires sphinx)'
-        print '  --nopdf: do not produce a PDF file from the doc, only HTML'
-        print '  --help: this help'
+        print('Usage: %s [OPTIONS]' % sys.argv[0])
+        print('  -o <dir>: output the html files in the specified dir')
+        print('  --rst: only compile the doc (requires sphinx)')
+        print('  --nopdf: do not produce a PDF file from the doc, only HTML')
+        print('  --help: this help')
         # --test: build the docs with warnings=errors to test them (exclusive)
         sys.exit(0)
 
@@ -65,6 +67,6 @@ if __name__ == '__main__':
                 os.chdir(outdir)
                 shutil.rmtree(workdir)
             except OSError, e:
-                print 'OSError:', e
+                print('OSError:', e)
             except IOError, e:
-                print 'IOError:', e
+                print('IOError:', e)

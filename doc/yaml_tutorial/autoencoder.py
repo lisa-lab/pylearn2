@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import numpy
 import pickle
 
@@ -49,9 +51,9 @@ if __name__ == '__main__':
     stream = StringIO()
     stream.write(example1)
     stream.seek(0)
-    print 'Example 1: building basic auto-encoder.'
+    print('Example 1: building basic auto-encoder.')
     model = yaml_parse.load(stream)
-    print model
+    print(model)
     stream.close()
 
     example2 = """
@@ -63,9 +65,9 @@ if __name__ == '__main__':
     stream = StringIO()
     stream.write(example2)
     stream.seek(0)
-    print 'Example 2: anchors and references.'
+    print('Example 2: anchors and references.')
     model = yaml_parse.load(stream)
-    print model
+    print(model)
     stream.close()
 
     example3 = """
@@ -79,10 +81,10 @@ if __name__ == '__main__':
     stream = StringIO()
     stream.write(example3)
     stream.seek(0)
-    print 'Example 3: dynamic imports through !import.'
+    print('Example 3: dynamic imports through !import.')
     model = yaml_parse.load(stream)
     model.save('example3_weights.pkl')
-    print model
+    print(model)
     stream.close()
 
     example4 = """
@@ -95,8 +97,8 @@ if __name__ == '__main__':
     stream = StringIO()
     stream.write(example4)
     stream.seek(0)
-    print 'Example 4: loading data with !pkl command.'
+    print('Example 4: loading data with !pkl command.')
     model = yaml_parse.load(stream)
-    print model
+    print(model)
     stream.close()
 

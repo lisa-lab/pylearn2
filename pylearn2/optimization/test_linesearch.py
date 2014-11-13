@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import time
 import warnings
 
@@ -163,15 +165,15 @@ def test():
         thrval2 = f2()
         t_th2 += time.time() - t0
 
-    print 'THEANO (armijo) output :: ', thrval
-    print 'THEANO (wolfe)  output :: ', thrval2
-    print 'NUMPY  (armijo) output :: ', rval
-    print
-    print 'Timings'
-    print
-    print 'theano (armijo)---------> time %e' % t_th
-    print 'theano (wolfe) ---------> time %e' % t_th2
-    print 'numpy  (armijo)---------> time %e' % t_py
+    print('THEANO (armijo) output :: ', thrval)
+    print('THEANO (wolfe)  output :: ', thrval2)
+    print('NUMPY  (armijo) output :: ', rval)
+    print()
+    print('Timings')
+    print()
+    print('theano (armijo)---------> time %e' % t_th)
+    print('theano (wolfe) ---------> time %e' % t_th2)
+    print('numpy  (armijo)---------> time %e' % t_py)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,8 @@
 """
 Common DBM Layer classes
 """
+from __future__ import print_function
+
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -2227,8 +2229,8 @@ class GaussianVisLayer(VisibleLayer):
             assert drop_mask_v.ndim in [3,4]
             for i in xrange(drop_mask.ndim):
                 if Vv.shape[i] != drop_mask_v.shape[i]:
-                    print Vv.shape
-                    print drop_mask_v.shape
+                    print(Vv.shape)
+                    print(drop_mask_v.shape)
                     assert False
         """
 

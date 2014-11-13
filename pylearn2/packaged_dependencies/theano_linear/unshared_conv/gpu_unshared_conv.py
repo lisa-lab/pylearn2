@@ -1,6 +1,8 @@
 """
 WRITEME
 """
+from __future__ import print_function
+
 import inspect
 import os
 import StringIO
@@ -163,7 +165,7 @@ class GpuFilterActs(Base):
         moduleStride = str(self.module_stride)
         sio = StringIO.StringIO()
 
-        print >> sio, """
+        print("""
 
         //XXX: actually the rightmost images dimension can be strided
         if (!CudaNdarray_is_c_contiguous(%(images)s))
@@ -280,7 +282,7 @@ class GpuFilterActs(Base):
             }
         } // end bogus scope used for vars
 
-        """
+        """, file=sio)
 
         return sio.getvalue() % locals()
 
@@ -368,7 +370,7 @@ class GpuWeightActs(Base):
 
         sio = StringIO.StringIO()
 
-        print >> sio, """
+        print("""
 
         if (!CudaNdarray_is_c_contiguous(%(images)s))
         {
@@ -521,7 +523,7 @@ class GpuWeightActs(Base):
             }
         } // end bogus scope used for vars
 
-        """
+        """, file=sio)
 
         return sio.getvalue() % locals()
 
@@ -610,7 +612,7 @@ class GpuImgActs(Base):
 
         sio = StringIO.StringIO()
 
-        print >> sio, """
+        print("""
 
         if (!CudaNdarray_is_c_contiguous(%(filters)s))
         {
@@ -763,7 +765,7 @@ class GpuImgActs(Base):
             }
         } // end bogus scope used for vars
 
-        """
+        """, file=sio)
 
         return sio.getvalue() % locals()
 

@@ -2,6 +2,8 @@
 XXX
 """
 
+from __future__ import print_function
+
 import numpy
 import theano
 
@@ -125,9 +127,9 @@ class FilterActs(Base):
 
         print_sizes = 0
         if print_sizes:
-            print 'FilterActs shapes: images', images.shape
-            print 'FilterActs shapes: filters', filters.shape
-            print 'FilterActs shapes: hidacts', hidacts.shape
+            print('FilterActs shapes: images', images.shape)
+            print('FilterActs shapes: filters', filters.shape)
+            print('FilterActs shapes: hidacts', hidacts.shape)
 
     def grad(self, inputs, goutputs):
         images, filters = inputs

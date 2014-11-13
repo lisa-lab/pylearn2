@@ -12,6 +12,8 @@ Then shows how the DBM reconstructs it if you run mean field
 to estimate the hidden units, then do one mean field downward
 pass from hidden_layers[0] to the visible layer.
 """
+from __future__ import print_function
+
 from pylearn2.utils import serial
 import sys
 from pylearn2.config import yaml_parse
@@ -24,14 +26,14 @@ m = rows * cols
 
 _, model_path = sys.argv
 
-print 'Loading model...'
+print('Loading model...')
 model = serial.load(model_path)
 model.set_batch_size(m)
 
 
 dataset_yaml_src = model.dataset_yaml_src
 
-print 'Loading data...'
+print('Loading data...')
 dataset = yaml_parse.load(dataset_yaml_src)
 
 x = raw_input('use test set? (y/n) ')
@@ -121,11 +123,11 @@ def show():
 if hasattr(model.visible_layer, 'beta'):
     beta = model.visible_layer.beta.get_value()
     #model.visible_layer.beta.set_value(beta * 100.)
-    print 'beta: ',(beta.min(), beta.mean(), beta.max())
+    print('beta: ',(beta.min(), beta.mean(), beta.max()))
 
 while True:
     show()
-    print 'Displaying reconstructions. (q to quit, ENTER = show more)'
+    print('Displaying reconstructions. (q to quit, ENTER = show more)')
     while True:
         x = raw_input()
         if x == 'q':
@@ -134,7 +136,7 @@ while True:
             x = 1
             break
         else:
-            print 'Invalid input, try again'
+            print('Invalid input, try again')
 
     vis_batch = dataset.get_batch_topo(m)
 

@@ -9,6 +9,7 @@
 # to standard library modules, with no
 # extra dependencies.
 #
+from __future__ import print_function
 
 __authors__   = "Steven Pigeon"
 __copyright__ = "(c) 2012, Université de Montréal"
@@ -440,12 +441,13 @@ def write_installed_packages_list():
             if package.where!=None and \
                     file_access_rights(os.path.join(package.where,package.name),
                                       os.F_OK | os.R_OK):
-                print >>tmp,\
+                print(
                     " ".join(map(str,[ package.name,
                                        package.timestamp,
                                        package.readable_size,
                                        urllib.quote(package.source,"/:~"),
-                                       urllib.quote(package.where,"/:~") ] ))
+                                       urllib.quote(package.where,"/:~") ] )),
+                    file=tmp)
 
         # replace the installed.lst in
         # a safe way
@@ -1015,7 +1017,7 @@ def progress_bar( blocks, blocksize, totalsize ):
     caveat: not that great-looking, fix later to
             a cooler progress bar or something.
     """
-    print "\r[dl] %6.2f%% %s" % (min(totalsize,blocks*blocksize)*100.0/totalsize, hook_download_filename),
+    print("\r[dl] %6.2f%% %s" % (min(totalsize,blocks*blocksize)*100.0/totalsize, hook_download_filename), end='')
     sys.stdout.flush()
 
 
