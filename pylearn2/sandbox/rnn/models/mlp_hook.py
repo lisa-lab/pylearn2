@@ -380,4 +380,5 @@ class RNNWrapper(MetaLibVersion):
             else:
                 return get_target_space(self)
         return outer
+
    # Wrap get_input_space?
