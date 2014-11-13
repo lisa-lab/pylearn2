@@ -29,6 +29,8 @@ import socket
 import subprocess
 import sys
 
+import six
+
 logger = logging.getLogger(__name__)
 
 
@@ -112,7 +114,7 @@ class LibVersion(object):
 
         # Print versions.
         self.str_versions = ' | '.join(['%s:%s' % (k, v)
-                               for k, v in sorted(known.iteritems())] +
+                               for k, v in sorted(six.iteritems(known))] +
                                ['%s:?' % ','.join(sorted(unknown))])
 
     def __str__(self):

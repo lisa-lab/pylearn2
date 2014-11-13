@@ -147,7 +147,7 @@ def safe_update(dict_to, dict_from):
     -------
     WRITEME
     """
-    for key, val in dict(dict_from).iteritems():
+    for key, val in six.iteritems(dict_from):
         if key in dict_to:
             raise KeyError(key)
         dict_to[key] = val

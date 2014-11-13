@@ -72,7 +72,7 @@ class TextDatasetMixin(object):
             return self._inverse_vocabulary
         elif hasattr(self, '_vocabulary'):
             self._inverse_vocabulary = dict((index, word) for word, index
-                                            in self._vocabulary.iteritems())
+                                            in six.iteritems(self._vocabulary))
             return self._inverse_vocabulary
         else:
             raise NotImplementedError

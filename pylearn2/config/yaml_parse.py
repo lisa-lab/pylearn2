@@ -227,7 +227,7 @@ def _instantiate_proxy_tuple(proxy, bindings=None):
                 raise NotImplementedError('positional arguments not yet '
                                           'supported in proxy instantiation')
             kwargs = dict((k, _instantiate(v, bindings))
-                          for k, v in proxy.keywords.iteritems())
+                          for k, v in six.iteritems(proxy.keywords))
             obj = checked_call(proxy.callable, kwargs)
         try:
             obj.yaml_src = proxy.yaml_src
@@ -283,7 +283,7 @@ def _instantiate(proxy, bindings=None):
         # Recurse on the keys too, for backward compatibility.
         # Is the key instantiation feature ever actually used, by anyone?
         return dict((_instantiate(k, bindings), _instantiate(v, bindings))
-                    for k, v in proxy.iteritems())
+                    for k, v in six.iteritems(proxy))
     elif isinstance(proxy, list):
         return [_instantiate(v, bindings) for v in proxy]
     # In the future it might be good to consider a dict argument that provides

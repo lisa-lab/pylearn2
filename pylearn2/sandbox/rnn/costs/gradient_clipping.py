@@ -46,11 +46,12 @@ class GradientClipping(object):
 
         norm = tensor.sqrt(tensor.sum(
             [tensor.sum(param_gradient ** 2) for param, param_gradient
-             in gradients.iteritems() if param.name not in self.exclude_params]
+             in six.iteritems(gradients)
+             if param.name not in self.exclude_params]
         ))
 
         clipped_gradients = OrderedDict()
-        for param, param_gradient in gradients.iteritems():
+        for param, param_gradient in six.iteritems(gradients):
             if param.name not in self.exclude_params:
                 clipped_gradients[param] = tensor.switch(
                     tensor.ge(norm, self.clipping_value),

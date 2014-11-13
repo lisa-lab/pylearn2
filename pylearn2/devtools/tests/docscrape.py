@@ -10,6 +10,9 @@ import re
 import sys
 import types
 
+import six
+
+
 class Reader(object):
     """A line-based string reader.
 
@@ -362,7 +365,7 @@ class NumpyDocString(object):
         idx = self['index']
         out = []
         out += ['.. index:: %s' % idx.get('default','')]
-        for section, references in idx.iteritems():
+        for section, references in six.iteritems(idx):
             if section == 'default':
                 continue
             out += ['   :%s: %s' % (section, ', '.join(references))]
@@ -593,7 +596,7 @@ class SphinxDocString(NumpyDocString):
         idx = self['index']
         out = []
         out += ['.. index:: %s' % idx.get('default','')]
-        for section, references in idx.iteritems():
+        for section, references in six.iteritems(idx):
             if section == 'default':
                 continue
             out += ['   :%s: %s' % (section, ', '.join(references))]
@@ -736,7 +739,7 @@ def handle_class(val, class_name):
         # Get public methods and parse their docstrings
         methods = dict(((name, func) for name, func in inspect.getmembers(val)
                         if not name.startswith('_') and callable(func) and type(func) is not type))
-        for m_name, method in methods.iteritems():
+        for m_name, method in six.iteritems(methods):
             # skip error check if the method was inherited
             # from a parent class (which means it wasn't
             # defined in this source file)
@@ -783,7 +786,7 @@ def docstring_errors(filename, global_dict=None):
         raise AssertionError("Couldn't verify format of " + filename +
                 "due to SkipTest")
     all_errors = []
-    for key, val in global_dict.iteritems():
+    for key, val in six.iteritems(global_dict):
         if not key.startswith('_'):
             module_name = ""
             if hasattr(inspect.getmodule(val), '__name__'):

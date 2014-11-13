@@ -5,6 +5,7 @@ algorithm.
 import numpy as np
 import warnings
 
+import six
 from theano import config
 from theano import tensor as T
 
@@ -142,7 +143,7 @@ class Momentum(LearningRule):
 
         updates = OrderedDict()
 
-        for (param, grad) in grads.iteritems():
+        for (param, grad) in six.iteritems(grads):
             vel = sharedX(param.get_value() * 0.)
             assert param.dtype == vel.dtype
             assert grad.dtype == param.dtype
