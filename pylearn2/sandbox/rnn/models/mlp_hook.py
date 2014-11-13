@@ -129,7 +129,7 @@ class RNNWrapper(MetaLibVersion):
                         output_shape = ([reshape_size[0],
                                          reshape_size[1]] +
                                         [reshaped.shape[i]
-                                         for i in xrange(1, reshaped.nim)])
+                                         for i in xrange(1, reshaped.ndim)])
                         state = reshaped.reshape(output_shape)
                 else:
                     state = fprop(self, state_below)
