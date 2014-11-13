@@ -2175,7 +2175,6 @@ class Linear(Layer):
             state_below = self.input_space.format_as(state_below,
                                                      self.desired_space)
 
-
         z = self.transformer.lmul(state_below)
         if self.use_bias:
             z += self.b
