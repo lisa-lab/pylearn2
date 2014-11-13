@@ -743,7 +743,7 @@ def testing_multiple_datasets_in_monitor_based_lr():
     dim = 3
     m = 10
 
-    rng = np.random.RandomState([06, 02, 2014])
+    rng = np.random.RandomState([6, 2, 2014])
 
     X = rng.randn(m, dim)
     Y = rng.randn(m, dim)
@@ -807,7 +807,7 @@ def testing_multiple_datasets_with_specified_dataset_in_monitor_based_lr():
     dim = 3
     m = 10
 
-    rng = np.random.RandomState([06, 02, 2014])
+    rng = np.random.RandomState([6, 2, 2014])
 
     X = rng.randn(m, dim)
     Y = rng.randn(m, dim)
