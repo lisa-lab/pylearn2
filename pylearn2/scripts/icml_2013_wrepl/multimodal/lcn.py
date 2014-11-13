@@ -112,7 +112,7 @@ for path in paths:
         assert path.endswith('.')
         path = path + 'npy'
         np.save(path, img)
-    except Exception, e:
+    except Exception as e:
         raise
         print(e)
     j += 1

@@ -461,9 +461,9 @@ def test_dtypes():
         if underspecifies_dtypes(from_space, to_type):
             try:
                 from_space.get_origin_batch(batch_size, dtype=to_type)
-            except TypeError, ex:
+            except TypeError as ex:
                 assert dtype_is_none_msg in str(ex)
-            except Exception, unexpected_ex:
+            except Exception as unexpected_ex:
                 print ("Expected an exception of type TypeError with message "
                        "%s, got a %s instead with message %s." %
                        (dtype_is_none_msg,
@@ -482,9 +482,9 @@ def test_dtypes():
         if underspecifies_dtypes(from_space, to_type):
             try:
                 from_space.make_shared_batch(batch_size, dtype=to_type)
-            except TypeError, ex:
+            except TypeError as ex:
                 assert dtype_is_none_msg in str(ex)
-            except Exception, unexpected_ex:
+            except Exception as unexpected_ex:
                 print ("Expected an exception of type TypeError with message "
                        "%s, got a %s instead with message %s." %
                        (dtype_is_none_msg,
@@ -516,9 +516,9 @@ def test_dtypes():
         if underspecifies_dtypes(from_space, to_type):
             try:
                 from_space.make_theano_batch(**kwargs)
-            except TypeError, ex:
+            except TypeError as ex:
                 assert dtype_is_none_msg in str(ex)
-            except Exception, unexpected_ex:
+            except Exception as unexpected_ex:
                 print ("Expected an exception of type TypeError with message "
                        "%s, got a %s instead with message %s." %
                        (dtype_is_none_msg,
@@ -865,9 +865,9 @@ def test_dtypes():
                     from_space._format_as(using_numeric_batch,
                                           from_batch,
                                           to_space)
-            except expected_error, ex:
+            except expected_error as ex:
                 assert str(ex).find(expected_error_msg) >= 0
-            except Exception, unknown_ex:
+            except Exception as unknown_ex:
                 print("Expected exception of type %s, got %s." %
                       (expected_error.__name__, type(unknown_ex)))
                 raise unknown_ex
@@ -998,7 +998,7 @@ def test_dtypes():
         if expected_error is not None:
             try:
                 space.dtype = dtype
-            except expected_error, ex:
+            except expected_error as ex:
                 assert expected_message in str(ex)
             except Exception:
                 print("Expected exception of type %s, got %s instead." %

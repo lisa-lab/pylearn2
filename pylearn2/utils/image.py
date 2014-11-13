@@ -11,7 +11,7 @@ import warnings
 try:
     import matplotlib.pyplot as plt
     import matplotlib.axes
-except (RuntimeError, ImportError), matplotlib_exception:
+except (RuntimeError, ImportError) as matplotlib_exception:
     warnings.warn("Unable to import matplotlib. Some features unavailable. "
             "Original exception: " + str(matplotlib_exception))
 import os
@@ -188,7 +188,7 @@ def pil_from_ndarray(ndarray):
         ensure_Image()
         rval = Image.fromarray(ndarray)
         return rval
-    except Exception, e:
+    except Exception as e:
         logger.exception('original exception: ')
         logger.exception(e)
         logger.exception('ndarray.dtype: {0}'.format(ndarray.dtype))

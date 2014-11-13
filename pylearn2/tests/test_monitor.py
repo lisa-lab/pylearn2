@@ -528,7 +528,7 @@ def test_no_data():
             ipt = model.input_space.make_theano_batch(),
             data_specs = (model.input_space, 'features'),
             val = 0.)
-    except ValueError, e:
+    except ValueError as e:
         assert exc_message(e) == _err_no_data
         return
     assert False
@@ -562,7 +562,7 @@ def test_ambig_data():
             ipt = model.input_space.make_theano_batch(),
             val = 0.,
             data_specs=(model.get_input_space(), model.get_input_source()))
-    except ValueError, e:
+    except ValueError as e:
         assert exc_message(e) == _err_ambig_data
         return
     assert False

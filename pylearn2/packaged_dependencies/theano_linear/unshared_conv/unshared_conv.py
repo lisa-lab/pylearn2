@@ -116,7 +116,7 @@ class FilterActs(Base):
 
                     try:
                         rc_hidacts = numpy.dot(left_arg, right_arg)
-                    except ValueError, e:
+                    except ValueError as e:
                         if 'matrices are not aligned' in str(e):
                             raise ValueError("matrices are not aligned: " + \
                                     str(left_arg.shape) + ' vs ' + str(right_arg.shape))

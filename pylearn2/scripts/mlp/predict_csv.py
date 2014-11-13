@@ -78,7 +78,7 @@ def predict(model_path, test_path, output_path, predictionType="classification",
 
     try:
         model = serial.load(model_path)
-    except Exception, e:
+    except Exception as e:
         print("error loading {}:".format(model_path))
         print(e)
         quit(-1)

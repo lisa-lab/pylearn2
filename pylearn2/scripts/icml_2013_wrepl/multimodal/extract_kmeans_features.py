@@ -80,6 +80,6 @@ for i, path in enumerate(paths):
         F = f(X)
 
         np.save(outdir + '/' + path, F)
-    except Exception, e:
+    except Exception as e:
         raise
 

@@ -376,7 +376,7 @@ def read_installed_packages_list():
         global installed_packages_list
         try:
             installed_list_file=open(config_filename)
-        except IOError, e:
+        except IOError:
             # not a problem if not found in a location
             pass
         else:
@@ -429,7 +429,7 @@ def write_installed_packages_list():
     global installed_packages_list
     try:
         tmp=open(os.path.join(dataset_conf_path,"installed.lst.2"),"w")
-    except IOError,e:
+    except IOError:
         raise RuntimeError("[cf] fatal: cannot create temp file")
     else:
         # ok, probably worked?

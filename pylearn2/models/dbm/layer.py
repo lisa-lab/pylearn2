@@ -2826,7 +2826,7 @@ class ConvMaxPool(HiddenLayer):
             msg = layer_above.downward_message(state_above)
             try:
                 self.output_space.validate(msg)
-            except TypeError, e:
+            except TypeError as e:
                 reraise_as(TypeError(str(type(layer_above))+".downward_message gave something that was not the right type: "+str(e)))
         else:
             msg = None
@@ -3328,7 +3328,7 @@ class ConvC01B_MaxPool(HiddenLayer):
             msg = layer_above.downward_message(state_above)
             try:
                 self.output_space.validate(msg)
-            except TypeError, e:
+            except TypeError as e:
                 reraise_as(TypeError(str(type(layer_above))+".downward_message gave something that was not the right type: "+str(e)))
         else:
             msg = None

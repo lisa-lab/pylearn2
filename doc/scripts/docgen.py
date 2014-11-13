@@ -66,7 +66,7 @@ if __name__ == '__main__':
                 shutil.copy(os.path.join(workdir, 'pylearn2.pdf'), outdir)
                 os.chdir(outdir)
                 shutil.rmtree(workdir)
-            except OSError, e:
+            except OSError as e:
                 print('OSError:', e)
-            except IOError, e:
+            except IOError as e:
                 print('IOError:', e)

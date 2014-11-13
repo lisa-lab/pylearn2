@@ -38,7 +38,7 @@ class dataset_resolver:
 
         try:
             installed_list_file=open(from_location+"/installed.lst")
-        except IOError, e:
+        except IOError:
             # maybe not a problem, but
             # FIXME: print a warning if exists,
             # but cannot be read (permissions)

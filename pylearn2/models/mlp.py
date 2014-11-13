@@ -557,7 +557,7 @@ class MLP(Layer):
         layers = self.layers
         try:
             layers[0].set_input_space(self.get_input_space())
-        except BadInputSpaceError, e:
+        except BadInputSpaceError as e:
             raise TypeError("Layer 0 (" + str(layers[0]) + " of type " +
                             str(type(layers[0])) +
                             ") does not support the MLP's "

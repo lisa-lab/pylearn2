@@ -389,7 +389,7 @@ def try_to_import(tag_suffix):
     modulename = '.'.join(components[:-1])
     try:
         exec('import %s' % modulename)
-    except ImportError, e:
+    except ImportError as e:
         # We know it's an ImportError, but is it an ImportError related to
         # this path,
         # or did the module we're importing have an unrelated ImportError?
@@ -424,7 +424,7 @@ def try_to_import(tag_suffix):
                 j += 1
     try:
         obj = eval(tag_suffix)
-    except AttributeError, e:
+    except AttributeError as e:
         try:
             # Try to figure out what the wrong field name was
             # If we fail to do it, just fall back to giving the usual
@@ -557,7 +557,7 @@ def construct_mapping(node, deep=False):
         key = constructor.construct_object(key_node, deep=False)
         try:
             hash(key)
-        except TypeError, exc:
+        except TypeError as exc:
             const = yaml.constructor
             reraise_as(const.ConstructorError("while constructing a mapping",
                                               node.start_mark,

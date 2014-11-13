@@ -118,7 +118,7 @@ def test_multi_constructor_obj():
     except TypeError as e:
         assert str(e) == "Received non string object (1) as key in mapping."
         pass
-    except Exception, e:
+    except Exception as e:
         error_msg = "Got the unexpected error: %s" % (e)
         reraise_as(ValueError(error_msg))
 
@@ -143,11 +143,11 @@ def test_duplicate_keywords():
 
     try:
         load(yamlfile)
-    except yaml.constructor.ConstructorError, e:
+    except yaml.constructor.ConstructorError as e:
         message = str(e)
         assert message.endswith("found duplicate key (nvis)")
         pass
-    except Exception, e:
+    except Exception as e:
         error_msg = "Got the unexpected error: %s" % (e)
         raise TypeError(error_msg)
 

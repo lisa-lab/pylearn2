@@ -154,7 +154,7 @@ if __name__ == '__main__':
                 else:
                     try:
                         setattr(obj, field, updated_field)
-                    except Exception, e:
+                    except Exception as e:
                         print("Couldn't do that because of exception: "+str(e))
             rval = obj
         already_fixed[oid] = rval

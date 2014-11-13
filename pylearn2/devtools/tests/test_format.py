@@ -713,7 +713,7 @@ def test_format_docstrings():
 
     try:
         verify_format_docstrings()
-    except SkipTest, e:
+    except SkipTest as e:
         import traceback
         traceback.print_exc(e)
         raise AssertionError(

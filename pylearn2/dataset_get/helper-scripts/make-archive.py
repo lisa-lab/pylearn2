@@ -76,7 +76,7 @@ def create_archive( source, archive_name ):
 
     try:
         tar=tarfile.open(archive_name,mode="w:bz2")
-    except Exception, e:
+    except Exception as e:
         logger.exception(e)
         return
     else:

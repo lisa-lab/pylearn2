@@ -620,7 +620,7 @@ class FunctionDoc(object):
         doclines = inspect.getdoc(self._f) or ''
         try:
             doc = SphinxDocString(doclines)
-        except Exception, e:
+        except Exception as e:
             print('*'*78)
             print("ERROR: '%s' while parsing `%s`" % (e, self._f))
             print('*'*78)
@@ -639,7 +639,7 @@ class FunctionDoc(object):
                 argspec = inspect.formatargspec(*argspec)
                 argspec = argspec.replace('*','\*')
                 out += header('%s%s' % (self._f.__name__, argspec), '-')
-            except TypeError, e:
+            except TypeError as e:
                 out += '%s\n' % header('**%s()**'  % self._f.__name__, '-')
 
         out += str(doc)

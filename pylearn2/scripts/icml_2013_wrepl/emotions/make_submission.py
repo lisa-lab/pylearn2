@@ -25,7 +25,7 @@ if os.path.exists(out_path):
 from pylearn2.utils import serial
 try:
     model = serial.load(model_path)
-except Exception, e:
+except Exception as e:
     usage()
     print(model_path + "doesn't seem to be a valid model path, I got this error when trying to load it: ")
     print(e)
