@@ -203,8 +203,7 @@ learning. These attributes should be instances of `pylearn2.space.Space` (and
 generally are instances of `pylearn2.space.VectorSpace`, a subclass of
 `pylearn2.space.Space` used to represent batches of vectors). Broadly, this 
 mechanism allows for automatic conversion between
-different `data formats <http://deeplearning.net/software/pylearn2/internal/data_specs.html#data-specs>`_
- (e.g. if your targets are stored as integer indexes in
+different `data formats <http://deeplearning.net/software/pylearn2/internal/data_specs.html#data-specs>`_ (e.g. if your targets are stored as integer indexes in
 the dataset but are required to be one-hot encoded by the model).
 
 The `some_method_for_outputs` method is really where all the magic happens. Remember, 
