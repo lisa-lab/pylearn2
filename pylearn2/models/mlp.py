@@ -16,7 +16,6 @@ import numpy as np
 from theano import config
 from theano.compat.python2x import OrderedDict
 from theano.gof.op import get_debug_values
-from theano.printing import Print
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 from theano.tensor.signal.downsample import max_pool_2d
 import theano.tensor as T
@@ -4652,9 +4651,9 @@ class FlattenerLayer(Layer):
     def set_batch_size(self, batch_size):
         self.raw_layer.set_batch_size(batch_size)
 
-    @wraps(Layer.censor_updates)
-    def censor_updates(self, updates):
-        self.raw_layer.censor_updates(updates)
+    @wraps(Layer._modify_updates)
+    def _modify_updates(self, updates):
+        self.raw_layer.modify_updates(updates)
 
     @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
