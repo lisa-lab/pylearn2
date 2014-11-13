@@ -1,11 +1,10 @@
+from __future__ import print_function
+
 __author__ = "Ian Goodfellow"
 """
 A script for sequentially stepping through FoveatedNORB, viewing each image
 and its label.
 """
-
-from __future__ import print_function
-
 import numpy as np
 
 from pylearn2.datasets.norb_small import FoveatedNORB

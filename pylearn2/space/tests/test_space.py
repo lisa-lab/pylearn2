@@ -868,7 +868,7 @@ def test_dtypes():
             except expected_error, ex:
                 assert str(ex).find(expected_error_msg) >= 0
             except Exception, unknown_ex:
-                print("Expected exception of type %s, got %s." % 
+                print("Expected exception of type %s, got %s." %
                       (expected_error.__name__, type(unknown_ex)))
                 raise unknown_ex
             finally:

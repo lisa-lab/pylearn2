@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -22,8 +24,6 @@ Optionally saves these images as png files prefixed with the given output path n
 instead of displaying them. This can be useful when working over ssh.
 
 """
-
-from __future__ import print_function
 
 import sys
 from pylearn2.utils import serial

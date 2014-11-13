@@ -52,7 +52,7 @@ def parse_results(cwd):
                 optimal_measure = dd['results.train_y_misclass']
                 optimal_dd = dd
 
-    print("Optimal " + "results.train_y_misclass" + ": " + str(optimal_measure))
+    print("Optimal results.train_y_misclass:", str(optimal_measure))
     for key, value in optimal_dd.items():
         if 'hyper_parameters' in key:
             print(key + ": " + str(value))

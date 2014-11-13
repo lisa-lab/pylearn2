@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -12,8 +14,6 @@ Then shows how the DBM reconstructs it if you run mean field
 to estimate the hidden units, then do one mean field downward
 pass from hidden_layers[0] to the visible layer.
 """
-from __future__ import print_function
-
 from pylearn2.utils import serial
 import sys
 from pylearn2.config import yaml_parse

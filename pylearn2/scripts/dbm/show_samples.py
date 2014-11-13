@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -13,9 +15,6 @@ starting from that seed data to see how the DBM's MCMC
 sampling changes the data.
 
 """
-
-from __future__ import print_function
-
 from pylearn2.utils import serial
 import sys
 from pylearn2.config import yaml_parse

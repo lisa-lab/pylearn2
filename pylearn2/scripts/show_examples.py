@@ -107,7 +107,7 @@ def show_examples(path, rows, cols, rescale='global', out=None):
     elif examples.shape[3] == 3:
         is_color = True
     else:
-        print('got unknown image format with ' + str(examples.shape[3]), end='')
+        print('got unknown image format with', str(examples.shape[3]), end='')
         print('channels')
         print('supported formats are 1 channel greyscale or three channel RGB')
         quit(-1)
