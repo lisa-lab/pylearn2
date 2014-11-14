@@ -6,10 +6,10 @@ from nose.tools import assert_raises
 from six.moves import xrange
 
 from theano.compat import exc_message
-from theano.compat.python2x import OrderedDict
 from theano import shared
 from theano import tensor as T
 
+from pylearn2.compat import OrderedDict
 from pylearn2.costs.cost import Cost
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.models.model import Model

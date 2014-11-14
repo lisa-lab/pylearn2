@@ -12,9 +12,9 @@ import numpy as np
 import warnings
 
 import six
-from theano.compat.python2x import OrderedDict
 from theano import tensor as T
 
+from pylearn2.compat import OrderedDict
 from pylearn2.model_extensions.model_extension import ModelExtension
 from pylearn2.space import NullSpace
 from pylearn2.utils import function

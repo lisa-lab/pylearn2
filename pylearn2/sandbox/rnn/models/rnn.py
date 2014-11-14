@@ -8,8 +8,8 @@ import six
 from six.moves import xrange
 from theano import tensor
 from theano import config, scan
-from theano.compat.python2x import OrderedDict
 
+from pylearn2.compat import OrderedDict
 from pylearn2.models.mlp import Layer, MLP
 from pylearn2.sandbox.rnn.space import SequenceSpace
 from pylearn2.space import CompositeSpace, VectorSpace

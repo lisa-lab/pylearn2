@@ -1,7 +1,7 @@
 """Tests for pylearn2.utils.video"""
 import numpy
 import six
-from theano.compat.python2x import OrderedDict
+from pylearn2.compat import OrderedDict
 from pylearn2.utils.video import FrameLookup, spatiotemporal_cubes
 
 __author__ = "David Warde-Farley"

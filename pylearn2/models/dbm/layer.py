@@ -18,10 +18,10 @@ import warnings
 
 from theano import tensor as T, function, config
 import theano
-from theano.compat import OrderedDict
 from theano.gof.op import get_debug_values
 from theano.printing import Print
 
+from pylearn2.compat import OrderedDict
 from pylearn2.expr.nnet import sigmoid_numpy
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels, max_pool_b01c, max_pool, max_pool_c01b
 from pylearn2.linear.conv2d import make_random_conv2D, make_sparse_random_conv2D

@@ -31,14 +31,13 @@ __maintainer__ = "LISA Lab"
 
 import numpy as np
 
-from theano.compat.python2x import OrderedDict
-
 from theano import function
 from theano.gof.op import get_debug_values
 from theano.compile.sharedvalue import SharedVariable
 import theano.tensor as T
 import warnings
 
+from pylearn2.compat import OrderedDict
 from pylearn2.expr.nnet import sigmoid_numpy
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.dbm import init_sigmoid_bias_from_array

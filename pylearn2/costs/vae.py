@@ -8,7 +8,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Vincent Dumoulin"
 __email__ = "pylearn-dev@googlegroups"
 
-from theano.compat.python2x import OrderedDict
+from pylearn2.compat import OrderedDict
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 from pylearn2.utils import wraps
 

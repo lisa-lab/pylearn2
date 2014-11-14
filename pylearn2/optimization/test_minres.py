@@ -3,9 +3,9 @@ from __future__ import print_function
 import numpy
 from six.moves import xrange
 import theano
-from theano.compat.python2x import OrderedDict
 import theano.tensor as TT
 
+from pylearn2.compat import OrderedDict
 from pylearn2.optimization import minres
 
 

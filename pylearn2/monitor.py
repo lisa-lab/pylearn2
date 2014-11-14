@@ -16,7 +16,7 @@ import logging
 import numpy as np
 import six
 
-from theano.compat.python2x import OrderedDict
+from pylearn2.compat import OrderedDict
 import theano.sparse
 from theano import config
 from theano import tensor as T

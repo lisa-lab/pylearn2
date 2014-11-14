@@ -31,11 +31,11 @@ import numpy as np
 import warnings
 
 from six.moves import xrange
-from theano.compat.python2x import OrderedDict
 from theano.compat.six.moves import zip as izip
 from theano.sandbox import cuda
 from theano import tensor as T
 
+from pylearn2.compat import OrderedDict
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.mlp import Layer
 from pylearn2.models.model import Model

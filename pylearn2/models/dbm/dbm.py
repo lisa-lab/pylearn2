@@ -13,9 +13,9 @@ import numpy as np
 import warnings
 
 from six.moves import xrange
-from theano.compat import OrderedDict
 from theano import tensor as T, config
 
+from pylearn2.compat import OrderedDict
 from pylearn2.models import Model
 from pylearn2.models.dbm import flatten
 from pylearn2.models.dbm.inference_procedure import WeightDoubling

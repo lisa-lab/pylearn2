@@ -19,8 +19,7 @@ import logging
 import numpy as np
 import sys
 
-from theano.compat.python2x import OrderedDict
-
+from pylearn2.compat import OrderedDict
 from pylearn2.expr.nnet import inverse_sigmoid_numpy
 from pylearn2.blocks import Block
 from pylearn2.utils import block_gradient

@@ -9,7 +9,7 @@ import six
 from theano import config
 from theano import tensor as T
 
-from theano.compat.python2x import OrderedDict
+from pylearn2.compat import OrderedDict
 from pylearn2.space import NullSpace
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.utils import sharedX

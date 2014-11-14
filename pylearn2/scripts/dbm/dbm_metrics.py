@@ -39,9 +39,9 @@ import theano
 import theano.tensor as T
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 from theano.sandbox.scan import scan
-from theano.compat.python2x import OrderedDict
 
 import pylearn2
+from pylearn2.compat import OrderedDict
 from pylearn2.datasets.mnist import MNIST
 from pylearn2.utils import serial
 from pylearn2 import utils

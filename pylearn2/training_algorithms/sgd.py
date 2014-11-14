@@ -17,9 +17,9 @@ import numpy as np
 
 from theano import config
 from theano import function
-from theano.compat.python2x import OrderedDict
 from theano.gof.op import get_debug_values
 
+from pylearn2.compat import OrderedDict
 from pylearn2.monitor import Monitor
 from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.train_extensions import TrainExtension

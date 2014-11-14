@@ -16,8 +16,7 @@ try:
 except ImportError:
     warnings.warn("Could not import from sklearn.")
 
-from theano.compat import OrderedDict
-
+from pylearn2.compat import OrderedDict
 from pylearn2.cross_validation.blocks import StackedBlocksCV
 from pylearn2.cross_validation.subset_iterators import (
     ValidationKFold, StratifiedValidationKFold, ValidationShuffleSplit,

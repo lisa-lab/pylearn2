@@ -5,8 +5,8 @@ from functools import wraps
 
 import six
 from theano import tensor
-from theano.compat.python2x import OrderedDict
 
+from pylearn2.compat import OrderedDict
 from pylearn2.costs.cost import Cost
 from pylearn2.utils import is_iterable
 from pylearn2.utils import py_number_types

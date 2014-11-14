@@ -2,11 +2,11 @@ __author__ = "Ian Goodfellow"
 
 import numpy as np
 
-from theano.compat.python2x import OrderedDict
 from theano import function
 from theano import tensor as T
 
 
+from pylearn2.compat import OrderedDict
 from pylearn2.sandbox.lisa_rl.bandit.agent import Agent
 from pylearn2.utils import sharedX
 
