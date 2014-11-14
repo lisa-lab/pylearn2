@@ -1,4 +1,5 @@
 from nose.tools import raises
+import os
 import numpy
 import theano
 import theano.tensor as T
@@ -538,8 +539,9 @@ def test_VAE_cost():
     """
     VAE trains properly with the VAE cost
     """
-    train_object = yaml_parse.load_path('pylearn2/models/tests/'
-                                        'test_vae_cost_vae_criterion.yaml')
+    yaml_src_path = os.path.join(os.path.dirname(__file__),
+                                 'test_vae_cost_vae_criterion.yaml')
+    train_object = yaml_parse.load_path(yaml_src_path)
     train_object.main_loop()
 
 
@@ -547,6 +549,7 @@ def test_IS_cost():
     """
     VAE trains properly with the importance sampling cost
     """
-    train_object = yaml_parse.load_path('pylearn2/models/tests/'
-                                        'test_vae_cost_is_criterion.yaml')
+    yaml_src_path = os.path.join(os.path.dirname(__file__),
+                                 'test_vae_cost_is_criterion.yaml')
+    train_object = yaml_parse.load_path(yaml_src_path)
     train_object.main_loop()
