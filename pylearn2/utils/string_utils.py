@@ -3,6 +3,8 @@
 import os
 import re
 
+from six.moves import xrange
+
 from pylearn2.utils.exc import EnvironmentVariableError, NoDataPathError
 from pylearn2.utils.exc import reraise_as
 from pylearn2.utils.python26 import cmp_to_key

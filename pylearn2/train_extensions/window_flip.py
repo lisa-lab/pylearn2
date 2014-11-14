@@ -98,7 +98,7 @@ class WindowAndFlip(TrainExtension):
                  randomize=None,
                  randomize_once=None,
                  center=None,
-                 rng=(2013, 02, 20),
+                 rng=(2013, 2, 20),
                  pad_randomized=0,
                  flip=True):
         self._window_shape = tuple(window_shape)
@@ -233,7 +233,7 @@ class WindowAndFlipC01B(WindowAndFlip):
                  randomize=None,
                  randomize_once=None,
                  center=None,
-                 rng=(2013, 02, 20),
+                 rng=(2013, 2, 20),
                  pad_randomized=0,
                  flip=True):
 

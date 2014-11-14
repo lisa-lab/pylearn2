@@ -2,15 +2,20 @@
 Unit tests for ./yaml_parse.py
 """
 
+from __future__ import print_function
+
 import os
 import numpy as np
-import cPickle
+import six
+from six.moves import cPickle
 import tempfile
 from numpy.testing import assert_
-from pylearn2.config.yaml_parse import load, load_path, initialize
 from os import environ, close
 from decimal import Decimal
 from tempfile import mkstemp
+
+from pylearn2.compat import first_key, first_value
+from pylearn2.config.yaml_parse import load, load_path, initialize
 from pylearn2.utils import serial
 from pylearn2.utils.exc import reraise_as
 import yaml
@@ -19,7 +24,7 @@ import yaml
 def test_load_path():
     fd, fname = tempfile.mkstemp()
     with os.fdopen(fd, 'wb') as f:
-        f.write("a: 23")
+        f.write(six.b("a: 23"))
     loaded = load_path(fname)
     assert_(loaded['a'] == 23)
     os.remove(fname)
@@ -56,7 +61,7 @@ def test_import_colon():
 def test_preproc_rhs():
     environ['TEST_VAR'] = '10'
     loaded = load('a: "${TEST_VAR}"')
-    print "loaded['a'] is %s" % loaded['a']
+    print("loaded['a'] is %s" % loaded['a'])
     assert_(loaded['a'] == "10")
     del environ['TEST_VAR']
 
@@ -101,8 +106,8 @@ def test_unpickle_key():
         d = ('a', 1)
         cPickle.dump(d, f)
     loaded = load("{!pkl: '%s': 50}" % fname)
-    assert_(loaded.keys()[0] == d)
-    assert_(loaded.values()[0] == 50)
+    assert_(first_key(loaded) == d)
+    assert_(first_value(loaded) == 50)
     os.remove(fname)
 
 
@@ -116,7 +121,7 @@ def test_multi_constructor_obj():
     except TypeError as e:
         assert str(e) == "Received non string object (1) as key in mapping."
         pass
-    except Exception, e:
+    except Exception as e:
         error_msg = "Got the unexpected error: %s" % (e)
         reraise_as(ValueError(error_msg))
 
@@ -141,11 +146,11 @@ def test_duplicate_keywords():
 
     try:
         load(yamlfile)
-    except yaml.constructor.ConstructorError, e:
+    except yaml.constructor.ConstructorError as e:
         message = str(e)
         assert message.endswith("found duplicate key (nvis)")
         pass
-    except Exception, e:
+    except Exception as e:
         error_msg = "Got the unexpected error: %s" % (e)
         raise TypeError(error_msg)
 

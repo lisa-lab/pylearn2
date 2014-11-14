@@ -16,8 +16,8 @@ import warnings
 
 import numpy as np
 from theano import config
-from theano.compat.python2x import OrderedDict
 
+from pylearn2.compat import OrderedDict
 from pylearn2.monitor import Monitor
 from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
 from pylearn2.utils.iteration import is_stochastic

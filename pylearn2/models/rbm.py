@@ -9,6 +9,8 @@ import logging
 import numpy
 N = numpy
 np = numpy
+import six
+from six.moves import xrange
 import theano
 from theano import tensor
 from theano.compat.six.moves import zip as izip
@@ -1616,7 +1618,7 @@ class _SGDOptimizer(_Optimizer):
         # Clip the values if needed.
         # We do not want the clipping values to force an upcast
         # of the update: updates should have the same type as params
-        for param, (p_min, p_max) in self.clipping_values.iteritems():
+        for param, (p_min, p_max) in six.iteritems(self.clipping_values):
             p_min = tensor.as_tensor(p_min)
             p_max = tensor.as_tensor(p_max)
             dtype = param.dtype

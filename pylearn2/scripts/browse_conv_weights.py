@@ -20,7 +20,7 @@ from pylearn2.space import Conv2DSpace
 
 try:
     from matplotlib import pyplot
-except ImportError, import_error:
+except ImportError as import_error:
     warnings.warn("Can't use this script without matplotlib.")
     pyplot = None
 

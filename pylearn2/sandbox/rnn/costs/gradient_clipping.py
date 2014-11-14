@@ -3,9 +3,10 @@ Implements gradient clipping as a cost wrapper.
 """
 from functools import wraps
 
+import six
 from theano import tensor
-from theano.compat.python2x import OrderedDict
 
+from pylearn2.compat import OrderedDict
 from pylearn2.costs.cost import Cost
 from pylearn2.utils import is_iterable
 from pylearn2.utils import py_number_types
@@ -29,7 +30,7 @@ class GradientClipping(object):
         assert isinstance(clipping_value, py_number_types)
         assert isinstance(cost, Cost)
         assert is_iterable(exclude_params)
-        assert all(isinstance(param_name, basestring)
+        assert all(isinstance(param_name, six.string_types)
                    for param_name in exclude_params)
         self.__dict__.update(locals())
         del self.self
@@ -45,11 +46,12 @@ class GradientClipping(object):
 
         norm = tensor.sqrt(tensor.sum(
             [tensor.sum(param_gradient ** 2) for param, param_gradient
-             in gradients.iteritems() if param.name not in self.exclude_params]
+             in six.iteritems(gradients)
+             if param.name not in self.exclude_params]
         ))
 
         clipped_gradients = OrderedDict()
-        for param, param_gradient in gradients.iteritems():
+        for param, param_gradient in six.iteritems(gradients):
             if param.name not in self.exclude_params:
                 clipped_gradients[param] = tensor.switch(
                     tensor.ge(norm, self.clipping_value),

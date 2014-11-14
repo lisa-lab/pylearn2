@@ -152,11 +152,11 @@ class LinearTransform(object):
             AT_xT = self.rmul_T(self.transpose_left(x, False))
             rval = self.transpose_right(AT_xT, True)
             return rval
-        except RuntimeError, e:
+        except RuntimeError as e:
             if 'ecursion' in str(e):
                 raise TypeError('either lmul or rmul_T must be implemented')
             raise
-        except TypeError, e:
+        except TypeError as e:
             if 'either lmul' in str(e):
                 raise TypeError('either lmul or rmul_T must be implemented')
 
@@ -191,11 +191,11 @@ class LinearTransform(object):
             xT_AT = self.lmul_T(self.transpose_right(x, False))
             rval = self.transpose_left(xT_AT, False)
             return rval
-        except RuntimeError, e:
+        except RuntimeError as e:
             if 'ecursion' in str(e):
                 raise TypeError('either rmul or lmul_T must be implemented')
             raise
-        except TypeError, e:
+        except TypeError as e:
             if 'either lmul' in str(e):
                 raise TypeError('either rmul or lmul_T must be implemented')
 

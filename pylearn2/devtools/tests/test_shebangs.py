@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 __author__ = "Ian Goodfellow"
 
 from pylearn2.devtools.list_files import list_files
@@ -19,6 +21,6 @@ def test_shebangs():
         fd.close()
         if l.startswith("#!"):
             if not l[2:].strip().startswith("/usr/bin/env"):
-                print l
-                print f
+                print(l)
+                print(f)
                 raise AssertionError("Bad shebang")

@@ -14,8 +14,9 @@ import time
 import warnings
 import logging
 import numpy as np
+import six
 
-from theano.compat.python2x import OrderedDict
+from pylearn2.compat import OrderedDict
 import theano.sparse
 from theano import config
 from theano import tensor as T
@@ -216,7 +217,7 @@ class Monitor(object):
                                                self.accum,
                                                self._rng_seed,
                                                self.num_examples):
-            if isinstance(d, basestring):
+            if isinstance(d, six.string_types):
                 d = yaml_parse.load(d)
                 raise NotImplementedError()
 
@@ -550,7 +551,7 @@ class Monitor(object):
         if self._datasets:
             self._datasets = []
             for dataset in temp:
-                if isinstance(dataset, basestring):
+                if isinstance(dataset, six.string_types):
                     self._datasets.append(dataset)
                 else:
                     try:
@@ -609,7 +610,12 @@ class Monitor(object):
         data_specs : (space, source) pair
             Identifies the order, format and semantics of ipt
         """
-        if isinstance(val, (float, int, long)):
+        if six.PY3:
+            numeric = (float, int)
+        else:
+            numeric = (float, int, long)
+
+        if isinstance(val, numeric):
             val = np.cast[theano.config.floatX](val)
 
         val = T.as_tensor_variable(val)
@@ -886,7 +892,7 @@ class Monitor(object):
         custom_channels.update(channels)
 
         if is_stochastic(mode):
-            seed = [[2013, 02, 22]]
+            seed = [[2013, 2, 22]]
         else:
             seed = None
 

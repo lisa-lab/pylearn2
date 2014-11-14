@@ -1,8 +1,11 @@
 """
 Tests for string_utils.py
 """
+from __future__ import print_function
+
 import os
 import uuid
+from six.moves import xrange
 from pylearn2.utils.string_utils import find_number
 from pylearn2.utils.string_utils import preprocess
 from pylearn2.utils.string_utils import tokenize_by_number
@@ -126,16 +129,16 @@ def token_lists_match(l, r):
         matches element i of `r`, False otherwise.
     """
     if len(l) != len(r):
-        print "lengths don't match"
-        print len(l)
-        print len(r)
+        print("lengths don't match")
+        print(len(l))
+        print(len(r))
         return False
 
     for l_elem, r_elem in zip(l, r):
         assert isinstance(l_elem, (str, float, int)), type(l_elem)
         assert isinstance(r_elem, (str, float, int)), type(r_elem)
         if l_elem != r_elem:
-            print '"' + l_elem + '" doesn\'t match "' + r_elem + '"'
+            print('"' + l_elem + '" doesn\'t match "' + r_elem + '"')
             return False
 
     return True
@@ -162,6 +165,6 @@ def test_number_aware_alphabetical_key():
 
     l.sort(key=number_aware_alphabetical_key)
 
-    print l
+    print(l)
 
     assert l == ['mystr', 'mystr_1', 'mystr_1_a', 'mystr_2', 'mystr_10']

@@ -16,7 +16,7 @@ def test_multiple_monitoring_datasets():
     dim = 4
     m = 10
 
-    rng = np.random.RandomState([2014, 02, 25])
+    rng = np.random.RandomState([2014, 2, 25])
     X = rng.randn(m, dim)
     Y = rng.randn(m, dim)
 
@@ -38,6 +38,7 @@ def test_multiple_monitoring_datasets():
     algorithm.setup(model=model, dataset=train)
     algorithm.train(dataset=train)
 
+
 def test_unspecified_batch_size():
 
     # Test that failing to specify the batch size results in a
@@ -45,7 +46,7 @@ def test_unspecified_batch_size():
 
     m = 1
     dim = 2
-    rng = np.random.RandomState([2014, 03, 17])
+    rng = np.random.RandomState([2014, 3, 17])
     X = rng.randn(m, dim)
     train = DenseDesignMatrix(X=X)
 

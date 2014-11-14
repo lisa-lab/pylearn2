@@ -4,6 +4,8 @@ for operation on design matrices rather than generic Spaces, and without
 a concept of parameters.
 """
 # Standard library imports
+from __future__ import print_function
+
 import warnings
 
 # Third-party imports
@@ -19,7 +21,7 @@ theano.config.warn.sum_div_dimshuffle_bug = False
 
 use_slow_rng = 0
 if use_slow_rng:
-    print 'WARNING: using SLOW rng'
+    print('WARNING: using SLOW rng')
     RandomStreams = tensor.shared_randomstreams.RandomStreams
 else:
     import theano.sandbox.rng_mrg

@@ -3,8 +3,7 @@
 
     WRITEME
 """
-from theano.compat.python2x import OrderedDict
-
+from pylearn2.compat import OrderedDict
 from pylearn2.costs.cost import Cost
 from pylearn2.costs.autoencoder import GSNFriendlyCost
 from pylearn2.space import CompositeSpace

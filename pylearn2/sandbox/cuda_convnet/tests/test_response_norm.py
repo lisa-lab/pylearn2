@@ -31,7 +31,7 @@ def test_cross_map_norm_simple():
 
 
 def test_cross_map_norm_grad_simple():
-    rng = numpy.random.RandomState([2013, 02, 10])
+    rng = numpy.random.RandomState([2013, 2, 10])
     op = CrossMapNorm(16, 15/16., 1, True)
     make_graph = lambda inp: op(gpu_from_host(inp))[0]
     verify = lambda array: verify_grad(make_graph, [array])

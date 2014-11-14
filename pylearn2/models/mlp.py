@@ -13,13 +13,14 @@ import sys
 import warnings
 
 import numpy as np
+from six.moves import xrange
 from theano import config
-from theano.compat.python2x import OrderedDict
 from theano.gof.op import get_debug_values
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 from theano.tensor.signal.downsample import max_pool_2d
 import theano.tensor as T
 
+from pylearn2.compat import OrderedDict
 from pylearn2.costs.mlp import Default
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels
 from pylearn2.linear import conv2d
@@ -526,7 +527,7 @@ class MLP(Layer):
         layers = self.layers
         try:
             layers[0].set_input_space(self.get_input_space())
-        except BadInputSpaceError, e:
+        except BadInputSpaceError as e:
             raise TypeError("Layer 0 (" + str(layers[0]) + " of type " +
                             str(type(layers[0])) +
                             ") does not support the MLP's "
@@ -4509,7 +4510,7 @@ def sampled_dropout_average(mlp, inputs, num_masks,
                             input_include_probs=None,
                             default_input_scale=2.,
                             input_scales=None,
-                            rng=(2013, 05, 17),
+                            rng=(2013, 5, 17),
                             per_example=False):
     """
     Take the geometric mean over a number of randomly sampled

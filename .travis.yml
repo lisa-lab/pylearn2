@@ -1,6 +1,7 @@
 language: python
 python:
   - "2.6"
+  - "3.4"
 before_install:
   - sudo apt-get install -qq libatlas3gf-base libatlas-dev liblapack-dev gfortran
   - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh

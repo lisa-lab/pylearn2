@@ -13,13 +13,14 @@ __email__ = "pylearn-dev@googlegroups"
 
 import logging
 import warnings
-import numpy as np
 
+import numpy as np
+import six
 from theano import config
 from theano import function
-from theano.compat.python2x import OrderedDict
 from theano.gof.op import get_debug_values
 
+from pylearn2.compat import OrderedDict, first_key
 from pylearn2.monitor import Monitor
 from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.train_extensions import TrainExtension
@@ -230,7 +231,7 @@ class SGD(TrainingAlgorithm):
                                num_batches=self.monitoring_batches,
                                extra_costs=self.monitoring_costs,
                                mode=self.monitor_iteration_mode)
-            dataset_name = self.monitoring_dataset.keys()[0]
+            dataset_name = first_key(self.monitoring_dataset)
             monitoring_dataset = self.monitoring_dataset[dataset_name]
             #TODO: have Monitor support non-data-dependent channels
             self.monitor.add_channel(name='learning_rate',

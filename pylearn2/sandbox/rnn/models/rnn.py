@@ -4,10 +4,12 @@ Recurrent Neural Network Layer
 from functools import wraps
 
 import numpy as np
+import six
+from six.moves import xrange
 from theano import tensor
 from theano import config, scan
-from theano.compat.python2x import OrderedDict
 
+from pylearn2.compat import OrderedDict
 from pylearn2.models.mlp import Layer, MLP
 from pylearn2.sandbox.rnn.space import SequenceSpace
 from pylearn2.space import CompositeSpace, VectorSpace
@@ -60,7 +62,7 @@ class RNN(MLP):
                     for component, source in zip(space.components, source)
                 )
             else:
-                assert isinstance(source, basestring)
+                assert isinstance(source, six.string_types)
                 source = (source, source + '_mask')
         return source
 

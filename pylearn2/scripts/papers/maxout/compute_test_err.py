@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from pylearn2.utils import py_integer_types
 from pylearn2.utils import serial
 from pylearn2.config import yaml_parse
@@ -57,5 +59,5 @@ def accs():
 
 result = accs()
 
-print 1. - result
+print(1. - result)
 

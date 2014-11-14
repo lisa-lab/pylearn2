@@ -13,13 +13,14 @@ import numpy as np
 import logging
 import warnings
 
-from theano.compat.python2x import OrderedDict
+from six.moves import xrange
 from theano import config
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 RandomStreams = MRG_RandomStreams
 from theano import tensor as T
 
 import pylearn2
+from pylearn2.compat import OrderedDict
 from pylearn2.costs.cost import Cost
 from pylearn2.costs.cost import (
     FixedVarDescr, DefaultDataSpecsMixin, NullDataSpecsMixin

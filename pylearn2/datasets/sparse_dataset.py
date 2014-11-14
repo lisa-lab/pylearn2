@@ -175,7 +175,7 @@ class SparseDataset(Dataset):
         indx = self.subset_iterator.next()
         try:
             mini_batch = self.X[indx]
-        except IndexError, e:
+        except IndexError as e:
             reraise_as(ValueError("Index out of range" + str(e)))
             # the ind of minibatch goes beyond the boundary
         return mini_batch

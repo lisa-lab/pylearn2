@@ -7,13 +7,14 @@ __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
 from collections import defaultdict
-from itertools import izip as izip_no_length_check
+from six.moves import zip as izip_no_length_check
 import numpy as np
 import warnings
 
-from theano.compat.python2x import OrderedDict
+import six
 from theano import tensor as T
 
+from pylearn2.compat import OrderedDict
 from pylearn2.model_extensions.model_extension import ModelExtension
 from pylearn2.space import NullSpace
 from pylearn2.utils import function
@@ -676,10 +677,10 @@ class Model(object):
         by the model's `__getstate__` method (unless a particular model
         overrides this method).
         """
-        if isinstance(names, basestring):
+        if isinstance(names, six.string_types):
             names = [names]
         try:
-            assert all(isinstance(n, basestring) for n in iter(names))
+            assert all(isinstance(n, six.string_types) for n in iter(names))
         except (TypeError, AssertionError):
             reraise_as(ValueError('Invalid names argument'))
         # Quick check in case __init__ was never called, e.g. by a derived

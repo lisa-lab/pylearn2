@@ -20,7 +20,7 @@ import logging
 import numpy as np
 import warnings
 
-from theano.compat.python2x import OrderedDict
+from six.moves import xrange
 from theano.sandbox import cuda
 import theano.tensor as T
 
@@ -29,6 +29,7 @@ if cuda.cuda_available:
     from theano.sandbox.cuda import gpu_from_host
     from theano.sandbox.cuda import host_from_gpu
 
+from pylearn2.compat import OrderedDict
 from pylearn2.linear.conv2d import default_seed, default_sparse_seed
 from pylearn2.linear.linear_transform import LinearTransform
 from pylearn2.sandbox.cuda_convnet import check_cuda

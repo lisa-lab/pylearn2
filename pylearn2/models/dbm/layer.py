@@ -1,6 +1,8 @@
 """
 Common DBM Layer classes
 """
+from __future__ import print_function
+
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -10,15 +12,16 @@ __maintainer__ = "LISA Lab"
 import functools
 import logging
 import numpy as np
+from six.moves import xrange
 import time
 import warnings
 
 from theano import tensor as T, function, config
 import theano
-from theano.compat import OrderedDict
 from theano.gof.op import get_debug_values
 from theano.printing import Print
 
+from pylearn2.compat import OrderedDict
 from pylearn2.expr.nnet import sigmoid_numpy
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels, max_pool_b01c, max_pool, max_pool_c01b
 from pylearn2.linear.conv2d import make_random_conv2D, make_sparse_random_conv2D
@@ -2227,8 +2230,8 @@ class GaussianVisLayer(VisibleLayer):
             assert drop_mask_v.ndim in [3,4]
             for i in xrange(drop_mask.ndim):
                 if Vv.shape[i] != drop_mask_v.shape[i]:
-                    print Vv.shape
-                    print drop_mask_v.shape
+                    print(Vv.shape)
+                    print(drop_mask_v.shape)
                     assert False
         """
 
@@ -2824,7 +2827,7 @@ class ConvMaxPool(HiddenLayer):
             msg = layer_above.downward_message(state_above)
             try:
                 self.output_space.validate(msg)
-            except TypeError, e:
+            except TypeError as e:
                 reraise_as(TypeError(str(type(layer_above))+".downward_message gave something that was not the right type: "+str(e)))
         else:
             msg = None
@@ -3326,7 +3329,7 @@ class ConvC01B_MaxPool(HiddenLayer):
             msg = layer_above.downward_message(state_above)
             try:
                 self.output_space.validate(msg)
-            except TypeError, e:
+            except TypeError as e:
                 reraise_as(TypeError(str(type(layer_above))+".downward_message gave something that was not the right type: "+str(e)))
         else:
             msg = None

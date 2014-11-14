@@ -3,7 +3,8 @@ import os
 import numpy
 import theano
 import theano.tensor as T
-from theano.compat.python2x import OrderedDict
+
+from pylearn2.compat import OrderedDict
 from pylearn2.config import yaml_parse
 from pylearn2.models.mlp import (
     MLP, Linear, CompositeLayer, ConvRectifiedLinear, SpaceConverter

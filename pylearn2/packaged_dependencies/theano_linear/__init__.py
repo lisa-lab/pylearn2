@@ -1,4 +1,4 @@
-from linear import (
+from .linear import (
         dot,
         dot_shape,
         LinearTransform,
@@ -6,4 +6,4 @@ from linear import (
         #Concat,     ## unready
         #Sum,        ## unready
         )
-from conv2d import Conv2d
+from .conv2d import Conv2d

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import numpy as np
 import os
 import sys
@@ -6,7 +8,7 @@ from pylearn2.utils import serial
 from pylearn2.utils.string_utils import preprocess
 
 def usage():
-    print """
+    print("""
 Run
 python extract_kmeans_features.py public_test
 to extract features for the ICML 2013 multimodal learning contest's public test images.
@@ -14,11 +16,11 @@ or
 python extract_kmeans_features.py private_test
 to extract features for the ICML 2013 multimodal learning contest's private test images
 (which will be released 72 hours before the contest ends)
-"""
+""")
 
 if len(sys.argv) != 2:
     usage()
-    print '(You used the wrong number of arguments)'
+    print('(You used the wrong number of arguments)')
     quit(-1)
 
 _, arg = sys.argv
@@ -31,8 +33,8 @@ elif arg == 'private_test':
     expected_num_images = 500
 else:
     usage()
-    print 'Unrecognized argument value:',arg
-    print 'Recognized values are: public_test, private_test'
+    print('Unrecognized argument value:',arg)
+    print('Recognized values are: public_test, private_test')
 
 outdir = base[:-3] + 'layer_1_features'
 serial.mkdir(outdir)
@@ -69,7 +71,7 @@ from theano import function
 f = function([X], F)
 
 for i, path in enumerate(paths):
-    print i
+    print(i)
     try:
         X = np.load(base + '/' + path)
 
@@ -78,6 +80,6 @@ for i, path in enumerate(paths):
         F = f(X)
 
         np.save(outdir + '/' + path, F)
-    except Exception, e:
+    except Exception as e:
         raise
 

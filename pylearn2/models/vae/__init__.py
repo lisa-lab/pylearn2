@@ -28,7 +28,8 @@ __email__ = "pylearn-dev@googlegroups"
 import warnings
 import numpy
 import theano.tensor as T
-from theano.compat.python2x import OrderedDict
+
+from pylearn2.compat import OrderedDict
 from pylearn2.expr.basic import log_sum_exp
 from pylearn2.models.model import Model
 from pylearn2.models.vae.kl import find_integrator_for

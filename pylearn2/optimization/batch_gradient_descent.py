@@ -14,12 +14,13 @@ import logging
 import time
 
 import numpy as np
+from six.moves import xrange
 
 from theano import config
-from theano.compat.python2x import OrderedDict
 from theano.printing import var_descriptor
 import theano.tensor as T
 
+from pylearn2.compat import OrderedDict
 from pylearn2.utils import function
 from pylearn2.utils import grad
 from pylearn2.utils import safe_zip

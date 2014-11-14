@@ -1,11 +1,12 @@
-import cStringIO
-import numpy as np
+from __future__ import print_function
 
+import numpy as np
+from six.moves import cStringIO, xrange
 import theano.tensor as T
 from theano.tests import disturb_mem
 from theano.tests.record import Record, RecordMode
-import warnings
 
+from pylearn2.compat import first_key
 from pylearn2.costs.cost import Cost, SumOfCosts, DefaultDataSpecsMixin
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.models.model import Model
@@ -184,7 +185,7 @@ def test_sgd_unspec_num_mon_batch():
     monitor()
 
     if False in visited:
-        print visited
+        print(visited)
         assert False
 
 
@@ -658,7 +659,7 @@ def test_bad_monitoring_input_in_monitor_based_lr():
     dim = 3
     m = 10
 
-    rng = np.random.RandomState([06, 02, 2014])
+    rng = np.random.RandomState([6, 2, 2014])
 
     X = rng.randn(m, dim)
 
@@ -741,7 +742,7 @@ def testing_multiple_datasets_in_monitor_based_lr():
     dim = 3
     m = 10
 
-    rng = np.random.RandomState([06, 02, 2014])
+    rng = np.random.RandomState([6, 2, 2014])
 
     X = rng.randn(m, dim)
     Y = rng.randn(m, dim)
@@ -805,7 +806,7 @@ def testing_multiple_datasets_with_specified_dataset_in_monitor_based_lr():
     dim = 3
     m = 10
 
-    rng = np.random.RandomState([06, 02, 2014])
+    rng = np.random.RandomState([6, 2, 2014])
 
     X = rng.randn(m, dim)
     Y = rng.randn(m, dim)
@@ -841,7 +842,7 @@ def testing_multiple_datasets_with_specified_dataset_in_monitor_based_lr():
                     init_momentum=None,
                     set_batch_size=False)
 
-    dataset_name = monitoring_dataset.keys()[0]
+    dataset_name = first_key(monitoring_dataset)
     monitor_lr = MonitorBasedLRAdjuster(dataset_name=dataset_name)
 
     train = Train(dataset,
@@ -1118,7 +1119,7 @@ def test_determinism():
             try:
                 algorithm.train(dataset)
             except ValueError:
-                print mode
+                print(mode)
                 assert mode in unsupported_modes
                 raised = True
             if mode in unsupported_modes:
@@ -1142,8 +1143,8 @@ def test_determinism():
 
         assert len(visited) == 2
 
-        print visited[0]
-        print visited[1]
+        print(visited[0])
+        print(visited[1])
         assert np.all(np.asarray(visited[0]) == np.asarray(visited[1]))
 
 
@@ -1279,13 +1280,13 @@ def test_determinism_2():
 
         train_object.main_loop()
 
-    output = cStringIO.StringIO()
+    output = cStringIO()
     record = Record(file_object=output, replay=False)
     record_mode = RecordMode(record)
 
     run_sgd(record_mode)
 
-    output = cStringIO.StringIO(output.getvalue())
+    output = cStringIO(output.getvalue())
     playback = Record(file_object=output, replay=True)
     playback_mode = RecordMode(playback)
 

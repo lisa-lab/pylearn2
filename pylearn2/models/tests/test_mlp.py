@@ -1,6 +1,10 @@
+from __future__ import print_function
+
 from itertools import product
 
 import numpy as np
+import six
+from six.moves import xrange
 import theano
 from theano import tensor, config
 from nose.tools import assert_raises
@@ -143,7 +147,7 @@ def test_batchwise_dropout():
     f = theano.function([inp], mlp.dropout_fprop(inp, per_example=True),
                         allow_input_downcast=True)
     d = f([[3.0, 4.5]] * 3)
-    print d
+    print(d)
     np.testing.assert_(np.any(d[0] != d[1]) or np.any(d[0] != d[2]))
 
 def test_str():
@@ -156,7 +160,7 @@ def test_str():
 
     s = str(mlp)
 
-    assert isinstance(s, basestring)
+    assert isinstance(s, six.string_types)
 
 def test_sigmoid_detection_cost():
     # This is only a smoke test: verifies that it compiles and runs,
@@ -448,7 +452,7 @@ def test_softmax_bin_targets_channels(seed=0):
     for channel_name in ['misclass', 'nll']:
         vec_val = channel_value(channel_name, mlp_vec, y_vec, y_vec_data)
         bin_val = channel_value(channel_name, mlp_bin, y_bin, y_bin_data)
-        print channel_name, vec_val, bin_val
+        print(channel_name, vec_val, bin_val)
         np.testing.assert_allclose(vec_val, bin_val)
     
 def test_set_get_weights_Softmax():

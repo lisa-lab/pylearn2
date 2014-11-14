@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import unittest
 from nose.plugins.skip import SkipTest
 import numpy
@@ -230,7 +232,7 @@ if 1:
         filters *= 0
         filters[1,1,0,0,0,0,0] = 1
         cpuval, gpuval = self.run_match(images, filters, 1, retvals=True)
-        print images
-        print cpuval[:, :, 1, 1, :]
-        print gpuval[:, :, 1, 1, :]
+        print(images)
+        print(cpuval[:, :, 1, 1, :])
+        print(gpuval[:, :, 1, 1, :])
 
