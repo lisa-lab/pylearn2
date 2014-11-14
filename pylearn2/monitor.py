@@ -610,7 +610,12 @@ class Monitor(object):
         data_specs : (space, source) pair
             Identifies the order, format and semantics of ipt
         """
-        if isinstance(val, (float, int, long)):
+        if six.PY3:
+            numeric = (float, int)
+        else:
+            numeric = (float, int, long)
+
+        if isinstance(val, numeric):
             val = np.cast[theano.config.floatX](val)
 
         val = T.as_tensor_variable(val)

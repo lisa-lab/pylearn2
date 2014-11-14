@@ -6,6 +6,7 @@ from __future__ import print_function
 
 import os
 import numpy as np
+import six
 from six.moves import cPickle
 import tempfile
 from numpy.testing import assert_
@@ -21,7 +22,7 @@ import yaml
 def test_load_path():
     fd, fname = tempfile.mkstemp()
     with os.fdopen(fd, 'wb') as f:
-        f.write("a: 23")
+        f.write(six.b("a: 23"))
     loaded = load_path(fname)
     assert_(loaded['a'] == 23)
     os.remove(fname)
@@ -103,8 +104,8 @@ def test_unpickle_key():
         d = ('a', 1)
         cPickle.dump(d, f)
     loaded = load("{!pkl: '%s': 50}" % fname)
-    assert_(loaded.keys()[0] == d)
-    assert_(loaded.values()[0] == 50)
+    assert_(six.next(six.iterkeys(loaded)) == d)
+    assert_(six.next(six.itervalues(loaded)) == 50)
     os.remove(fname)
 
 
