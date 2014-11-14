@@ -1,6 +1,7 @@
 """
 Spaces specific to the RNN framework, specifically the SequenceSpace
 """
+from __future__ import print_function
 from functools import wraps
 
 import numpy as np
@@ -146,7 +147,7 @@ class SequenceDataSpace(space.SimplyTypedSpace):
 
                 return space._cast(result, space.dtype)
             else:
-                print 'Unexpected space', space
+                print('Unexpected space', space)
                 raise NotImplementedError
 
     @wraps(space.Space._check_sizes)
