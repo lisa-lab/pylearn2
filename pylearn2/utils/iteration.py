@@ -105,6 +105,9 @@ class SubsetIterator(object):
         """
         raise NotImplementedError()
 
+    def __next__(self):
+        self.next()
+
     def __iter__(self):
         return self
 
@@ -834,6 +837,9 @@ class FiniteDatasetIterator(object):
         if not self._return_tuple and len(rval) == 1:
             rval, = rval
         return rval
+
+    def __next__(self):
+        return self.next()
 
     @property
     @wraps(SubsetIterator.batch_size, assigned=(), updated=())
