@@ -30,7 +30,7 @@ def test_frame_lookup():
 def test_spatiotemporal_cubes():
     def check_patch_coverage(files):
         rng = numpy.random.RandomState(1)
-        inputs = [(fname, array.shape) for fname, array in six.iteritems(files)]
+        inputs = [(name, array.shape) for name, array in six.iteritems(files)]
         shape = (5, 7, 7)
         for fname, index in spatiotemporal_cubes(inputs, shape, 50000, rng):
             cube = files[fname][index]
