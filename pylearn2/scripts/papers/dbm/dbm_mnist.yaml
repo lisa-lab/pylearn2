@@ -2,7 +2,6 @@
     dataset: &data !obj:pylearn2.datasets.binarizer.Binarizer {
         raw: &raw_train !obj:pylearn2.datasets.mnist.MNIST {
             which_set: "train",
-            one_hot: 1,
             start: 0,
             stop: %(train_stop)i
         }
@@ -35,12 +34,7 @@
             init_momentum: 0.5,
         },
         monitoring_batches: %(monitoring_batches)i,
-        monitoring_dataset: {
-            'test': !obj:pylearn2.datasets.mnist.MNIST {
-                which_set: 'test',
-                one_hot: 1
-            }
-        },
+        monitoring_dataset: *data,
         cost : !obj:pylearn2.costs.cost.SumOfCosts {
             costs: [
                 !obj:pylearn2.costs.dbm.VariationalPCD {

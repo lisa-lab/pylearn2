@@ -1,7 +1,6 @@
 !obj:pylearn2.train.Train {
     dataset: !obj:pylearn2.datasets.mnist.MNIST { 
         which_set: 'train',
-        one_hot: 1,
         start: 0,
         stop: %(train_stop)i,
     },
@@ -33,8 +32,7 @@
         },
         monitoring_dataset: {
              'test': !obj:pylearn2.datasets.mnist.MNIST {
-                          which_set: 'test',
-                          one_hot: 1
+                     which_set: 'test',
              },
         },
         cost: !obj:pylearn2.costs.mlp.dropout.Dropout {
