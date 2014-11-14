@@ -23,6 +23,7 @@ from pylearn2.utils.track_version import MetaLibVersion
 
 
 class Model(object):
+
     """
     A class representing a model with learnable parameters.
 
@@ -54,14 +55,11 @@ class Model(object):
         """
         Don't let subclasses use censor_updates.
         """
-        if hasattr(self, '_censor_updates_message_shown'):
-            return
         if self._overrides_censor_updates():
-            self._censor_updates_message_shown = True
-            warnings.warn(str(type(self)) + " overrides "
-                          "Model.censor_updates, which is deprecated. Change "
-                          "this to _modify_updates. censor_updates will no "
-                          "longer be called on or after 2014-11-01.")
+            raise TypeError(str(type(self)) + " overrides "
+                            "Model.censor_updates, which is no longer in use. "
+                            "Change this to _modify_updates. This check may "
+                            "quit being performed after 2015-05-13.")
 
     def _ensure_extensions(self):
         """
@@ -351,11 +349,8 @@ class Model(object):
             will be updated to.
         """
 
-        warnings.warn("censor_updates is deprecated, call modify_updates "
-                      "instead. This will become an error on or after "
-                      "2014-11-01.", stacklevel=2)
-
-        self.modify_updates(updates)
+        raise TypeError("Model.censor_updates has been replaced by "
+                        "Model.modify_updates.")
 
     def modify_updates(self, updates):
         """"
@@ -404,9 +399,9 @@ class Model(object):
             will be updated to.
         """
 
-        # Support subclasses that use the deprecated interface.
-        if self._overrides_censor_updates():
-            self.censor_updates(updates)
+        # Catch classes that try to override the old method.
+        # This check may be removed after 2015-05-13.
+        self._disallow_censor_updates()
 
     def get_input_space(self):
         """
@@ -567,7 +562,7 @@ class Model(object):
         pos = 0
         for param, value in safe_zip(params, cur_values):
             size = value.size
-            new_value = vector[pos:pos+size]
+            new_value = vector[pos:pos + size]
             param.set_value(new_value.reshape(*value.shape))
             pos += size
         assert pos == vector.size

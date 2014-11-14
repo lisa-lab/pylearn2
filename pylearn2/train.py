@@ -121,7 +121,7 @@ class Train(object):
             self.algorithm.setup(model=self.model, dataset=self.dataset)
         self.setup_extensions()
 
-        # Model.censor_updates is used by the training algorithm to
+        # Model.modify_updates is used by the training algorithm to
         # enforce constraints after each step of learning. Here we
         # make sure the constraints are enforced from the start.
         self.model.enforce_constraints()
