@@ -1,3 +1,6 @@
+"""
+Compatibility layer
+"""
 import six
 
 
