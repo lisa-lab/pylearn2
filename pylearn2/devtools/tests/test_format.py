@@ -142,7 +142,6 @@ whitelist_pep8 = [
     "scripts/get_version.py",
     "training_algorithms/tests/test_bgd.py",
     "training_algorithms/tests/test_default.py",
-    "training_algorithms/bgd.py",
     "training_algorithms/default.py",
     "training_algorithms/training_algorithm.py",
     "training_algorithms/sgd.py",

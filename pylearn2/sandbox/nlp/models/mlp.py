@@ -92,8 +92,8 @@ class ProjectionLayer(Layer):
             self._irange = irange
             self._istdev = istdev
 
-    @wraps(Layer.get_monitoring_channels)
-    def get_monitoring_channels(self):
+    @wraps(Layer.get_layer_monitoring_channels)
+    def get_layer_monitoring_channels(self, *args, **kwargs):
 
         W, = self.transformer.get_params()
 
