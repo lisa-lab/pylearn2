@@ -14,10 +14,20 @@ else:
 
 
 def first_key(obj):
-    """ Return the first key """
+    """ Return the first key
+
+    Parameters
+    ----------
+    obj: dict-like object
+    """
     return six.next(six.iterkeys(obj))
 
 
 def first_value(obj):
-    """ Return the first value"""
+    """ Return the first value
+
+    Parameters
+    ----------
+    obj: dict-like object
+    """
     return six.next(six.itervalues(obj))
