@@ -10,10 +10,12 @@ import six
 from six.moves import cPickle
 import tempfile
 from numpy.testing import assert_
-from pylearn2.config.yaml_parse import load, load_path, initialize
 from os import environ, close
 from decimal import Decimal
 from tempfile import mkstemp
+
+from pylearn2.compat import first_key, first_value
+from pylearn2.config.yaml_parse import load, load_path, initialize
 from pylearn2.utils import serial
 from pylearn2.utils.exc import reraise_as
 import yaml
@@ -104,8 +106,8 @@ def test_unpickle_key():
         d = ('a', 1)
         cPickle.dump(d, f)
     loaded = load("{!pkl: '%s': 50}" % fname)
-    assert_(six.next(six.iterkeys(loaded)) == d)
-    assert_(six.next(six.itervalues(loaded)) == 50)
+    assert_(first_key(loaded) == d)
+    assert_(first_value(loaded) == 50)
     os.remove(fname)
 
 

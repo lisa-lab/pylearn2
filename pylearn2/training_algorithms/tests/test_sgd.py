@@ -1,13 +1,12 @@
 from __future__ import print_function
 
-from six.moves import cStringIO, xrange
 import numpy as np
-
+from six.moves import cStringIO, xrange
 import theano.tensor as T
 from theano.tests import disturb_mem
 from theano.tests.record import Record, RecordMode
-import warnings
 
+from pylearn2.compat import first_key
 from pylearn2.costs.cost import Cost, SumOfCosts, DefaultDataSpecsMixin
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.models.model import Model
@@ -843,7 +842,7 @@ def testing_multiple_datasets_with_specified_dataset_in_monitor_based_lr():
                     init_momentum=None,
                     set_batch_size=False)
 
-    dataset_name = monitoring_dataset.keys()[0]
+    dataset_name = first_key(monitoring_dataset)
     monitor_lr = MonitorBasedLRAdjuster(dataset_name=dataset_name)
 
     train = Train(dataset,

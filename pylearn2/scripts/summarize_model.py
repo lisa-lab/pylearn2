@@ -17,6 +17,7 @@ import argparse
 
 import numpy as np
 
+from pylearn2.compat import first_key
 from pylearn2.utils import serial
 
 
@@ -52,9 +53,9 @@ def summarize(path):
         print('trained on', model.monitor.get_examples_seen(), 'examples')
         print('which corresponds to', end='')
         print(model.monitor.get_batches_seen(), 'batches')
-        print('Trained for', str(float(model.monitor.channels[
-            model.monitor.channels.keys()[0]].time_record[-1])/3600.),
-            ' hours')
+        key = first_key(model.monitor.channels)
+        hour = float(model.monitor.channels[key].time_record[-1]) / 3600.
+        print('Trained for {0} hours'.format(hour))
         try:
             print(model.monitor.get_epochs_seen(), 'epochs')
         except Exception:
