@@ -1,7 +1,7 @@
 import hashlib
 import itertools
 import numpy
-from six.moves import xrange
+from theano.compat.six.moves import xrange
 from pylearn2.train_extensions.window_flip import WindowAndFlip
 from pylearn2.train_extensions.window_flip import WindowAndFlipC01B
 

@@ -1,6 +1,6 @@
 """Tests for pylearn2.utils.video"""
 import numpy
-import six
+from theano.compat import six
 from pylearn2.compat import OrderedDict
 from pylearn2.utils.video import FrameLookup, spatiotemporal_cubes
 

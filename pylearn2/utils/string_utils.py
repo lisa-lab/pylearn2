@@ -3,7 +3,7 @@
 import os
 import re
 
-from six.moves import xrange
+from theano.compat.six.moves import xrange
 
 from pylearn2.utils.exc import EnvironmentVariableError, NoDataPathError
 from pylearn2.utils.exc import reraise_as

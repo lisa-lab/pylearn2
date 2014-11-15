@@ -18,7 +18,7 @@ from pylearn2.utils import serial
 import sys
 from pylearn2.config import yaml_parse
 from pylearn2.gui.patch_viewer import PatchViewer
-from six.moves import xrange
+from theano.compat.six.moves import xrange
 from theano import function
 
 rows = 5

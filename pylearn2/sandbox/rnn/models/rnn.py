@@ -4,8 +4,8 @@ Recurrent Neural Network Layer
 from functools import wraps
 
 import numpy as np
-import six
-from six.moves import xrange
+from theano.compat import six
+from theano.compat.six.moves import xrange
 from theano import tensor
 from theano import config, scan
 

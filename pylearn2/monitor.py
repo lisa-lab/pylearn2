@@ -14,7 +14,7 @@ import time
 import warnings
 import logging
 import numpy as np
-import six
+from theano.compat import six
 
 from pylearn2.compat import OrderedDict
 import theano.sparse

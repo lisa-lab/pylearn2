@@ -27,7 +27,7 @@ __maintainer__ = "David Warde-Farley"
 import logging
 import sys
 from logging import Handler, Formatter
-from six.moves import xrange
+from theano.compat.six.moves import xrange
 
 
 class CustomFormatter(Formatter):

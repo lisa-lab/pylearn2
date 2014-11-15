@@ -4,7 +4,7 @@ Unit tests for ./norb.py
 
 import unittest
 import numpy
-import six
+from theano.compat import six
 from pylearn2.datasets.norb import SmallNORB
 from pylearn2.datasets.norb_small import FoveatedNORB
 from pylearn2.datasets.new_norb import NORB

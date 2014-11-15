@@ -10,7 +10,7 @@ import re
 import sys
 import types
 
-import six
+from theano.compat import six
 
 
 class Reader(object):

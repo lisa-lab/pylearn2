@@ -18,7 +18,7 @@ import time
 import warnings
 import os
 import numpy
-from six.moves import xrange
+from theano.compat.six.moves import xrange
 import scipy
 try:
     from scipy import linalg

@@ -22,7 +22,7 @@ import gc
 import numpy as np
 import sys
 
-from six.moves import xrange
+from theano.compat.six.moves import xrange
 from pylearn2.utils import serial
 from theano.printing import _TagGenerator
 from pylearn2.utils.string_utils import number_aware_alphabetical_key

@@ -1,7 +1,7 @@
 """
 Compatibility layer
 """
-import six
+from theano.compat import six
 
 
 __all__ = ('OrderedDict', )

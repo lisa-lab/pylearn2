@@ -16,7 +16,7 @@ control = None
 cuda = None
 
 import numpy as np
-import six
+from theano.compat import six
 
 from functools import partial
 
@@ -390,12 +390,12 @@ def grad(*args, **kwargs):
 
 
 # Groups of Python types that are often used together in `isinstance`
-if six.PY2:
-    py_integer_types = (int, long, np.integer)
-    py_number_types = (int, long, float, complex, np.number)
-else:
+if six.PY3:
     py_integer_types = (int, np.integer)
     py_number_types = (int, float, complex, np.number)
+else:
+    py_integer_types = (int, long, np.integer)
+    py_number_types = (int, long, float, complex, np.number)
 
 py_float_types = (float, np.floating)
 py_complex_types = (complex, np.complex)

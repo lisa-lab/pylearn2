@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import numpy
-from six.moves import xrange
+from theano.compat.six.moves import xrange
 import theano
 import theano.tensor as TT
 

@@ -7,7 +7,7 @@ __email__ = "wardefar@iro"
 __maintainer__ = "David Warde-Farley"
 
 import numpy as np
-from six.moves import xrange
+from theano.compat.six.moves import xrange
 
 
 def all_bit_strings(bits, dtype='uint8'):

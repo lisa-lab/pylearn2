@@ -12,7 +12,7 @@ except ImportError:
 import pickle
 import logging
 import numpy as np
-from six.moves import xrange
+from theano.compat.six.moves import xrange
 import os
 import time
 import warnings

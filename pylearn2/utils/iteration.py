@@ -18,7 +18,7 @@ Presets:
 from __future__ import division
 
 import numpy as np
-import six
+from theano.compat import six
 
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_izip, wraps

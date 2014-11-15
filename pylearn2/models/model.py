@@ -7,11 +7,11 @@ __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
 from collections import defaultdict
-from six.moves import zip as izip_no_length_check
+from theano.compat.six.moves import zip as izip_no_length_check
 import numpy as np
 import warnings
 
-import six
+from theano.compat import six
 from theano import tensor as T
 
 from pylearn2.compat import OrderedDict
