@@ -59,7 +59,8 @@
                             },
                },
          learning_rate: 15.146493,
-        init_momentum: .5,
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: .5},
                cost: !obj:pylearn2.costs.cost.SumOfCosts {
                    costs :[
                       !obj:pylearn2.costs.dbm.MultiPrediction {
@@ -87,7 +88,7 @@
                         channel_name: "raw_valid_err",
                         save_path: "mpdbm.pkl"
                 },
-                !obj:pylearn2.training_algorithms.sgd.MomentumAdjustor {
+                !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
                     start: 1,
                     saturate: 2,
                     final_momentum: 0.732716

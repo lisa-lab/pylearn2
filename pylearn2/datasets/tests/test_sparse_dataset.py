@@ -131,7 +131,6 @@ def test_training_a_model():
     algorithm = SGD(learning_rate, cost, batch_size=batch_size,
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     train = Train(dataset, model, algorithm, save_path=None,

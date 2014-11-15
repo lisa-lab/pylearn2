@@ -119,15 +119,6 @@ class SGD(TrainingAlgorithm):
 
         This argument allows more sophisticated learning rules, such
         as SGD with momentum.
-    init_momentum : float, **DEPRECATED** option
-        Use learning_rule instead.
-        If None, does not use momentum otherwise, use momentum and
-        initialize the momentum coefficient to init_momentum. Callbacks
-        can change this over time just like the learning rate. If the
-        gradient is the same on every step, then the update taken by the
-        SGD algorithm is scaled by a factor of 1/(1-momentum). See
-        section 9 of Geoffrey Hinton's "A Practical Guide to Training
-        Restricted Boltzmann Machines" for details.
     set_batch_size : bool, optional
         Defaults to False.
         If True, and batch_size conflicts with model.force_batch_size,
@@ -163,7 +154,7 @@ class SGD(TrainingAlgorithm):
                  monitoring_batch_size=None, monitoring_batches=None,
                  monitoring_dataset=None, monitor_iteration_mode='sequential',
                  termination_criterion=None, update_callbacks=None,
-                 learning_rule = None, init_momentum = None,
+                 learning_rule = None,
                  set_batch_size = False,
                  train_iteration_mode = None, batches_per_iter=None,
                  theano_function_mode = None, monitoring_costs=None,
@@ -174,15 +165,7 @@ class SGD(TrainingAlgorithm):
                             "Costs to represent a sum of Costs. Use " +
                             "pylearn2.costs.cost.SumOfCosts instead.")
 
-        if init_momentum:
-            warnings.warn("init_momentum interface is deprecated and will "
-            "become officially unsuported as of May 9, 2014. Please use the "
-            "`learning_rule` parameter instead, providing an object of type "
-            "`pylearn2.training_algorithms.learning_rule.Momentum` instead")
-            # Convert to new interface under the hood.
-            self.learning_rule = Momentum(init_momentum)
-        else:
-            self.learning_rule = learning_rule
+        self.learning_rule = learning_rule
 
         self.learning_rate = sharedX(learning_rate, 'learning_rate')
         self.cost = cost
@@ -886,24 +869,6 @@ class LinearDecay(object):
         assert new_lr > 0
         new_lr = np.cast[config.floatX](new_lr)
         algorithm.learning_rate.set_value(new_lr)
-
-
-def MomentumAdjustor(final_momentum, start, saturate):
-    """
-    Deprecated class used with the deprecated init_momentum argument.
-    Use learning_rule.MomentumAdjustor instead.
-
-    Parameters
-    ----------
-    final_momentum : WRITEME
-    start : WRITEME
-    saturate : WRITEME
-    """
-    warnings.warn("sgd.MomentumAdjustor interface is deprecated and will "
-    "become officially unsupported as of May 9, 2014. Please use "
-    "`learning_rule.MomentumAdjustor` instead.")
-    return LRMomentumAdjustor(final_momentum, start, saturate)
-
 
 class OneOverEpoch(TrainExtension):
     """
