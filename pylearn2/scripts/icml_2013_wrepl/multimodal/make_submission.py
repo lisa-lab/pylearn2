@@ -3,7 +3,7 @@ from __future__ import print_function
 import numpy as np
 import sys
 
-from six.moves import xrange
+from theano.compat.six.moves import xrange
 from theano import function
 from theano import tensor as T
 

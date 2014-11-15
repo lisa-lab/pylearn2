@@ -3,7 +3,7 @@ Implements gradient clipping as a cost wrapper.
 """
 from functools import wraps
 
-import six
+from theano.compat import six
 from theano import tensor
 
 from pylearn2.compat import OrderedDict

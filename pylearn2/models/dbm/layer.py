@@ -12,7 +12,7 @@ __maintainer__ = "LISA Lab"
 import functools
 import logging
 import numpy as np
-from six.moves import xrange
+from theano.compat.six.moves import xrange
 import time
 import warnings
 

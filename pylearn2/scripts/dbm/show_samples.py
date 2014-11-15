@@ -20,7 +20,7 @@ import sys
 from pylearn2.config import yaml_parse
 from pylearn2.gui.patch_viewer import PatchViewer
 import time
-from six.moves import xrange
+from theano.compat.six.moves import xrange
 from theano import function
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 import numpy as np

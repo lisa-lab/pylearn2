@@ -3,8 +3,8 @@ from __future__ import print_function
 from itertools import product
 
 import numpy as np
-import six
-from six.moves import xrange
+from theano.compat import six
+from theano.compat.six.moves import xrange
 import theano
 from theano import tensor, config
 from nose.tools import assert_raises

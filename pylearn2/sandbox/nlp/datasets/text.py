@@ -1,5 +1,5 @@
 """Datasets for working with text"""
-import six
+from theano.compat import six
 
 
 class TextDatasetMixin(object):

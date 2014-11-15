@@ -29,7 +29,7 @@ import socket
 import subprocess
 import sys
 
-import six
+from theano.compat import six
 
 logger = logging.getLogger(__name__)
 

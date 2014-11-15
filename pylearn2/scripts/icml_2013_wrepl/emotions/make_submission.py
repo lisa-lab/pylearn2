@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import sys
-from six.moves import xrange
+from theano.compat.six.moves import xrange
 
 def usage():
     print("""usage: python make_submission.py model.pkl submission.csv)

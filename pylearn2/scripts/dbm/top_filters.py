@@ -28,7 +28,7 @@ instead of displaying them. This can be useful when working over ssh.
 import sys
 from pylearn2.utils import serial
 import numpy as np
-from six.moves import xrange
+from theano.compat.six.moves import xrange
 from pylearn2.gui.patch_viewer import PatchViewer
 from pylearn2.gui.patch_viewer import make_viewer
 from pylearn2.config import yaml_parse

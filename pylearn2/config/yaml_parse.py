@@ -9,7 +9,7 @@ from collections import namedtuple
 import logging
 import warnings
 
-import six
+from theano.compat import six
 
 is_initialized = False
 additional_environ = None

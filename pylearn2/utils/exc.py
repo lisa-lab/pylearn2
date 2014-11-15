@@ -5,7 +5,7 @@ import sys
 import textwrap
 
 from pylearn2.utils.common_strings import environment_variable_essay
-import six
+from theano.compat import six
 
 
 class EnvironmentVariableError(Exception):

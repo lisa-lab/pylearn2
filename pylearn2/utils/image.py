@@ -7,7 +7,7 @@ import logging
 import numpy as np
 plt = None
 axes = None
-from six.moves import xrange
+from theano.compat.six.moves import xrange
 import warnings
 try:
     import matplotlib.pyplot as plt

@@ -4,7 +4,7 @@
     WRITEME
 """
 import numpy as N
-from six.moves import xrange
+from theano.compat.six.moves import xrange
 from theano import config
 
 

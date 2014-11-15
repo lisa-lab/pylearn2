@@ -14,7 +14,7 @@ __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
 import numpy as N
-from six.moves import xrange
+from theano.compat.six.moves import xrange
 from pylearn2.gui import patch_viewer
 from pylearn2.config import yaml_parse
 from optparse import OptionParser

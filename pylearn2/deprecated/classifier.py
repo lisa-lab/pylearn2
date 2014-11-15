@@ -24,7 +24,7 @@ __docformat__ = 'restructedtext en'
 
 # Third-party imports
 import numpy
-from six.moves import xrange
+from theano.compat.six.moves import xrange
 import theano
 from theano import tensor
 

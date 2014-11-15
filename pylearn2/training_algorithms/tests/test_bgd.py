@@ -1,4 +1,4 @@
-from six.moves import cStringIO, xrange
+from theano.compat.six.moves import cStringIO, xrange
 import numpy as np
 
 import theano.tensor as T

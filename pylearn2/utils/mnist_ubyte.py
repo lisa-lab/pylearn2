@@ -12,7 +12,7 @@ __maintainer__ = "David Warde-Farley"
 
 import struct
 import numpy
-import six
+from theano.compat import six
 
 MNIST_IMAGE_MAGIC = 2051
 MNIST_LABEL_MAGIC = 2049

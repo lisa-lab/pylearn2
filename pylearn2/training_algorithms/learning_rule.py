@@ -5,7 +5,7 @@ algorithm.
 import numpy as np
 import warnings
 
-import six
+from theano.compat import six
 from theano import config
 from theano import tensor as T
 

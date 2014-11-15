@@ -9,7 +9,7 @@ import functools
 import logging
 import warnings
 
-from six.moves import reduce
+from theano.compat.six.moves import reduce
 import theano.tensor as T
 from theano.compat.six.moves import zip as izip
 
