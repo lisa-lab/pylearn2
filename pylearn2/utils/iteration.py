@@ -325,6 +325,9 @@ class ForcedEvenIterator(SubsetIterator):
 
         return batch
 
+    def __next__(self):
+        return self.next()
+
 
 def as_even(iterator_cls):
     """
@@ -413,6 +416,9 @@ class SequentialSubsetIterator(SubsetIterator):
             self._batch += 1
             return self._last
 
+    def __next__(self):
+        return self.next()
+
     fancy = False
     stochastic = False
     uniform_batch_size = False
@@ -473,6 +479,9 @@ class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
             self._batch += 1
             return rval
 
+    def __next__(self):
+        return self.next()
+
 
 class RandomUniformSubsetIterator(SubsetIterator):
     """
@@ -511,6 +520,9 @@ class RandomUniformSubsetIterator(SubsetIterator):
                                                    size=(self._batch_size,))
             self._next_batch_no += 1
             return self._last
+
+    def __next__(self):
+        return self.next()
 
     fancy = True
     stochastic = True
@@ -554,6 +566,9 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
             self._last = slice(start, start + self._batch_size)
             self._next_batch_no += 1
             return self._last
+
+    def __next__(self):
+        return self.next()
 
     fancy = False
     stochastic = True
@@ -599,7 +614,7 @@ class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
         self._num_batches = int(num_batches)
         self._next_batch_no = 0
         self._idx = 0
-        self._batch_order = range(self._num_batches)
+        self._batch_order = list(range(self._num_batches))
         self._rng.shuffle(self._batch_order)
 
     @wraps(SubsetIterator.next)
@@ -614,6 +629,9 @@ class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
                 self._last = slice(start, start + self._batch_size)
             self._next_batch_no += 1
             return self._last
+
+    def __next__(self):
+        return self.next()
 
     fancy = False
     stochastic = True

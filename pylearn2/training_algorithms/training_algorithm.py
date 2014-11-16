@@ -110,7 +110,7 @@ class TrainingAlgorithm(object):
         """
         batch_size = self.batch_size
         if hasattr(model, "force_batch_size"):
-            if model.force_batch_size > 0:
+            if model.force_batch_size and model.force_batch_size > 0:
                 if batch_size is not None:
                     if batch_size != model.force_batch_size:
                         if self.set_batch_size:

@@ -4,7 +4,10 @@ Costs for use with the MLP model class.
 __authors__ = 'Vincent Archambault-Bouffard, Ian Goodfellow'
 __copyright__ = "Copyright 2013, Universite de Montreal"
 
+import operator
+
 from theano import tensor as T
+from theano.compat.six.moves import reduce
 
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin, NullDataSpecsMixin
 from pylearn2.utils import safe_izip
@@ -100,7 +103,7 @@ class WeightDecay(NullDataSpecsMixin, Cost):
             rval.name = '0_weight_decay'
             return rval
         else:
-            total_cost = reduce(lambda x, y: x + y, layer_costs)
+            total_cost = reduce(operator.add, layer_costs)
         total_cost.name = 'MLP_WeightDecay'
 
         assert total_cost.ndim == 0
@@ -159,7 +162,7 @@ class L1WeightDecay(NullDataSpecsMixin, Cost):
             rval.name = '0_l1_penalty'
             return rval
         else:
-            total_cost = reduce(lambda x, y: x + y, layer_costs)
+            total_cost = reduce(operator.add, layer_costs)
         total_cost.name = 'MLP_L1Penalty'
 
         assert total_cost.ndim == 0

@@ -6,6 +6,9 @@
 import numpy
 import theano
 from theano import tensor
+from theano.compat.six.moves import reduce
+
+from pylearn2.utils import py_integer_types
 
 prod = numpy.prod
 
@@ -228,7 +231,7 @@ class LinearTransform(object):
         else:
             # R1 R2 C1 C2 C3 -> C1 C2 C3 R1 R2
             ss = x.ndim - len(cshp)
-        pattern = range(ss, x.ndim) + range(ss)
+        pattern = list(range(ss, x.ndim)) + list(range(ss))
         return x.transpose(pattern)
 
     def transpose_right(self, x, T):
@@ -245,7 +248,7 @@ class LinearTransform(object):
         else:
             # R1 C1 C2 -> C1 C2 R1
             ss = x.ndim - len(rshp)
-        pattern = range(ss, x.ndim) + range(ss)
+        pattern = list(range(ss, x.ndim)) + list(range(ss))
         return x.transpose(pattern)
 
     def split_left_shape(self, xshp, T):
@@ -561,12 +564,13 @@ if use_concat_class: # needs to be brought up to date with LinearTransform metho
         def __init__(self, Wlist, col_shape=None):
             super(Concat, self).__init__([])
             self._Wlist = list(Wlist)
-            if not isinstance(col_shape, (int, long, numpy.integer, tuple, type(None))):
+            if not (isinstance(col_shape, py_integer_types)
+                    or isinstance(col_shape, (tuple, type(None)))):
                 raise TypeError('col_shape must be int or int tuple')
             self._col_sizes = [prod(w.col_shape()) for w in Wlist]
             if col_shape is None:
                 self.__col_shape = sum(self._col_sizes),
-            elif isinstance(col_shape, (int, long, numpy.integer)):
+            elif isinstance(col_shape, py_integer_types):
                 self.__col_shape = col_shape,
             else:
                 self.__col_shape = tuple(col_shape)

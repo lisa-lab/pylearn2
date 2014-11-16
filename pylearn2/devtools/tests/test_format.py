@@ -734,7 +734,7 @@ def verify_format_docstrings():
             continue
         try:
             format_infractions.extend(docstring_errors(path))
-        except StandardError as e:
+        except Exception as e:
             format_infractions.append(["%s failed to run so format cannot "
                                        "be checked. Error message:\n %s" %
                                        (rel_path, e)])

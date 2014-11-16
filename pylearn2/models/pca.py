@@ -864,9 +864,9 @@ if __name__ == "__main__":
     data = load_data({'dataset': args.dataset})
     # TODO: this can be done more efficiently and readably by list
     # comprehensions
-    train_data, valid_data, test_data = map(lambda(x):
+    train_data, valid_data, test_data = map(lambda x:
                                             x.get_value(borrow=True), data)
-    logger.info("Dataset shapes: {0}".format(map(lambda(x):
+    logger.info("Dataset shapes: {0}".format(map(lambda x:
                                              x.get_value().shape, data)))
     # PCA base-class constructor arguments.
     conf = {

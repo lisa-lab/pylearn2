@@ -137,10 +137,8 @@ def load(filepath, recurse_depth=0, retry=True):
             logger.info('Max number of tries exceeded while trying to open '
                         '{0}'.format(filepath))
             logger.info('attempting to open via reading string')
-            f = open(filepath, 'rb')
-            lines = f.readlines()
-            f.close()
-            content = ''.join(lines)
+            with open(filepath, 'rb') as f:
+                content = f.read()
             return cPickle.loads(content)
         else:
             nsec = 0.5 * (2.0 ** float(recurse_depth))
@@ -475,7 +473,7 @@ def read_bin_lush_matrix(filepath):
 
     excess = f.read(-1)
 
-    if excess != '':
+    if excess:
         raise ValueError(str(len(excess))+' extra bytes found at end of file.'
                 ' This indicates  mismatch between header and content')
 

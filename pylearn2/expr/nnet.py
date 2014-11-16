@@ -163,7 +163,7 @@ def kl(Y, Y_hat, batch_axis):
 
     total = term_1 + term_2
     naxes = total.ndim
-    axes_to_reduce = range(naxes)
+    axes_to_reduce = list(range(naxes))
     del axes_to_reduce[batch_axis]
     ave = total.mean(axis=axes_to_reduce)
 

@@ -214,7 +214,8 @@ def test_revisit():
 
     for mon_batch_size in xrange(BATCH_SIZE, MAX_BATCH_SIZE + 1,
             BATCH_SIZE_STRIDE):
-        for num_mon_batches in [ 1, 3, num_examples / mon_batch_size, None ]:
+        nums = [1, 3, int(num_examples / mon_batch_size), None]
+        for num_mon_batches in nums:
             for mode in sorted(_iteration_schemes):
 
                 if num_mon_batches is None and mode in ['random_uniform', 'random_slice']:
@@ -243,8 +244,8 @@ def test_revisit():
                     num_mon_batches = int(np.ceil(float(num_examples) /
                                           float(mon_batch_size)))
 
-                batches = [ None ] * num_mon_batches
-                visited = [ False ] * num_mon_batches
+                batches = [None] * int(num_mon_batches)
+                visited = [False] * int(num_mon_batches)
 
                 batch_idx = shared(0)
 

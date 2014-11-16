@@ -12,7 +12,8 @@ __maintainer__ = "LISA Lab"
 import functools
 import logging
 import numpy as np
-from theano.compat.six.moves import xrange
+import operator
+from theano.compat.six.moves import input, reduce, xrange
 import time
 import warnings
 
@@ -1345,7 +1346,7 @@ class BinaryVectorMaxPool(HiddenLayer):
                 for sb in get_debug_values(state_below):
                     if sb.shape[0] != self.dbm.batch_size:
                         raise ValueError("self.dbm.batch_size is %d but got shape of %d" % (self.dbm.batch_size, sb.shape[0]))
-                    assert reduce(lambda x,y: x * y, sb.shape[1:]) == self.input_dim
+                    assert reduce(operator.mul, sb.shape[1:]) == self.input_dim
 
             state_below = self.input_space.format_as(state_below, self.desired_space)
 
@@ -1410,7 +1411,7 @@ class BinaryVectorMaxPool(HiddenLayer):
                 for sb in get_debug_values(state_below):
                     if sb.shape[0] != self.dbm.batch_size:
                         raise ValueError("self.dbm.batch_size is %d but got shape of %d" % (self.dbm.batch_size, sb.shape[0]))
-                    assert reduce(lambda x,y: x * y, sb.shape[1:]) == self.input_dim
+                    assert reduce(operator.mul, sb.shape[1:]) == self.input_dim
 
             state_below = self.input_space.format_as(state_below, self.desired_space)
 
@@ -2052,7 +2053,7 @@ class GaussianVisLayer(VisibleLayer):
             self.space = Conv2DSpace(shape=[rows,cols], num_channels=channels, axes=axes)
             # To make GaussianVisLayer compatible with any axis ordering
             self.batch_axis=list(axes).index('b')
-            self.axes_to_sum = range(len(axes))
+            self.axes_to_sum = list(range(len(axes)))
             self.axes_to_sum.remove(self.batch_axis)
         else:
             assert rows is None
@@ -3524,7 +3525,7 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
         W ,= self.transformer.get_params()
         W = W.get_value()
 
-        x = raw_input("multiply by beta?")
+        x = input("multiply by beta?")
         if x == 'y':
             beta = self.input_layer.beta.get_value()
             return (W.T * beta).T
@@ -3684,7 +3685,7 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
                 for sb in get_debug_values(state_below):
                     if sb.shape[0] != self.dbm.batch_size:
                         raise ValueError("self.dbm.batch_size is %d but got shape of %d" % (self.dbm.batch_size, sb.shape[0]))
-                    assert reduce(lambda x,y: x * y, sb.shape[1:]) == self.input_dim
+                    assert reduce(operator.mul, sb.shape[1:]) == self.input_dim
 
             state_below = self.input_space.format_as(state_below, self.desired_space)
 
@@ -3761,7 +3762,7 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
                 for sb in get_debug_values(state_below):
                     if sb.shape[0] != self.dbm.batch_size:
                         raise ValueError("self.dbm.batch_size is %d but got shape of %d" % (self.dbm.batch_size, sb.shape[0]))
-                    assert reduce(lambda x,y: x * y, sb.shape[1:]) == self.input_dim
+                    assert reduce(operator.mul, sb.shape[1:]) == self.input_dim
 
             state_below = self.input_space.format_as(state_below, self.desired_space)
 
@@ -4069,7 +4070,7 @@ class CompositeLayer(HiddenLayer):
         logger.info('Get topological weights for which layer?')
         for i, component in enumerate(self.components):
             logger.info('{0} {1}'.format(i, component.layer_name))
-        x = raw_input()
+        x = input()
         return self.components[int(x)].get_weights_topo()
 
     def get_monitoring_channels_from_state(self, state):

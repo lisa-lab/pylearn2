@@ -18,7 +18,7 @@ from pylearn2.utils import serial
 import sys
 from pylearn2.config import yaml_parse
 from pylearn2.gui.patch_viewer import PatchViewer
-from theano.compat.six.moves import xrange
+from theano.compat.six.moves import input, xrange
 from theano import function
 
 rows = 5
@@ -37,7 +37,7 @@ dataset_yaml_src = model.dataset_yaml_src
 print('Loading data...')
 dataset = yaml_parse.load(dataset_yaml_src)
 
-x = raw_input('use test set? (y/n) ')
+x = input('use test set? (y/n) ')
 
 if x == 'y':
     dataset = dataset.get_test_set()
@@ -130,7 +130,7 @@ while True:
     show()
     print('Displaying reconstructions. (q to quit, ENTER = show more)')
     while True:
-        x = raw_input()
+        x = input()
         if x == 'q':
             quit()
         if x == '':

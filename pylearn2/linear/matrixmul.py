@@ -136,12 +136,12 @@ def make_local_rfs(dataset, nhid, rf_shape, stride, irange = .05,
         filters_per_rf = nhid / total_rfs
 
         idx = 0
-        for r in xrange(num_row_steps):
+        for r in xrange(int(num_row_steps)):
             rc = r * stride[0]
-            for c in xrange(num_col_steps):
+            for c in xrange(int(num_col_steps)):
                 cc = c * stride[1]
 
-                for i in xrange(filters_per_rf):
+                for i in xrange(int(filters_per_rf)):
 
                     if draw_patches:
                         img = dataset.get_batch_topo(1)[0]

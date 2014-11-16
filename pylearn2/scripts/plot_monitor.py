@@ -22,7 +22,7 @@ import gc
 import numpy as np
 import sys
 
-from theano.compat.six.moves import xrange
+from theano.compat.six.moves import input, xrange
 from pylearn2.utils import serial
 from theano.printing import _TagGenerator
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
@@ -142,14 +142,14 @@ def main():
 
             print("Put e, b, s or h in the list somewhere to plot " + 
                     "epochs, batches, seconds, or hours, respectively.")
-            response = raw_input('Enter a list of channels to plot ' + \
+            response = input('Enter a list of channels to plot ' + \
                     '(example: A, C,F-G, h, <test_err>) or q to quit' + \
                     ' or o for options: ')
 
             if response == 'o':
                 print('1: smooth all channels')
                 print('any other response: do nothing, go back to plotting')
-                response = raw_input('Enter your choice: ')
+                response = input('Enter your choice: ')
                 if response == '1':
                     for channel in channels.values():
                         k = 5

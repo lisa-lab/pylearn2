@@ -7,6 +7,8 @@ and its label.
 """
 import numpy as np
 
+from theano.compat.six.moves import input
+
 from pylearn2.datasets.norb_small import FoveatedNORB
 from pylearn2.gui.patch_viewer import PatchViewer
 from pylearn2.utils import get_choice
@@ -30,8 +32,8 @@ while True:
     patch = topo[i, :, :, :]
     patch = patch / np.abs(patch).max()
 
-    pv.add_patch(patch[:,:,1], rescale=False)
-    pv.add_patch(patch[:,:,0], rescale=False)
+    pv.add_patch(patch[:, :, 1], rescale=False)
+    pv.add_patch(patch[:, :, 0], rescale=False)
 
     pv.show()
 
@@ -51,4 +53,4 @@ while True:
         i += 1
 
     if choice == 'g':
-        i = int(raw_input('index: '))
+        i = int(input('index: '))

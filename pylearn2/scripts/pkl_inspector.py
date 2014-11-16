@@ -7,7 +7,10 @@ from __future__ import print_function
 
 import sys
 from pylearn2.utils import serial
-import cPickle
+try:
+    import cPickle
+except ImportError:
+    import pickle as cPickle
 import pickle
 import time
 from theano.printing import min_informative_str

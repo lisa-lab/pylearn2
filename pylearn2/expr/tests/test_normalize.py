@@ -33,7 +33,7 @@ def ground_truth_normalize_row(row, k, n, alpha, beta):
     for i in xrange(row.shape[0]):
         s = k
         tot = 0
-        for j in xrange(max(0,i-n/2), min(row.shape[0],i+n/2+1)):
+        for j in xrange(max(0, i-n//2), min(row.shape[0], i+n//2+1)):
             tot += 1
             sq = row[j] ** 2.
             assert sq > 0.

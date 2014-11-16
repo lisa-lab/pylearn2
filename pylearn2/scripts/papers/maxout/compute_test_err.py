@@ -44,7 +44,7 @@ assert test.X.shape[0] % batch_size == 0
 
 def accs():
     mf1_accs = []
-    assert isinstance(test.X.shape[0], (int, long))
+    assert isinstance(test.X.shape[0], py_integer_types)
     assert isinstance(batch_size, py_integer_types)
     iterator = test.iterator(mode = 'even_sequential',
                             batch_size = batch_size,

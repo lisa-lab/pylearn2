@@ -9,10 +9,10 @@ __maintainer__ = "LISA Lab"
 
 import functools
 import logging
+import operator
 import numpy as np
-import warnings
 
-from theano.compat.six.moves import xrange
+from theano.compat.six.moves import reduce, xrange
 from theano import tensor as T, config
 
 from pylearn2.compat import OrderedDict
@@ -138,7 +138,7 @@ class DBM(Model):
 
         assert len(terms) > 0
 
-        rval = reduce(lambda x, y: x + y, terms)
+        rval = reduce(operator.add, terms)
 
         assert rval.ndim == 1
         return rval
@@ -204,7 +204,7 @@ class DBM(Model):
 
         assert len(terms) > 0
 
-        rval = reduce(lambda x, y: x + y, terms)
+        rval = reduce(operator.add, terms)
 
         assert rval.ndim == 1
         return rval
@@ -447,8 +447,6 @@ class DBM(Model):
 
         states = [layer.make_state(num_examples, rng) for layer in layers]
 
-        zipped = safe_zip(layers, states)
-
         def recurse_check(layer, state):
             if isinstance(state, (list, tuple)):
                 for elem in state:
@@ -461,10 +459,10 @@ class DBM(Model):
                                      str(m) + " examples in some component."
                                      "We requested " + str(num_examples))
 
-        for layer, state in zipped:
+        for layer, state in safe_zip(layers, states):
             recurse_check(layer, state)
 
-        rval = OrderedDict(zipped)
+        rval = OrderedDict(safe_zip(layers, states))
 
         return rval
 

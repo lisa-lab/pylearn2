@@ -15,6 +15,7 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 
+import collections
 import logging
 import numpy as np
 import sys
@@ -221,7 +222,7 @@ def flatten(l):
     -------
     WRITEME
     """
-    if isinstance(l, (list, tuple)):
+    if isinstance(l, (list, tuple, collections.ValuesView)):
         rval = []
         for elem in l:
             if isinstance(elem, (list, tuple)):
