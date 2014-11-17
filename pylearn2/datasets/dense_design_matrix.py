@@ -172,20 +172,20 @@ class DenseDesignMatrix(Dataset):
     def __init__(self, X=None, topo_view=None, y=None,
                  view_converter=None, axes=('b', 0, 1, 'c'),
                  rng=_default_seed, preprocessor=None, fit_preprocessor=False,
-                 max_labels=None, X_labels=None, y_labels=None):
+                 X_labels=None, y_labels=None):
         self.X = X
         self.y = y
         self.view_converter = view_converter
         self.X_labels = X_labels
         self.y_labels = y_labels
 
-        if max_labels is not None:
-            warnings.warn("The max_labels argument to DenseDesignMatrix is "
-                          "deprecated. Use the y_labels argument instead. The "
-                          "max_labels argument will be removed on or after "
-                          "6 October 2014", stacklevel=2)
-            assert y_labels is None
-            self.y_labels = max_labels
+    #    if max_labels is not None:
+    #        warnings.warn("The max_labels argument to DenseDesignMatrix is "
+    #                      "deprecated. Use the y_labels argument instead. The "
+    #                      "max_labels argument will be removed on or after "
+    #                      "6 October 2014", stacklevel=2)
+    #        assert y_labels is None
+    #        self.y_labels = max_labels
 
         self._check_labels()
 
@@ -220,7 +220,7 @@ class DenseDesignMatrix(Dataset):
                     dim = 1
                 else:
                     dim = X.shape[-1]
-                X_space = IndexSpace(dim=dim, max_labels=X_labels)
+                X_space = IndexSpace(dim=dim, y_labels=X_labels)
             if y is None:
                 space = X_space
                 source = X_source
@@ -230,7 +230,7 @@ class DenseDesignMatrix(Dataset):
                 else:
                     dim = y.shape[-1]
                 if y_labels is not None:
-                    y_space = IndexSpace(dim=dim, max_labels=y_labels)
+                    y_space = IndexSpace(dim=dim)
                 else:
                     y_space = VectorSpace(dim=dim)
                 y_source = 'targets'
@@ -824,9 +824,9 @@ class DenseDesignMatrix(Dataset):
                 dim = self.y.shape[-1]
             # This is to support old pickled models
             if getattr(self, 'y_labels', None) is not None:
-                y_space = IndexSpace(dim=dim, max_labels=self.y_labels)
-            elif getattr(self, 'max_labels', None) is not None:
-                y_space = IndexSpace(dim=dim, max_labels=self.max_labels)
+                y_space = IndexSpace(dim=dim, y_labels=self.y_labels)
+            elif getattr(self, 'y_labels', None) is not None:
+                y_space = IndexSpace(dim=dim, y_labels=self.y_labels)
             else:
                 y_space = VectorSpace(dim=dim)
             y_source = 'targets'
