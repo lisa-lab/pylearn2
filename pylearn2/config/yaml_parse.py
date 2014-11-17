@@ -8,6 +8,7 @@ from pylearn2.utils.string_utils import match
 from collections import namedtuple
 import logging
 import warnings
+import re
 
 from theano.compat import six
 
@@ -461,6 +462,9 @@ def initialize():
 
     yaml.add_constructor('!import', constructor_import)
     yaml.add_constructor("!float", constructor_float)
+    
+    pattern = re.compile(r'[\-\+]?\d*(\.\d*)?[eE][\-\+]?\d+$')
+    yaml.add_implicit_resolver('!float', pattern)
 
     is_initialized = True
 
