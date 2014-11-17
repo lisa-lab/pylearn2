@@ -908,7 +908,10 @@ class DenseDesignMatrix(Dataset):
         else:
             batch_design = self.get_batch_design(batch_size)
 
-        rval = self.view_converter.design_mat_to_topo_view(batch_design)
+        if hasattr(self, 'view_converter'):
+            rval = self.view_converter.design_mat_to_topo_view(batch_design)
+        else:
+            rval = batch_design
 
         if include_labels:
             return rval, labels
@@ -1484,8 +1487,8 @@ def from_dataset(dataset, num_examples):
     Returns
     -------
     sub_dataset : DenseDesignMatrix
-        A new dataset containing `num_examples` examples randomly
-        drawn (without replacement) from `dataset`
+        A new dataset containing `num_examples` examples. It is a random subset
+        of continuous 'num_examples' examples drawn from `dataset`.
     """
     try:
 
