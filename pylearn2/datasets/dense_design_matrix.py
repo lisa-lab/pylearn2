@@ -1487,7 +1487,7 @@ def from_dataset(dataset, num_examples):
         A new dataset containing `num_examples` examples. It is a random subset
         of continuous 'num_examples' examples drawn from `dataset`.
     """
-    if dataset.view_converter != None:
+    if dataset.view_converter is not None:
         try:
 
             V, y = dataset.get_batch_topo(num_examples, True)
