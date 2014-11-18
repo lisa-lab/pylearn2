@@ -10,7 +10,7 @@ from pylearn2.compat import first_key
 from pylearn2.costs.cost import Cost, SumOfCosts, DefaultDataSpecsMixin
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.models.model import Model
-from pylearn2.monitor import Monitor
+from pylearn2.monitor import Monitor, push_monitor
 from pylearn2.space import CompositeSpace, Conv2DSpace, VectorSpace
 from pylearn2.termination_criteria import EpochCounter
 from pylearn2.testing.cost import CallbackCost, SumOfParams
@@ -557,6 +557,31 @@ def test_linear_decay_over_epoch():
             raise AssertionError("After %d epochs, expected learning rate to "
                                  "be %f, but it is %f." %
                                  (i, expected, actual))
+
+    final_learning_rate = lr.val_record[-1]
+    algorithm2 = SGD(learning_rate, cost,
+                     batch_size=batch_size,
+                     monitoring_batches=3,
+                     monitoring_dataset=monitoring_dataset,
+                     termination_criterion=EpochCounter(epoch_num+1,
+                                                        new_epochs=False),
+                     update_callbacks=None,
+                     set_batch_size=False)
+    model_xfer = push_monitor(name="old_monitor",
+                              transfer_experience=True,
+                              model=model)
+    linear_decay2 = LinearDecayOverEpoch(start=start,
+                                         saturate=saturate,
+                                         decay_factor=decay_factor)
+    train2 = Train(dataset,
+                   model_xfer,
+                   algorithm2,
+                   save_path=None,
+                   save_freq=0,
+                   extensions=[linear_decay2])
+    train2.main_loop()
+    assert np.allclose(model.monitor.channels['learning_rate'].val_record[0],
+                       final_learning_rate)
 
 
 def test_monitor_based_lr():
