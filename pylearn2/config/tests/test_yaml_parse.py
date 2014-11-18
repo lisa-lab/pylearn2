@@ -43,28 +43,30 @@ def test_floats():
     assert_((loaded['a']['a'] + 1.23) < 1e-3)
     assert_((loaded['a']['b'] - 1.23e-1) < 1e-3)
 
+
 def test_notation_regexp():
     """
     Tests for regular expression aiming to filter scientific notations which
     are not correctly parsed as floats by YAML.
-    
+
     Notes
     -----
-    This regexp overmatches. E.g. 1.2e+3 matches the regexp, 
-    but is already correctly parsed by YAML. On the contrary, 
-    .e4 is a border case that's matched by the regexp but is not 
-    a valid python expression. 
+    This regexp overmatches. E.g. 1.2e+3 matches the regexp,
+    but is already correctly parsed by YAML. On the contrary,
+    .e4 is a border case that's matched by the regexp but is not
+    a valid python expression.
     """
     pattern = re.compile(r'[\-\+]?\d*(\.\d*)?[eE][\-\+]?\d+$')
-    matches = ['1e3', '1.E4', '-1e-3', '2.3e+4', '.2e4'] 
+    matches = ['1e3', '1.E4', '-1e-3', '2.3e+4', '.2e4']
     fails = ['string', '4', '2.1', '1.2e3.2']
-    
+
     for match in matches:
         assert pattern.match(match)
-        
+
     for fail in fails:
         assert not pattern.match(fail)
-        
+
+
 def test_scientific_notation():
     """
     Test if yaml parses scientific notation as floats.
@@ -75,6 +77,7 @@ def test_scientific_notation():
     assert isinstance(loaded['a']['c'], float)
     assert isinstance(loaded['a']['d'], float)
     assert isinstance(loaded['a']['e'], float)
+
 
 def test_import():
     loaded = load("a: !import 'decimal.Decimal'")
