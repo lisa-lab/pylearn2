@@ -970,7 +970,7 @@ class LinearDecayOverEpoch(TrainExtension):
             Describes how gradients should be updated.
         """
         monitor = Monitor.get_monitor(model)
-        self._count = monitor._epochs_seen
+        self._count = monitor.get_epochs_seen()
         self._apply_learning_rate(algorithm)
 
     def on_monitor(self, model, dataset, algorithm):
@@ -987,6 +987,7 @@ class LinearDecayOverEpoch(TrainExtension):
         self._apply_learning_rate(algorithm)
 
     def _apply_learning_rate(self, algorithm): 
+        """Updates the learning rate on algorithm based on the epochs elapsed."""
         if not self._initialized:
             self._init_lr = algorithm.learning_rate.get_value()
             self._step = ((self._init_lr - self._init_lr * self.decay_factor) /

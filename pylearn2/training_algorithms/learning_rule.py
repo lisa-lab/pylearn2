@@ -201,7 +201,7 @@ class MomentumAdjustor(TrainExtension):
             Describes how gradients should be updated.
         """
         monitor = Monitor.get_monitor(model)
-        self._count = monitor._epochs_seen
+        self._count = monitor.get_epochs_seen()
         self._apply_momentum(algorithm)
 
     def on_monitor(self, model, dataset, algorithm):
@@ -221,6 +221,7 @@ class MomentumAdjustor(TrainExtension):
         self._apply_momentum(algorithm)
 
     def _apply_momentum(self, algorithm):
+        """Updates the momentum on algorithm based on the epochs elapsed."""
         if hasattr(algorithm, 'learning_rule'):
             momentum = algorithm.learning_rule.momentum
         else:
