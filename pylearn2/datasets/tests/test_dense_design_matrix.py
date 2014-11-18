@@ -84,7 +84,7 @@ def test_from_dataset():
     """
     rng = np.random.RandomState([1, 2, 3])
     topo_view = rng.randn(12, 2, 3, 3)
-    y = rng.randint(0, 5, 12)
+    y = rng.randint(0, 5, (12, 1))
 
     # without y:
     d1 = DenseDesignMatrix(topo_view=topo_view)
