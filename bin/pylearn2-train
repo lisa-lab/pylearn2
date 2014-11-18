@@ -1,0 +1,8 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+from pylearn2.scripts import train
+if train.__file__.endswith('pyc'):
+    f = open(train.__file__[:-1])
+else:
+    f = open(train.__file__)
+exec f

@@ -1,0 +1,8 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+from pylearn2.scripts import print_monitor
+if print_monitor.__file__.endswith('pyc'):
+    f = open(print_monitor.__file__[:-1])
+else:
+    f = open(print_monitor.__file__)
+exec f
