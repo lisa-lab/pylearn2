@@ -1485,30 +1485,36 @@ def from_dataset(dataset, num_examples):
     Returns
     -------
     sub_dataset : DenseDesignMatrix
-        A new dataset containing `num_examples` examples randomly
-        drawn (without replacement) from `dataset`
+        A new dataset containing `num_examples` examples. It is a random subset
+        of continuous 'num_examples' examples drawn from `dataset`.
     """
-    try:
+    if dataset.view_converter is not None:
+        try:
 
-        V, y = dataset.get_batch_topo(num_examples, True)
+            V, y = dataset.get_batch_topo(num_examples, True)
 
-    except TypeError:
+        except TypeError:
 
-        # This patches a case where control.get_load_data() is false so
-        # dataset.X is None This logic should be removed whenever we implement
-        # lazy loading
+            # This patches a case where control.get_load_data() is false so
+            # dataset.X is None This logic should be removed whenever we
+            # implement lazy loading
 
-        if isinstance(dataset, DenseDesignMatrix) and \
-           dataset.X is None and \
-           not control.get_load_data():
-            warnings.warn("from_dataset wasn't able to make subset of "
-                          "dataset, using the whole thing")
-            return DenseDesignMatrix(X=None,
-                                     view_converter=dataset.view_converter)
-        raise
+            if isinstance(dataset, DenseDesignMatrix) and \
+               dataset.X is None and \
+               not control.get_load_data():
+                warnings.warn("from_dataset wasn't able to make subset of "
+                              "dataset, using the whole thing")
+                return DenseDesignMatrix(
+                    X=None, view_converter=dataset.view_converter
+                )
+            raise
 
-    rval = DenseDesignMatrix(topo_view=V, y=y, y_labels=dataset.y_labels)
-    rval.adjust_for_viewer = dataset.adjust_for_viewer
+        rval = DenseDesignMatrix(topo_view=V, y=y, y_labels=dataset.y_labels)
+        rval.adjust_for_viewer = dataset.adjust_for_viewer
+
+    else:
+        X, y = dataset.get_batch_design(num_examples, True)
+        rval = DenseDesignMatrix(X=X, y=y, y_labels=dataset.y_labels)
 
     return rval
 
