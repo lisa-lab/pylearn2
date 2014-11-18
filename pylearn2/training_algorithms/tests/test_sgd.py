@@ -558,6 +558,65 @@ def test_linear_decay_over_epoch():
                                  "be %f, but it is %f." %
                                  (i, expected, actual))
 
+
+def test_linear_decay_epoch_xfer():
+
+    # tests that the class LinearDecayOverEpoch in sgd.py
+    # gets the epochs xfered over properly
+
+    dim = 3
+    m = 10
+
+    rng = np.random.RandomState([25, 9, 2012])
+
+    X = rng.randn(m, dim)
+
+    dataset = DenseDesignMatrix(X=X)
+
+    m = 15
+    X = rng.randn(m, dim)
+
+    # including a monitoring datasets lets us test that
+    # the monitor works with supervised data
+    monitoring_dataset = DenseDesignMatrix(X=X)
+
+    model = SoftmaxModel(dim)
+
+    learning_rate = 1e-1
+    batch_size = 5
+
+    # We need to include this so the test actually stops running at some point
+    epoch_num = 6
+    termination_criterion = EpochCounter(epoch_num)
+
+    cost = DummyCost()
+
+    algorithm = SGD(learning_rate, cost, batch_size=batch_size,
+                    monitoring_batches=3,
+                    monitoring_dataset=monitoring_dataset,
+                    termination_criterion=termination_criterion,
+                    update_callbacks=None,
+                    init_momentum=None,
+                    set_batch_size=False)
+
+    start = 5
+    saturate = 10
+    decay_factor = 0.1
+    linear_decay = LinearDecayOverEpoch(start=start,
+                                        saturate=saturate,
+                                        decay_factor=decay_factor)
+
+    train = Train(dataset,
+                  model,
+                  algorithm,
+                  save_path=None,
+                  save_freq=0,
+                  extensions=[linear_decay])
+
+    train.main_loop()
+
+    lr = model.monitor.channels['learning_rate']
+
     final_learning_rate = lr.val_record[-1]
     algorithm2 = SGD(learning_rate, cost,
                      batch_size=batch_size,
@@ -582,7 +641,6 @@ def test_linear_decay_over_epoch():
     train2.main_loop()
     assert np.allclose(model.monitor.channels['learning_rate'].val_record[0],
                        final_learning_rate)
-
 
 def test_monitor_based_lr():
     # tests that the class MonitorBasedLRAdjuster in sgd.py
