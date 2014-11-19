@@ -596,7 +596,6 @@ def test_linear_decay_epoch_xfer():
                     monitoring_dataset=monitoring_dataset,
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     start = 5
