@@ -9,6 +9,10 @@ __email__ = "pylearn-dev@googlegroups"
 import numpy as np
 import warnings
 
+from pylearn2.blocks import Block
+from model import Model
+from pylearn2.utils import wraps
+
 try:
     from sklearn.multiclass import OneVsRestClassifier
     from sklearn.svm import SVC
@@ -29,7 +33,7 @@ except ImportError:
         def __init__(self, estimator):
             raise RuntimeError("sklearn not available.")
 
-class DenseMulticlassSVM(OneVsRestClassifier):
+class DenseMulticlassSVM(OneVsRestClassifier, Block, Model):
     """
     sklearn does very different things behind the scenes depending
     upon the exact identity of the class you use. The only way to
@@ -65,7 +69,39 @@ class DenseMulticlassSVM(OneVsRestClassifier):
     def __init__(self, C, kernel='rbf', gamma = 1.0, coef0 = 1.0, degree = 3):
         estimator = SVC(C=C, kernel=kernel, gamma = gamma, coef0 = coef0,
                 degree = degree)
+        Block.__init__(self)
+        Model.__init__(self)
         super(DenseMulticlassSVM,self).__init__(estimator)
+
+    def train_all(self, dataset):
+        """
+        If implemented, performs one epoch of training.
+
+
+        Parameters
+        ----------
+        dataset : pylearn2.datasets.dataset.Dataset
+            Dataset object to draw training data from
+
+        Notes
+        -----
+        This method is useful
+        for models with highly specialized training algorithms for which is
+        does not make much sense to factor the training code into a separate
+        class. It is also useful for implementors that want to make their model
+        trainable without enforcing compatibility with pylearn2
+        TrainingAlgorithms.
+        """
+        self.fit(dataset.X, dataset.y)
+
+    @wraps(Model.continue_learning)
+    def continue_learning(self):
+        # One call to train_all currently trains the model fully,
+        # so return False immediately.
+        return False
+
+    def enforce_constraints(self):
+      pass
 
     def fit(self, X, y):
         """
