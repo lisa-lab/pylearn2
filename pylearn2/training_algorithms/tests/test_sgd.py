@@ -642,6 +642,7 @@ def test_linear_decay_epoch_xfer():
     assert np.allclose(model.monitor.channels['learning_rate'].val_record[0],
                        final_learning_rate)
 
+
 def test_monitor_based_lr():
     # tests that the class MonitorBasedLRAdjuster in sgd.py
     # gets the learning rate properly over the training epochs
