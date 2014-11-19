@@ -146,3 +146,21 @@ class ProjectionLayer(Layer):
         assert W.name is not None
         params = [W]
         return params
+
+    @wraps(Layer.get_weight_decay)
+    def get_weight_decay(self, coeff):
+
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W, = self.transformer.get_params()
+        return coeff * T.sqr(W).sum()
+
+    @wraps(Layer.get_l1_weight_decay)
+    def get_l1_weight_decay(self, coeff):
+
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W, = self.transformer.get_params()
+        return coeff * abs(W).sum()
