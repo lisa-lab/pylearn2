@@ -14,6 +14,7 @@ from pylearn2.space import NullSpace
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.utils import sharedX
 from pylearn2.utils import wraps
+from pylearn2.monitor import Monitor
 
 
 class LearningRule():
@@ -186,6 +187,23 @@ class MomentumAdjustor(TrainExtension):
         self._initialized = False
         self._count = 0
 
+    def setup(self, model, dataset, algorithm):
+        """
+        Initializes the momentum schedule based on epochs_seen.
+
+        Parameters
+        ----------
+        model : pylearn2.models.Model
+            The model to which the training algorithm is applied.
+        dataset : pylearn2.datasets.Dataset
+            The dataset to which the model is applied.
+        algorithm : pylearn2.training_algorithms.TrainingAlgorithm
+            Describes how gradients should be updated.
+        """
+        monitor = Monitor.get_monitor(model)
+        self._count = monitor.get_epochs_seen()
+        self._apply_momentum(algorithm)
+
     def on_monitor(self, model, dataset, algorithm):
         """
         Updates the momentum according to the linear schedule.
@@ -199,6 +217,11 @@ class MomentumAdjustor(TrainExtension):
         algorithm : pylearn2.training_algorithms.TrainingAlgorithm
             Describes how gradients should be updated.
         """
+        self._count += 1
+        self._apply_momentum(algorithm)
+
+    def _apply_momentum(self, algorithm):
+        """Updates the momentum on algorithm based on the epochs elapsed."""
         if hasattr(algorithm, 'learning_rule'):
             momentum = algorithm.learning_rule.momentum
         else:
@@ -209,7 +232,7 @@ class MomentumAdjustor(TrainExtension):
         if not self._initialized:
             self._init_momentum = momentum.get_value()
             self._initialized = True
-        self._count += 1
+
         momentum.set_value(np.cast[config.floatX](self.current_momentum()))
 
     def current_momentum(self):
