@@ -2,6 +2,8 @@
 Test for multilayer_perceptron.ipynb
 """
 
+from __future__ import print_function
+
 import os
 
 import pylearn2
@@ -24,7 +26,7 @@ def test_nested():
                     'sparse_init_h1': 2,
                     'max_epochs': 1}
     train_3 = train_3 % (hyper_params)
-    print train_3
+    print(train_3)
     train_3 = yaml_parse.load(train_3)
     train_3.main_loop()
 

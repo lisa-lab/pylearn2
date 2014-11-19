@@ -5,6 +5,7 @@ import sys
 import textwrap
 
 from pylearn2.utils.common_strings import environment_variable_essay
+from theano.compat import six
 
 
 class EnvironmentVariableError(Exception):
@@ -65,7 +66,7 @@ def reraise_as(new_exc):
     """
     orig_exc_type, orig_exc_value, orig_exc_traceback = sys.exc_info()
 
-    if isinstance(new_exc, basestring):
+    if isinstance(new_exc, six.string_types):
         new_exc = orig_exc_type(new_exc)
 
     if hasattr(new_exc, 'args'):
@@ -86,4 +87,4 @@ def reraise_as(new_exc):
 
     new_exc.__cause__ = orig_exc_value
     new_exc.reraised = True
-    raise type(new_exc), new_exc, orig_exc_traceback
+    six.reraise(type(new_exc), new_exc, orig_exc_traceback)

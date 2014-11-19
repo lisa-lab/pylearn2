@@ -1,7 +1,9 @@
+from __future__ import print_function
+
 import theano
 from theano import tensor, config
 import numpy
-import linear_cg
+from pylearn2.optimization import linear_cg
 import warnings
 from pylearn2.testing.skip import skip_if_no_scipy
 try:
@@ -29,10 +31,10 @@ def test_linear_cg():
 
     eval_f = theano.function([x],f)
     cgf = eval_f(sol)
-    print "conjugate gradient's value of f:", str(cgf), 'time (s)', my_lcg
+    print("conjugate gradient's value of f:", str(cgf), 'time (s)', my_lcg)
     skip_if_no_scipy()
     spf = eval_f( scipy.linalg.solve(M,b) )
-    print "scipy.linalg.solve's value of f: "+str(spf)
+    print("scipy.linalg.solve's value of f: "+str(spf))
 
     abs_diff = abs(cgf - spf)
     if not (abs_diff < 1e-5):

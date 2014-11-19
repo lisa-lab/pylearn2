@@ -1,9 +1,11 @@
+from __future__ import print_function
 __authors__ = "Heng Luo"
 
 from pylearn2.testing.skip import skip_if_no_gpu
 skip_if_no_gpu()
 
 import numpy as np
+from theano.compat.six.moves import xrange
 from theano import shared
 from theano.tensor import grad, constant
 from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
@@ -102,7 +104,7 @@ def test_image_acts_strided():
         filters = rng.uniform(-1., 1., shape_list[test_idx][1]).astype('float32')
         gpu_images = float32_shared_constructor(images,name='images')
         gpu_filters = float32_shared_constructor(filters,name='filters')
-        print "test case %d..."%(test_idx+1) 
+        print("test case %d..."%(test_idx+1))
         
         for ii in xrange(filters.shape[1]):
             stride = ii + 1
@@ -123,15 +125,15 @@ def test_image_acts_strided():
                 assert type(Img_output_val) == type(Img_output_python)
                 assert Img_output_val.dtype == Img_output_python.dtype
                 if Img_output_val.shape != Img_output_python.shape:
-                    print 'cuda-convnet shape: ',Img_output_val.shape
-                    print 'python conv shape: ',Img_output_python.shape
+                    print('cuda-convnet shape: ',Img_output_val.shape)
+                    print('python conv shape: ',Img_output_python.shape)
                     assert False
                 err = np.abs(Img_output_val - Img_output_python)
-                print 'stride %d'%stride
-                print 'absolute error range: ', (err.min(), err.max())
-                print 'mean absolute error: ', err.mean()
-                print 'cuda-convnet value range: ', (Img_output_val.min(), Img_output_val.max())
-                print 'python conv value range: ', (Img_output_python.min(), Img_output_python.max())    
+                print('stride %d'%stride)
+                print('absolute error range: ', (err.min(), err.max()))
+                print('mean absolute error: ', err.mean())
+                print('cuda-convnet value range: ', (Img_output_val.min(), Img_output_val.max()))
+                print('python conv value range: ', (Img_output_python.min(), Img_output_python.max()))
                 #assert False 
         #print "pass"         
                

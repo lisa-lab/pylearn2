@@ -23,7 +23,7 @@ def test_mnist():
     # Load fake MNIST data
     init_value = control.load_data
     control.load_data = [False]
-    train.dataset = MNIST(which_set='train', one_hot=1,
+    train.dataset = MNIST(which_set='train',
                           axes=['c', 0, 1, 'b'], start=0, stop=100)
     train.algorithm._set_monitoring_dataset(train.dataset)
     control.load_data = init_value

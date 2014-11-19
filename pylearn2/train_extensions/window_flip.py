@@ -1,7 +1,6 @@
-"""
-TrainExtensions for doing random spatial windowing and flipping of an
-image dataset on every epoch.
-"""
+""" TrainExtensions for doing random spatial windowing and flipping of an
+    image dataset on every epoch. TODO: fill out properly."""
+
 import warnings
 import numpy
 from . import TrainExtension
@@ -32,8 +31,8 @@ def _zero_pad(array, amount, axes=(1, 2)):
     The new array has the same dimensions as the input array, except for
     the dimensions given by <axes>, which are increased by 2*<amount>.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     array: numpy.ndarray
       The array to zero-pad.
 
@@ -99,7 +98,7 @@ class WindowAndFlip(TrainExtension):
                  randomize=None,
                  randomize_once=None,
                  center=None,
-                 rng=(2013, 02, 20),
+                 rng=(2013, 2, 20),
                  pad_randomized=0,
                  flip=True):
         self._window_shape = tuple(window_shape)
@@ -147,9 +146,9 @@ class WindowAndFlip(TrainExtension):
 
         # maps each dataset in randomize_now to a zero-padded topological view
         # of its data.
-        self._original = dict((data,
-                               _zero_pad(data.get_topological_view().astype('float32'),
-                                         self._pad_randomized))
+        self._original = dict((data, _zero_pad(
+                               data.get_topological_view().astype('float32'),
+                               self._pad_randomized))
                               for data in randomize_now)
 
         # For each dataset, for each image, extract a randomly positioned and
@@ -196,6 +195,9 @@ class WindowAndFlip(TrainExtension):
 
 class WindowAndFlipC01B(WindowAndFlip):
     """
+    WindowAndFlipC01B is deprecated, use WindowAndFlip.
+    WindowAndFlipC01B will be removed on or after August 25, 2014.
+
     A specialized version of WindowAndFlip accepting datasets with axes C01B.
     It exists due to backward compatibility.
 
@@ -231,7 +233,7 @@ class WindowAndFlipC01B(WindowAndFlip):
                  randomize=None,
                  randomize_once=None,
                  center=None,
-                 rng=(2013, 02, 20),
+                 rng=(2013, 2, 20),
                  pad_randomized=0,
                  flip=True):
 

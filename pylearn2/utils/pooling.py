@@ -2,6 +2,7 @@
 Support code for pooling operations (in pooled ICA type models, for now).
 """
 import numpy as np
+from theano.compat.six.moves import xrange
 import theano
 import warnings
 try:

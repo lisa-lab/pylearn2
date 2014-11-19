@@ -1,15 +1,17 @@
+from __future__ import print_function
 
 import numpy as np
 import os
 import sys
 
+from theano.compat.six.moves import xrange
 from pylearn2.utils import image
 from pylearn2.utils import serial
 from pylearn2.utils.string_utils import preprocess
 from pylearn2.utils import isfinite
 
 def usage():
-    print """
+    print("""
 Run
 python lcn.py public_test
 to preprocess the ICML 2013 multimodal learning contest's public test images.
@@ -17,11 +19,11 @@ or
 python lcn.py private_test
 to preprocess the ICML 2013 multimodal learning contest's private test images
 (which will be released 72 hours before the contest ends)
-"""
+""")
 
 if len(sys.argv) != 2:
     usage()
-    print '(You used the wrong number of arguments)'
+    print('(You used the wrong number of arguments)')
     quit(-1)
 
 _, arg = sys.argv
@@ -36,8 +38,8 @@ elif arg == 'private_test':
     expected_num_images = 500
 else:
     usage()
-    print 'Unrecognized argument value:',arg
-    print 'Recognized values are: public_test, private_test'
+    print('Unrecognized argument value:',arg)
+    print('Recognized values are: public_test, private_test')
 
 serial.mkdir(outdir)
 
@@ -87,7 +89,7 @@ f = function([orig_X], new_X)
 j = 0
 for path in paths:
     if j % 100 == 0:
-        print j
+        print(j)
     try:
         raw_path = path
         path = base + '/' + path
@@ -111,8 +113,8 @@ for path in paths:
         assert path.endswith('.')
         path = path + 'npy'
         np.save(path, img)
-    except Exception, e:
+    except Exception as e:
         raise
-        print e
+        print(e)
     j += 1
 

@@ -1,6 +1,7 @@
 import copy
 
 import numpy
+from theano.compat.six.moves import xrange
 import theano
 from theano.compat.python2x import Counter
 

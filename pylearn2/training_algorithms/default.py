@@ -3,7 +3,7 @@ A generic training algorithm that implements no real training code of its
 own but just calls the model.train_batch method on minibatches of data.
 """
 import functools
-
+from theano.compat.six.moves import xrange
 from pylearn2.monitor import Monitor
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 from pylearn2.utils import safe_zip

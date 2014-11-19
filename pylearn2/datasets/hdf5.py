@@ -12,6 +12,7 @@ try:
 except ImportError:
     h5py = None
 import numpy as np
+from theano.compat.six.moves import xrange
 import warnings
 
 from pylearn2.datasets.dense_design_matrix import (DenseDesignMatrix,
@@ -22,6 +23,7 @@ from pylearn2.utils import contains_nan
 
 
 class HDF5Dataset(DenseDesignMatrix):
+
     """
     Dense dataset loaded from an HDF5 file.
 
@@ -41,6 +43,7 @@ class HDF5Dataset(DenseDesignMatrix):
     kwargs : dict, optional
         Keyword arguments passed to `DenseDesignMatrix`.
     """
+
     def __init__(self, filename, X=None, topo_view=None, y=None,
                  load_all=False, **kwargs):
         self.load_all = load_all
@@ -171,6 +174,7 @@ class HDF5Dataset(DenseDesignMatrix):
 
 
 class HDF5DatasetIterator(FiniteDatasetIterator):
+
     """
     Dataset iterator for HDF5 datasets.
 
@@ -192,6 +196,7 @@ class HDF5DatasetIterator(FiniteDatasetIterator):
         A list of callables (in the same order as the sources in
         data_specs) that will be applied to each slice of the dataset.
     """
+
     def next(self):
         """
         Get the next subset of the dataset during dataset iteration.
@@ -223,6 +228,7 @@ class HDF5DatasetIterator(FiniteDatasetIterator):
 
 
 class HDF5ViewConverter(DefaultViewConverter):
+
     """
     View converter that doesn't have to transpose the data.
 
@@ -238,6 +244,7 @@ class HDF5ViewConverter(DefaultViewConverter):
     axes : tuple, optional (default ('b', 0, 1, 'c'))
         Order of axes in topological view.
     """
+
     def topo_view_to_design_mat(self, V):
         """
         Generate a design matrix from the topological view.
@@ -261,6 +268,7 @@ class HDF5ViewConverter(DefaultViewConverter):
 
 
 class HDF5TopoViewConverter(object):
+
     """
     Class for transforming batches from the topological view to the design
     matrix view.
@@ -272,6 +280,7 @@ class HDF5TopoViewConverter(object):
     axes : tuple, optional (default ('b', 0, 1, 'c'))
         Order of axes in topological view.
     """
+
     def __init__(self, topo_view, axes=('b', 0, 1, 'c')):
         self.topo_view = topo_view
         self.axes = axes

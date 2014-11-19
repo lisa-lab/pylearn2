@@ -1,6 +1,9 @@
+from __future__ import print_function
+
 from pylearn2.datasets.mnist import MNIST
-from pylearn2.testing.skip import skip_if_no_sklearn
+from pylearn2.testing.skip import skip_if_no_sklearn, skip_if_no_data
 import numpy as np
+from theano.compat.six.moves import xrange
 import unittest
 DenseMulticlassSVM = None
 
@@ -8,6 +11,7 @@ class TestSVM(unittest.TestCase):
     def setUp(self):
         global DenseMulticlassSVM
         skip_if_no_sklearn()
+        skip_if_no_data()
         import pylearn2.models.svm
         DenseMulticlassSVM = pylearn2.models.svm.DenseMulticlassSVM
 
@@ -25,13 +29,13 @@ class TestSVM(unittest.TestCase):
 
         f = model.decision_function(X)
 
-        print f
+        print(f)
 
         yhat_f = np.argmax(f,axis=1)
 
         yhat = np.cast[yhat_f.dtype](model.predict(X))
 
-        print yhat_f
-        print yhat
+        print(yhat_f)
+        print(yhat)
 
         assert (yhat_f != yhat).sum() == 0

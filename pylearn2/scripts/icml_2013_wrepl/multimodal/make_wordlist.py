@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import os
 from pylearn2.utils.string_utils import preprocess
 base = '${PYLEARN2_DATA_PATH}/esp_game/ESPGame100k/labels/'
@@ -10,7 +12,7 @@ words = {}
 for i, path in enumerate(paths):
 
     if i % 1000 == 0:
-        print i
+        print(i)
     path = base+path
     f = open(path,'r')
     lines = f.readlines()

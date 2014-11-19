@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -26,6 +28,7 @@ instead of displaying them. This can be useful when working over ssh.
 import sys
 from pylearn2.utils import serial
 import numpy as np
+from theano.compat.six.moves import xrange
 from pylearn2.gui.patch_viewer import PatchViewer
 from pylearn2.gui.patch_viewer import make_viewer
 from pylearn2.config import yaml_parse
@@ -42,8 +45,8 @@ layer_1, layer_2 = model.hidden_layers[0:2]
 
 W1 = layer_1.get_weights()
 W2 = layer_2.get_weights()
-print W1.shape
-print W2.shape
+print(W1.shape)
+print(W2.shape)
 
 prod = np.dot(W1,W2)
 pv = make_viewer(prod.T)
@@ -53,7 +56,7 @@ else:
     pv.save(out_prefix+"_prod.png")
 
 
-print 'Sorting so largest-norm layer 2 weights are plotted at the top'
+print('Sorting so largest-norm layer 2 weights are plotted at the top')
 norms = np.square(W2).sum(axis=0)
 idxs = [elem[1] for elem in sorted( zip( -norms, range(norms.shape[0]) ) ) ]
 
@@ -99,16 +102,16 @@ for i in xrange(N):
     total_counts += count
 ave = total_counts / float(N)
 
-print 'average needed filters',ave
+print('average needed filters',ave)
 
 count = max_count
 
-print 'It takes',count,'of',N1,'elements to account for ',(thresh*100.),'\% of the weight in at least one filter'
+print('It takes',count,'of',N1,'elements to account for ',(thresh*100.),'\% of the weight in at least one filter')
 
 lim = 10
 if count > lim:
     count = lim
-    print 'Only displaying ',count,' elements though.'
+    print('Only displaying ',count,' elements though.')
 
 if count > N1:
     count = N1

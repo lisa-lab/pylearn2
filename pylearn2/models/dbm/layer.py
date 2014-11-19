@@ -1,6 +1,8 @@
 """
 Common DBM Layer classes
 """
+from __future__ import print_function
+
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -10,15 +12,16 @@ __maintainer__ = "LISA Lab"
 import functools
 import logging
 import numpy as np
+from theano.compat.six.moves import xrange
 import time
 import warnings
 
 from theano import tensor as T, function, config
 import theano
-from theano.compat import OrderedDict
 from theano.gof.op import get_debug_values
 from theano.printing import Print
 
+from pylearn2.compat import OrderedDict
 from pylearn2.expr.nnet import sigmoid_numpy
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels, max_pool_b01c, max_pool, max_pool_c01b
 from pylearn2.linear.conv2d import make_random_conv2D, make_sparse_random_conv2D
@@ -31,11 +34,6 @@ from pylearn2.utils import is_block_gradient
 from pylearn2.utils import sharedX, safe_zip, py_integer_types, block_gradient
 from pylearn2.utils.exc import reraise_as
 from pylearn2.utils.rng import make_theano_rng
-"""
-.. todo::
-
-    WRITEME
-"""
 from pylearn2.utils import safe_union
 
 
@@ -1442,9 +1440,39 @@ class BinaryVectorMaxPool(HiddenLayer):
 
 class Softmax(HiddenLayer):
     """
-    .. todo::
+    A layer representing a single softmax distribution of a
+    set of discrete categories.
 
-        WRITEME
+    Parameters
+    ----------
+    n_classes : int
+        The number of discrete categories.
+    layer_name : str
+        The name of the layer.
+    irange : float
+        If not None, initialze the weights in U(-irange, irange)
+    sparse_init : int
+        If not None, initialize `sparse_init` weights per column
+        to N(0, sparse_istdev^2)
+    sparse_istdev : float
+        see above
+    W_lr_scale : float
+        Scale the learning rate on the weights by this amount
+    b_lr_scale : float
+        Scale the learning rate on the biases by this amount
+    max_col_norm : float
+        If not None, constrain the columns of the weight matrix
+        to have at most this L2 norm
+    copies : int
+        Make this many copies of the random variables, all sharing
+        the same weights. This allows the undirected model to
+        behave as if it has asymmetric connections.
+    center : bool
+        If True, use Gregoire Montavon's centering trick.
+    learn_init_inpainting_state : bool
+        If True, and using inpainting-based methods (MP-DBM), learn
+        a parameter controlling the initial value of the mean field
+        state for this layer.
     """
 
     presynaptic_name = "presynaptic_Y_hat"
@@ -1484,12 +1512,8 @@ class Softmax(HiddenLayer):
                 desired_norms = T.clip(col_norms, 0, self.max_col_norm)
                 updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
+    @functools.wraps(Model.get_lr_scalers)
     def get_lr_scalers(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         rval = OrderedDict()
 
@@ -1731,16 +1755,33 @@ class Softmax(HiddenLayer):
 
     def recons_cost(self, Y, Y_hat_unmasked, drop_mask_Y, scale):
         """
-        .. todo::
+        The cost of reconstructing `Y` as `Y_hat`. Specifically,
+        the negative log probability.
 
-            WRITEME
-        """
-        """
-            scale is because the visible layer also goes into the
-            cost. it uses the mean over units and examples, so that
+        This cost is for use with multi-prediction training.
+
+        Parameters
+        ----------
+        Y : target space batch
+            The data labels
+        Y_hat_unmasked : target space batch
+            The output of this layer's `mf_update`; the predicted
+            values of `Y`. Even though the model is only predicting
+            the dropped values, we take predictions for all the
+            values here.
+        drop_mask_Y : 1-D theano tensor
+            A batch of 0s/1s, with 1s indicating that variables
+            have been dropped, and should be included in the
+            reconstruction cost. One indicator per example in the
+            batch, since each example in this layer only has one
+            random variable in it.
+        scale : float
+            Multiply the cost by this amount.
+            We need to do this because the visible layer also goes into
+            the cost. We use the mean over units and examples, so that
             the scale of the cost doesn't change too much with batch
             size or example size.
-            we need to multiply this cost by scale to make sure that
+            We need to multiply this cost by scale to make sure that
             it is put on the same scale as the reconstruction cost
             for the visible units. ie, scale should be 1/nvis
         """
@@ -2189,8 +2230,8 @@ class GaussianVisLayer(VisibleLayer):
             assert drop_mask_v.ndim in [3,4]
             for i in xrange(drop_mask.ndim):
                 if Vv.shape[i] != drop_mask_v.shape[i]:
-                    print Vv.shape
-                    print drop_mask_v.shape
+                    print(Vv.shape)
+                    print(drop_mask_v.shape)
                     assert False
         """
 
@@ -2786,7 +2827,7 @@ class ConvMaxPool(HiddenLayer):
             msg = layer_above.downward_message(state_above)
             try:
                 self.output_space.validate(msg)
-            except TypeError, e:
+            except TypeError as e:
                 reraise_as(TypeError(str(type(layer_above))+".downward_message gave something that was not the right type: "+str(e)))
         else:
             msg = None
@@ -2988,8 +3029,8 @@ class ConvC01B_MaxPool(HiddenLayer):
         """ Note: this resets parameters!"""
 
         setup_detector_layer_c01b(layer=self,
-                input_space=space, rng=self.dbm.rng,
-                irange=self.irange)
+                                  input_space=space,
+                                  rng=self.dbm.rng,)
 
         if not tuple(space.axes) == ('c', 0, 1, 'b'):
             raise AssertionError("You're not using c01b inputs. Ian is enforcing c01b inputs while developing his pipeline to make sure it runs at maximal speed. If you really don't want to use c01b inputs, you can remove this check and things should work. If they don't work it's only because they're not tested.")
@@ -3288,7 +3329,7 @@ class ConvC01B_MaxPool(HiddenLayer):
             msg = layer_above.downward_message(state_above)
             try:
                 self.output_space.validate(msg)
-            except TypeError, e:
+            except TypeError as e:
                 reraise_as(TypeError(str(type(layer_above))+".downward_message gave something that was not the right type: "+str(e)))
         else:
             msg = None

@@ -113,7 +113,7 @@ def get_weights_report(model_path=None,
 
         try:
             W = model.get_weights()
-        except AttributeError, e:
+        except AttributeError as e:
             reraise_as(AttributeError("""
 Encountered an AttributeError while trying to call get_weights on a model.
 This probably means you need to implement get_weights for this model class,
@@ -276,7 +276,7 @@ def get_binocular_greyscale_weights_report(model_path=None,
 
         try:
             W = model.get_weights()
-        except AttributeError, e:
+        except AttributeError as e:
             reraise_as(AttributeError("""
 Encountered an AttributeError while trying to call get_weights on a model.
 This probably means you need to implement get_weights for this model class,

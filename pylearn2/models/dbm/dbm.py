@@ -12,9 +12,10 @@ import logging
 import numpy as np
 import warnings
 
-from theano.compat import OrderedDict
+from theano.compat.six.moves import xrange
 from theano import tensor as T, config
 
+from pylearn2.compat import OrderedDict
 from pylearn2.models import Model
 from pylearn2.models.dbm import flatten
 from pylearn2.models.dbm.inference_procedure import WeightDoubling
@@ -505,20 +506,6 @@ class DBM(Model):
 
         return rval
 
-    def mcmc_steps(self, layer_to_state, theano_rng, layer_to_clamp=None,
-                   num_steps=1):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        warnings.warn("DBM.mcmc_steps is deprecated. You should instead " +
-                      "call DBM.sampling_procedure.sample, which defaults " +
-                      "to what DBM.mcmc_steps used to do. This method will " +
-                      "be removed on or after July 31, 2014.")
-        return self.sampling_procedure.sample(layer_to_state, theano_rng,
-                                              layer_to_clamp, num_steps)
-
     def get_sampling_updates(self, layer_to_state, theano_rng,
                              layer_to_clamp=None, num_steps=1,
                              return_layer_to_updated=False):
@@ -527,8 +514,8 @@ class DBM(Model):
 
         It thus implies that the samples are represented as shared variables.
         If you want an expression for a sampling step applied to arbitrary
-        theano variables, use the 'mcmc_steps' method. This is a wrapper around
-        that method.
+        theano variables, use the `DBM.sampling_procedure.sample` method.
+        This is a wrapper around that method.
 
         Parameters
         ----------

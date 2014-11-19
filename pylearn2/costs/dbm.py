@@ -13,13 +13,14 @@ import numpy as np
 import logging
 import warnings
 
-from theano.compat.python2x import OrderedDict
+from theano.compat.six.moves import xrange
 from theano import config
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 RandomStreams = MRG_RandomStreams
 from theano import tensor as T
 
 import pylearn2
+from pylearn2.compat import OrderedDict
 from pylearn2.costs.cost import Cost
 from pylearn2.costs.cost import (
     FixedVarDescr, DefaultDataSpecsMixin, NullDataSpecsMixin
@@ -315,7 +316,7 @@ class BaseCD(Cost):
                 return x.zeros_like()
             layer_to_pos_samples[layer] = recurse_zeros(mf_state)
 
-        layer_to_pos_samples = model.mcmc_steps(
+        layer_to_pos_samples = model.sampling_procedure.sample(
             layer_to_state=layer_to_pos_samples,
             layer_to_clamp=layer_to_clamp,
             num_steps=self.num_gibbs_steps,
@@ -711,14 +712,19 @@ class VariationalCD(DefaultDataSpecsMixin, BaseCD):
         # state of the chains
         # We first initialize the chain by clamping the visible layer and the
         # target layer (if it exists)
-        layer_to_chains = model.mcmc_steps(layer_to_chains,
-                                           self.theano_rng,
-                                           layer_to_clamp=layer_to_clamp,
-                                           num_steps=1)
+        layer_to_chains = model.sampling_procedure.sample(
+            layer_to_chains,
+            self.theano_rng,
+            layer_to_clamp=layer_to_clamp,
+            num_steps=1
+        )
+
         # We then do the required mcmc steps
-        layer_to_chains = model.mcmc_steps(layer_to_chains,
-                                           self.theano_rng,
-                                           num_steps=self.num_gibbs_steps)
+        layer_to_chains = model.sampling_procedure.sample(
+            layer_to_chains,
+            self.theano_rng,
+            num_steps=self.num_gibbs_steps
+        )
 
         if self.toronto_neg:
             neg_phase_grads = self._get_toronto_neg(model, layer_to_chains)

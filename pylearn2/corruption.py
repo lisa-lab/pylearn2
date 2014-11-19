@@ -3,6 +3,8 @@ Corruptor classes: classes that encapsulate the noise process for the DAE
 training criterion.
 """
 # Third-party imports
+from __future__ import print_function
+
 import numpy
 import theano
 from theano import tensor
@@ -13,7 +15,7 @@ from pylearn2.utils.rng import make_np_rng
 theano.config.warn.sum_div_dimshuffle_bug = False
 
 if 0:
-    print 'WARNING: using SLOW rng'
+    print('WARNING: using SLOW rng')
     RandomStreams = tensor.shared_randomstreams.RandomStreams
 else:
     import theano.sandbox.rng_mrg

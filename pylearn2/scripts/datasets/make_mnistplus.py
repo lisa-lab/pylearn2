@@ -17,7 +17,7 @@ Brodatz texture dataset.
 5. Perform embossing operation, given fixed lighting position obtained in 4.
 """
 import numpy
-import pickle
+from theano.compat.six.moves import xrange, cPickle as pickle
 import pylab as pl
 
 from copy import copy

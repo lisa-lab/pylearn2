@@ -12,6 +12,7 @@ __maintainer__ = "David Warde-Farley"
 
 import struct
 import numpy
+from theano.compat import six
 
 MNIST_IMAGE_MAGIC = 2051
 MNIST_LABEL_MAGIC = 2049
@@ -41,7 +42,7 @@ class open_if_filename(object):
 
             WRITEME
         """
-        if isinstance(self._f, basestring):
+        if isinstance(self._f, six.string_types):
             self._handle = open(self._f, self._mode, self._buffering)
         else:
             self._handle = self._f

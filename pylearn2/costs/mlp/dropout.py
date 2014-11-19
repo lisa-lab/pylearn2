@@ -6,6 +6,7 @@ __copyright__ = "Copyright 2013, Universite de Montreal"
 
 from pylearn2.costs.cost import DefaultDataSpecsMixin, Cost
 
+
 class Dropout(DefaultDataSpecsMixin, Cost):
     """
     Implements the dropout training technique described in
@@ -58,7 +59,7 @@ class Dropout(DefaultDataSpecsMixin, Cost):
     supervised = True
 
     def __init__(self, default_input_include_prob=.5, input_include_probs=None,
-            default_input_scale=2., input_scales=None, per_example=True):
+                 default_input_scale=2., input_scales=None, per_example=True):
 
         if input_include_probs is None:
             input_include_probs = {}
@@ -71,10 +72,15 @@ class Dropout(DefaultDataSpecsMixin, Cost):
 
     def expr(self, model, data, ** kwargs):
         """
-        .. todo::
+        todo::
 
-            WRITEME
+        Parameters
+        ----------
+        model : TODO
+        data : TODO
+        kwargs : TODO
         """
+
         space, sources = self.get_data_specs(model)
         space.validate(data)
         (X, Y) = data

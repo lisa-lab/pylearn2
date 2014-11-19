@@ -8,6 +8,7 @@ from theano import function, shared
 from pylearn2.optimization import linear_cg as cg
 from pylearn2.optimization.feature_sign import feature_sign_search
 import numpy as N
+from theano.compat.six.moves import xrange
 import theano.tensor as T
 from pylearn2.utils.rng import make_np_rng
 

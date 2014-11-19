@@ -9,10 +9,13 @@ __author__ = "Ian Goodfellow"
 # http://archive.ics.uci.edu/ml/datasets/Hepatitis
 
 import numpy as np
+from theano.compat.six.moves import xrange
 
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 
+
 class Hepatitis(DenseDesignMatrix):
+
     """
     .. todo::
 
@@ -42,12 +45,18 @@ class Hepatitis(DenseDesignMatrix):
         NUM_CLASSES = 2
 
         AGE, SEX, STEROID, ANTIVIRALS, FATIGUE, MALAISE, ANOREXIA, \
-        LIVER_BIG, LIVER_FIRM, SPLEEN_PALPABLE, SPIDERS, ASCITES, \
-        VARICES, BILIRUBIN, ALK_PHOSPHATE, SGOT, ALBUMIN, PROTIME, \
-        HISTOLOGY = range(NUM_FEATURES)
+            LIVER_BIG, LIVER_FIRM, SPLEEN_PALPABLE, SPIDERS, ASCITES, \
+            VARICES, BILIRUBIN, ALK_PHOSPHATE, SGOT, ALBUMIN, PROTIME, \
+            HISTOLOGY = range(NUM_FEATURES)
 
         real_mask = np.zeros((NUM_FEATURES,), dtype='bool')
-        real_mask[[AGE, BILIRUBIN, ALK_PHOSPHATE, SGOT, ALBUMIN, PROTIME, HISTOLOGY]] = 1
+        real_mask[[AGE,
+                   BILIRUBIN,
+                   ALK_PHOSPHATE,
+                   SGOT,
+                   ALBUMIN,
+                   PROTIME,
+                   HISTOLOGY]] = 1
         real_X = X[:, real_mask]
         binary_mask = (1 - real_mask).astype('bool')
         binary_X = X[:, binary_mask]
@@ -55,7 +64,7 @@ class Hepatitis(DenseDesignMatrix):
         binary_X[binary_X == 2] = 1
         for i in xrange(binary_X.shape[0]):
             for j in xrange(binary_X.shape[1]):
-                assert binary_X[i,j] in [-1., 0., 1.], (binary_X[i,j], i, j)
+                assert binary_X[i, j] in [-1., 0., 1.], (binary_X[i, j], i, j)
 
         X = np.concatenate((real_X, binary_X), axis=1)
 
@@ -66,14 +75,11 @@ class Hepatitis(DenseDesignMatrix):
         assert min(y) == 0
         assert max(y) == NUM_CLASSES - 1
 
-        one_hot = np.zeros((NUM_EXAMPLES, NUM_CLASSES))
-        for i in xrange(len(y)):
-            one_hot[i, y[i] - 1] = 1
-
-
-        super(Hepatitis, self).__init__(X=X, y=one_hot, preprocessor=preprocessor)
+        super(Hepatitis, self).__init__(
+            X=X, y=y, y_labels=NUM_CLASSES, preprocessor=preprocessor)
 
         self.restrict(start, stop)
+
 
 def neg_missing(s):
     """
@@ -86,7 +92,7 @@ def neg_missing(s):
     return s
 
 hepatitis_data = \
-"""2,30,2,1,2,2,2,2,1,2,2,2,2,2,1.00,85,18,4.0,?,1
+    """2,30,2,1,2,2,2,2,1,2,2,2,2,2,1.00,85,18,4.0,?,1
 2,50,1,1,2,1,2,2,1,2,2,2,2,2,0.90,135,42,3.5,?,1
 2,78,1,2,2,1,2,2,2,2,2,2,2,2,0.70,96,32,4.0,?,1
 2,31,1,?,1,2,2,2,2,2,2,2,2,2,0.70,46,52,4.0,80,1

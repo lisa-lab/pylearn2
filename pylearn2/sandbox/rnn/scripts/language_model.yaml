@@ -1,0 +1,57 @@
+!obj:pylearn2.train.Train {
+  dataset: !obj:pylearn2.sandbox.nlp.datasets.penntree.PennTreebankSequences {
+    which_set: 'train',
+    data_mode: 'words',
+    context_len: 50,
+  },
+  model: !obj:pylearn2.sandbox.rnn.models.rnn.RNN {
+    input_space: !obj:pylearn2.sandbox.rnn.space.SequenceSpace {
+      space: !obj:pylearn2.space.IndexSpace {
+        dim: 1,
+        max_labels: 10000,
+      },
+    },
+    layers: [
+      !obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
+        layer_name: 'projection_layer',
+        dim: 300,
+        irange: 0.01,
+      },
+      !obj:pylearn2.sandbox.rnn.models.rnn.Recurrent {
+        layer_name: 'recurrent_layer',
+        dim: 500,
+        irange: 0.01,
+      },
+      !obj:pylearn2.models.mlp.Softmax {
+        layer_name: 'softmax',
+        n_classes: 10000,
+        irange: 0.01,
+        binary_target_dim: 1,
+      }
+    ],
+  },
+  algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+    learning_rate: 0.1,
+    batch_size: 32,
+    monitoring_batch_size: 1,
+    monitoring_dataset: {
+      valid: !obj:pylearn2.sandbox.nlp.datasets.penntree.PennTreebankSequences {
+        which_set: 'valid',
+        context_len: 25000,
+        data_mode: 'words',
+      },
+    },
+    cost: !obj:pylearn2.sandbox.rnn.costs.gradient_clipping.GradientClipping {
+      clipping_value: 1,
+      cost: !obj:pylearn2.costs.mlp.Default {}
+    }
+  },
+  extensions: [
+    !obj:pylearn2.training_algorithms.sgd.MonitorBasedLRAdjuster {
+      low_trigger: 1,
+      shrink_amt: 0.9,
+      channel_name: 'valid_softmax_nll',
+    }
+  ],
+  save_freq: 1,
+}

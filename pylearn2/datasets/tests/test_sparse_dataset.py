@@ -17,6 +17,7 @@ import theano.tensor as T
 
 
 class SoftmaxModel(Model):
+
     """
     A dummy model used for testing.
 
@@ -35,6 +36,7 @@ class SoftmaxModel(Model):
     has a get_input_space method, so it can tell the
     algorithm what kind of space the features live in
     """
+
     def __init__(self, dim):
         super(SoftmaxModel, self).__init__()
         self.dim = dim
@@ -59,10 +61,11 @@ class SoftmaxModel(Model):
         Compute and return the softmax transformation of sparse data.
         """
         assert X.ndim == 2
-        return T.nnet.softmax(X*self.P)
+        return T.nnet.softmax(X * self.P)
 
 
 class DummyCost(DefaultDataSpecsMixin, Cost):
+
     """
     A dummy cost used for testing.
 
@@ -128,7 +131,6 @@ def test_training_a_model():
     algorithm = SGD(learning_rate, cost, batch_size=batch_size,
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     train = Train(dataset, model, algorithm, save_path=None,

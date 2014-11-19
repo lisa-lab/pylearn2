@@ -1,6 +1,8 @@
 """
 WRITEME
 """
+from __future__ import print_function
+
 import inspect
 import os
 import StringIO
@@ -10,6 +12,7 @@ from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import local_optimizer
 from theano.sandbox.cuda.opt import register_opt
 from theano.sandbox.cuda import gpu_from_host, host_from_gpu
+from theano.sandbox.cuda.basic_ops import gpu_contiguous
 
 from .unshared_conv import FilterActs
 from .unshared_conv import WeightActs
@@ -162,7 +165,7 @@ class GpuFilterActs(Base):
         moduleStride = str(self.module_stride)
         sio = StringIO.StringIO()
 
-        print >> sio, """
+        print("""
 
         //XXX: actually the rightmost images dimension can be strided
         if (!CudaNdarray_is_c_contiguous(%(images)s))
@@ -279,7 +282,7 @@ class GpuFilterActs(Base):
             }
         } // end bogus scope used for vars
 
-        """
+        """, file=sio)
 
         return sio.getvalue() % locals()
 
@@ -367,7 +370,7 @@ class GpuWeightActs(Base):
 
         sio = StringIO.StringIO()
 
-        print >> sio, """
+        print("""
 
         if (!CudaNdarray_is_c_contiguous(%(images)s))
         {
@@ -520,7 +523,7 @@ class GpuWeightActs(Base):
             }
         } // end bogus scope used for vars
 
-        """
+        """, file=sio)
 
         return sio.getvalue() % locals()
 
@@ -546,7 +549,7 @@ def insert_gpu_weight_acts(node):
                     partial_sum=1)
             return [host_from_gpu(gpu_weight_acts(
                 gpu_from_host(images),
-                gpu_from_host(hidacts),
+                gpu_contiguous(hidacts),
                 frows,
                 fcols,
                 ))]
@@ -609,7 +612,7 @@ class GpuImgActs(Base):
 
         sio = StringIO.StringIO()
 
-        print >> sio, """
+        print("""
 
         if (!CudaNdarray_is_c_contiguous(%(filters)s))
         {
@@ -762,7 +765,7 @@ class GpuImgActs(Base):
             }
         } // end bogus scope used for vars
 
-        """
+        """, file=sio)
 
         return sio.getvalue() % locals()
 
@@ -784,7 +787,7 @@ def insert_gpu_img_acts(node):
                     partial_sum=1)
             return [host_from_gpu(gpu_img_acts(
                 gpu_from_host(filters),
-                gpu_from_host(hidacts),
+                gpu_contiguous(hidacts),
                 irows,
                 icols,
                 ))]

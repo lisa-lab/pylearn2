@@ -3,17 +3,22 @@
 
     WRITEME
 """
-import cPickle
+try:
+    import cPickle
+    from cPickle import BadPickleGet
+except ImportError:
+    import pickle as cPickle
+    from pickle import UnpicklingError as BadPickleGet
 import pickle
 import logging
 import numpy as np
+from theano.compat.six.moves import xrange
 import os
 import time
 import warnings
 import sys
 from pylearn2.utils.string_utils import preprocess
 from pylearn2.utils.mem import improve_memory_error_message
-from cPickle import BadPickleGet
 io = None
 hdf_reader = None
 import struct
@@ -31,7 +36,7 @@ def raise_cannot_open(path):
         WRITEME
     """
     pieces = path.split('/')
-    for i in xrange(1,len(pieces)+1):
+    for i in xrange(1, len(pieces) + 1):
         so_far = '/'.join(pieces[0:i])
         if not os.path.exists(so_far):
             if i == 1:
@@ -62,9 +67,7 @@ def raise_cannot_open(path):
 
 def load(filepath, recurse_depth=0, retry=True):
     """
-    .. todo::
-
-        WRITEME
+    Loads object(s) from file specified by 'filepath'.
 
     .. todo::
 
@@ -117,7 +120,7 @@ def load(filepath, recurse_depth=0, retry=True):
             io = scipy.io
         try:
             return io.loadmat(filepath)
-        except NotImplementedError, nei:
+        except NotImplementedError as nei:
             if str(nei).find('HDF reader') != -1:
                 global hdf_reader
                 if hdf_reader is None:
@@ -152,7 +155,7 @@ def load(filepath, recurse_depth=0, retry=True):
         else:
             try:
                 obj = joblib.load(filepath)
-            except Exception, e:
+            except Exception as e:
                 if os.path.exists(filepath) and not os.path.isdir(filepath):
                     raise
                 raise_cannot_open(filepath)
@@ -239,7 +242,7 @@ def save(filepath, obj, on_overwrite = 'ignore'):
             save(filepath, obj)
             try:
                 os.remove(backup)
-            except Exception, e:
+            except Exception as e:
                 warnings.warn("Got an error while traing to remove "+backup+":"+str(e))
             return
         else:
@@ -248,7 +251,7 @@ def save(filepath, obj, on_overwrite = 'ignore'):
 
     try:
         _save(filepath, obj)
-    except RuntimeError, e:
+    except RuntimeError as e:
         """ Sometimes for large theano graphs, pickle/cPickle exceed the
             maximum recursion depth. This seems to me like a fundamental
             design flaw in pickle/cPickle. The workaround I employ here
@@ -328,7 +331,7 @@ def _save(filepath, obj):
                               'unavailable. Using ordinary pickle.')
             with open(filepath, 'wb') as filehandle:
                 cPickle.dump(obj, filehandle, get_pickle_protocol())
-    except Exception, e:
+    except Exception as e:
         logger.exception("cPickle has failed to write an object to "
                          "{0}".format(filepath))
         if str(e).find('maximum recursion depth exceeded') != -1:
@@ -337,7 +340,7 @@ def _save(filepath, obj):
             logger.info('retrying with pickle')
             with open(filepath, "wb") as f:
                 pickle.dump(obj, f)
-        except Exception, e2:
+        except Exception as e2:
             if str(e) == '' and str(e2) == '':
                 logger.exception('neither cPickle nor pickle could write to '
                                  '{0}'.format(filepath))

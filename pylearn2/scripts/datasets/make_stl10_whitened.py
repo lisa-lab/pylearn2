@@ -6,6 +6,8 @@ It assumes that you have already run make_downsampled_stl10.py, which downsample
 
 """
 
+from __future__ import print_function
+
 from pylearn2.utils import serial
 from pylearn2.datasets import preprocessing
 from pylearn2.utils import string_utils as string
@@ -13,17 +15,17 @@ import numpy as np
 
 data_dir = string.preprocess('${PYLEARN2_DATA_PATH}/stl10')
 
-print 'Loading STL-10 unlabeled and train datasets...'
+print('Loading STL-10 unlabeled and train datasets...')
 downsampled_dir = data_dir + '/stl10_32x32'
 
 data = serial.load(downsampled_dir + '/unlabeled.pkl')
 supplement = serial.load(downsampled_dir + '/train.pkl')
 
-print 'Concatenating datasets...'
+print('Concatenating datasets...')
 data.set_design_matrix(np.concatenate((data.X,supplement.X),axis=0))
 
 
-print "Preparing output directory..."
+print("Preparing output directory...")
 output_dir = data_dir + '/stl10_32x32_whitened'
 serial.mkdir( output_dir )
 README = open(output_dir + '/README','w')
@@ -53,11 +55,11 @@ to function correctly.
 
 README.close()
 
-print "Learning the preprocessor and preprocessing the unsupervised train data..."
+print("Learning the preprocessor and preprocessing the unsupervised train data...")
 preprocessor = preprocessing.ZCA()
 data.apply_preprocessor(preprocessor = preprocessor, can_fit = True)
 
-print 'Saving the unsupervised data'
+print('Saving the unsupervised data')
 data.use_design_loc(output_dir+'/unsupervised.npy')
 serial.save(output_dir + '/unsupervised.pkl', data)
 
@@ -66,27 +68,27 @@ unlabeled = X[0:100*1000,:]
 labeled = X[100*1000:,:]
 del X
 
-print "Saving the unlabeled data"
+print("Saving the unlabeled data")
 data.X = unlabeled
 data.use_design_loc(output_dir + '/unlabeled.npy')
 serial.save(output_dir + '/unlabeled.pkl',data)
 del data
 del unlabeled
 
-print "Saving the labeled train data"
+print("Saving the labeled train data")
 supplement.X = labeled
 supplement.use_design_loc(output_dir+'/train.npy')
 serial.save(output_dir+'/train.pkl', supplement)
 del supplement
 del labeled
 
-print "Loading the test data"
+print("Loading the test data")
 test = serial.load(downsampled_dir + '/test.pkl')
 
-print "Preprocessing the test data"
+print("Preprocessing the test data")
 test.apply_preprocessor(preprocessor = preprocessor, can_fit = False)
 
-print "Saving the test data"
+print("Saving the test data")
 test.use_design_loc(output_dir+'/test.npy')
 serial.save(output_dir+'/test.pkl', test)
 

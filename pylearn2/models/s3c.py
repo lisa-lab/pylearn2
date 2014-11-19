@@ -13,12 +13,13 @@ import time
 import warnings
 
 import numpy as np
+from theano.compat.six.moves import xrange
 from theano import config, function
 from theano import scan
-from theano.compat.python2x import OrderedDict
 from theano.gof.op import get_debug_values, debug_error_message, debug_assert
 import theano.tensor as T
 
+from pylearn2.compat import OrderedDict
 from pylearn2.utils import make_name, sharedX, as_floatX
 from pylearn2.blocks import Block
 from pylearn2.expr.information_theory import entropy_binary_vector

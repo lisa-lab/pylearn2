@@ -9,10 +9,14 @@ __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
-import copy, time, warnings, logging
+import copy
+import time
+import warnings
+import logging
 import numpy as np
+from theano.compat import six
 
-from theano.compat.python2x import OrderedDict
+from pylearn2.compat import OrderedDict
 import theano.sparse
 from theano import config
 from theano import tensor as T
@@ -184,7 +188,7 @@ class Monitor(object):
                 # The iterator should catch this, but let's double-check
                 assert sd is None
 
-            if not d in self._datasets:
+            if d not in self._datasets:
                 self._datasets.append(d)
                 self._iteration_mode.append(m)
                 self._batch_size.append(b)
@@ -213,7 +217,7 @@ class Monitor(object):
                                                self.accum,
                                                self._rng_seed,
                                                self.num_examples):
-            if isinstance(d, basestring):
+            if isinstance(d, six.string_types):
                 d = yaml_parse.load(d)
                 raise NotImplementedError()
 
@@ -547,7 +551,7 @@ class Monitor(object):
         if self._datasets:
             self._datasets = []
             for dataset in temp:
-                if isinstance(dataset, basestring):
+                if isinstance(dataset, six.string_types):
                     self._datasets.append(dataset)
                 else:
                     try:
@@ -606,7 +610,12 @@ class Monitor(object):
         data_specs : (space, source) pair
             Identifies the order, format and semantics of ipt
         """
-        if isinstance(val, (float, int, long)):
+        if six.PY3:
+            numeric = (float, int)
+        else:
+            numeric = (float, int, long)
+
+        if isinstance(val, numeric):
             val = np.cast[theano.config.floatX](val)
 
         val = T.as_tensor_variable(val)
@@ -883,7 +892,7 @@ class Monitor(object):
         custom_channels.update(channels)
 
         if is_stochastic(mode):
-            seed = [[2013, 02, 22]]
+            seed = [[2013, 2, 22]]
         else:
             seed = None
 
@@ -1039,9 +1048,10 @@ class MonitorChannel(object):
         # We need to figure out a good way of saving the other fields. In the
         # current setup, since there's no good way of coordinating with the
         # model/training algorithm, the theano based fields might be invalid
-        # after a repickle. This means we can't, for instance, resume a job with
-        # monitoring after a crash. For now, to make sure no one erroneously
-        # depends on these bad values, I exclude them from the pickle.
+        # after a repickle. This means we can't, for instance, resume a job
+        # with monitoring after a crash. For now, to make sure no one
+        # erroneously depends on these bad values, I exclude them from the
+        # pickle.
 
         if hasattr(self, 'val'):
             doc = get_monitor_doc(self.val)
@@ -1057,11 +1067,11 @@ class MonitorChannel(object):
                 doc = None
 
         return {
-            'doc' : doc,
-            'example_record' : self.example_record,
-            'batch_record' : self.batch_record,
-            'time_record' : self.time_record,
-            'epoch_record' : self.epoch_record,
+            'doc': doc,
+            'example_record': self.example_record,
+            'batch_record': self.batch_record,
+            'time_record': self.time_record,
+            'epoch_record': self.epoch_record,
             'val_record': self.val_record
         }
 
@@ -1149,6 +1159,7 @@ def read_channel(model, channel_name, monitor_name='monitor'):
         The last value recorded in this monitoring channel
     """
     return getattr(model, monitor_name).channels[channel_name].val_record[-1]
+
 
 def get_channel(model, dataset, channel, cost, batch_size):
     """

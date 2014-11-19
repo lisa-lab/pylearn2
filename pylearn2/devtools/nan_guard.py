@@ -105,4 +105,4 @@ class NanGuardMode(Mode):
                 do_check_on(x, node, fn, False)
 
         wrap_linker = theano.gof.WrapLinkerMany([theano.gof.OpWiseCLinker()], [nan_check])
-        super(NanGuardMode, self).__init__(wrap_linker, optimizer='fast_run')
+        super(NanGuardMode, self).__init__(wrap_linker, optimizer=theano.config.optimizer)

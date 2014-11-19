@@ -34,7 +34,7 @@ def adult(which_set):
 
     base_path = os.path.join(preprocess("${PYLEARN2_DATA_PATH}"), "adult")
 
-    set_file = {'train' : 'adult.data', 'test' : 'adult.test'}[which_set]
+    set_file = {'train': 'adult.data', 'test': 'adult.test'}[which_set]
 
     full_path = os.path.join(base_path, set_file)
 
@@ -47,13 +47,13 @@ def adult(which_set):
     content = content[:-1]
 
     # verify # of examples
-    num_examples = {'train': 32561, 'test' : 16281}[which_set]
+    num_examples = {'train': 32561, 'test': 16281}[which_set]
     assert len(content) == num_examples, (len(content), num_examples)
 
     # strip out examples with missing features, verify number of remaining
     # examples
     content = [line for line in content if line.find('?') == -1]
-    num_examples = {'train': 30162, 'test' : 15060}[which_set]
+    num_examples = {'train': 30162, 'test': 15060}[which_set]
     assert len(content) == num_examples
 
     # strip off endlines, separate entries
@@ -66,17 +66,18 @@ def adult(which_set):
 
     # convert targets to binary
     assert all(map(lambda l: l in ['>50K', '<=50K', '>50K.', '<=50K.'],
-        targets))
+                   targets))
     y = map(lambda l: l[0] == '>', targets)
     y = np.array(y)
     del targets
 
     # Process features into a design matrix
     variables = ['age', 'workclass', 'fnlwgt', 'education', 'education-num',
-            'marital-status', 'occupation', 'relationship', 'race', 'sex',
-            'capital-gain', 'capital-loss', 'hours-per-week', 'native-country']
+                 'marital-status', 'occupation', 'relationship', 'race', 'sex',
+                 'capital-gain', 'capital-loss', 'hours-per-week',
+                 'native-country']
     continuous = set(['age', 'fnlwgt', 'education-num', 'capital-gain',
-        'capital-loss', 'hours-per-week'])
+                      'capital-loss', 'hours-per-week'])
     assert all(var in variables for var in continuous)
     assert all(map(lambda l: len(l) == len(variables), features))
     pieces = []

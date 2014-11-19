@@ -8,6 +8,7 @@ __email__ = "pylearn-dev@googlegroups"
 from pylearn2.testing.skip import skip_if_no_gpu
 skip_if_no_gpu()
 import numpy as np
+from theano.compat.six.moves import xrange
 from theano import shared
 from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
 from theano.tensor.nnet.conv import conv2d

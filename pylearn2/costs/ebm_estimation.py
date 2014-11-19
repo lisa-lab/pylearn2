@@ -6,11 +6,11 @@ import logging
 import numpy as np
 import sys
 
-from theano.compat.python2x import OrderedDict
 from theano import scan
 import theano.tensor as T
 from theano.compat.six.moves import zip as izip
 
+from pylearn2.compat import OrderedDict
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 from pylearn2.utils import py_integer_types
 from pylearn2.utils.rng import make_theano_rng

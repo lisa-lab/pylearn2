@@ -8,6 +8,7 @@ try:
     from matplotlib import pyplot
 except Exception:
     pyplot = None
+from theano.compat.six.moves import xrange
 
 
 def tangent_plot(x, y, s):

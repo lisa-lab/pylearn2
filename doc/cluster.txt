@@ -23,7 +23,7 @@ and random search out of the box. The experiment descriptions are compatible
 with pylearn2's yaml format.
 
 There is the Hyperplot project that allow to produce graphs and/or tables
-with jobman jobs: https://www.assembla.com/code/hyperplot/mercurial/nodes
+with jobman jobs: https://github.com/simlmx/hyperplot
 
 Use postgres as a back-end database.
 

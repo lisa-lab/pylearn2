@@ -12,7 +12,7 @@ __email__ = "pylearn-dev@googlegroups"
 
 import functools
 import numpy as np
-
+from theano.compat.six.moves import xrange
 import theano
 import theano.tensor as T
 from theano.tensor.nnet.conv import conv2d

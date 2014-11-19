@@ -1,9 +1,11 @@
+from __future__ import print_function
+
 from pylearn2.models.dbm.dbm import DBM
 from pylearn2.models.dbm.layer import BinaryVector, BinaryVectorMaxPool, Softmax, GaussianVisLayer
 
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012, Universite de Montreal"
-__credits__ = ["Ian Goodfellow"]
+__credits__ = ["Ian Goodfellow", "Devon Hjelm"]
 __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 
@@ -11,6 +13,7 @@ import numpy as np
 import random
 assert hasattr(np, 'exp')
 
+from theano.compat.six.moves import xrange
 from theano import config
 from theano import function
 from theano.sandbox.rng_mrg import MRG_RandomStreams
@@ -25,98 +28,113 @@ from pylearn2.utils import sharedX
 from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import DataSpecsMapping
 
-def check_binary_samples(value, expected_shape, expected_mean, tol):
+
+class DummyLayer(object):
     """
-    Tests that a matrix of binary samples (observations in rows, variables
+    A layer that we build for the test that just uses a state
+    as its downward message.
+    """
+
+    def downward_state(self, state):
+        return state
+
+    def downward_message(self, state):
+        return state
+
+
+class DummyDBM(object):
+    """
+    A dummy DBM for some of the tests below.
+    """
+    def __init__(self, rng):
+        self.rng = rng
+
+
+class TestBinaryVector:
+    """
+    Testing class for DBM BinaryVector.
+    """
+    def setUp(self):
+        pass
+    @staticmethod
+    def check_samples(value, expected_shape, expected_mean, tol):
+        """
+        Tests that a matrix of binary samples (observations in rows, variables
         in columns)
-    1) Has the right shape
-    2) Is binary
-    3) Converges to the right mean
-    """
-    assert value.shape == expected_shape
-    assert is_binary(value)
-    mean = value.mean(axis=0)
-    max_error = np.abs(mean-expected_mean).max()
-    print 'Actual mean:'
-    print mean
-    print 'Expected mean:'
-    print expected_mean
-    print 'Maximal error:', max_error
-    if max_error > tol:
-        raise ValueError("Samples don't seem to have the right mean.")
-
-def test_binary_vis_layer_make_state():
-
-    # Verifies that BinaryVector.make_state creates
-    # a shared variable whose value passes check_binary_samples
-
-    n = 5
-    num_samples = 1000
-    tol = .04
-
-    layer = BinaryVector(nvis = n)
-
-    rng = np.random.RandomState([2012,11,1])
-
-    mean = rng.uniform(1e-6, 1. - 1e-6, (n,))
-
-    z = inverse_sigmoid_numpy(mean)
-
-    layer.set_biases(z.astype(config.floatX))
-
-    init_state = layer.make_state(num_examples=num_samples,
-            numpy_rng=rng)
-
-    value = init_state.get_value()
-
-    check_binary_samples(value, (num_samples, n), mean, tol)
-
-def test_binary_vis_layer_sample():
-
-    # Verifies that BinaryVector.sample returns an expression
-    # whose value passes check_binary_samples
-
-    assert hasattr(np, 'exp')
-
-    n = 5
-    num_samples = 1000
-    tol = .04
-
-    class DummyLayer(object):
+        1) Has the right shape
+        2) Is binary
+        3) Converges to the right mean
         """
-        A layer that we build for the test that just uses a state
-        as its downward message.
-        """
+        assert value.shape == expected_shape
+        assert is_binary(value)
+        mean = value.mean(axis=0)
+        max_error = np.abs(mean-expected_mean).max()
+        print('Actual mean:')
+        print(mean)
+        print('Expected mean:')
+        print(expected_mean)
+        print('Maximal error:', max_error)
+        if max_error > tol:
+            raise ValueError("Samples don't seem to have the right mean.")
 
-        def downward_state(self, state):
-            return state
+    def test_make_state(self):
+        # Verifies that BinaryVector.make_state creates
+        # a shared variable whose value passes check_samples
 
-        def downward_message(self, state):
-            return state
+        n = 5
+        num_samples = 1000
+        tol = .04
 
-    vis = BinaryVector(nvis=n)
-    hid = DummyLayer()
+        layer = BinaryVector(nvis = n)
 
-    rng = np.random.RandomState([2012,11,1,259])
+        rng = np.random.RandomState([2012,11,1])
 
-    mean = rng.uniform(1e-6, 1. - 1e-6, (n,))
+        mean = rng.uniform(1e-6, 1. - 1e-6, (n,))
 
-    ofs = rng.randn(n)
+        z = inverse_sigmoid_numpy(mean)
 
-    vis.set_biases(ofs.astype(config.floatX))
+        layer.set_biases(z.astype(config.floatX))
 
-    z = inverse_sigmoid_numpy(mean) - ofs
+        init_state = layer.make_state(num_examples=num_samples,
+                                      numpy_rng=rng)
 
-    z_var = sharedX(np.zeros((num_samples, n)) + z)
+        value = init_state.get_value()
 
-    theano_rng = MRG_RandomStreams(2012+11+1)
+        TestBinaryVector.check_samples(value, (num_samples, n), mean, tol)
 
-    sample = vis.sample(state_above=z_var, layer_above=hid,
-            theano_rng=theano_rng)
+    def test_sample(self):
+        # Verifies that BinaryVector.sample returns an expression
+        # whose value passes check_samples
 
-    sample = sample.eval()
+        assert hasattr(np, 'exp')
 
-    check_binary_samples(sample, (num_samples, n), mean, tol)
+        n = 5
+        num_samples = 1000
+        tol = .04
+
+        vis = BinaryVector(nvis=n)
+        hid = DummyLayer()
+
+        rng = np.random.RandomState([2012,11,1,259])
+
+        mean = rng.uniform(1e-6, 1. - 1e-6, (n,))
+
+        ofs = rng.randn(n)
+
+        vis.set_biases(ofs.astype(config.floatX))
+
+        z = inverse_sigmoid_numpy(mean) - ofs
+
+        z_var = sharedX(np.zeros((num_samples, n)) + z)
+
+        theano_rng = MRG_RandomStreams(2012+11+1)
+
+        sample = vis.sample(state_above=z_var, layer_above=hid,
+                            theano_rng=theano_rng)
+
+        sample = sample.eval()
+
+        TestBinaryVector.check_samples(sample, (num_samples, n), mean, tol)
 
 
 def check_gaussian_samples(value, nsamples, nvis, rows, cols, channels, expected_mean, tol):
@@ -136,16 +154,16 @@ def check_gaussian_samples(value, nsamples, nvis, rows, cols, channels, expected
     assert not is_binary(value)
     mean = value.mean(axis=0)
     max_error = np.abs(mean-expected_mean).max()
-    print 'Actual mean:'
-    print mean
-    print 'Expected mean:'
-    print expected_mean
-    print 'Maximal error:', max_error
-    print 'Tolerable variance:', tol
+    print('Actual mean:')
+    print(mean)
+    print('Expected mean:')
+    print(expected_mean)
+    print('Maximal error:', max_error)
+    print('Tolerable variance:', tol)
     if max_error > tol:
         raise ValueError("Samples don't seem to have the right mean.")
     else:
-        print 'Mean is within expected range'
+        print('Mean is within expected range')
 
 
 def test_gaussian_vis_layer_make_state():
@@ -200,7 +218,7 @@ def test_gaussian_vis_layer_make_state_conv():
     axes = ['b', 0, 1, 'c']
     random.shuffle(axes)
     axes = tuple(axes)
-    print 'axes:', axes
+    print('axes:', axes)
 
     layer = GaussianVisLayer(rows=rows, cols=cols, channels=channels, init_beta=beta, axes=axes)
 
@@ -296,7 +314,7 @@ def test_gaussian_vis_layer_sample_conv():
     axes = ['b', 0, 1, 'c']
     random.shuffle(axes)
     axes = tuple(axes)
-    print 'axes:', axes
+    print('axes:', axes)
 
     class DummyLayer(object):
         """
@@ -377,7 +395,7 @@ def check_bvmp_samples(value, num_samples, n, pool_size, mean, tol):
         assert sub_h.shape == (num_samples, pool_size)
         if not np.all(sub_p == sub_h.max(axis=1)):
             for j in xrange(num_samples):
-                print sub_p[j], sub_h[j,:]
+                print(sub_p[j], sub_h[j,:])
                 assert sub_p[j] == sub_h[j,:]
             assert False
         assert np.max(sub_h.sum(axis=1)) == 1
@@ -390,9 +408,9 @@ def check_bvmp_samples(value, num_samples, n, pool_size, mean, tol):
 
     max_diff = np.abs(p - emp_p).max()
     if max_diff > tol:
-        print 'expected value of pooling units: ',p
-        print 'empirical expectation: ',emp_p
-        print 'maximum difference: ',max_diff
+        print('expected value of pooling units: ',p)
+        print('empirical expectation: ',emp_p)
+        print('maximum difference: ',max_diff)
         raise ValueError("Pooling unit samples have an unlikely mean.")
     max_diff = np.abs(h - emp_h).max()
     if max_diff > tol:
@@ -609,14 +627,14 @@ def test_bvmp_mf_energy_consistent():
 
         # Check that they match
         if not np.allclose(expected_p, 1. - off_prob):
-            print 'mean field expectation of p:',expected_p
-            print 'expectation of p based on enumerating energy function values:',1. - off_prob
-            print 'pool_size_1:',pool_size_1
+            print('mean field expectation of p:',expected_p)
+            print('expectation of p based on enumerating energy function values:',1. - off_prob)
+            print('pool_size_1:',pool_size_1)
 
             assert False
         if not np.allclose(expected_h, on_probs):
-            print 'mean field expectation of h:',expected_h
-            print 'expectation of h based on enumerating energy function values:',on_probs
+            print('mean field expectation of h:',expected_h)
+            print('expectation of h based on enumerating energy function values:',on_probs)
             assert False
 
     # 1 is an important corner case
@@ -734,14 +752,14 @@ def test_bvmp_mf_energy_consistent_center():
 
         # Check that they match
         if not np.allclose(expected_p, 1. - off_prob):
-            print 'mean field expectation of p:',expected_p
-            print 'expectation of p based on enumerating energy function values:',1. - off_prob
-            print 'pool_size_1:',pool_size_1
+            print('mean field expectation of p:',expected_p)
+            print('expectation of p based on enumerating energy function values:',1. - off_prob)
+            print('pool_size_1:',pool_size_1)
 
             assert False
         if not np.allclose(expected_h, on_probs):
-            print 'mean field expectation of h:',expected_h
-            print 'expectation of h based on enumerating energy function values:',on_probs
+            print('mean field expectation of h:',expected_h)
+            print('expectation of h based on enumerating energy function values:',on_probs)
             assert False
 
     # 1 is the only pool size for which centering is implemented
@@ -846,11 +864,11 @@ def check_multinomial_samples(value, expected_shape, expected_mean, tol):
     mean = value.mean(axis=0)
     max_error = np.abs(mean-expected_mean).max()
     if max_error > tol:
-        print 'Actual mean:'
-        print mean
-        print 'Expected mean:'
-        print expected_mean
-        print 'Maximal error:', max_error
+        print('Actual mean:')
+        print(mean)
+        print('Expected mean:')
+        print(expected_mean)
+        print('Maximal error:', max_error)
         raise ValueError("Samples don't seem to have the right mean.")
 
 def test_softmax_make_state():
@@ -962,8 +980,8 @@ def test_softmax_mf_energy_consistent():
     probs = wtf_numpy
 
     if not np.allclose(expected_y, probs):
-        print 'mean field expectation of h:',expected_y
-        print 'expectation of h based on enumerating energy function values:',probs
+        print('mean field expectation of h:',expected_y)
+        print('expectation of h based on enumerating energy function values:',probs)
         assert False
 
 def test_softmax_mf_energy_consistent_centering():
@@ -1048,8 +1066,8 @@ def test_softmax_mf_energy_consistent_centering():
     probs = wtf_numpy
 
     if not np.allclose(expected_y, probs):
-        print 'mean field expectation of h:',expected_y
-        print 'expectation of h based on enumerating energy function values:',probs
+        print('mean field expectation of h:',expected_y)
+        print('expectation of h based on enumerating energy function values:',probs)
         assert False
 
 def test_softmax_mf_sample_consistent():
@@ -1189,3 +1207,4 @@ def test_extra():
         return
     from galatea.dbm.pylearn2_bridge import run_unit_tests
     run_unit_tests()
+

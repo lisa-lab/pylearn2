@@ -2,6 +2,8 @@
 Unit tests for format checking
 """
 
+from __future__ import print_function
+
 from nose.plugins.skip import SkipTest
 
 import os
@@ -24,7 +26,6 @@ whitelist_pep8 = [
     "models/dbm/layer.py",
     "models/dbm/__init__.py",
     "models/dbm/ising.py",
-    "models/dbm/inference_procedure.py",
     "models/differentiable_sparse_coding.py",
     "models/local_coordinate_coding.py",
     "models/mnd.py",
@@ -53,7 +54,6 @@ whitelist_pep8 = [
     "expr/sampling.py",
     "expr/information_theory.py",
     "expr/basic.py",
-    "testing/datasets.py",
     "testing/cost.py",
     "gui/graph_2D.py",
     "sandbox/cuda_convnet/weight_acts.py",
@@ -81,26 +81,6 @@ whitelist_pep8 = [
     "sandbox/lisa_rl/bandit/classifier_agent.py",
     "sandbox/lisa_rl/bandit/plot_reward.py",
     "config/old_config.py",
-    "datasets/utlc.py",
-    "datasets/mnistplus.py",
-    "datasets/cos_dataset.py",
-    "datasets/cifar10.py",
-    "datasets/svhn.py",
-    "datasets/preprocessing.py",
-    "datasets/config.py",
-    "datasets/icml07.py",
-    "datasets/filetensor.py",
-    "datasets/hepatitis.py",
-    "datasets/wiskott.py",
-    "datasets/mnist.py",
-    "datasets/csv_dataset.py",
-    "datasets/tl_challenge.py",
-    "datasets/retina.py",
-    "datasets/ocr.py",
-    "datasets/stl10.py",
-    "datasets/vector_spaces_dataset.py",
-    "datasets/debug.py",
-    "datasets/binarizer.py",
     "utils/utlc.py",
     "utils/tests/test_serial.py",
     "utils/common_strings.py",
@@ -109,8 +89,6 @@ whitelist_pep8 = [
     "dataset_get/dataset-get.py",
     "dataset_get/helper-scripts/make-archive.py",
     "dataset_get/dataset_resolver.py",
-    "monitor.py",
-    "optimization/batch_gradient_descent.py",
     "optimization/minres.py",
     "costs/ebm_estimation.py",
     "costs/gsn.py",
@@ -164,10 +142,8 @@ whitelist_pep8 = [
     "utils/iteration.py",
     "utils/track_version.py",
     "scripts/get_version.py",
-    "blocks.py",
     "training_algorithms/tests/test_bgd.py",
     "training_algorithms/tests/test_default.py",
-    "training_algorithms/bgd.py",
     "training_algorithms/default.py",
     "training_algorithms/training_algorithm.py",
     "training_algorithms/sgd.py",
@@ -182,7 +158,6 @@ whitelist_pep8 = [
     "models/tests/test_mlp.py",
     "models/tests/test_maxout.py",
     "models/tests/test_convelemwise_sigm.py",
-    "models/mlp.py",
     "models/dbm/sampling_procedure.py",
     "models/svm.py",
     "models/rbm.py",
@@ -218,11 +193,9 @@ whitelist_pep8 = [
     "sandbox/lisa_rl/bandit/algorithm.py",
     "sandbox/lisa_rl/bandit/environment.py",
     "sandbox/lisa_rl/__init__.py",
-    "space/__init__.py",
     "datasets/avicenna.py",
     "datasets/iris.py",
     "datasets/adult.py",
-    "datasets/zca_dataset.py",
     "datasets/npy_npz.py",
     "datasets/control.py",
     "datasets/cifar100.py",
@@ -235,9 +208,7 @@ whitelist_pep8 = [
     "utils/tests/test_data_specs.py",
     "utils/tests/test_bit_strings.py",
     "utils/tests/test_iteration.py",
-    "utils/tests/test_string_utils.py",
     "utils/image.py",
-    "utils/string_utils.py",
     "utils/theano_graph.py",
     "utils/__init__.py",
     "utils/datasets.py",
@@ -259,9 +230,6 @@ whitelist_pep8 = [
     "optimization/feature_sign.py",
     "optimization/test_linear_cg.py",
     "optimization/linesearch.py",
-    "costs/mlp/__init__.py",
-    "costs/mlp/dropout.py",
-    "costs/cost.py",
     "costs/dbm.py",
     "linear/tests/test_conv2d.py",
     "linear/tests/test_conv2d_c01b.py",
@@ -291,14 +259,11 @@ whitelist_pep8 = [
     "devtools/tests/test_via_pyflakes.py",
     "devtools/tests/test_shebangs.py",
     "devtools/tests/pep8/pep8.py",
-    "devtools/tests/test_record.py",
     "devtools/tests/docscrape.py",
     "devtools/run_pyflakes.py",
     "devtools/record.py",
     "train_extensions/tests/test_window_flip.py",
     "train_extensions/__init__.py",
-    "train_extensions/window_flip.py",
-    "train_extensions/best_params.py"
 ]
 
 whitelist_docstrings = [
@@ -334,6 +299,7 @@ whitelist_docstrings = [
     'models/tests/test_s3c_inference.py',
     'models/tests/test_maxout.py',
     'models/tests/test_mnd.py',
+    'models/tests/test_vae.py',
     'models/tests/test_rbm.py',
     'models/tests/test_s3c_misc.py',
     'models/gsn.py',
@@ -342,7 +308,6 @@ whitelist_docstrings = [
     'models/dbm/__init__.py',
     'models/dbm/dbm.py',
     'models/dbm/ising.py',
-    'models/dbm/inference_procedure.py',
     'models/differentiable_sparse_coding.py',
     'models/local_coordinate_coding.py',
     'models/maxout.py',
@@ -455,7 +420,6 @@ whitelist_docstrings = [
     'datasets/adult.py',
     'datasets/tfd.py',
     'datasets/icml07.py',
-    'datasets/zca_dataset.py',
     'datasets/filetensor.py',
     'datasets/npy_npz.py',
     'datasets/hepatitis.py',
@@ -486,17 +450,14 @@ whitelist_docstrings = [
     'utils/compile.py',
     'utils/logger.py',
     'utils/general.py',
-    'utils/one_hot.py',
     'utils/testing.py',
     'utils/tests/test_mnist_ubyte.py',
     'utils/tests/test_data_specs.py',
     'utils/tests/test_video.py',
     'utils/tests/test_bit_strings.py',
-    'utils/tests/test_one_hot.py',
     'utils/tests/test_rng.py',
     'utils/tests/test_pooling.py',
     'utils/tests/test_iteration.py',
-    'utils/tests/test_string_utils.py',
     'utils/tests/test_insert_along_axis.py',
     'utils/tests/test_utlc.py',
     'utils/tests/test_compile.py',
@@ -504,7 +465,6 @@ whitelist_docstrings = [
     'utils/key_aware.py',
     'utils/image.py',
     'utils/video.py',
-    'utils/string_utils.py',
     'utils/bit_strings.py',
     'utils/iteration.py',
     'utils/pooling.py',
@@ -546,8 +506,6 @@ whitelist_docstrings = [
     'costs/tests/test_lp_penalty_cost.py',
     'costs/gsn.py',
     'costs/__init__.py',
-    'costs/mlp/__init__.py',
-    'costs/mlp/dropout.py',
     'costs/mlp/missing_target_cost.py',
     'costs/dbm.py',
     'costs/autoencoder.py',
@@ -581,6 +539,7 @@ whitelist_docstrings = [
     'scripts/gpu_pkl_to_cpu_pkl.py',
     'scripts/datasets/step_through_small_norb.py',
     'scripts/datasets/download_mnist.py',
+    'scripts/datasets/download_binarized_mnist.py',
     'scripts/datasets/browse_small_norb.py',
     'scripts/datasets/make_mnistplus.py',
     'scripts/__init__.py',
@@ -620,14 +579,12 @@ whitelist_docstrings = [
     'base.py',
     'devtools/tests/test_via_pyflakes.py',
     'devtools/tests/test_shebangs.py',
-    'devtools/tests/test_record.py',
     'devtools/tests/__init__.py',
     'devtools/tests/docscrape.py',
     'devtools/run_pyflakes.py',
     'devtools/nan_guard.py',
     'devtools/__init__.py',
     'devtools/record.py',
-    'train_extensions/best_params.py',
     'corruption.py',
     'datasets/tests/test_tl_challenge.py',
     'datasets/tests/test_tfd.py',
@@ -653,6 +610,7 @@ whitelist_docstrings.extend([
 
 # add files which fail to run to whitelist_docstrings
 whitelist_docstrings.extend([
+    'sandbox/rnn/models/mlp_hook.py',
     'training_algorithms/tests/test_learning_rule.py',
     'models/pca.py',
     'datasets/tests/test_hdf5.py',
@@ -739,12 +697,12 @@ def print_files_information_pep8():
         else:
             if rel_path in whitelist_pep8:
                 non_infracting_files.append(path)
-    print "Files that must be corrected or added to whitelist:"
+    print("Files that must be corrected or added to whitelist:")
     for file in infracting_files:
-        print file
-    print "Files that can be removed from whitelist:"
+        print(file)
+    print("Files that can be removed from whitelist:")
     for file in non_infracting_files:
-        print file
+        print(file)
 
 
 def test_format_docstrings():
@@ -754,7 +712,7 @@ def test_format_docstrings():
 
     try:
         verify_format_docstrings()
-    except SkipTest, e:
+    except SkipTest as e:
         import traceback
         traceback.print_exc(e)
         raise AssertionError(

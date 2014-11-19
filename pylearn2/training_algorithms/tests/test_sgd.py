@@ -1,12 +1,13 @@
-import cStringIO
-import numpy as np
+from __future__ import print_function
 
+import numpy as np
+from theano.compat.six.moves import cStringIO, xrange
 import theano.tensor as T
 from theano.tests import disturb_mem
-import warnings
+from theano.tests.record import Record, RecordMode
 
+from pylearn2.compat import first_key
 from pylearn2.costs.cost import Cost, SumOfCosts, DefaultDataSpecsMixin
-from pylearn2.devtools.record import Record, RecordMode
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.models.model import Model
 from pylearn2.monitor import Monitor
@@ -16,12 +17,14 @@ from pylearn2.testing.cost import CallbackCost, SumOfParams
 from pylearn2.testing.datasets import ArangeDataset
 from pylearn2.train import Train
 from pylearn2.training_algorithms.sgd import (ExponentialDecay,
-                                              MomentumAdjustor,
                                               PolyakAveraging,
                                               LinearDecay,
                                               LinearDecayOverEpoch,
                                               MonitorBasedLRAdjuster,
-                                              SGD)
+                                              SGD,
+                                              AnnealedLearningRate)
+from pylearn2.training_algorithms.learning_rule import (Momentum,
+                                                        MomentumAdjustor)
 from pylearn2.utils.iteration import _iteration_schemes
 from pylearn2.utils import safe_izip, safe_union, sharedX
 from pylearn2.utils.exc import reraise_as
@@ -48,6 +51,7 @@ class DummyCost(DefaultDataSpecsMixin, Cost):
 class DummyModel(Model):
 
     def __init__(self, shapes, lr_scalers=None):
+        super(DummyModel, self).__init__()
         self._params = [sharedX(np.random.random(shape)) for shape in shapes]
         self.input_space = VectorSpace(1)
         self.lr_scalers = lr_scalers
@@ -75,6 +79,7 @@ class SoftmaxModel(Model):
     """
 
     def __init__(self, dim):
+        super(SoftmaxModel, self).__init__()
         self.dim = dim
         rng = np.random.RandomState([2012, 9, 25])
         self.P = sharedX(rng.uniform(-1., 1., (dim, )))
@@ -105,6 +110,7 @@ class TopoSoftmaxModel(Model):
     """
 
     def __init__(self, rows, cols, channels):
+        super(TopoSoftmaxModel, self).__init__()
         dim = rows * cols * channels
         self.input_space = Conv2DSpace((rows, cols), channels)
         self.dim = dim
@@ -154,7 +160,6 @@ def test_sgd_unspec_num_mon_batch():
                     monitoring_dataset=dataset,
                     termination_criterion=None,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     algorithm.setup(dataset=dataset, model=model)
@@ -179,7 +184,7 @@ def test_sgd_unspec_num_mon_batch():
     monitor()
 
     if False in visited:
-        print visited
+        print(visited)
         assert False
 
 
@@ -232,7 +237,6 @@ def test_sgd_sup():
                     monitoring_dataset=monitoring_dataset,
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     train = Train(dataset,
@@ -285,7 +289,6 @@ def test_sgd_unsup():
                     monitoring_dataset=monitoring_dataset,
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     train = Train(dataset,
@@ -371,7 +374,6 @@ def test_linear_decay():
                     monitoring_dataset=monitoring_dataset,
                     termination_criterion=termination_criterion,
                     update_callbacks=[linear_decay, lr_tracker],
-                    init_momentum=None,
                     set_batch_size=False)
 
     train = Train(dataset,
@@ -396,6 +398,83 @@ def test_linear_decay():
         elif (start <= batches_seen) and (batches_seen < saturate):
             expected = (decay_factor * learning_rate +
                         (saturate - batches_seen) * step)
+        if not np.allclose(actual, expected):
+            raise AssertionError("After %d batches, expected learning rate to "
+                                 "be %f, but it is %f." %
+                                 (batches_seen, expected, actual))
+
+
+def test_annealed_learning_rate():
+
+    # tests that the class AnnealedLearingRate in sgd.py
+    # gets the learning rate properly over the training batches
+    # it runs a small softmax and at the end checks the learning values.
+    # the learning rates are expected to start changing at batch 'anneal_start'
+    # After batch anneal_start, the learning rate should be
+    # learning_rate * anneal_start/number of batches seen
+
+    class LearningRateTracker(object):
+        def __init__(self):
+            self.lr_rates = []
+
+        def __call__(self, algorithm):
+            self.lr_rates.append(algorithm.learning_rate.get_value())
+
+    dim = 3
+    dataset_size = 10
+
+    rng = np.random.RandomState([25, 9, 2012])
+
+    X = rng.randn(dataset_size, dim)
+
+    dataset = DenseDesignMatrix(X=X)
+
+    m = 15
+    X = rng.randn(m, dim)
+
+    # including a monitoring datasets lets us test that
+    # the monitor works with supervised data
+    monitoring_dataset = DenseDesignMatrix(X=X)
+
+    model = SoftmaxModel(dim)
+
+    learning_rate = 1e-1
+    batch_size = 5
+
+    # We need to include this so the test actually stops running at some point
+    epoch_num = 15
+    termination_criterion = EpochCounter(epoch_num)
+
+    cost = DummyCost()
+
+    anneal_start = 5
+    annealed_rate = AnnealedLearningRate(anneal_start=anneal_start)
+
+    # including this extension for saving learning rate value after each batch
+    lr_tracker = LearningRateTracker()
+    algorithm = SGD(learning_rate,
+                    cost,
+                    batch_size=batch_size,
+                    monitoring_batches=3,
+                    monitoring_dataset=monitoring_dataset,
+                    termination_criterion=termination_criterion,
+                    update_callbacks=[annealed_rate, lr_tracker],
+                    set_batch_size=False)
+
+    train = Train(dataset,
+                  model,
+                  algorithm,
+                  save_path=None,
+                  save_freq=0,
+                  extensions=None)
+
+    train.main_loop()
+
+    num_batches = np.ceil(dataset_size / float(batch_size)).astype(int)
+    for i in xrange(epoch_num * num_batches):
+        actual = lr_tracker.lr_rates[i]
+        batches_seen = i + 1
+        expected = learning_rate*min(1, float(anneal_start)/batches_seen)
         if not np.allclose(actual, expected):
             raise AssertionError("After %d batches, expected learning rate to "
                                  "be %f, but it is %f." %
@@ -445,7 +524,6 @@ def test_linear_decay_over_epoch():
                     monitoring_dataset=monitoring_dataset,
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     start = 5
@@ -535,7 +613,6 @@ def test_monitor_based_lr():
                         monitoring_dataset=monitoring_dataset,
                         termination_criterion=termination_criterion,
                         update_callbacks=None,
-                        init_momentum=None,
                         set_batch_size=False)
 
         monitor_lr = MonitorBasedLRAdjuster(high_trigger=high_trigger,
@@ -575,7 +652,7 @@ def test_bad_monitoring_input_in_monitor_based_lr():
     dim = 3
     m = 10
 
-    rng = np.random.RandomState([06, 02, 2014])
+    rng = np.random.RandomState([6, 2, 2014])
 
     X = rng.randn(m, dim)
 
@@ -604,7 +681,6 @@ def test_bad_monitoring_input_in_monitor_based_lr():
                     monitoring_dataset=monitoring_dataset,
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     # testing for bad dataset_name input
@@ -658,7 +734,7 @@ def testing_multiple_datasets_in_monitor_based_lr():
     dim = 3
     m = 10
 
-    rng = np.random.RandomState([06, 02, 2014])
+    rng = np.random.RandomState([6, 2, 2014])
 
     X = rng.randn(m, dim)
     Y = rng.randn(m, dim)
@@ -690,7 +766,6 @@ def testing_multiple_datasets_in_monitor_based_lr():
                                         'test': monitoring_test},
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     monitor_lr = MonitorBasedLRAdjuster()
@@ -722,7 +797,7 @@ def testing_multiple_datasets_with_specified_dataset_in_monitor_based_lr():
     dim = 3
     m = 10
 
-    rng = np.random.RandomState([06, 02, 2014])
+    rng = np.random.RandomState([6, 2, 2014])
 
     X = rng.randn(m, dim)
     Y = rng.randn(m, dim)
@@ -755,10 +830,9 @@ def testing_multiple_datasets_with_specified_dataset_in_monitor_based_lr():
                     monitoring_dataset=monitoring_dataset,
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
-    dataset_name = monitoring_dataset.keys()[0]
+    dataset_name = first_key(monitoring_dataset)
     monitor_lr = MonitorBasedLRAdjuster(dataset_name=dataset_name)
 
     train = Train(dataset,
@@ -809,7 +883,6 @@ def test_sgd_topo():
                     monitoring_dataset=monitoring_dataset,
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     train = Train(dataset,
@@ -867,7 +940,6 @@ def test_sgd_no_mon():
                     monitoring_dataset=None,
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     train = Train(dataset,
@@ -922,7 +994,6 @@ def test_reject_mon_batch_without_mon():
                         monitoring_batches=3,
                         monitoring_dataset=None,
                         update_callbacks=None,
-                        init_momentum=None,
                         set_batch_size=False)
     except ValueError:
         return
@@ -971,7 +1042,6 @@ def test_sgd_sequential():
                     monitoring_dataset=None,
                     termination_criterion=termination_criterion,
                     update_callbacks=None,
-                    init_momentum=None,
                     set_batch_size=False)
 
     algorithm.setup(dataset=dataset, model=model)
@@ -1026,7 +1096,6 @@ def test_determinism():
                             monitoring_dataset=None,
                             termination_criterion=termination_criterion,
                             update_callbacks=None,
-                            init_momentum=None,
                             set_batch_size=False)
 
             algorithm.setup(dataset=dataset, model=model)
@@ -1035,7 +1104,7 @@ def test_determinism():
             try:
                 algorithm.train(dataset)
             except ValueError:
-                print mode
+                print(mode)
                 assert mode in unsupported_modes
                 raised = True
             if mode in unsupported_modes:
@@ -1059,8 +1128,8 @@ def test_determinism():
 
         assert len(visited) == 2
 
-        print visited[0]
-        print visited[1]
+        print(visited[0])
+        print(visited[1])
         assert np.all(np.asarray(visited[0]) == np.asarray(visited[1]))
 
 
@@ -1117,6 +1186,7 @@ def test_determinism_2():
             """
 
             def __init__(self):
+                super(ManyParamsModel, self).__init__()
                 self.W1 = [sharedX(rng.randn(num_features, chunk_width)) for i
                            in xrange(num_chunks)]
                 disturb_mem.disturb_mem()
@@ -1173,7 +1243,7 @@ def test_determinism_2():
 
         algorithm = SGD(cost=cost,
                         batch_size=batch_size,
-                        init_momentum=.5,
+                        learning_rule=Momentum(.5),
                         learning_rate=1e-3,
                         monitoring_dataset={'train': train, 'valid': valid},
                         update_callbacks=[ExponentialDecay(decay_factor=2.,
@@ -1195,13 +1265,13 @@ def test_determinism_2():
 
         train_object.main_loop()
 
-    output = cStringIO.StringIO()
+    output = cStringIO()
     record = Record(file_object=output, replay=False)
     record_mode = RecordMode(record)
 
     run_sgd(record_mode)
 
-    output = cStringIO.StringIO(output.getvalue())
+    output = cStringIO(output.getvalue())
     playback = Record(file_object=output, replay=True)
     playback_mode = RecordMode(playback)
 
@@ -1224,6 +1294,7 @@ def test_lr_scalers():
 
     class ModelWithScalers(Model):
         def __init__(self):
+            super(ModelWithScalers, self).__init__()
             self._params = [sharedX(np.zeros(shape)) for shape in shapes]
             self.input_space = VectorSpace(1)
 
@@ -1240,7 +1311,7 @@ def test_lr_scalers():
 
     sgd = SGD(cost=cost,
               learning_rate=learning_rate,
-              init_momentum=0.,
+              learning_rule=Momentum(.0),
               batch_size=1)
 
     sgd.setup(model=model, dataset=dataset)
@@ -1286,7 +1357,7 @@ def test_lr_scalers_momentum():
 
     sgd = SGD(cost=cost,
               learning_rate=learning_rate,
-              init_momentum=momentum,
+              learning_rule=Momentum(momentum),
               batch_size=1)
 
     sgd.setup(model=model, dataset=dataset)
@@ -1342,6 +1413,40 @@ def test_batch_size_specialization():
                     set_batch_size=False)
 
     train = Train(dataset,
+                  model,
+                  algorithm,
+                  save_path=None,
+                  save_freq=0,
+                  extensions=None)
+
+    train.main_loop()
+
+
+def test_empty_monitoring_datasets():
+    """
+    Test that handling of monitoring datasets dictionnary
+    does not fail when it is empty.
+    """
+
+    learning_rate = 1e-3
+    batch_size = 5
+
+    dim = 3
+
+    rng = np.random.RandomState([25, 9, 2012])
+
+    train_dataset = DenseDesignMatrix(X=rng.randn(10, dim))
+
+    model = SoftmaxModel(dim)
+
+    cost = DummyCost()
+
+    algorithm = SGD(learning_rate, cost,
+                    batch_size=batch_size,
+                    monitoring_dataset={},
+                    termination_criterion=EpochCounter(2))
+
+    train = Train(train_dataset,
                   model,
                   algorithm,
                   save_path=None,

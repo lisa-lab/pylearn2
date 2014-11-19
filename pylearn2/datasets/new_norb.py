@@ -9,6 +9,7 @@ Small NORB: http://www.cs.nyu.edu/~ylclab/data/norb-v1.0-small/
 
 NORB and Small NORB datasets by Fu Jie Huang and Yann LeCun.
 """
+from __future__ import print_function
 
 __authors__ = "Guillaume Desjardins and Matthew Koichi Grimes"
 __copyright__ = "Copyright 2010-2014, Universite de Montreal"
@@ -16,7 +17,6 @@ __credits__ = __authors__.split(" and ")
 __license__ = "3-clause BSD"
 __maintainer__ = "Matthew Koichi Grimes"
 __email__ = "mkg alum mit edu (@..)"
-
 
 import os
 import copy
@@ -33,6 +33,7 @@ from pylearn2.datasets.filetensor import read_header
 
 
 class NORB(DenseDesignMatrix):
+
     """
     A DenseDesignMatrix loaded with SmallNORB or NORB data.
 
@@ -222,7 +223,7 @@ class NORB(DenseDesignMatrix):
 
             row_index = 0
             for norb_file in norb_files:
-                print "copying NORB file %s" % os.path.split(norb_file)[1]
+                print("copying NORB file %s" % os.path.split(norb_file)[1])
                 norb_data = read_norb_file(norb_file)
                 norb_data = norb_data.reshape(-1, output.shape[1])
                 end_row = row_index + norb_data.shape[0]
@@ -271,7 +272,7 @@ class NORB(DenseDesignMatrix):
                 if not os.path.isdir(memmap_dir):
                     os.mkdir(memmap_dir)
 
-                print "Allocating memmap file %s" % memmap_path
+                print("Allocating memmap file %s" % memmap_path)
                 writeable_memmap = numpy.memmap(filename=memmap_path,
                                                 dtype=dtype,
                                                 mode='w+',
@@ -280,8 +281,8 @@ class NORB(DenseDesignMatrix):
                 read_norb_files(dat_files, writeable_memmap)
 
             if not os.path.isfile(memmap_path):
-                print ("Caching images to memmap file. This "
-                       "will only be done once.")
+                print("Caching images to memmap file. This "
+                      "will only be done once.")
                 make_memmap()
 
             images = numpy.memmap(filename=memmap_path,
@@ -316,12 +317,12 @@ class NORB(DenseDesignMatrix):
                 if not os.path.isdir(memmap_dir):
                     os.mkdir(memmap_dir)
 
-                print "allocating labels' memmap..."
+                print("allocating labels' memmap...")
                 writeable_memmap = numpy.memmap(filename=memmap_path,
                                                 dtype=dtype,
                                                 mode='w+',
                                                 shape=shape)
-                print "... done."
+                print("... done.")
 
                 cat_memmap = writeable_memmap[:, :1]   # 1st column
                 info_memmap = writeable_memmap[:, 1:]  # remaining columns
@@ -331,8 +332,8 @@ class NORB(DenseDesignMatrix):
                     read_norb_files(norb_files, memmap)
 
             if not os.path.isfile(memmap_path):
-                print ("Caching images to memmap file %s.\n"
-                       "This will only be done once." % memmap_path)
+                print("Caching images to memmap file %s.\n"
+                      "This will only be done once." % memmap_path)
                 make_memmap()
 
             labels = numpy.memmap(filename=memmap_path,
@@ -429,6 +430,7 @@ class NORB(DenseDesignMatrix):
 
         super(NORB, self).__init__(X=images,
                                    y=labels,
+                                   y_labels=numpy.max(labels) + 1,
                                    view_converter=view_converter)
 
         # Needed for pickling / unpickling.
@@ -441,8 +443,8 @@ class NORB(DenseDesignMatrix):
         """
         Return a topological view.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         mat : ndarray
           A design matrix of images, one per row.
 
@@ -494,6 +496,11 @@ class NORB(DenseDesignMatrix):
         This state does not include the memmaps' contents. Rather, it includes
         enough info to find the memmap and re-load it from disk in the same
         state.
+
+        Note that pickling a NORB will set its memmaps (self.X and self.y) to
+        be read-only. This is to prevent the memmaps from accidentally being
+        edited after the save. To make them writeable again, the user must
+        explicitly call setflags(write=True) on the memmaps.
         """
         _check_pickling_support()
 
@@ -538,10 +545,21 @@ class NORB(DenseDesignMatrix):
                     'dtype': memmap.dtype,
                     'shape': memmap.shape,
                     'offset': memmap.offset,
-                    'mode': memmap.mode}
+                    # We never want to set mode to w+, even if memmap.mode
+                    # is w+. Otherwise we'll overwrite the memmap's contents
+                    # when we open it.
+                    'mode': 'r+' if memmap.mode in ('r+', 'w+') else 'r'}
 
         result['X_info'] = get_memmap_info(self.X)
         result['y_info'] = get_memmap_info(self.y)
+
+        # This prevents self.X and self.y from being accidentally written to
+        # after the save, thus unexpectedly changing the saved file. If the
+        # user really wants to, they can make the memmaps writeable again
+        # by calling setflags(write=True) on the memmaps.
+        for memmap in (self.X, self.y):
+            memmap.flush()
+            memmap.setflags(write=False)
 
         return result
 
@@ -580,6 +598,7 @@ class NORB(DenseDesignMatrix):
 
 
 class StereoViewConverter(object):
+
     """
     Converts stereo image data between two formats:
       A) A dense design matrix, one stereo pair per row (VectorSpace)
@@ -767,6 +786,14 @@ def _get_array_element(name, label, array):
 
 
 def get_category_value(label):
+    """
+    Returns the category name represented by a category label int.
+
+    Parameters
+    ----------
+    label: int
+      Category label.
+    """
     return _get_array_element('category', label, ('animal',
                                                   'human',
                                                   'airplane',
@@ -786,10 +813,30 @@ def _check_range_and_return(name,
 
 
 def get_instance_value(label):
+    """
+    Returns the instance value corresponding to a lighting label int.
+
+    The value is the int itself. This just sanity-checks the label for range
+    errors.
+
+    Parameters
+    ----------
+    label: int
+      Instance label.
+    """
     return _check_range_and_return('instance', label, -1, 9, -1)
 
 
 def get_elevation_value(label):
+    """
+    Returns the angle in degrees represented by a elevation label int.
+
+    Parameters
+    ----------
+    label: int
+      Elevation label.
+    """
+
     name = 'elevation'
     _check_is_integral(name, label)
     _check_range(name, label, -1, 8)
@@ -801,6 +848,15 @@ def get_elevation_value(label):
 
 
 def get_azimuth_value(label):
+    """
+    Returns the angle in degrees represented by a azimuth label int.
+
+    Parameters
+    ----------
+    label: int
+      Azimuth label.
+    """
+
     _check_is_integral('azimuth', label)
     if label == -1:
         return None
@@ -815,30 +871,101 @@ def get_azimuth_value(label):
 
 
 def get_lighting_value(label):
+    """
+    Returns the value corresponding to a lighting label int.
+
+    The value is the int itself. This just sanity-checks the label for range
+    errors.
+
+    Parameters
+    ----------
+    label: int
+      Lighting label.
+    """
     return _check_range_and_return('lighting', label, -1, 5, -1)
 
 
 def get_horizontal_shift_value(label):
+    """
+    Returns the value corresponding to a horizontal shift label int.
+
+    The value is the int itself. This just sanity-checks the label for range
+    errors.
+
+    Parameters
+    ----------
+    label: int
+      Horizontal shift label.
+    """
     return _check_range_and_return('horizontal shift', label, -5, 5)
 
 
 def get_vertical_shift_value(label):
+    """
+    Returns the value corresponding to a vertical shift label int.
+
+    The value is the int itself. This just sanity-checks the label for range
+    errors.
+
+    Parameters
+    ----------
+    label: int
+      Vertical shift label.
+    """
     return _check_range_and_return('vertical shift', label, -5, 5)
 
 
 def get_lumination_change_value(label):
+    """
+    Returns the value corresponding to a lumination change label int.
+
+    The value is the int itself. This just sanity-checks the label for range
+    errors.
+
+    Parameters
+    ----------
+    label: int
+      Lumination change label.
+    """
     return _check_range_and_return('lumination_change', label, -19, 19)
 
 
 def get_contrast_change_value(label):
+    """
+    Returns the float value represented by a contrast change label int.
+
+    Parameters
+    ----------
+    label: int
+      Contrast change label.
+    """
     return _get_array_element('contrast change', label, (0.8, 1.3))
 
 
 def get_scale_change_value(label):
+    """
+    Returns the float value represented by a scale change label int.
+
+    Parameters
+    ----------
+    label: int
+      Scale change label.
+    """
     return _get_array_element('scale change', label, (0.78, 1.0))
 
 
 def get_rotation_change_value(label):
+    """
+    Returns the value corresponding to a rotation change label int.
+
+    The value is the int itself. This just sanity-checks the label for range
+    errors.
+
+    Parameters
+    ----------
+    label: int
+      Rotation change label.
+    """
     return _check_range_and_return('rotation change', label, -4, 4)
 
 

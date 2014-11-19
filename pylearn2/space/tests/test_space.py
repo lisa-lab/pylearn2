@@ -1,10 +1,13 @@
 """
 Tests for space utilities.
 """
+from __future__ import print_function
+
 import itertools
 import warnings
 
 import numpy as np
+from theano.compat.six.moves import xrange
 import theano
 from theano import tensor
 
@@ -23,9 +26,9 @@ from pylearn2.utils import function, safe_zip
 
 
 def test_np_format_as_vector2vector():
-    vector_space_initial = VectorSpace(dim=8*8*3, sparse=False)
-    vector_space_final = VectorSpace(dim=8*8*3, sparse=False)
-    data = np.arange(5*8*8*3).reshape(5, 8*8*3)
+    vector_space_initial = VectorSpace(dim=8 * 8 * 3, sparse=False)
+    vector_space_final = VectorSpace(dim=8 * 8 * 3, sparse=False)
+    data = np.arange(5 * 8 * 8 * 3).reshape(5, 8 * 8 * 3)
     rval = vector_space_initial.np_format_as(data, vector_space_final)
     assert np.all(rval == data)
 
@@ -51,7 +54,7 @@ def test_np_format_as_conv2d2conv2d():
                                        axes=('b', 'c', 0, 1))
     conv2d_space_final = Conv2DSpace(shape=(8, 8), num_channels=3,
                                      axes=('b', 'c', 0, 1))
-    data = np.arange(5*8*8*3).reshape(5, 3, 8, 8)
+    data = np.arange(5 * 8 * 8 * 3).reshape(5, 3, 8, 8)
     rval = conv2d_space_initial.np_format_as(data, conv2d_space_final)
     assert np.all(rval == data)
 
@@ -59,17 +62,17 @@ def test_np_format_as_conv2d2conv2d():
                                 axes=('c', 'b', 1, 0))
     conv2d_space0 = Conv2DSpace(shape=(8, 8), num_channels=3,
                                 axes=('b', 'c', 0, 1))
-    data = np.arange(5*8*8*3).reshape(5, 3, 8, 8)
+    data = np.arange(5 * 8 * 8 * 3).reshape(5, 3, 8, 8)
     rval = conv2d_space0.np_format_as(data, conv2d_space1)
     nval = data.transpose(1, 0, 3, 2)
     assert np.all(rval == nval)
 
 
 def test_np_format_as_vector2conv2d():
-    vector_space = VectorSpace(dim=8*8*3, sparse=False)
+    vector_space = VectorSpace(dim=8 * 8 * 3, sparse=False)
     conv2d_space = Conv2DSpace(shape=(8, 8), num_channels=3,
                                axes=('b', 'c', 0, 1))
-    data = np.arange(5*8*8*3).reshape(5, 8*8*3)
+    data = np.arange(5 * 8 * 8 * 3).reshape(5, 8 * 8 * 3)
     rval = vector_space.np_format_as(data, conv2d_space)
 
     # Get data in a Conv2DSpace with default axes
@@ -84,20 +87,20 @@ def test_np_format_as_vector2conv2d():
 
 
 def test_np_format_as_conv2d2vector():
-    vector_space = VectorSpace(dim=8*8*3, sparse=False)
+    vector_space = VectorSpace(dim=8 * 8 * 3, sparse=False)
     conv2d_space = Conv2DSpace(shape=(8, 8), num_channels=3,
                                axes=('b', 'c', 0, 1))
-    data = np.arange(5*8*8*3).reshape(5, 3, 8, 8)
+    data = np.arange(5 * 8 * 8 * 3).reshape(5, 3, 8, 8)
     rval = conv2d_space.np_format_as(data, vector_space)
     nval = data.transpose(*[conv2d_space.axes.index(ax)
                             for ax in conv2d_space.default_axes])
     nval = nval.reshape(5, 3 * 8 * 8)
     assert np.all(rval == nval)
 
-    vector_space = VectorSpace(dim=8*8*3, sparse=False)
+    vector_space = VectorSpace(dim=8 * 8 * 3, sparse=False)
     conv2d_space = Conv2DSpace(shape=(8, 8), num_channels=3,
                                axes=('c', 'b', 0, 1))
-    data = np.arange(5*8*8*3).reshape(3, 5, 8, 8)
+    data = np.arange(5 * 8 * 8 * 3).reshape(3, 5, 8, 8)
     rval = conv2d_space.np_format_as(data, vector_space)
     nval = data.transpose(*[conv2d_space.axes.index(ax)
                             for ax in conv2d_space.default_axes])
@@ -108,10 +111,10 @@ def test_np_format_as_conv2d2vector():
 def test_np_format_as_conv2d_vector_conv2d():
     conv2d_space1 = Conv2DSpace(shape=(8, 8), num_channels=3,
                                 axes=('c', 'b', 1, 0))
-    vector_space = VectorSpace(dim=8*8*3, sparse=False)
+    vector_space = VectorSpace(dim=8 * 8 * 3, sparse=False)
     conv2d_space0 = Conv2DSpace(shape=(8, 8), num_channels=3,
                                 axes=('b', 'c', 0, 1))
-    data = np.arange(5*8*8*3).reshape(5, 3, 8, 8)
+    data = np.arange(5 * 8 * 8 * 3).reshape(5, 3, 8, 8)
 
     vecval = conv2d_space0.np_format_as(data, vector_space)
     rval1 = vector_space.np_format_as(vecval, conv2d_space1)
@@ -126,7 +129,10 @@ def test_np_format_as_vectorsequence2vectorsequence():
     vector_sequence_space1 = VectorSequenceSpace(dim=3, dtype='float32')
     vector_sequence_space2 = VectorSequenceSpace(dim=3, dtype='float64')
 
-    data = np.random.uniform(low=0.0, high=1.0, size=(10, 3))
+    data = np.asarray(np.random.uniform(low=0.0,
+                                        high=1.0,
+                                        size=(10, 3)),
+                      dtype=vector_sequence_space1.dtype)
     rval = vector_sequence_space1.np_format_as(data, vector_sequence_space2)
 
     assert np.all(rval == data)
@@ -138,7 +144,10 @@ def test_np_format_as_indexsequence2indexsequence():
     index_sequence_space2 = IndexSequenceSpace(max_labels=6, dim=1,
                                                dtype='int32')
 
-    data = np.random.randint(low=0, high=5, size=(10, 1))
+    data = np.asarray(np.random.randint(low=0,
+                                        high=5,
+                                        size=(10, 1)),
+                      dtype=index_sequence_space1.dtype)
     rval = index_sequence_space1.np_format_as(data, index_sequence_space2)
 
     assert np.all(rval == data)
@@ -148,7 +157,8 @@ def test_np_format_as_indexsequence2vectorsequence():
     index_sequence_space = IndexSequenceSpace(max_labels=6, dim=1)
     vector_sequence_space = VectorSequenceSpace(dim=6)
 
-    data = np.array([[0], [1], [4], [3]])
+    data = np.array([[0], [1], [4], [3]],
+                    dtype=index_sequence_space.dtype)
     rval = index_sequence_space.np_format_as(data, vector_sequence_space)
     true_val = np.array([[1, 0, 0, 0, 0, 0],
                          [0, 1, 0, 0, 0, 0],
@@ -185,7 +195,7 @@ def test_np_format_as_composite_composite():
         """
         Returns a compsite space with a particular tree structure.
         """
-        return CompositeSpace((CompositeSpace((image_space,)*2),
+        return CompositeSpace((CompositeSpace((image_space,) * 2),
                                VectorSpace(dim=1)))
 
     shape = np.array([8, 11])
@@ -452,9 +462,9 @@ def test_dtypes():
         if underspecifies_dtypes(from_space, to_type):
             try:
                 from_space.get_origin_batch(batch_size, dtype=to_type)
-            except TypeError, ex:
+            except TypeError as ex:
                 assert dtype_is_none_msg in str(ex)
-            except Exception, unexpected_ex:
+            except Exception as unexpected_ex:
                 print ("Expected an exception of type TypeError with message "
                        "%s, got a %s instead with message %s." %
                        (dtype_is_none_msg,
@@ -473,9 +483,9 @@ def test_dtypes():
         if underspecifies_dtypes(from_space, to_type):
             try:
                 from_space.make_shared_batch(batch_size, dtype=to_type)
-            except TypeError, ex:
+            except TypeError as ex:
                 assert dtype_is_none_msg in str(ex)
-            except Exception, unexpected_ex:
+            except Exception as unexpected_ex:
                 print ("Expected an exception of type TypeError with message "
                        "%s, got a %s instead with message %s." %
                        (dtype_is_none_msg,
@@ -507,9 +517,9 @@ def test_dtypes():
         if underspecifies_dtypes(from_space, to_type):
             try:
                 from_space.make_theano_batch(**kwargs)
-            except TypeError, ex:
+            except TypeError as ex:
                 assert dtype_is_none_msg in str(ex)
-            except Exception, unexpected_ex:
+            except Exception as unexpected_ex:
                 print ("Expected an exception of type TypeError with message "
                        "%s, got a %s instead with message %s." %
                        (dtype_is_none_msg,
@@ -856,11 +866,11 @@ def test_dtypes():
                     from_space._format_as(using_numeric_batch,
                                           from_batch,
                                           to_space)
-            except expected_error, ex:
+            except expected_error as ex:
                 assert str(ex).find(expected_error_msg) >= 0
-            except Exception, unknown_ex:
-                print "Expected exception of type %s, got %s." % \
-                      (expected_error.__name__, type(unknown_ex))
+            except Exception as unknown_ex:
+                print("Expected exception of type %s, got %s." %
+                      (expected_error.__name__, type(unknown_ex)))
                 raise unknown_ex
             finally:
                 return
@@ -989,16 +999,48 @@ def test_dtypes():
         if expected_error is not None:
             try:
                 space.dtype = dtype
-            except expected_error, ex:
+            except expected_error as ex:
                 assert expected_message in str(ex)
             except Exception:
-                print "Expected exception of type %s, got %s instead." % \
-                      (expected_error.__name__, type(ex))
+                print("Expected exception of type %s, got %s instead." %
+                      (expected_error.__name__, type(ex)))
                 raise ex
             return
         else:
             space.dtype = dtype
             assert_dtype_equiv(space, dtype)
+
+    def test_simply_typed_space_validate(space, batch_dtype, is_numeric):
+        """
+        Creates a batch of batch_dtype, and sees if space validates it.
+        """
+        assert isinstance(space, SimplyTypedSpace), \
+            "%s is not a SimplyTypedSpace" % type(space)
+
+        batch_sizes = (1, 3)
+
+        if not is_numeric and isinstance(space, VectorSpace) and space.sparse:
+            batch_sizes = (None, )
+
+        for batch_size in batch_sizes:
+            if is_numeric:
+                batch = space.get_origin_batch(dtype=batch_dtype,
+                                               batch_size=batch_size)
+            else:
+                batch = space.make_theano_batch(dtype=batch_dtype,
+                                                batch_size=batch_size,
+                                                name="test batch to validate")
+
+            # Expect an error if space.dtype is not None and batch can't cast
+            # to it.
+            if space.dtype is not None and \
+               not np.can_cast(batch.dtype, space.dtype):
+                np.testing.assert_raises(TypeError,
+                                         space._validate,
+                                         (is_numeric, batch))
+            else:
+                # Otherwise, don't expect an error.
+                space._validate(is_numeric, batch)
 
     #
     #
@@ -1061,6 +1103,14 @@ def test_dtypes():
             test_make_shared_batch(from_space, to_dtype)
             test_make_theano_batch(from_space, to_dtype)
             test_dtype_setter(from_space, to_dtype)
+
+    # Tests validate/np_validate() for SimplyTypedSpaces
+    for is_numeric in (True, False):
+        for space in vector_spaces + conv2d_spaces:
+            for batch_dtype in ('floatX', ) + all_scalar_dtypes:
+                test_simply_typed_space_validate(space,
+                                                 batch_dtype,
+                                                 is_numeric)
 
     all_spaces = vector_spaces + conv2d_spaces + composite_spaces
     for from_space in all_spaces:

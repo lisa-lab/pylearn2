@@ -12,6 +12,7 @@ __license__ = "3-clause BSD"
 __email__ = "bouthilx@iro"
 
 import numpy
+from theano.compat import six
 
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 # more distributions but slower
@@ -49,7 +50,7 @@ def make_rng(rng_or_seed=None, default_seed=None,
     4) constructor(42)
     """
 
-    if isinstance(which_method, basestring):
+    if isinstance(which_method, six.string_types):
         which_method = [which_method]
 
     if rng_or_seed is not None and \
