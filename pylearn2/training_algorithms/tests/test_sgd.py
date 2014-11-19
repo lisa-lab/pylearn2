@@ -639,8 +639,95 @@ def test_linear_decay_epoch_xfer():
                    save_freq=0,
                    extensions=[linear_decay2])
     train2.main_loop()
-    assert np.allclose(model.monitor.channels['learning_rate'].val_record[0],
+    lr_resume = model_xfer.monitor.channels['learning_rate']
+    resume_learning_rate = lr_resume.val_record[0]
+    assert np.allclose(resume_learning_rate,
                        final_learning_rate)
+
+
+def test_momentum_epoch_xfer():
+
+    # tests that the class MomentumAdjustor in learning_rate.py
+    # gets the epochs xfered over properly
+
+    dim = 3
+    m = 10
+
+    rng = np.random.RandomState([25, 9, 2012])
+
+    X = rng.randn(m, dim)
+
+    dataset = DenseDesignMatrix(X=X)
+
+    m = 15
+    X = rng.randn(m, dim)
+
+    # including a monitoring datasets lets us test that
+    # the monitor works with supervised data
+    monitoring_dataset = DenseDesignMatrix(X=X)
+
+    model = SoftmaxModel(dim)
+
+    learning_rate = 1e-1
+    batch_size = 5
+
+    # We need to include this so the test actually stops running at some point
+    epoch_num = 6
+    termination_criterion = EpochCounter(epoch_num)
+
+    cost = DummyCost()
+
+    algorithm = SGD(learning_rate, cost, batch_size=batch_size,
+                    monitoring_batches=3,
+                    monitoring_dataset=monitoring_dataset,
+                    termination_criterion=termination_criterion,
+                    update_callbacks=None,
+                    set_batch_size=False,
+                    learning_rule=Momentum(.4))
+
+    start = 1
+    saturate = 11
+    final_momentum = 0.9
+    momentum_adjustor = MomentumAdjustor(final_momentum=final_momentum,
+                                         start=start,
+                                         saturate=saturate)
+
+    train = Train(dataset,
+                  model,
+                  algorithm,
+                  save_path=None,
+                  save_freq=0,
+                  extensions=[momentum_adjustor])
+
+    train.main_loop()
+
+    mm = model.monitor.channels['momentum']
+
+    final_momentum_init = mm.val_record[-1]
+    algorithm2 = SGD(learning_rate, cost,
+                     batch_size=batch_size,
+                     monitoring_batches=3,
+                     monitoring_dataset=monitoring_dataset,
+                     termination_criterion=EpochCounter(epoch_num+1,
+                                                        new_epochs=False),
+                     update_callbacks=None,
+                     set_batch_size=False,
+                     learning_rule=Momentum(.4))
+    model_xfer = push_monitor(name="old_monitor",
+                              transfer_experience=True,
+                              model=model)
+    momentum_adjustor2 = MomentumAdjustor(final_momentum=final_momentum,
+                                          start=start,
+                                          saturate=saturate)
+    train2 = Train(dataset,
+                   model_xfer,
+                   algorithm2,
+                   save_path=None,
+                   save_freq=0,
+                   extensions=[momentum_adjustor2])
+    train2.main_loop()
+    assert np.allclose(model.monitor.channels['momentum'].val_record[0],
+                       final_momentum_init)
 
 
 def test_monitor_based_lr():
