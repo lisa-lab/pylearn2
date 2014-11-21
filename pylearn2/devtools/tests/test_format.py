@@ -491,6 +491,8 @@ whitelist_docstrings = [
     'dataset_get/helper-scripts/make-archive.py',
     'dataset_get/dataset_resolver.py',
     'pca.py',
+    'monitor.py',
+    'optimization/batch_gradient_descent.py',
     'optimization/__init__.py',
     'optimization/test_batch_gradient_descent.py',
     'optimization/linear_cg.py',
