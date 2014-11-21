@@ -1,19 +1,28 @@
 """
 Recurrent Neural Network Layer
 """
-from functools import wraps
+__authors__ = "Junyoung Chung"
+__copyright__ = "Copyright 2014, Universite de Montreal"
+__credits__ = "Junyoung Chung"
+__license__ = "3-clause BSD"
+__maintainer__ = "Junyoung Chung"
+__email__ = "chungjun@iro"
 
 import numpy as np
+import scipy.linalg
+
+from functools import wraps
+from theano import config, scan, tensor
 from theano.compat import six
 from theano.compat.six.moves import xrange
-from theano import tensor
-from theano import config, scan
+from theano.sandbox.rng_mrg import MRG_RandomStreams
 
 from pylearn2.compat import OrderedDict
 from pylearn2.models.mlp import Layer, MLP
-from pylearn2.sandbox.rnn.space import SequenceSpace
+from pylearn2.sandbox.rnn.space import SequenceSpace, SequenceDataSpace
 from pylearn2.space import CompositeSpace, VectorSpace
 from pylearn2.utils import sharedX
+from pylearn2.utils.rng import make_theano_rng
 
 
 class RNN(MLP):
@@ -37,12 +46,19 @@ class RNN(MLP):
         super(RNN, self).__init__(layers, batch_size, input_space,
                                   input_source, nvis, seed, layer_name,
                                   **kwargs)
+        self.theano_rng = make_theano_rng(int(self.rng.randint(2 ** 30)),
+                                          which_method=["normal", "uniform"])
 
     @wraps(MLP.get_target_source)
     def get_target_source(self):
-        target_source = self.add_mask_source(self.get_target_space(),
-                                             'targets')
-        return target_source
+        if isinstance(self.input_space, SequenceSpace):
+            # Add mask source for targets
+            # ('targets') -> ('targets', 'targets_mask')
+            target_source = self.add_mask_source(self.get_target_space(),
+                                                 'targets')
+            return target_source
+        else:
+            return 'targets'
 
     @classmethod
     def add_mask_source(cls, space, source):
@@ -64,6 +80,7 @@ class RNN(MLP):
             else:
                 assert isinstance(source, six.string_types)
                 source = (source, source + '_mask')
+
         return source
 
 
@@ -97,30 +114,32 @@ class Recurrent(Layer):
         Note: For now only [-1] is supported.
     init_bias : float, optional
         Set an initial bias to be added at each time step. Defaults to 0.
-    svd : bool, optional
-        Use singular value decomposition to factorize the hidden-to-hidden
-        transition matrix with weights in U(-irange, irange) into matrices
-        U*s*V, where U is orthogonal. This orthogonal matrix is used to
-        initialize the weight matrix. Defaults to True.
-    nonlinearity : theano function, optional
-        Defaults to tensor.tanh, the non-linearity to be applied to the
-        hidden state after each update
+    nonlinearity : theano.function, optional
+    weight_noise : bool, optional
+        Additive Gaussian noise applied to parameters
     """
     def __init__(self, dim, layer_name, irange, indices=None,
-                 init_bias=0., svd=True, nonlinearity=tensor.tanh):
+                 init_bias=0., nonlinearity=tensor.tanh,
+                 weight_noise=False, **kwargs):
+        self._std_dev = kwargs.pop('noise_std_dev', .075)
         self.rnn_friendly = True
         self._scan_updates = OrderedDict()
         self.__dict__.update(locals())
         del self.self
         super(Recurrent, self).__init__()
+        if not self.weight_noise:
+            self._std_dev = None
 
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
-        if (not isinstance(space, SequenceSpace) or
+        if ((not isinstance(space, SequenceSpace) and
+                not isinstance(space, SequenceDataSpace)) or
                 not isinstance(space.space, VectorSpace)):
             raise ValueError("Recurrent layer needs a SequenceSpace("
-                             "VectorSpace) as input but received  %s instead"
+                             "VectorSpace) or SequenceDataSpace(VectorSpace)\
+                             as input but received  %s instead"
                              % (space))
+
         self.input_space = space
 
         if self.indices is not None:
@@ -134,7 +153,11 @@ class Recurrent(Layer):
                 assert self.indices == [-1], "Only indices = [-1] works now"
                 self.output_space = VectorSpace(dim=self.dim)
         else:
-            self.output_space = SequenceSpace(VectorSpace(dim=self.dim))
+            if isinstance(self.input_space, SequenceSpace):
+                self.output_space = SequenceSpace(VectorSpace(dim=self.dim))
+            elif isinstance(self.input_space, SequenceDataSpace):
+                self.output_space =\
+                    SequenceDataSpace(VectorSpace(dim=self.dim))
 
         # Initialize the parameters
         rng = self.mlp.rng
@@ -142,20 +165,24 @@ class Recurrent(Layer):
             raise ValueError("Recurrent layer requires an irange value in "
                              "order to initialize its weight matrices")
 
-        # U is the hidden-to-hidden transition matrix
-        U = rng.uniform(-self.irange, self.irange, (self.dim, self.dim))
-        if self.svd:
-            U = self.mlp.rng.randn(self.dim, self.dim)
-            U, s, V = np.linalg.svd(U, full_matrices=True, compute_uv=True)
+        input_dim = self.input_space.dim
 
         # W is the input-to-hidden matrix
-        W = rng.uniform(-self.irange, self.irange,
-                        (self.input_space.dim, self.dim))
+        W = rng.uniform(-self.irange, self.irange, (input_dim, self.dim))
 
-        self._params = [sharedX(W, name=(self.layer_name + '_W')),
-                        sharedX(U, name=(self.layer_name + '_U')),
-                        sharedX(np.zeros(self.dim) + self.init_bias,
-                                name=self.layer_name + '_b')]
+        # U is the hidden-to-hidden transition matrix
+        U = rng.randn(self.dim, self.dim)
+        U, _ = scipy.linalg.qr(U)
+
+        # b is the bias
+        b = np.zeros((self.dim,))
+
+        self._params = [
+            sharedX(W, name=(self.layer_name + '_W')),
+            sharedX(U, name=(self.layer_name + '_U')),
+            sharedX(b + self.init_bias,
+                    name=(self.layer_name + '_b'))
+        ]
 
     @wraps(Layer.get_layer_monitoring_channels)
     def get_layer_monitoring_channels(self, state_below=None, state=None,
@@ -222,9 +249,34 @@ class Recurrent(Layer):
                              "multiple scan functions")
         updates.update(self._scan_updates)
 
+    def add_noise(self, param):
+        """
+        A function that adds additive Gaussian
+        noise
+
+        Parameters
+        ----------
+        param : sharedX
+            model parameter to be regularized
+
+        Returns
+        -------
+        param : sharedX
+            model parameter with additive noise
+        """
+        param += self.theano_rng.normal(size=param.shape,
+                                        avg=0.,
+                                        std=self._std_dev,
+                                        dtype=param.dtype)
+
+        return param
+
     @wraps(Layer.fprop)
-    def fprop(self, state_below):
-        state_below, mask = state_below
+    def fprop(self, state_below, return_all=False):
+        if isinstance(state_below, tuple):
+            state_below, mask = state_below
+        else:
+            mask = None
 
         # z0 is the initial hidden state which is (batch size, output dim)
         z0 = tensor.alloc(np.cast[config.floatX](0), state_below.shape[1],
@@ -235,22 +287,41 @@ class Recurrent(Layer):
 
         # Later we will add a noise function
         W, U, b = self._params
+        if self.weight_noise:
+            W = self.add_noise(W)
+            U = self.add_noise(U)
 
         # It is faster to do the input-to-hidden matrix multiplications
         # outside of scan
         state_below = tensor.dot(state_below, W) + b
 
-        def fprop_step(state_below, mask, state_before, U):
-            z = self.nonlinearity(state_below +
-                                  tensor.dot(state_before, U))
+        if mask is not None:
+            def fprop_step(state_below, mask, state_before, U):
+                z = self.nonlinearity(state_below +
+                                      tensor.dot(state_before, U))
 
-            # Only update the state for non-masked data, otherwise
-            # just carry on the previous state until the end
-            z = mask[:, None] * z + (1 - mask[:, None]) * state_before
-            return z
+                # Only update the state for non-masked data, otherwise
+                # just carry on the previous state until the end
+                z = mask[:, None] * z + (1 - mask[:, None]) * state_before
 
-        z, updates = scan(fn=fprop_step, sequences=[state_below, mask],
-                          outputs_info=[z0], non_sequences=[U])
+                return z
+
+            z, updates = scan(fn=fprop_step,
+                              sequences=[state_below, mask],
+                              outputs_info=[z0],
+                              non_sequences=[U])
+        else:
+            def fprop_step(state_below, state_before, U):
+                z = self.nonlinearity(state_below +
+                                      tensor.dot(state_before, U))
+
+                return z
+
+            z, updates = scan(fn=fprop_step,
+                              sequences=[state_below],
+                              outputs_info=[z0],
+                              non_sequences=[U])
+
         self._scan_updates.update(updates)
 
         if self.indices is not None:
@@ -265,8 +336,8 @@ class Recurrent(Layer):
 class LSTM(Recurrent):
     """
     Implementation of Long Short-Term Memory proposed by
-    S. Hochreiter and J. Schmidhuber in their paper
-    "Long short-term memory", Neural Computation, 1997.
+    W. Zaremba and I.Sutskever and O. Vinyals in their paper
+    "Recurrent Neural Network Regularization", arXiv, 2014.
 
     Parameters
     ----------
@@ -284,7 +355,6 @@ class LSTM(Recurrent):
         can be flattened by using the FlattenerLayer.
     irange : float
     init_bias : float
-    svd : bool,
     forget_gate_init_bias : float
         Bias for forget gate. Set this variable into high value to force
         the model to learn long-term dependencies.
@@ -303,285 +373,142 @@ class LSTM(Recurrent):
 
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
-        super(LSTM, self).set_input_space(space)
-
-        assert self.irange is not None
-        # Output gate switch
-        W_x = self.mlp.rng.uniform(-self.irange,
-                                   self.irange,
-                                   (self.input_space.dim, self.dim))
-        W_h = self.mlp.rng.uniform(-self.irange,
-                                   self.irange,
-                                   (self.dim, self.dim))
-        self.O_b = sharedX(np.zeros((self.dim,)) + self.output_gate_init_bias,
-                           name=(self.layer_name + '_O_b'))
-        self.O_x = sharedX(W_x, name=(self.layer_name + '_O_x'))
-        self.O_h = sharedX(W_h, name=(self.layer_name + '_O_h'))
-        self.O_c = sharedX(W_h.copy(), name=(self.layer_name + '_O_c'))
-        # Input gate switch
-        self.I_b = sharedX(np.zeros((self.dim,)) + self.input_gate_init_bias,
-                           name=(self.layer_name + '_I_b'))
-        self.I_x = sharedX(W_x.copy(), name=(self.layer_name + '_I_x'))
-        self.I_h = sharedX(W_h.copy(), name=(self.layer_name + '_I_h'))
-        self.I_c = sharedX(W_h.copy(), name=(self.layer_name + '_I_c'))
-        # Forget gate switch
-        self.F_b = sharedX(np.zeros((self.dim,)) + self.forget_gate_init_bias,
-                           name=(self.layer_name + '_F_b'))
-        self.F_x = sharedX(W_x.copy(), name=(self.layer_name + '_F_x'))
-        self.F_h = sharedX(W_h.copy(), name=(self.layer_name + '_F_h'))
-        self.F_c = sharedX(W_h.copy(), name=(self.layer_name + '_F_c'))
-
-    @wraps(Layer.get_params)
-    def get_params(self):
-        rval = super(LSTM, self).get_params()
-        rval += [self.O_b, self.O_x, self.O_h, self.O_c]
-        rval += [self.I_b, self.I_x, self.I_h, self.I_c]
-        rval += [self.F_b, self.F_x, self.F_h, self.F_c]
-
-        return rval
-
-    @wraps(Layer._modify_updates)
-    def _modify_updates(self, updates):
-        # Is this needed?
-        if any(key in updates for key in self._scan_updates):
-            # Is this possible? What to do in this case?
-            raise ValueError("A single shared variable is being updated by "
-                             "multiple scan functions")
-        updates.update(self._scan_updates)
-
-    @wraps(Layer.fprop)
-    def fprop(self, state_below):
-        state_below, mask = state_below
-
-        z0 = tensor.alloc(np.cast[config.floatX](0),
-                          state_below.shape[1],
-                          self.dim)
-        c0 = tensor.alloc(np.cast[config.floatX](0),
-                          state_below.shape[1],
-                          self.dim)
-
-        if state_below.shape[1] == 1:
-            z0 = tensor.unbroadcast(z0, 0)
-            c0 = tensor.unbroadcast(c0, 0)
-
-        # Later we will add_noise function
-        # Meanwhile leave this part in this way
-        W = self.W
-        U = self.U
-        b = self.b
-        state_below_input = tensor.dot(state_below, self.I_x) + self.I_b
-        state_below_forget = tensor.dot(state_below, self.F_x) + self.F_b
-        state_below_output = tensor.dot(state_below, self.O_x) + self.O_b
-        state_below = tensor.dot(state_below, W) + b
-
-        def fprop_step(state_below, state_before, cell_before, U):
-            i_on = tensor.nnet.sigmoid(
-                state_below_input +
-                tensor.dot(state_before, self.I_h) +
-                tensor.dot(cell_before, self.I_c)
-            )
-            f_on = tensor.nnet.sigmoid(
-                state_below_forget +
-                tensor.dot(state_before, self.F_h) +
-                tensor.dot(cell_before, self.F_c)
-            )
-
-            c_t = state_below + tensor.dot(state_before, U)
-            c_t = f_on * cell_before + i_on * tensor.tanh(c_t)
-
-            o_on = tensor.nnet.sigmoid(
-                state_below_output +
-                tensor.dot(state_before, self.O_h) +
-                tensor.dot(c_t, self.O_c)
-            )
-            z = o_on * tensor.tanh(c_t)
-
-            return z, c_t
-
-        ((z, c), updates) = scan(fn=fprop_step,
-                                 sequences=[state_below,
-                                            state_below_input,
-                                            state_below_forget,
-                                            state_below_output],
-                                 outputs_info=[z0, c0],
-                                 non_sequences=[U])
-        self._scan_updates.update(updates)
-
-        if self.indices is not None:
-            if len(self.indices) > 1:
-                return [z[i] for i in self.indices]
-            else:
-                return z[self.indices[0]]
-        else:
-            return z
-
-
-class ClockworkRecurrent(Recurrent):
-    """
-    Implementation of Clockwork RNN proposed by
-    J. Koutnik, K. Greff, F. Gomez and J. Schmidhuber in their paper
-    "A Clockwork RNN", ICML, 2014.
-
-    Parameters
-    ----------
-    dim : int
-        The number of elements in the hidden layer
-    layer_name : str
-        The name of the layer. All layers in an MLP must have a unique name.
-    irange : float
-        Initializes each weight randomly in U(-irange, irange)
-    output : slice, list of integers or integer, optional
-        If specified this layer will return only the given hidden
-        states. If an integer is given, it will not return a
-        SequenceSpace. Otherwise, it will return a SequenceSpace of
-        fixed length. Note that a SequenceSpace of fixed length
-        can be flattened by using the FlattenerLayer.
-    irange : float
-    init_bias : float
-    svd : bool,
-    num_modules :
-        Number of modules
-    """
-    def __init__(self,
-                 num_modules=1,
-                 **kwargs):
-        super(ClockworkRecurrent, self).__init__(**kwargs)
-        self.rnn_friendly = True
-        self.__dict__.update(locals())
-        del self.self
-
-    @wraps(Layer.set_input_space)
-    def set_input_space(self, space):
-
-        assert isinstance(space, SequenceSpace)
-        assert isinstance(space.space, VectorSpace)
+        if ((not isinstance(space, SequenceSpace) and
+                not isinstance(space, SequenceDataSpace)) or
+                not isinstance(space.space, VectorSpace)):
+            raise ValueError("Recurrent layer needs a SequenceSpace("
+                             "VectorSpace) or SequenceDataSpace(VectorSpace)\
+                             as input but received  %s instead"
+                             % (space))
 
         self.input_space = space
 
         if self.indices is not None:
             if len(self.indices) > 1:
-                self.output_space = CompositeSpace([VectorSpace(dim=self.dim)
-                                                    for _ in
-                                                    range(len(self.indices))])
+                raise ValueError("Only indices = [-1] is supported right now")
+                self.output_space = CompositeSpace(
+                    [VectorSpace(dim=self.dim) for _
+                     in range(len(self.indices))]
+                )
             else:
+                assert self.indices == [-1], "Only indices = [-1] works now"
                 self.output_space = VectorSpace(dim=self.dim)
         else:
-            self.output_space = SequenceSpace(VectorSpace(dim=self.dim))
+            if isinstance(self.input_space, SequenceSpace):
+                self.output_space = SequenceSpace(VectorSpace(dim=self.dim))
+            elif isinstance(self.input_space, SequenceDataSpace):
+                self.output_space =\
+                    SequenceDataSpace(VectorSpace(dim=self.dim))
 
+        # Initialize the parameters
         rng = self.mlp.rng
-        assert self.irange is not None
-        if self.num_modules == 1:
-            # identical to Recurrent Layer
-            U = self.mlp.rng.uniform(-self.irange,
-                                     self.irange,
-                                     (self.dim, self.dim))
-            if self.svd:
-                U = self.mlp.rng.randn(self.dim, self.dim)
-                U, s, V = np.linalg.svd(U, full_matrices=True, compute_uv=True)
+        if self.irange is None:
+            raise ValueError("Recurrent layer requires an irange value in "
+                             "order to initialize its weight matrices")
 
-            W = rng.uniform(-self.irange, self.irange,
-                            (self.input_space.dim, self.dim))
+        input_dim = self.input_space.dim
 
-        else:
-            # Use exponentially scaled period
-            if isinstance(self.dim, list):
-                # So far size of each module should be same
+        # W is the input-to-hidden matrix
+        W = rng.uniform(-self.irange, self.irange, (input_dim, self.dim * 4))
 
-                raise NotImplementedError()
-            else:
-                # It's restricted to use same dimension for each module.
-                # This should be generalized.
-                # We will use transposed order which is different from
-                # the original paper but will give same result.
-                assert self.dim % self.num_modules == 0
-                self.module_dim = self.dim / self.num_modules
-                if self.irange is not None:
-                    W = rng.uniform(-self.irange, self.irange,
-                                    (self.input_space.dim, self.dim))
+        # U is the hidden-to-hidden transition matrix
+        U = np.zeros((self.dim, self.dim * 4))
+        for i in xrange(4):
+            u = rng.randn(self.dim, self.dim)
+            U[:, i*self.dim:(i+1)*self.dim], _ = scipy.linalg.qr(u)
 
-                U = np.zeros((self.dim, self.dim), dtype=config.floatX)
-                for i in xrange(self.num_modules):
-                    for j in xrange(self.num_modules):
-                        if i >= j:
-                            u = rng.uniform(-self.irange, self.irange,
-                                            (self.module_dim, self.module_dim))
-                            if self.svd:
-                                u, s, v = np.linalg.svd(u, full_matrices=True,
-                                                        compute_uv=True)
-                            U[i*self.module_dim:(i+1)*self.module_dim,
-                              j*self.module_dim:(j+1)*self.module_dim] = u
+        # b is the bias
+        b = np.zeros((self.dim * 4,))
 
-        self.W = sharedX(W, name=(self.layer_name + '_W'))
-        self.U = sharedX(U, name=(self.layer_name + '_U'))
-        self.b = sharedX(np.zeros((self.dim,)) + self.init_bias,
-                         name=self.layer_name + '_b')
-        nonzero_idx = np.nonzero(U)
-        mask_weights = np.zeros(shape=(U.shape), dtype=config.floatX)
-        mask_weights[nonzero_idx[0], nonzero_idx[1]] = 1.
-        self.mask = sharedX(mask_weights)
-        # We consider using power of 2 for exponential scale period
-        # However, one can easily set clock-rates of integer k by defining a
-        # clock-rate matrix M = k**np.arange(self.num_modules)
-        M = 2**np.arange(self.num_modules)
-        self.M = sharedX(M, name=(self.layer_name + '_M'))
-
-    @wraps(Layer._modify_updates)
-    def _modify_updates(self, updates):
-
-        if self.U in updates:
-
-            updates[self.U] = updates[self.U] * self.mask
-
-        # Is this needed?
-        if any(key in updates for key in self._scan_updates):
-            # Is this possible? What to do in this case?
-            raise ValueError("A single shared variable is being updated by "
-                             "multiple scan functions")
-        updates.update(self._scan_updates)
+        self._params = [
+            sharedX(W, name=(self.layer_name + '_W')),
+            sharedX(U, name=(self.layer_name + '_U')),
+            sharedX(b + self.init_bias,
+                    name=(self.layer_name + '_b'))
+        ]
 
     @wraps(Layer.fprop)
-    def fprop(self, state_below):
-        state_below, mask = state_below
+    def fprop(self, state_below, return_all=False):
 
-        z0 = tensor.alloc(np.cast[config.floatX](0),
-                          state_below.shape[1],
-                          self.dim)
+        if isinstance(state_below, tuple):
+            state_below, mask = state_below
+        else:
+            mask = None
 
-        if state_below.shape[1] == 1:
-            z0 = tensor.unbroadcast(z0, 0)
+        z0 = tensor.alloc(np.cast[config.floatX](0), state_below.shape[1],
+                          self.dim * 2)
 
-        # Later we will add_noise function
-        # Meanwhile leave this part in this way
-        W = self.W
-        U = self.U
-        b = self.b
+        z0 = tensor.unbroadcast(z0, 0)
+        if self.dim == 1:
+            z0 = tensor.unbroadcast(z0, 1)
 
-        idx = tensor.arange(state_below.shape[0])
+        W, U, b = self._params
+        if self.weight_noise:
+            W = self.add_noise(W)
+            U = self.add_noise(U)
 
-        def fprop_step(state_below, index, state_before, W, U, b):
+        state_below = tensor.dot(state_below, W) + b
 
-            state_now = state_before.copy()
-            index = self.num_modules -\
-                tensor.nonzero(tensor.mod(index+1, self.M))[0].shape[0]
-            this_range = index * self.module_dim
-            z = tensor.dot(state_below, W[:, :this_range]) +\
-                tensor.dot(state_before, U[:, :this_range]) +\
-                b[:this_range]
-            z = tensor.tanh(z)
-            state_now = tensor.set_subtensor(state_now[:, :this_range], z)
+        if mask is not None:
+            # This branch is not tested.
+            def fprop_step(state_below, state_before, U):
 
-            return state_now
+                g_on = state_below + tensor.dot(state_before[:, :self.dim], U)
+                i_on = tensor.nnet.sigmoid(g_on[:, :self.dim])
+                f_on = tensor.nnet.sigmoid(g_on[:, self.dim:2*self.dim])
+                o_on = tensor.nnet.sigmoid(g_on[:, 2*self.dim:3*self.dim])
 
-        (z, updates) = scan(fn=fprop_step,
-                            sequences=[state_below, idx],
-                            outputs_info=[z0],
-                            non_sequences=[W, U, b])
-        self._scan_updates.update(updates)
+                z = tensor.set_subtensor(state_before[:, self.dim:],
+                                         f_on * state_before[:, self.dim:] +
+                                         i_on * tensor.tanh(g_on[:,
+                                                            3*self.dim:]))
+                z = tensor.set_subtensor(z[:, :self.dim],
+                                         o_on * tensor.tanh(z[:, self.dim:]))
+
+                # Only update the state for non-masked data, otherwise
+                # just carry on the previous state until the end
+                z = mask[:, None] * z + (1 - mask[:, None]) * state_before
+
+                return z
+
+            (z, updates) = scan(fn=fprop_step,
+                                sequences=[state_below, mask],
+                                outputs_info=[z0],
+                                non_sequences=[U])
+        else:
+            def fprop_step(state_below, z, U):
+
+                g_on = state_below + tensor.dot(z[:, :self.dim], U)
+                i_on = tensor.nnet.sigmoid(g_on[:, :self.dim])
+                f_on = tensor.nnet.sigmoid(g_on[:, self.dim:2*self.dim])
+                o_on = tensor.nnet.sigmoid(g_on[:, 2*self.dim:3*self.dim])
+
+                z = tensor.set_subtensor(z[:, self.dim:],
+                                         f_on * z[:, self.dim:] +
+                                         i_on * tensor.tanh(g_on[:,
+                                                            3*self.dim:]))
+                z = tensor.set_subtensor(z[:, :self.dim],
+                                         o_on * tensor.tanh(z[:, self.dim:]))
+
+                return z
+
+            (z, updates) = scan(fn=fprop_step,
+                                sequences=[state_below],
+                                outputs_info=[z0],
+                                non_sequences=[U])
+
+            self._scan_updates.update(updates)
+
+        if return_all:
+            return z
 
         if self.indices is not None:
             if len(self.indices) > 1:
-                return [z[i] for i in self.indices]
+                return [z[i, :, :self.dim] for i in self.indices]
             else:
-                return z[self.indices[0]]
+                return z[self.indices[0], :, :self.dim]
         else:
-            return z
+            if mask is not None:
+                return (z[:, :, :self.dim], mask)
+            else:
+                return z[:, :, :self.dim]

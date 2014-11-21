@@ -729,6 +729,170 @@ def test_momentum_epoch_xfer():
                        final_momentum_init)
 
 
+def test_val_records_xfer():
+
+    # tests that the class push_motnior in learning_rate.py
+    # gets the epochs xfered over properly
+
+    dim = 3
+    m = 10
+
+    rng = np.random.RandomState([25, 9, 2012])
+
+    X = rng.randn(m, dim)
+
+    dataset = DenseDesignMatrix(X=X)
+
+    m = 15
+    X = rng.randn(m, dim)
+
+    # including a monitoring datasets lets us test that
+    # the monitor works with supervised data
+    monitoring_dataset = DenseDesignMatrix(X=X)
+
+    model = SoftmaxModel(dim)
+
+    learning_rate = 1e-1
+    batch_size = 5
+
+    # We need to include this so the test actually stops running at some point
+    epoch_num = 6
+    termination_criterion = EpochCounter(epoch_num)
+
+    cost = DummyCost()
+
+    algorithm = SGD(learning_rate, cost, batch_size=batch_size,
+                    monitoring_batches=3,
+                    monitoring_dataset=monitoring_dataset,
+                    termination_criterion=termination_criterion,
+                    update_callbacks=None,
+                    set_batch_size=False)
+
+    train = Train(dataset,
+                  model,
+                  algorithm,
+                  save_path=None,
+                  save_freq=0)
+
+    train.main_loop()
+
+    assert len(model.monitor.channels['objective'].val_record) ==\
+        model.monitor._epochs_seen + 1
+
+    final_obj = model.monitor.channels['objective'].val_record[-1]
+
+    algorithm2 = SGD(learning_rate, cost,
+                     batch_size=batch_size,
+                     monitoring_batches=3,
+                     monitoring_dataset=monitoring_dataset,
+                     termination_criterion=EpochCounter(epoch_num+1,
+                                                        new_epochs=False),
+                     update_callbacks=None,
+                     set_batch_size=False)
+    model_xfer = push_monitor(name="old_monitor",
+                              transfer_experience=True,
+                              model=model)
+
+    train2 = Train(dataset,
+                   model_xfer,
+                   algorithm2,
+                   save_path=None,
+                   save_freq=0)
+    train2.main_loop()
+    assert np.allclose(model.monitor.channels['objective'].val_record[0],
+                       final_obj)
+    assert len(model.monitor.channels['objective'].val_record) == 2
+
+
+def test_save_records():
+
+    # tests that the flag save_records in class
+    # push_monitor in learning_rate.py
+    # gets the val_records xfered over properly
+
+    dim = 3
+    m = 10
+
+    rng = np.random.RandomState([25, 9, 2012])
+
+    X = rng.randn(m, dim)
+
+    dataset = DenseDesignMatrix(X=X)
+
+    m = 15
+    X = rng.randn(m, dim)
+
+    # including a monitoring datasets lets us test that
+    # the monitor works with supervised data
+    monitoring_dataset = DenseDesignMatrix(X=X)
+
+    model = SoftmaxModel(dim)
+
+    learning_rate = 1e-1
+    batch_size = 5
+
+    # We need to include this so the test actually stops running at some point
+    epoch_num = 6
+    termination_criterion = EpochCounter(epoch_num)
+
+    cost = DummyCost()
+
+    algorithm = SGD(learning_rate, cost, batch_size=batch_size,
+                    monitoring_batches=3,
+                    monitoring_dataset=monitoring_dataset,
+                    termination_criterion=termination_criterion,
+                    update_callbacks=None,
+                    set_batch_size=False)
+
+    train = Train(dataset,
+                  model,
+                  algorithm,
+                  save_path=None,
+                  save_freq=0)
+
+    train.main_loop()
+
+    old_monitor_len =\
+        len(model.monitor.channels['objective'].val_record)
+    assert old_monitor_len == model.monitor._epochs_seen + 1
+
+    init_obj = model.monitor.channels['objective'].val_record[0]
+    final_obj = model.monitor.channels['objective'].val_record[-1]
+    index_final_obj =\
+        len(model.monitor.channels['objective'].val_record) - 1
+
+    algorithm2 = SGD(learning_rate, cost,
+                     batch_size=batch_size,
+                     monitoring_batches=3,
+                     monitoring_dataset=monitoring_dataset,
+                     termination_criterion=EpochCounter(epoch_num+1,
+                                                        new_epochs=False),
+                     update_callbacks=None,
+                     set_batch_size=False)
+    model_xfer = push_monitor(name="old_monitor",
+                              transfer_experience=True,
+                              model=model,
+                              save_records=True)
+
+    train2 = Train(dataset,
+                   model_xfer,
+                   algorithm2,
+                   save_path=None,
+                   save_freq=0)
+    train2.main_loop()
+
+    assert len(model.old_monitor.channels['objective'].val_record) ==\
+        old_monitor_len
+    assert np.allclose(model.monitor.channels['objective'].val_record[0],
+                       init_obj)
+    assert len(model.monitor.channels['objective'].val_record) ==\
+        model.monitor._epochs_seen + 1
+    assert len(model.monitor.channels['objective'].val_record) ==\
+        epoch_num + 2
+    assert model.monitor.channels['objective'].val_record[index_final_obj] ==\
+        final_obj
+
+
 def test_monitor_based_lr():
     # tests that the class MonitorBasedLRAdjuster in sgd.py
     # gets the learning rate properly over the training epochs
