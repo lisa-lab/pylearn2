@@ -68,10 +68,9 @@ class Model(object):
         """
 
         if not hasattr(self, "extensions"):
-            warnings.warn("The " + str(type(self)) + " Model subclass "
-                          "seems not to call the Model constructor. This "
-                          "behavior may be considered an error on or after "
-                          "2014-11-01.")
+            raise TypeError("The " + str(type(self)) + " Model subclass "
+                            "is required to call the Model superclass "
+                            "constructor but does not.")
             self.extensions = []
 
     def __setstate__(self, d):
