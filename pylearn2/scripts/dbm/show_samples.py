@@ -20,7 +20,7 @@ import sys
 from pylearn2.config import yaml_parse
 from pylearn2.gui.patch_viewer import PatchViewer
 import time
-from theano.compat.six.moves import xrange
+from theano.compat.six.moves import input, xrange
 from theano import function
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 import numpy as np
@@ -160,7 +160,7 @@ print('Sampling function compilation took',t2-t1)
 while True:
     print('Displaying samples. How many steps to take next? (q to quit, ENTER=1)')
     while True:
-        x = raw_input()
+        x = input()
         if x == 'q':
             quit()
         if x == '':

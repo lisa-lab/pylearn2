@@ -103,6 +103,9 @@ class SequenceDataSpace(space.SimplyTypedSpace):
             return False
         return self.space == other.space
 
+    def __hash__(self):
+        return hash(self.space)
+
     def __str__(self):
         return '%s(%s)' % (self.__class__.__name__, self.space)
 
@@ -230,6 +233,9 @@ class SequenceMaskSpace(space.SimplyTypedSpace):
 
     def __eq__(self, other):
         return isinstance(other, SequenceMaskSpace)
+
+    def __hash__(self):
+        return 1
 
     def __str__(self):
         return '%s' % (self.__class__.__name__)

@@ -9,11 +9,13 @@ __maintainer__ = "LISA Lab"
 
 import logging
 import math
+import operator
 import sys
 import warnings
 
 import numpy as np
-from theano.compat.six.moves import xrange
+from theano.compat import six
+from theano.compat.six.moves import reduce, xrange
 from theano import config
 from theano.gof.op import get_debug_values
 from theano.sandbox.rng_mrg import MRG_RandomStreams
@@ -73,8 +75,13 @@ logger.debug("MLP changing the recursion limit.")
 # precisely when you're going to exceed the stack segment.
 sys.setrecursionlimit(40000)
 
+if six.PY3:
+    LayerBase = six.with_metaclass(RNNWrapper, Model)
+else:
+    LayerBase = Model
 
-class Layer(Model):
+
+class Layer(LayerBase):
 
     """
     Abstract class. A Layer of an MLP.
@@ -677,7 +684,7 @@ class MLP(Layer):
         if len(layer_costs) == 0:
             return T.constant(0, dtype=config.floatX)
 
-        total_cost = reduce(lambda x, y: x + y, layer_costs)
+        total_cost = reduce(operator.add, layer_costs)
 
         return total_cost
 
@@ -696,7 +703,7 @@ class MLP(Layer):
         if len(layer_costs) == 0:
             return T.constant(0, dtype=config.floatX)
 
-        total_cost = reduce(lambda x, y: x + y, layer_costs)
+        total_cost = reduce(operator.add, layer_costs)
 
         return total_cost
 
@@ -3034,15 +3041,19 @@ class ConvElemwise(Layer):
         rng = self.mlp.rng
 
         if self.border_mode == 'valid':
-            output_shape = [(self.input_space.shape[0] - self.kernel_shape[0])
-                            / self.kernel_stride[0] + 1,
-                            (self.input_space.shape[1] - self.kernel_shape[1])
-                            / self.kernel_stride[1] + 1]
+            output_shape = [int((self.input_space.shape[0]
+                                 - self.kernel_shape[0])
+                                / self.kernel_stride[0]) + 1,
+                            int((self.input_space.shape[1]
+                                 - self.kernel_shape[1])
+                                / self.kernel_stride[1]) + 1]
         elif self.border_mode == 'full':
-            output_shape = [(self.input_space.shape[0] + self.kernel_shape[0])
-                            / self.kernel_stride[0] - 1,
-                            (self.input_space.shape[1] + self.kernel_shape[1])
-                            / self.kernel_stride[1] - 1]
+            output_shape = [int((self.input_space.shape[0]
+                                 + self.kernel_shape[0])
+                                / self.kernel_stride[0]) - 1,
+                            int((self.input_space.shape[1]
+                                 + self.kernel_shape[1])
+                                / self.kernel_stride[1]) - 1]
 
         self.detector_space = Conv2DSpace(shape=output_shape,
                                           num_channels=self.output_channels,
@@ -4669,7 +4680,7 @@ def geometric_mean_prediction(forward_props):
         assert isinstance(out.owner.op, T.nnet.Softmax)
         assert len(out.owner.inputs) == 1
         presoftmax.append(out.owner.inputs[0])
-    average = reduce(lambda x, y: x + y, presoftmax) / float(len(presoftmax))
+    average = reduce(operator.add, presoftmax) / float(len(presoftmax))
     return T.nnet.softmax(average)
 
 

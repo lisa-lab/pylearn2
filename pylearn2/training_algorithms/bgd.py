@@ -17,7 +17,7 @@ import warnings
 import numpy as np
 from theano import config
 
-from pylearn2.compat import OrderedDict
+from pylearn2.compat import OrderedDict, first_value
 from pylearn2.monitor import Monitor
 from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
 from pylearn2.utils.iteration import is_stochastic
@@ -149,8 +149,9 @@ class BGD(TrainingAlgorithm):
             if self.set_batch_size:
                 model.set_batch_size(batch_size)
             elif hasattr(model, 'force_batch_size'):
-                if not (model.force_batch_size <= 0 or batch_size ==
-                        model.force_batch_size):
+                if not (model.force_batch_size is None or
+                        model.force_batch_size <= 0 or
+                        batch_size == model.force_batch_size):
                     raise ValueError("batch_size is %d but " +
                                      "model.force_batch_size is %d" %
                                      (batch_size, model.force_batch_size))
@@ -242,19 +243,19 @@ class BGD(TrainingAlgorithm):
                 ipt=None,
                 val=self.optimizer.ave_step_size,
                 data_specs=(NullSpace(), ''),
-                dataset=self.monitoring_dataset.values()[0])
+                dataset=first_value(self.monitoring_dataset))
             self.monitor.add_channel(
                 name='ave_grad_size',
                 ipt=None,
                 val=self.optimizer.ave_grad_size,
                 data_specs=(NullSpace(), ''),
-                dataset=self.monitoring_dataset.values()[0])
+                dataset=first_value(self.monitoring_dataset))
             self.monitor.add_channel(
                 name='ave_grad_mult',
                 ipt=None,
                 val=self.optimizer.ave_grad_mult,
                 data_specs=(NullSpace(), ''),
-                dataset=self.monitoring_dataset.values()[0])
+                dataset=first_value(self.monitoring_dataset))
 
         self.first = True
         self.bSetup = True

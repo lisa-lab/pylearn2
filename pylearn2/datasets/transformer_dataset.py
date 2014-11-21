@@ -9,6 +9,8 @@ __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
+from theano.compat.six import Iterator
+
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.space import CompositeSpace
 from pylearn2.utils.data_specs import is_flat_specs
@@ -183,7 +185,7 @@ class TransformerDataset(Dataset):
         return self.raw.get_num_examples()
 
 
-class TransformerIterator(object):
+class TransformerIterator(Iterator):
 
     """
     .. todo::
@@ -211,7 +213,7 @@ class TransformerIterator(object):
         """
         return self
 
-    def next(self):
+    def __next__(self):
         """
         .. todo::
 

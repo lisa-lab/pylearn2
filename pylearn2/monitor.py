@@ -421,11 +421,12 @@ class Monitor(object):
                 mode.record.handle_line('compiling monitor including ' +
                                         'channel ' + key + '\n')
             log.info('\t%s' % key)
-        it = [d.iterator(mode=i, num_batches=n, batch_size=b,
-                         data_specs=self._flat_data_specs,
-                         return_tuple=True)
-              for d, i, n, b in safe_izip(self._datasets, self._iteration_mode,
-                                          self._num_batches, self._batch_size)]
+        it = []
+        for d, i, n, b in safe_izip(self._datasets, self._iteration_mode,
+                                    self._num_batches, self._batch_size):
+            it.append(d.iterator(mode=i, num_batches=n, batch_size=b,
+                                 data_specs=self._flat_data_specs,
+                                 return_tuple=True))
         self.num_examples = [np.cast[config.floatX](float(i.num_examples))
                              for i in it]
         givens = [OrderedDict() for d in self._datasets]
@@ -613,7 +614,7 @@ class Monitor(object):
         if six.PY3:
             numeric = (float, int)
         else:
-            numeric = (float, int, long)
+            numeric = (float, int, long)  # noqa
 
         if isinstance(val, numeric):
             val = np.cast[theano.config.floatX](val)

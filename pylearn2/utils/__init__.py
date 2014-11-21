@@ -8,7 +8,7 @@ import warnings
 
 from .general import is_iterable, contains_nan, contains_inf, isfinite
 import theano
-from theano.compat.six.moves import zip as izip
+from theano.compat.six.moves import input, zip as izip
 # Delay import of pylearn2.config.yaml_parse and pylearn2.datasets.control
 # to avoid circular imports
 yaml_parse = None
@@ -220,6 +220,14 @@ class CallbackOp(theano.gof.Op):
         """
         return hash(self.callback)
 
+    def __hash__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        return self.hash()
+
 
 def get_dataless_dataset(model):
     """
@@ -394,8 +402,8 @@ if six.PY3:
     py_integer_types = (int, np.integer)
     py_number_types = (int, float, complex, np.number)
 else:
-    py_integer_types = (int, long, np.integer)
-    py_number_types = (int, long, float, complex, np.number)
+    py_integer_types = (int, long, np.integer)  # noqa
+    py_number_types = (int, long, float, complex, np.number)  # noqa
 
 py_float_types = (float, np.floating)
 py_complex_types = (complex, np.complex)
@@ -429,7 +437,7 @@ def get_choice(choice_to_explanation):
         if not first:
             warnings.warn('unrecognized choice')
         first = False
-        choice = raw_input(prompt)
+        choice = input(prompt)
     return choice
 
 

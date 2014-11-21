@@ -1471,7 +1471,7 @@ class _SGDOptimizer(_Optimizer):
         # Check that no ..._clip keyword is being ignored
         for clip_name in clip_names_seen:
             kwargs.pop(clip_name)
-        for kw in kwargs.iterkeys():
+        for kw in six.iterkeys(kwargs):
             if kw[-5:] == '_clip':
                 logger.warning('In SGDOptimizer, keyword argument {0} '
                                'will be ignored, because no parameter '
@@ -1521,7 +1521,7 @@ class _SGDOptimizer(_Optimizer):
         for lr_name in lr_names_seen:
             if lr_name in kwargs:
                 kwargs.pop(lr_name)
-        for kw in kwargs.iterkeys():
+        for kw in six.iterkeys(kwargs):
             if kw[-3:] == '_lr':
                 logger.warning('In SGDOptimizer, keyword argument {0} '
                                'will be ignored, because no parameter '

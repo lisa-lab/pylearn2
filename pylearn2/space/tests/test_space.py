@@ -465,11 +465,11 @@ def test_dtypes():
             except TypeError as ex:
                 assert dtype_is_none_msg in str(ex)
             except Exception as unexpected_ex:
-                print ("Expected an exception of type TypeError with message "
-                       "%s, got a %s instead with message %s." %
-                       (dtype_is_none_msg,
-                        type(unexpected_ex),
-                        str(unexpected_ex)))
+                print("Expected an exception of type TypeError with message "
+                      "%s, got a %s instead with message %s." %
+                      (dtype_is_none_msg,
+                       type(unexpected_ex),
+                       str(unexpected_ex)))
                 raise unexpected_ex
             finally:
                 return
@@ -486,11 +486,11 @@ def test_dtypes():
             except TypeError as ex:
                 assert dtype_is_none_msg in str(ex)
             except Exception as unexpected_ex:
-                print ("Expected an exception of type TypeError with message "
-                       "%s, got a %s instead with message %s." %
-                       (dtype_is_none_msg,
-                        type(unexpected_ex),
-                        str(unexpected_ex)))
+                print("Expected an exception of type TypeError with message "
+                      "%s, got a %s instead with message %s." %
+                      (dtype_is_none_msg,
+                       type(unexpected_ex),
+                       str(unexpected_ex)))
                 raise unexpected_ex
             finally:
                 return
@@ -520,11 +520,11 @@ def test_dtypes():
             except TypeError as ex:
                 assert dtype_is_none_msg in str(ex)
             except Exception as unexpected_ex:
-                print ("Expected an exception of type TypeError with message "
-                       "%s, got a %s instead with message %s." %
-                       (dtype_is_none_msg,
-                        type(unexpected_ex),
-                        str(unexpected_ex)))
+                print("Expected an exception of type TypeError with message "
+                      "%s, got a %s instead with message %s." %
+                      (dtype_is_none_msg,
+                       type(unexpected_ex),
+                       str(unexpected_ex)))
                 raise unexpected_ex
             finally:
                 return

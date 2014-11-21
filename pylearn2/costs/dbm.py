@@ -9,11 +9,13 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 
+import collections
 import numpy as np
 import logging
+import operator
 import warnings
 
-from theano.compat.six.moves import xrange
+from theano.compat.six.moves import reduce, xrange
 from theano import config
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 RandomStreams = MRG_RandomStreams
@@ -369,7 +371,7 @@ class PCD(DefaultDataSpecsMixin, BaseCD):
         layer_to_chains = model.make_layer_to_state(self.num_chains)
 
         def recurse_check(l):
-            if isinstance(l, (list, tuple)):
+            if isinstance(l, (list, tuple, collections.ValuesView)):
                 for elem in l:
                     recurse_check(elem)
             else:
@@ -800,7 +802,7 @@ class MF_L1_ActCost(DefaultDataSpecsMixin, Cost):
         if len(layer_costs) == 0:
             return T.as_tensor_variable(0.)
         else:
-            total_cost = reduce(lambda x, y: x + y, layer_costs)
+            total_cost = reduce(operator.add, layer_costs)
         total_cost.name = 'MF_L1_ActCost'
 
         assert total_cost.ndim == 0
@@ -1023,7 +1025,7 @@ class WeightDecay(NullDataSpecsMixin, Cost):
             rval.name = '0_weight_decay'
             return rval
         else:
-            total_cost = reduce(lambda x, y: x + y, layer_costs)
+            total_cost = reduce(operator.add, layer_costs)
         total_cost.name = 'DBM_WeightDecay'
 
         assert total_cost.ndim == 0

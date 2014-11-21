@@ -13,7 +13,7 @@ import time
 import warnings
 
 import numpy as np
-from theano.compat.six.moves import xrange
+from theano.compat.six.moves import input, xrange
 from theano import config, function
 from theano import scan
 from theano.gof.op import get_debug_values, debug_error_message, debug_assert
@@ -1565,7 +1565,7 @@ class S3C(Model, Block):
 
         W = self.W.get_value()
 
-        x = raw_input('multiply weights by mu? (y/n) ')
+        x = input('multiply weights by mu? (y/n) ')
 
         if x == 'y':
             return W * self.mu.get_value()

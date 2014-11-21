@@ -193,7 +193,7 @@ def test_determinism():
                 disturb_mem.disturb_mem()
                 def mlp_pred(non_linearity):
                     Z = [T.dot(X, W) for W in model.W1]
-                    H = map(non_linearity, Z)
+                    H = [non_linearity(z) for z in Z]
                     Z = [T.dot(h, W) for h, W in safe_izip(H, model.W2)]
                     pred = sum(Z)
                     return pred

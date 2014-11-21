@@ -24,6 +24,8 @@ import urllib,urllib2
 import tarfile
 import subprocess
 
+from theano.compat.six.moves import input
+
 logger = logging.getLogger(__name__)
 
 
@@ -817,7 +819,7 @@ def upgrade_packages(packages_to_upgrade, hook=None ):
             readable_size = packages_sources[this_package].readable_size
             logger.info("{0} ({1})".format(this_package, readable_size))
 
-        r=raw_input("Proceed? [yes/N] ")
+        r = input("Proceed? [yes/N] ")
         if r=='y' or r=='yes':
             for  this_package in packages_really_to_upgrade:
                 install_upgrade( packages_sources[this_package], upgrade=True, progress_hook=hook )
@@ -872,7 +874,7 @@ def install_packages( packages_to_install, force_install=False, hook=None ):
             readable_size = packages_sources[this_package].readable_size
             logger.info("{0} ({1})".format(this_package, readable_size))
 
-        r=raw_input("Proceed? [yes/N] ")
+        r = input("Proceed? [yes/N] ")
         if r=='y' or r=='yes':
             for  this_package in packages_really_to_install:
                 install_upgrade( packages_sources[this_package], upgrade=False, progress_hook=hook )
@@ -913,12 +915,12 @@ def install_packages_from_file( packages_to_install ):
             packages.append(corename(this_package))
         logger.info(' '.join(packages))
 
-        r=raw_input("Proceed? [yes/N] ")
+        r = input("Proceed? [yes/N] ")
         if r=='y' or r=='yes':
             for  this_package in packages_really_to_install:
                 #install_upgrade( this_package, upgrade=False, progress_hook=hook )
                 if os.path.exists(dataset_data_path+corename(this_package)):
-                    r=raw_input("[in] '%s' already installed, overwrite? [yes/N] " % corename(this_package))
+                    r = input("[in] '%s' already installed, overwrite? [yes/N] " % corename(this_package))
 
                     if r!='y' and r!='yes':
                         logger.info("[in] skipping package "
@@ -995,7 +997,7 @@ def remove_packages( packages_to_remove ):
             packages.append(this_package)
         logger.info(' '.join(packages))
 
-        r=raw_input("Proceed? [yes/N] ")
+        r = input("Proceed? [yes/N] ")
         if r=='y' or r=='yes':
             for  this_package in packages_really_to_remove:
                 remove_package( installed_packages_list[this_package], dataset_data_path )

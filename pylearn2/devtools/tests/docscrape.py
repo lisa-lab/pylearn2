@@ -8,7 +8,6 @@ import inspect
 from nose.plugins.skip import SkipTest
 import re
 import sys
-import types
 
 from theano.compat import six
 
@@ -132,7 +131,7 @@ class NumpyDocString(object):
         return self._parsed_data[key]
 
     def __setitem__(self,key,val):
-        if not self._parsed_data.has_key(key):
+        if key not in self._parsed_data:
             raise ValueError("Unknown section %s" % key)
         else:
             self._parsed_data[key] = val
@@ -779,7 +778,9 @@ def docstring_errors(filename, global_dict=None):
     if '__doc__' not in global_dict:
         global_dict['__doc__'] = None
     try:
-        execfile(filename, global_dict)
+        with open(filename) as f:
+            code = compile(f.read(), filename, 'exec')
+            exec(code, global_dict)
     except SystemExit:
         pass
     except SkipTest:

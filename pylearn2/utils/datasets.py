@@ -12,7 +12,7 @@ import warnings
 # Third-party imports
 import numpy
 import scipy
-from theano.compat.six.moves import xrange
+from theano.compat.six.moves import reduce, xrange
 import theano
 try:
     from matplotlib import pyplot
@@ -21,7 +21,6 @@ except ImportError:
     warnings.warn("Could not import some dependencies.")
 
 # Local imports
-from pylearn2.utils import sharedX
 from pylearn2.utils.rng import make_np_rng
 
 
