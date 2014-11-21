@@ -1,7 +1,5 @@
 """
-.. todo::
-
-    WRITEME
+Classes that implement different sampling algorithms for DBMs.
 """
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"

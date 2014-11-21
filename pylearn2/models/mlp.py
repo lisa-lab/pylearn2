@@ -2921,6 +2921,7 @@ class ConvElemwise(Layer):
                  output_normalization=None,
                  kernel_stride=(1, 1),
                  monitor_style="classification"):
+        super(ConvElemwise, self).__init__()
 
         if (irange is None) and (sparse_init is None):
             raise AssertionError("You should specify either irange or "
