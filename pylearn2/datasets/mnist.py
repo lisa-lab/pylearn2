@@ -107,7 +107,7 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
         if binarize:
             topo_view = (topo_view > 0.5).astype('float32')
 
-        max_labels = 10
+        y_labels = 10
 
         m, r, c = topo_view.shape
         assert r == 28
@@ -139,7 +139,7 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
                 y[j] = tmp
 
         super(MNIST, self).__init__(topo_view=dimshuffle(topo_view), y=y,
-                                    axes=axes, y_labels=max_labels)
+                                    axes=axes, y_labels=y_labels)
 
         assert not N.any(N.isnan(self.X))
 

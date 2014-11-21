@@ -173,20 +173,12 @@ class DenseDesignMatrix(Dataset):
     def __init__(self, X=None, topo_view=None, y=None,
                  view_converter=None, axes=('b', 0, 1, 'c'),
                  rng=_default_seed, preprocessor=None, fit_preprocessor=False,
-                 max_labels=None, X_labels=None, y_labels=None):
+                 X_labels=None, y_labels=None):
         self.X = X
         self.y = y
         self.view_converter = view_converter
         self.X_labels = X_labels
         self.y_labels = y_labels
-
-        if max_labels is not None:
-            warnings.warn("The max_labels argument to DenseDesignMatrix is "
-                          "deprecated. Use the y_labels argument instead. The "
-                          "max_labels argument will be removed on or after "
-                          "6 October 2014", stacklevel=2)
-            assert y_labels is None
-            self.y_labels = max_labels
 
         self._check_labels()
 

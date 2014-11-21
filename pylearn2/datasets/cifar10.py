@@ -97,8 +97,6 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
             assert y.shape[0] == 10000
             y = y.reshape((y.shape[0], 1))
 
-        max_labels = 10
-
         if center:
             X -= 127.5
         self.center = center
