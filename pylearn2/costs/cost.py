@@ -240,7 +240,8 @@ class Cost(object):
             stochastic.
         """
 
-        raise NotImplementedError()
+        raise NotImplementedError(str(type(self)) + " needs to implement "
+                                  "is_stochastic.")
 
 
 class SumOfCosts(Cost):

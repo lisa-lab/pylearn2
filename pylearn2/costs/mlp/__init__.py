@@ -4,6 +4,7 @@ Costs for use with the MLP model class.
 __authors__ = 'Vincent Archambault-Bouffard, Ian Goodfellow'
 __copyright__ = "Copyright 2013, Universite de Montreal"
 
+from functools import wraps
 import operator
 
 from theano import tensor as T
@@ -41,6 +42,10 @@ class Default(DefaultDataSpecsMixin, Cost):
         space, sources = self.get_data_specs(model)
         space.validate(data)
         return model.cost_from_X(data)
+
+    @wraps(Cost.is_stochastic)
+    def is_stochastic(self):
+        return False
 
 
 class WeightDecay(NullDataSpecsMixin, Cost):
@@ -112,6 +117,10 @@ class WeightDecay(NullDataSpecsMixin, Cost):
 
         return total_cost
 
+    @wraps(Cost.is_stochastic)
+    def is_stochastic(self):
+        return False
+
 
 class L1WeightDecay(NullDataSpecsMixin, Cost):
     """L1 regularization cost for MLP.
@@ -170,3 +179,7 @@ class L1WeightDecay(NullDataSpecsMixin, Cost):
         total_cost.name = 'l1_penalty'
 
         return total_cost
+
+    @wraps(Cost.is_stochastic)
+    def is_stochastic(self):
+        return False
