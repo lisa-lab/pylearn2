@@ -4293,8 +4293,8 @@ class FlattenerLayer(Layer):
 
     Parameters
     ----------
-    raw_layer : WRITEME
-        WRITEME
+    raw_layer : Layer
+        Layer that FlattenerLayer wraps.
     """
 
     def __init__(self, raw_layer):
@@ -4321,13 +4321,29 @@ class FlattenerLayer(Layer):
     @wraps(Layer.get_layer_monitoring_channels)
     def get_layer_monitoring_channels(self, state_below=None,
                                       state=None, targets=None):
+
+        raw_space = self.raw_layer.get_output_space()
+
+        if isinstance(raw_space, CompositeSpace):
+            # Pick apart the Join that fprop used to make state.
+            assert hasattr(state, 'owner')
+            owner = state.owner
+            assert owner is not None
+            assert str(owner.op) == 'Join'
+            # First input to join op in the axis.
+            raw_state = tuple(owner.inputs[1:])
+            raw_space.validate(raw_state)
+            state = raw_state
+        else:
+            # Format state as layer output space.
+            state = self.get_output_space().format_as(state, raw_space)
+
         if targets is not None:
             targets = self.get_target_space().format_as(
                 targets, self.raw_layer.get_target_space())
         return self.raw_layer.get_layer_monitoring_channels(
             state_below=state_below,
-            state=self.get_output_space().format_as(
-                state, self.raw_layer.get_output_space()),
+            state=state,
             targets=targets
         )
 
