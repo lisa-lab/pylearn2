@@ -33,7 +33,7 @@ class MNIST_AUGMENTED(DenseDesignMatrix):
             X = dataset.X
             if one_hot is True:
                 one_hot = np.zeros((dataset.y.shape[0], 10), dtype='float32')
-                for i in xrange(dataset.y.shape[0]):
+                for i in range(dataset.y.shape[0]):
                     label = dataset.y[i]
                     one_hot[i, label] = 1.
                 y = one_hot

@@ -36,7 +36,7 @@ procedure for deep boltzmann machines". 2012.
 
 def augment_input(X, model, mf_steps):
 
-    print '\nAugmenting data...\n'
+    print("\nAugmenting data...\n")
 
     i = 0
     init_data = model.visible_layer.space.get_origin_batch(batch_size=1,
@@ -59,6 +59,6 @@ def augment_input(X, model, mf_steps):
 
         i += 1
 
-    print 'Data augmentation complete!'
+    print("Data augmentation complete!")
 
     return final_data

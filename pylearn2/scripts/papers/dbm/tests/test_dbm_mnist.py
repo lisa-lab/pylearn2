@@ -63,11 +63,11 @@ def test_train_example():
             layer1_yaml = layer1_yaml % (hyper_params_l1)
             train = yaml_parse.load(layer1_yaml)
 
-            print '\n-----------------------------------'
-            print '     Unsupervised pre-training'
-            print '-----------------------------------\n'
+            print("\n-----------------------------------"
+                  "    Unsupervised pre-training        "
+                  "-----------------------------------\n")
 
-            print '\nPre-Training first layer...\n'
+            print("\nPre-Training first layer...\n")
             train.main_loop()
 
         # load and train second layer
@@ -87,7 +87,7 @@ def test_train_example():
             layer2_yaml = layer2_yaml % (hyper_params_l2)
             train = yaml_parse.load(layer2_yaml)
 
-            print '\n...Pre-training second layer...\n'
+            print("\n...Pre-training second layer...\n")
             train.main_loop()
 
         if TRAINING:
@@ -137,22 +137,22 @@ def test_train_example():
             bias = numpy.asarray(cuda_bias)
             train.model.hidden_layers[1].set_biases(bias)
 
-            print ("\nAll layers weights and biases have been clamped "
+            print("\nAll layers weights and biases have been clamped "
                    "to the respective layers of the DBM")
 
-            print '\n-----------------------------------'
-            print '     Unsupervised training'
-            print '-----------------------------------\n'
+            print("\n-----------------------------------"
+                  "     Unsupervised training           "
+                  "-----------------------------------\n")
 
-            print '\nTraining phase...'
+            print("\nTraining phase...")
             train.main_loop()
 
         if FINETUNING:
 
             # START SUPERVISED TRAINING WITH BACKPROPAGATION
-            print '\n-----------------------------------'
-            print '       Supervised training'
-            print '-----------------------------------'
+            print("\n-----------------------------------"
+                  "       Supervised training           "
+                  "-----------------------------------\n"
 
             # load dbm as a mlp
             if DROPOUT:
@@ -176,37 +176,38 @@ def test_train_example():
             train = yaml_parse.load(mlp_yaml)
 
             if SOFTMAX:
-                dbm = serial.load(os.path.join(train_path, 
-				'dbm_mnist_softmax.pkl'))
+                dbm = serial.load(os.path.join(train_path,
+                                               'dbm_mnist_softmax.pkl'))
             else:
-                dbm = serial.load(os.path.join(train_path, 
-				'dbm_mnist.pkl'))
+                dbm = serial.load(os.path.join(train_path,
+                                               'dbm_mnist.pkl'))
 
-            train.dataset = mnist_augmented.MNIST_AUGMENTED(
-                                        dataset=train.dataset,
-                                        which_set='train',
-                                        one_hot=1,
-                                        model=dbm, start=0,
-                                        stop=hyper_params_mlp['train_stop'],
-                                        mf_steps=MF_STEPS)
+            train.dataset = mnist_augmented.\
+                          MNIST_AUGMENTED(dataset=train.dataset,
+                                          which_set='train',
+                                          one_hot=1,
+                                          model=dbm, start=0,
+                                          stop=hyper_params_mlp['train_stop'],
+                                          mf_steps=MF_STEPS)
             train.algorithm.monitoring_dataset = {
-                # 'valid' : mnist_augmented.MNIST_AUGMENTED(
-                        # dataset=train.algorithm.monitoring_dataset['valid'],
-                        # which_set='train', one_hot=1, model=dbm,
-                        # start=hyper_params_mlp['train_stop'],
-                        # stop=hyper_params_mlp['valid_stop'],
-                        # mf_steps=mf_steps),
-                'test' : mnist_augmented.MNIST_AUGMENTED(
-                        dataset=train.algorithm.monitoring_dataset['test'],
-                        which_set='test', one_hot=1, model=dbm,
-                        mf_steps=MF_STEPS)}
+            # 'valid' : mnist_augmented.\
+         # MNIST_AUGMENTED(dataset=train.algorithm.monitoring_dataset['valid'],
+         #                 which_set='train', one_hot=1, model=dbm,
+         #                 start=hyper_params_mlp['train_stop'],
+         #                 stop=hyper_params_mlp['valid_stop'],
+         #                 mf_steps=mf_steps),
+            'test' : mnist_augmented.\
+           MNIST_AUGMENTED(dataset=train.algorithm.monitoring_dataset['test'],
+                           which_set='test', one_hot=1, model=dbm,
+                           mf_steps=MF_STEPS)}
 
             # DBM TRAINED WEIGHTS CLAMPED FOR FINETUNING AS
             # EXPLAINED BY HINTON
 
             # Concatenate weights between first and second hidden
             # layer & weights between visible and first hidden layer
-            train.model.layers[0].set_weights(numpy.concatenate((
+            train.model.layers[0].set_weights(
+                                numpy.concatenate((
                                 dbm.hidden_layers[1].get_weights().transpose(),
                                 dbm.hidden_layers[0].get_weights())))
 
@@ -214,14 +215,14 @@ def test_train_example():
             for l, h in zip(train.model.layers[1:], dbm.hidden_layers[1:]):
                 l.set_weights(h.get_weights())
 
-            # clamp biases       
+            # clamp biases
             for l, h in zip(train.model.layers, dbm.hidden_layers):
                 l.set_biases(h.get_biases())
 
-            print ("\nDBM trained weights and biases have been "
-                   "clamped in the MLP.")
+            print("\nDBM trained weights and biases have been "
+                  "clamped in the MLP.")
 
-            print '\n...Finetuning...\n'
+            print("\n...Finetuning...\n")
             train.main_loop()
 
     finally:
