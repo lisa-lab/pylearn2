@@ -10,6 +10,7 @@ from pylearn2.utils import serial
     for DBM discriminative finetuning
 '''
 
+
 class MNIST_AUGMENTED(DenseDesignMatrix):
 
     def __init__(self, dataset, which_set, model, mf_steps, one_hot=True,
@@ -30,7 +31,7 @@ class MNIST_AUGMENTED(DenseDesignMatrix):
             augmented_X, y = augmented_X[start:stop], y[start:stop]
         except:
             X = dataset.X
-            if one_hot:
+            if one_hot is True:
                 one_hot = np.zeros((dataset.y.shape[0], 10), dtype='float32')
                 for i in xrange(dataset.y.shape[0]):
                     label = dataset.y[i]
@@ -51,6 +52,5 @@ class MNIST_AUGMENTED(DenseDesignMatrix):
                 else:
                     path = os.path.join(self.path, 'aug_test_dump.pkl.gz')
                     serial.save(filepath=path, obj=datasets)
-        
-        super(MNIST_AUGMENTED, self).__init__(X=augmented_X, y=y)
 
+        super(MNIST_AUGMENTED, self).__init__(X=augmented_X, y=y)

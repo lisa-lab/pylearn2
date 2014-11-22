@@ -15,17 +15,18 @@ from pylearn2.testing import no_debug_mode
 from pylearn2.datasets import mnist_augmented
 from theano import function
 
+
 @no_debug_mode
 def test_train_example():
 
     # path definition
     cwd = os.getcwd()
-    train_path = cwd  # change this if you don't want to use the current working directory
+    train_path = cwd  # train path is the current working directory
     try:
         os.chdir(train_path)
 
         # START PRETRAINING
-        # load and train first layer   
+        # load and train first layer
         train_yaml_path = os.path.join(train_path, '..', 'dbm_mnist_l1.yaml')
         layer1_yaml = open(train_yaml_path, 'r').read()
         hyper_params_l1 = {'train_stop': 20,
@@ -105,7 +106,8 @@ def test_train_example():
         bias = numpy.asarray(cuda_bias)
         train.model.hidden_layers[1].set_biases(bias)
 
-        print '\nAll layers weights and biases have been clamped to the respective layers of the DBM'
+        print '\nAll layers weights and biases have been clamped\
+	to the respective layers of the DBM'
 
         print '\n-----------------------------------'
         print '     Unsupervised training'
@@ -121,7 +123,7 @@ def test_train_example():
 
         # load dbm as a mlp
         train_yaml_path = os.path.join(train_path, '..', 'dbm_mnist_mlp.yaml')
-        
+
         mlp_yaml = open(train_yaml_path, 'r').read()
         hyper_params_mlp = {'train_stop': 20,
                             'valid_stop': 20,
@@ -138,26 +140,36 @@ def test_train_example():
 
         dbm = serial.load(os.path.join(train_path, 'dbm_mnist.pkl'))
 
-        # dataset & monitoring dataset insertion without .yaml file to avoid problems 
-        # (don't know how to pass 'model' hyperparameter)
-        train.dataset = mnist_augmented.MNIST_AUGMENTED(dataset = train.dataset,
-                                                      which_set = 'train', one_hot = 1, model = dbm, start = 0,
-                                                      stop = hyper_params_mlp['train_stop'], mf_steps = 1)
-        train.algorithm.monitoring_dataset = {  #'valid' : mnist_augmented.MNIST_AUGMENTED(dataset = train.algorithm.monitoring_dataset['valid'], which_set = 'train', one_hot = 1, model = dbm, start = hyper_params_mlp['train_stop'], stop = hyper_params_mlp['valid_stop'], mf_steps = 1), 
-                                              'test' : mnist_augmented.MNIST_AUGMENTED(dataset = train.algorithm.monitoring_dataset['test'], 
-                                                                                    which_set = 'test', one_hot = 1, model = dbm, start = 0, stop = 20, mf_steps = 1)}
+        train.dataset = mnist_augmented.MNIST_AUGMENTED(dataset=train.dataset,
+                                        which_set='train', one_hot=1,
+					model=dbm, start=0,
+                                        stop=hyper_params_mlp['train_stop'],
+					mf_steps=1)
+        train.algorithm.monitoring_dataset = {  
+		# 'valid' : mnist_augmented.MNIST_AUGMENTED(
+			# dataset=train.algorithm.monitoring_dataset['valid'],
+			# which_set='train', one_hot=1, model=dbm,
+			# start=hyper_params_mlp['train_stop'],
+			# stop=hyper_params_mlp['valid_stop'], mf_steps=1), 
+                'test' : mnist_augmented.MNIST_AUGMENTED(
+			dataset=train.algorithm.monitoring_dataset['test'], 
+                        which_set='test', one_hot=1, model=dbm, start=0,
+			stop=20, mf_steps=1)}
 
-        # DBM TRAINED WEIGHTS CLAMPED FOR FINETUNING AS EXPLAINED BY HINTON
+        # DBM TRAINED WEIGHTS CLAMPED FOR FINETUNING AS
+	# EXPLAINED BY HINTON
 
-        # concatenate weights between first and second hidden layer & weights between visible and first hidden layer
-        train.model.layers[0].set_weights(numpy.concatenate((dbm.hidden_layers[1].get_weights().transpose(), 
-                                                             dbm.hidden_layers[0].get_weights())))
+        # concatenate weights between first and second hidden layer &
+	# weights between visible and first hidden layer
+        train.model.layers[0].set_weights(numpy.concatenate((
+			dbm.hidden_layers[1].get_weights().transpose(), 
+                        dbm.hidden_layers[0].get_weights())))
 
         # then clamp all the others normally
         for l, h in zip(train.model.layers[1:], dbm.hidden_layers[1:]):
             l.set_weights(h.get_weights())
 
-        # clamp biases       
+        # clamp biases
         for l, h in zip(train.model.layers, dbm.hidden_layers):
             l.set_biases(h.get_biases())
 
