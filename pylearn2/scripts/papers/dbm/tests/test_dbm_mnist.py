@@ -95,15 +95,15 @@ def test_train_example():
             # START TRAINING
             if SOFTMAX:
                 train_yaml_path = os.path.join(train_path,
-						'dbm_mnist_softmax.yaml')
+                                               'dbm_mnist_softmax.yaml')
             else:
                 train_yaml_path = os.path.join(train_path, 'dbm_mnist.yaml')
             yaml = open(train_yaml_path, 'r').read()
             hyper_params_dbm = {'train_stop': 60000,
                                 'valid_stop': 60000,
                                 'batch_size': 100,
-                                'detector_layer_1_dim':hyper_params_l1['nhid'],
-                                'detector_layer_2_dim':hyper_params_l2['nhid'],
+                                'n_h1': hyper_params_l1['nhid'],
+                                'n_h2': hyper_params_l2['nhid'],
                                 'monitoring_batches': 5,
                                 'max_epochs': MAX_EPOCHS_DBM,
                                 'save_path': train_path
@@ -137,8 +137,8 @@ def test_train_example():
             bias = numpy.asarray(cuda_bias)
             train.model.hidden_layers[1].set_biases(bias)
 
-            print '\nAll layers weights and biases have been clamped\
-	    to the respective layers of the DBM'
+            print ("\nAll layers weights and biases have been clamped "
+                   "to the respective layers of the DBM")
 
             print '\n-----------------------------------'
             print '     Unsupervised training'
@@ -156,11 +156,11 @@ def test_train_example():
 
             # load dbm as a mlp
             if DROPOUT:
-                train_yaml_path = os.path.join(train_path, 
-				'dbm_mnist_mlp_dropout.yaml')
+                train_yaml_path = os.path.join(train_path,
+                                               'dbm_mnist_mlp_dropout.yaml')
             else:
-                train_yaml_path = os.path.join(train_path, 
-				'dbm_mnist_mlp.yaml')
+                train_yaml_path = os.path.join(train_path,
+                                               'dbm_mnist_mlp.yaml')
             mlp_yaml = open(train_yaml_path, 'r').read()
             hyper_params_mlp = {'train_stop': 60000,
                                 'valid_stop': 60000,
@@ -183,31 +183,31 @@ def test_train_example():
 				'dbm_mnist.pkl'))
 
             train.dataset = mnist_augmented.MNIST_AUGMENTED(
-					dataset=train.dataset,
+                                        dataset=train.dataset,
                                         which_set='train',
-					one_hot=1,
-					model=dbm, start=0,
-					stop=hyper_params_mlp['train_stop'],
-					mf_steps=MF_STEPS)
+                                        one_hot=1,
+                                        model=dbm, start=0,
+                                        stop=hyper_params_mlp['train_stop'],
+                                        mf_steps=MF_STEPS)
             train.algorithm.monitoring_dataset = {
-		# 'valid' : mnist_augmented.MNIST_AUGMENTED(
-			# dataset=train.algorithm.monitoring_dataset['valid'],
-			# which_set='train', one_hot=1, model=dbm,
-			# start=hyper_params_mlp['train_stop'],
-			# stop=hyper_params_mlp['valid_stop'],
-			# mf_steps=mf_steps), 
+                # 'valid' : mnist_augmented.MNIST_AUGMENTED(
+                        # dataset=train.algorithm.monitoring_dataset['valid'],
+                        # which_set='train', one_hot=1, model=dbm,
+                        # start=hyper_params_mlp['train_stop'],
+                        # stop=hyper_params_mlp['valid_stop'],
+                        # mf_steps=mf_steps),
                 'test' : mnist_augmented.MNIST_AUGMENTED(
-			dataset=train.algorithm.monitoring_dataset['test'],
-			which_set='test', one_hot=1, model=dbm,
-			mf_steps=MF_STEPS)}
+                        dataset=train.algorithm.monitoring_dataset['test'],
+                        which_set='test', one_hot=1, model=dbm,
+                        mf_steps=MF_STEPS)}
 
             # DBM TRAINED WEIGHTS CLAMPED FOR FINETUNING AS
-	    # EXPLAINED BY HINTON
+            # EXPLAINED BY HINTON
 
-            # concatenate weights between first and second hidden
-	    # layer & weights between visible and first hidden layer
+            # Concatenate weights between first and second hidden
+            # layer & weights between visible and first hidden layer
             train.model.layers[0].set_weights(numpy.concatenate((
-				dbm.hidden_layers[1].get_weights().transpose(),
+                                dbm.hidden_layers[1].get_weights().transpose(),
                                 dbm.hidden_layers[0].get_weights())))
 
             # then clamp all the others normally
@@ -218,8 +218,8 @@ def test_train_example():
             for l, h in zip(train.model.layers, dbm.hidden_layers):
                 l.set_biases(h.get_biases())
 
-            print '\nDBM trained weights and biases have been
-	          clamped in the MLP.'
+            print ("\nDBM trained weights and biases have been "
+                   "clamped in the MLP.")
 
             print '\n...Finetuning...\n'
             train.main_loop()

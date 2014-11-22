@@ -16,13 +16,13 @@
         hidden_layers: [
             !obj:pylearn2.models.dbm.BinaryVectorMaxPool {
                 layer_name: 'h1',
-                detector_layer_dim: %(detector_layer_1_dim)i,
+                detector_layer_dim: %(n_h1)i,
                 pool_size: 1,
                 irange: 0.001,
             },
             !obj:pylearn2.models.dbm.BinaryVectorMaxPool {
                 layer_name: 'h2',
-                detector_layer_dim: %(detector_layer_2_dim)i,
+                detector_layer_dim: %(n_h2)i,
                 pool_size: 1,
                 irange: 0.001,
             },
