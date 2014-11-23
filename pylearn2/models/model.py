@@ -38,6 +38,7 @@ class Model(object):
     _test_batch_size = 2
 
     def __init__(self, extensions=None):
+        super(Model, self).__init__()
         if extensions is None:
             extensions = []
         else:
