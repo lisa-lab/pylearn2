@@ -316,6 +316,36 @@ def test_multiple_inputs():
     train.algorithm.termination_criterion = EpochCounter(1)
     train.main_loop()
 
+def test_input_and_target_source():
+    """
+    Create a MLP and test input_source and target_source
+    for default and non-default options.
+    """
+    mlp = MLP(
+        layers=[CompositeLayer(
+                    'composite',
+                    [Linear(10, 'h0', 0.1),
+                     Linear(10, 'h1', 0.1)],
+                    {
+                        0: [1],
+                        1: [0]
+                    }
+                )
+        ],
+        input_space=CompositeSpace([VectorSpace(15), VectorSpace(20)]),
+        input_source=('features0', 'features1'),
+        target_source=('targets0', 'targets1')
+    )
+    np.testing.assert_equal(mlp.get_input_source(), ('features0', 'features1'))
+    np.testing.assert_equal(mlp.get_target_source(), ('targets0', 'targets1'))
+
+    mlp = MLP(
+        layers=[Linear(10, 'h0', 0.1)],
+        input_space=VectorSpace(15)
+    )
+    np.testing.assert_equal(mlp.get_input_source(), 'features')
+    np.testing.assert_equal(mlp.get_target_source(), 'targets')
+
 def test_get_layer_monitor_channels():
     """
     Create a MLP with multiple layer types

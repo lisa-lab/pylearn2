@@ -401,6 +401,11 @@ class MLP(Layer):
         MLP accepts. The structure should match that of input_space. The
         default is 'features'. Note that this argument is ignored when
         the MLP is nested.
+    target_source : string or (nested) tuple of strings, optional
+        A (nested) tuple of strings specifiying the target sources this
+        MLP accepts. The structure should match that of target_space. The
+        default is 'targets'. Note that this argument is ignored when
+        the MLP is nested.
     layer_name : name of the MLP layer. Should be None if the MLP is
         not part of another MLP.
     seed : WRITEME
@@ -414,8 +419,9 @@ class MLP(Layer):
     """
 
     def __init__(self, layers, batch_size=None, input_space=None,
-                 input_source='features', nvis=None, seed=None,
-                 layer_name=None, monitor_targets=True, **kwargs):
+                 input_source='features', target_source='targets',
+                 nvis=None, seed=None, layer_name=None, monitor_targets=True,
+                 **kwargs):
         super(MLP, self).__init__(**kwargs)
 
         self.seed = seed
@@ -443,6 +449,7 @@ class MLP(Layer):
         self.force_batch_size = batch_size
 
         self._input_source = input_source
+        self._target_source = target_source
 
         self.monitor_targets = monitor_targets
 
@@ -474,15 +481,15 @@ class MLP(Layer):
 
         self.freeze_set = set([])
 
-        def f(x):
-            if x is None:
-                return None
-            return 1. / x
-
     @property
     def input_source(self):
         assert not self._nested, "A nested MLP does not have an input source"
         return self._input_source
+
+    @property
+    def target_source(self):
+        assert not self._nested, "A nested MLP does not have a target source"
+        return self._target_source
 
     def setup_rng(self):
         """
