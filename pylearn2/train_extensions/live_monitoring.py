@@ -291,7 +291,7 @@ class LiveMonitor(object):
         self.req_sock.send_pyobj(ChannelListRequest())
         return self.req_sock.recv_pyobj()
 
-    def update_channel(self, channel_list, start=-1, step=1):
+    def update_channels(self, channel_list, start=-1, end=-1, step=1):
         """
         Retrieves data for a specified set of channels and combines that data
         with any previously retrived data.
@@ -314,6 +314,8 @@ class LiveMonitor(object):
         step: int
             The number of epochs to be skipped between data points.
         """
+        assert((start == -1 and end == -1) or end > start)
+
         if start == -1:
             start = 0
             if len(self.channels.keys()) > 0:
@@ -321,7 +323,7 @@ class LiveMonitor(object):
                 start = len(self.channels[channel_name].epoch_record)
 
         self.req_sock.send_pyobj(ChannelsRequest(
-            channel_list, start=start, step=step
+            channel_list, start=start, end=end, step=step
         ))
 
         rsp_msg = self.req_sock.recv_pyobj()
