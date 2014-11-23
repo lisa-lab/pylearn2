@@ -138,7 +138,7 @@ def test_train_example():
             train.model.hidden_layers[1].set_biases(bias)
 
             print("\nAll layers weights and biases have been clamped "
-                   "to the respective layers of the DBM")
+                  "to the respective layers of the DBM")
 
             print("\n-----------------------------------"
                   "     Unsupervised training           "
@@ -182,22 +182,22 @@ def test_train_example():
                 dbm = serial.load(os.path.join(train_path,
                                                'dbm_mnist.pkl'))
 
-            train.dataset = mnist_augmented.\
-                          MNIST_AUGMENTED(dataset=train.dataset,
+            train.dataset = mnist_augmented.MNIST_AUGMENTED(
+                                          dataset=train.dataset,
                                           which_set='train',
                                           one_hot=1,
                                           model=dbm, start=0,
                                           stop=hyper_params_mlp['train_stop'],
                                           mf_steps=MF_STEPS)
             train.algorithm.monitoring_dataset = {
-            # 'valid' : mnist_augmented.\
-         # MNIST_AUGMENTED(dataset=train.algorithm.monitoring_dataset['valid'],
-         #                 which_set='train', one_hot=1, model=dbm,
-         #                 start=hyper_params_mlp['train_stop'],
-         #                 stop=hyper_params_mlp['valid_stop'],
-         #                 mf_steps=mf_steps),
-            'test' : mnist_augmented.\
-           MNIST_AUGMENTED(dataset=train.algorithm.monitoring_dataset['test'],
+            # 'valid' : mnist_augmented.MNIST_AUGMENTED(
+            #              dataset=train.algorithm.monitoring_dataset['valid'],
+            #              which_set='train', one_hot=1, model=dbm,
+            #              start=hyper_params_mlp['train_stop'],
+            #              stop=hyper_params_mlp['valid_stop'],
+            #              mf_steps=mf_steps),
+            'test' : mnist_augmented.MNIST_AUGMENTED(
+                           dataset=train.algorithm.monitoring_dataset['test'],
                            which_set='test', one_hot=1, model=dbm,
                            mf_steps=MF_STEPS)}
 

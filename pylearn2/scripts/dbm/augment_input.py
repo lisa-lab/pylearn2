@@ -12,29 +12,30 @@ It returns a dataset where each example is composed of its previous
 value concatenated with the respective initialization of the second
 hidden layer of the DBM.
 
-Parameters
-----------
-X : ndarray, 2-dimensional
-    a matrix containing the initial dataset
-model : DBM
-    the DBM model to be finetuned. It is used for
-    mean field updates
-mf_steps : int
-    the number of mean field updates
-
-Returns
--------
-final_data : ndarray, 2-dimensional
-    the final augmented dataset
-
-References
-----------
-Salakhutdinov Ruslan and Hinton Geoffrey. "An efficient
-procedure for deep boltzmann machines". 2012.
-"""
-
 
 def augment_input(X, model, mf_steps):
+
+    """
+    Parameters
+    ----------
+    X : ndarray, 2-dimensional
+        A matrix containing the initial dataset.
+    model : DBM
+        The DBM model to be finetuned. It is used for
+        mean field updates.
+    mf_steps : int
+        The number of mean field updates.
+
+    Returns
+    -------
+    final_data : ndarray, 2-dimensional
+        The final augmented dataset.
+
+    References
+    ----------
+    Salakhutdinov Ruslan and Hinton Geoffrey. "An efficient
+    procedure for deep boltzmann machines". 2012.
+    """
 
     print("\nAugmenting data...\n")
 
