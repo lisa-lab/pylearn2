@@ -139,12 +139,14 @@ class VAE(Model):
         rval = OrderedDict()
 
         X = data
-        epsilon_shape = (1, X.shape[0], self.nhid)
+        epsilon_shape = (X.shape[0], self.nhid)
         epsilon = self.sample_from_epsilon(shape=epsilon_shape)
         phi = self.encode_phi(X)
         z = self.sample_from_q_z_given_x(epsilon=epsilon, phi=phi)
-        z = z.reshape((epsilon.shape[0] * epsilon.shape[1], epsilon.shape[2]))
         theta = self.decode_theta(z)
+
+        X_r = self.means_from_theta(theta)
+        rval["reconstruction_mse"] = T.sqr(X - X_r).mean()
 
         posterior_channels = \
             self.posterior.monitoring_channels_from_conditional_params(phi)
