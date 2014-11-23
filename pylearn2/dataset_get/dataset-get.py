@@ -9,6 +9,7 @@
 # to standard library modules, with no
 # extra dependencies.
 #
+from __future__ import print_function
 
 __authors__   = "Steven Pigeon"
 __copyright__ = "(c) 2012, Université de Montréal"
@@ -22,6 +23,8 @@ import warnings
 import urllib,urllib2
 import tarfile
 import subprocess
+
+from theano.compat.six.moves import input
 
 logger = logging.getLogger(__name__)
 
@@ -375,7 +378,7 @@ def read_installed_packages_list():
         global installed_packages_list
         try:
             installed_list_file=open(config_filename)
-        except IOError, e:
+        except IOError:
             # not a problem if not found in a location
             pass
         else:
@@ -428,7 +431,7 @@ def write_installed_packages_list():
     global installed_packages_list
     try:
         tmp=open(os.path.join(dataset_conf_path,"installed.lst.2"),"w")
-    except IOError,e:
+    except IOError:
         raise RuntimeError("[cf] fatal: cannot create temp file")
     else:
         # ok, probably worked?
@@ -440,12 +443,13 @@ def write_installed_packages_list():
             if package.where!=None and \
                     file_access_rights(os.path.join(package.where,package.name),
                                       os.F_OK | os.R_OK):
-                print >>tmp,\
+                print(
                     " ".join(map(str,[ package.name,
                                        package.timestamp,
                                        package.readable_size,
                                        urllib.quote(package.source,"/:~"),
-                                       urllib.quote(package.where,"/:~") ] ))
+                                       urllib.quote(package.where,"/:~") ] )),
+                    file=tmp)
 
         # replace the installed.lst in
         # a safe way
@@ -815,7 +819,7 @@ def upgrade_packages(packages_to_upgrade, hook=None ):
             readable_size = packages_sources[this_package].readable_size
             logger.info("{0} ({1})".format(this_package, readable_size))
 
-        r=raw_input("Proceed? [yes/N] ")
+        r = input("Proceed? [yes/N] ")
         if r=='y' or r=='yes':
             for  this_package in packages_really_to_upgrade:
                 install_upgrade( packages_sources[this_package], upgrade=True, progress_hook=hook )
@@ -870,7 +874,7 @@ def install_packages( packages_to_install, force_install=False, hook=None ):
             readable_size = packages_sources[this_package].readable_size
             logger.info("{0} ({1})".format(this_package, readable_size))
 
-        r=raw_input("Proceed? [yes/N] ")
+        r = input("Proceed? [yes/N] ")
         if r=='y' or r=='yes':
             for  this_package in packages_really_to_install:
                 install_upgrade( packages_sources[this_package], upgrade=False, progress_hook=hook )
@@ -911,12 +915,12 @@ def install_packages_from_file( packages_to_install ):
             packages.append(corename(this_package))
         logger.info(' '.join(packages))
 
-        r=raw_input("Proceed? [yes/N] ")
+        r = input("Proceed? [yes/N] ")
         if r=='y' or r=='yes':
             for  this_package in packages_really_to_install:
                 #install_upgrade( this_package, upgrade=False, progress_hook=hook )
                 if os.path.exists(dataset_data_path+corename(this_package)):
-                    r=raw_input("[in] '%s' already installed, overwrite? [yes/N] " % corename(this_package))
+                    r = input("[in] '%s' already installed, overwrite? [yes/N] " % corename(this_package))
 
                     if r!='y' and r!='yes':
                         logger.info("[in] skipping package "
@@ -993,7 +997,7 @@ def remove_packages( packages_to_remove ):
             packages.append(this_package)
         logger.info(' '.join(packages))
 
-        r=raw_input("Proceed? [yes/N] ")
+        r = input("Proceed? [yes/N] ")
         if r=='y' or r=='yes':
             for  this_package in packages_really_to_remove:
                 remove_package( installed_packages_list[this_package], dataset_data_path )
@@ -1015,7 +1019,7 @@ def progress_bar( blocks, blocksize, totalsize ):
     caveat: not that great-looking, fix later to
             a cooler progress bar or something.
     """
-    print "\r[dl] %6.2f%% %s" % (min(totalsize,blocks*blocksize)*100.0/totalsize, hook_download_filename),
+    print("\r[dl] %6.2f%% %s" % (min(totalsize,blocks*blocksize)*100.0/totalsize, hook_download_filename), end='')
     sys.stdout.flush()
 
 

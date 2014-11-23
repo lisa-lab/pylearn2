@@ -15,6 +15,7 @@ __email__ = "pylearn-dev@googlegroups"
 
 import logging
 import numpy as np
+from theano.compat.six.moves import xrange
 import warnings
 
 from pylearn2.packaged_dependencies.theano_linear.unshared_conv.localdot import LocalDot

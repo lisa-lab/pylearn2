@@ -7,6 +7,8 @@ import numpy
 np = numpy
 import os
 
+from theano.compat.six.moves import reduce
+
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.datasets import retina
 from pylearn2.datasets.cache import datasetCache
@@ -46,7 +48,7 @@ class NORBSmall(dense_design_matrix.DenseDesignMatrix):
         fname = base + '-%s.npy' % desc
         fname = datasetCache.cache_file(fname)
         fp = open(fname, 'r')
-        data = numpy.load(fp)
+        data = np.load(fp)
         fp.close()
 
         return data
@@ -57,21 +59,21 @@ class NORBSmall(dense_design_matrix.DenseDesignMatrix):
         X = NORBSmall.load(which_set, 'dat')
 
         # put things in pylearn2's DenseDesignMatrix format
-        X = numpy.cast['float32'](X)
+        X = np.cast['float32'](X)
         X = X.reshape(-1, 2 * 96 * 96)
 
         # this is uint8
         y = NORBSmall.load(which_set, 'cat')
         if multi_target:
             y_extra = NORBSmall.load(which_set, 'info')
-            y = numpy.hstack((y[:, numpy.newaxis], y_extra))
+            y = np.hstack((y[:, np.newaxis], y_extra))
 
         if center:
             X -= 127.5
 
         view_converter = dense_design_matrix.DefaultViewConverter((96, 96, 2))
 
-        super(NORBSmall, self).__init__(X=X, y=y,
+        super(NORBSmall, self).__init__(X=X, y=y, y_labels=np.max(y) + 1,
                                         view_converter=view_converter)
 
 
@@ -92,7 +94,6 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
     scale : WRITEME
     start : WRITEME
     stop : WRITEME
-    one_hot : WRITEME
     restrict_instances : WRITEME
     preprocessor : WRITEME
     """
@@ -109,11 +110,11 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
 
         fname = base + '.npy'
         fname = datasetCache.cache_file(fname)
-        data = numpy.load(fname, 'r')
+        data = np.load(fname, 'r')
         return data
 
     def __init__(self, which_set, center=False, scale=False,
-                 start=None, stop=None, one_hot=False, restrict_instances=None,
+                 start=None, stop=None, restrict_instances=None,
                  preprocessor=None):
 
         self.args = locals()
@@ -122,7 +123,7 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
             raise ValueError("Unrecognized which_set value: " + which_set)
 
         X = FoveatedNORB.load(which_set)
-        X = numpy.cast['float32'](X)
+        X = np.cast['float32'](X)
 
         # this is uint8
         y = NORBSmall.load(which_set, 'cat')
@@ -146,11 +147,9 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
                                                           (8, 4, 2, 2))
 
         super(FoveatedNORB, self).__init__(X=X, y=y,
+                                           y_labels=np.max(y) + 1,
                                            view_converter=view_converter,
                                            preprocessor=preprocessor)
-
-        if one_hot:
-            self.convert_to_one_hot()
 
         if restrict_instances is not None:
             assert start is None

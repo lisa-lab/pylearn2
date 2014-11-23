@@ -7,7 +7,7 @@ and open the README.
 Some tutorials are ipython notebooks. These tutorials are single files with
 extension .ipynb. Run these tutorials using ipython, e.g.
 
-ipython notebook softmax_regression.ipnb
+ipython notebook softmax_regression.ipynb
 
 If you get an error message that looks like:
 WARNING:root:500 GET /notebooks/b4261b8b-9d9a-477c-b370-b57f6143ea27?_=1363474284017 (127.0.0.1): Unreadable JSON notebook.

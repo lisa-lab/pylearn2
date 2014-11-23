@@ -13,6 +13,7 @@ __maintainer__ = "Mehdi Mirza"
 __email__ = "mirzamom@iro"
 
 import numpy
+from theano.compat.six.moves import xrange
 import theano
 from theano import tensor
 from theano.gof.op import get_debug_values

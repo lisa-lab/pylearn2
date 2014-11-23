@@ -3,8 +3,7 @@ Utilities for working with videos, pulling out patches, etc.
 """
 import numpy
 
-from theano.compat.python2x import OrderedDict
-
+from pylearn2.compat import OrderedDict
 from pylearn2.utils.rng import make_np_rng
 
 __author__ = "David Warde-Farley"

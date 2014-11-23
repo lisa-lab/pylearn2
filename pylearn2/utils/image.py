@@ -7,11 +7,12 @@ import logging
 import numpy as np
 plt = None
 axes = None
+from theano.compat.six.moves import xrange
 import warnings
 try:
     import matplotlib.pyplot as plt
     import matplotlib.axes
-except (RuntimeError, ImportError), matplotlib_exception:
+except (RuntimeError, ImportError) as matplotlib_exception:
     warnings.warn("Unable to import matplotlib. Some features unavailable. "
             "Original exception: " + str(matplotlib_exception))
 import os
@@ -113,6 +114,11 @@ def show(image):
         If ndarray, integer formats are assumed to use 0-255
         and float formats are assumed to use 0-1
     """
+    viewer_command = string.preprocess('${PYLEARN2_VIEWER_COMMAND}')
+
+    if viewer_command == 'inline':
+        return imview(image)
+
     if hasattr(image, '__array__'):
         #do some shape checking because PIL just raises a tuple indexing error
         #that doesn't make it very clear what the problem is
@@ -161,7 +167,6 @@ def show(image):
     #
 
     image.save(name)
-    viewer_command = string.preprocess('${PYLEARN2_VIEWER_COMMAND}')
     if os.name == 'nt':
         subprocess.Popen(viewer_command + ' ' + name +' && del ' + name,
                          shell=True)
@@ -188,7 +193,7 @@ def pil_from_ndarray(ndarray):
         ensure_Image()
         rval = Image.fromarray(ndarray)
         return rval
-    except Exception, e:
+    except Exception as e:
         logger.exception('original exception: ')
         logger.exception(e)
         logger.exception('ndarray.dtype: {0}'.format(ndarray.dtype))

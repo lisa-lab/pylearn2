@@ -1,11 +1,13 @@
+from __future__ import print_function
+
 import nose
 import unittest
 
 import numpy as np
-
+from theano.compat.six.moves import xrange
 import theano
 
-from localdot import LocalDot
+from .localdot import LocalDot
 
 from ..test_matrixmul import SymbolicSelfTestMixin
 
@@ -88,7 +90,7 @@ class TestLocalDotLargeGray(TestLocalDot32x32):
             raise nose.SkipTest()
 
         # 1. Get a set of image patches from the van Hateren data set
-        print 'Loading van Hateren images'
+        print('Loading van Hateren images')
         n_images = 50
         vh = skdata.vanhateren.dataset.Calibrated(n_images)
         patches = vh.raw_patches((self.n_patches,) + self.imshp,
@@ -110,10 +112,10 @@ class TestLocalDotLargeGray(TestLocalDot32x32):
         # -- Convert patches to localdot format:
         #    groups x colors x rows x cols x images
         patches5 = patches[:, :, :, None, None].transpose(3, 4, 1, 2, 0)
-        print 'Patches shape', patches.shape, self.n_patches, patches5.shape
+        print('Patches shape', patches.shape, self.n_patches, patches5.shape)
 
         # 2. Set up an autoencoder
-        print 'Setting up autoencoder'
+        print('Setting up autoencoder')
         hid = theano.tensor.tanh(self.A.rmul(self.xl))
         out = self.A.rmul_T(hid)
         cost = ((out - self.xl) ** 2).sum()
@@ -133,7 +135,7 @@ class TestLocalDotLargeGray(TestLocalDot32x32):
         for ii in xrange(0, self.n_patches, self.bsize):
             self.xl.set_value(patches5[:, :, :, :, ii:ii + self.bsize], borrow=True)
             cost_ii, = train_fn()
-            print 'Cost', ii, cost_ii
+            print('Cost', ii, cost_ii)
 
         if 0 and show_filters:
             self.A.imshow_gray()

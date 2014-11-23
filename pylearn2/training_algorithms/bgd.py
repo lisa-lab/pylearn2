@@ -12,10 +12,12 @@ __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
 import logging
+import warnings
+
 import numpy as np
 from theano import config
-from theano.compat.python2x import OrderedDict
 
+from pylearn2.compat import OrderedDict, first_value
 from pylearn2.monitor import Monitor
 from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
 from pylearn2.utils.iteration import is_stochastic
@@ -33,6 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 class BGD(TrainingAlgorithm):
+
     """
     Batch Gradient Descent training algorithm class
 
@@ -86,6 +89,7 @@ class BGD(TrainingAlgorithm):
     init_alpha : WRITEME
     seed : WRITEME
     """
+
     def __init__(self, cost=None, batch_size=None, batches_per_iter=None,
                  updates_per_batch=10, monitoring_batch_size=None,
                  monitoring_batches=None, monitoring_dataset=None,
@@ -107,7 +111,7 @@ class BGD(TrainingAlgorithm):
         self.bSetup = False
         self.termination_criterion = termination_criterion
         self.rng = make_np_rng(seed, [2012, 10, 16],
-                which_method=["randn","randint"])
+                               which_method=["randn", "randint"])
 
     def setup(self, model, dataset):
         """
@@ -129,6 +133,15 @@ class BGD(TrainingAlgorithm):
         if self.cost is None:
             self.cost = model.get_default_cost()
 
+        try:
+            if self.cost.is_stochastic():
+                raise TypeError("BGD is not compatible with stochastic "
+                                "costs.")
+        except NotImplementedError:
+            warnings.warn("BGD is not compatible with stochastic costs "
+                          "and cannot determine whether the current cost is "
+                          "stochastic.")
+
         if self.batch_size is None:
             self.batch_size = model.force_batch_size
         else:
@@ -136,8 +149,9 @@ class BGD(TrainingAlgorithm):
             if self.set_batch_size:
                 model.set_batch_size(batch_size)
             elif hasattr(model, 'force_batch_size'):
-                if not (model.force_batch_size <= 0 or batch_size ==
-                        model.force_batch_size):
+                if not (model.force_batch_size is None or
+                        model.force_batch_size <= 0 or
+                        batch_size == model.force_batch_size):
                     raise ValueError("batch_size is %d but " +
                                      "model.force_batch_size is %d" %
                                      (batch_size, model.force_batch_size))
@@ -168,7 +182,7 @@ class BGD(TrainingAlgorithm):
         cost_value = self.cost.expr(model, nested_args,
                                     ** fixed_var_descr.fixed_vars)
         grads, grad_updates = self.cost.get_gradients(
-                model, nested_args, ** fixed_var_descr.fixed_vars)
+            model, nested_args, ** fixed_var_descr.fixed_vars)
 
         assert isinstance(grads, OrderedDict)
         assert isinstance(grad_updates, OrderedDict)
@@ -194,55 +208,54 @@ class BGD(TrainingAlgorithm):
                 self.monitoring_batch_size = self.batch_size
                 self.monitoring_batches = self.batches_per_iter
             self.monitor.setup(
-                    dataset=self.monitoring_dataset,
-                    cost=self.cost,
-                    batch_size=self.monitoring_batch_size,
-                    num_batches=self.monitoring_batches,
-                    obj_prereqs=obj_prereqs,
-                    cost_monitoring_args=fixed_var_descr.fixed_vars)
+                dataset=self.monitoring_dataset,
+                cost=self.cost,
+                batch_size=self.monitoring_batch_size,
+                num_batches=self.monitoring_batches,
+                obj_prereqs=obj_prereqs,
+                cost_monitoring_args=fixed_var_descr.fixed_vars)
 
         params = model.get_params()
 
-
         self.optimizer = BatchGradientDescent(
-                            objective = cost_value,
-                            gradients = grads,
-                            gradient_updates = grad_updates,
-                            params = params,
-                            param_constrainers = [ model.modify_updates ],
-                            lr_scalers = model.get_lr_scalers(),
-                            inputs = theano_args,
-                            verbose = self.verbose_optimization,
-                            max_iter = self.updates_per_batch,
-                            reset_alpha = self.reset_alpha,
-                            conjugate = self.conjugate,
-                            reset_conjugate = self.reset_conjugate,
-                            min_init_alpha = self.min_init_alpha,
-                            line_search_mode = self.line_search_mode,
-                            theano_function_mode=self.theano_function_mode,
-                            init_alpha=self.init_alpha)
+            objective=cost_value,
+            gradients=grads,
+            gradient_updates=grad_updates,
+            params=params,
+            param_constrainers=[model.modify_updates],
+            lr_scalers=model.get_lr_scalers(),
+            inputs=theano_args,
+            verbose=self.verbose_optimization,
+            max_iter=self.updates_per_batch,
+            reset_alpha=self.reset_alpha,
+            conjugate=self.conjugate,
+            reset_conjugate=self.reset_conjugate,
+            min_init_alpha=self.min_init_alpha,
+            line_search_mode=self.line_search_mode,
+            theano_function_mode=self.theano_function_mode,
+            init_alpha=self.init_alpha)
 
         # These monitoring channels keep track of shared variables,
         # which do not need inputs nor data.
         if self.monitoring_dataset is not None:
             self.monitor.add_channel(
-                    name='ave_step_size',
-                    ipt=None,
-                    val=self.optimizer.ave_step_size,
-                    data_specs=(NullSpace(), ''),
-                    dataset=self.monitoring_dataset.values()[0])
+                name='ave_step_size',
+                ipt=None,
+                val=self.optimizer.ave_step_size,
+                data_specs=(NullSpace(), ''),
+                dataset=first_value(self.monitoring_dataset))
             self.monitor.add_channel(
-                    name='ave_grad_size',
-                    ipt=None,
-                    val=self.optimizer.ave_grad_size,
-                    data_specs=(NullSpace(), ''),
-                    dataset=self.monitoring_dataset.values()[0])
+                name='ave_grad_size',
+                ipt=None,
+                val=self.optimizer.ave_grad_size,
+                data_specs=(NullSpace(), ''),
+                dataset=first_value(self.monitoring_dataset))
             self.monitor.add_channel(
-                    name='ave_grad_mult',
-                    ipt=None,
-                    val=self.optimizer.ave_grad_mult,
-                    data_specs=(NullSpace(), ''),
-                    dataset=self.monitoring_dataset.values()[0])
+                name='ave_grad_mult',
+                ipt=None,
+                val=self.optimizer.ave_grad_mult,
+                data_specs=(NullSpace(), ''),
+                dataset=first_value(self.monitoring_dataset))
 
         self.first = True
         self.bSetup = True
@@ -272,23 +285,25 @@ class BGD(TrainingAlgorithm):
             # to know the size of the actual batch.
             # It is not decided yet what the right thing to do should be.
             raise NotImplementedError("Unable to train with BGD, because "
-                    "the cost does not actually use data from the data set. "
-                    "data_specs: %s" % str(data_specs))
+                                      "the cost does not actually use data "
+                                      "from the data set. "
+                                      "data_specs: %s" % str(data_specs))
         flat_data_specs = (CompositeSpace(space_tuple), source_tuple)
 
         iterator = dataset.iterator(mode=train_iteration_mode,
-                batch_size=self.batch_size,
-                num_batches=self.batches_per_iter,
-                data_specs=flat_data_specs, return_tuple=True,
-                rng = rng)
+                                    batch_size=self.batch_size,
+                                    num_batches=self.batches_per_iter,
+                                    data_specs=flat_data_specs,
+                                    return_tuple=True,
+                                    rng=rng)
 
         mode = self.theano_function_mode
         for data in iterator:
             if ('targets' in source_tuple and mode is not None
                     and hasattr(mode, 'record')):
                 Y = data[source_tuple.index('targets')]
-                stry = str(Y).replace('\n',' ')
-                mode.record.handle_line('data Y '+stry+'\n')
+                stry = str(Y).replace('\n', ' ')
+                mode.record.handle_line('data Y ' + stry + '\n')
 
             for on_load_batch in self.on_load_batch:
                 on_load_batch(mapping.nest(data))
@@ -320,7 +335,7 @@ class BGD(TrainingAlgorithm):
         """
         if self.scale_step != 1.:
             self.params = list(model.get_params())
-            self.value = [ param.get_value() for param in self.params ]
+            self.value = [param.get_value() for param in self.params]
 
     def after_step(self, model):
         """
@@ -330,11 +345,13 @@ class BGD(TrainingAlgorithm):
         """
         if self.scale_step != 1:
             for param, value in safe_zip(self.params, self.value):
-                value = (1.-self.scale_step) * value + self.scale_step \
-                        * param.get_value()
+                value = (1. - self.scale_step) * value + self.scale_step \
+                    * param.get_value()
                 param.set_value(value)
 
+
 class StepShrinker(TrainExtension, TerminationCriterion):
+
     """
     .. todo::
 
@@ -342,7 +359,7 @@ class StepShrinker(TrainExtension, TerminationCriterion):
     """
 
     def __init__(self, channel, scale, giveup_after, scale_up=1.,
-            max_scale=1.):
+                 max_scale=1.):
         self.__dict__.update(locals())
         del self.self
         self.continue_learning = True
@@ -365,8 +382,8 @@ class StepShrinker(TrainExtension, TerminationCriterion):
             # so this hack won't be necessary
             hack = monitor.channels.values()[0]
             monitor.add_channel('scale_step', hack.graph_input,
-                    self.monitor_channel, dataset=hack.dataset,
-                    data_specs=hack.data_specs)
+                                self.monitor_channel, dataset=hack.dataset,
+                                data_specs=hack.data_specs)
         channel = monitor.channels[self.channel]
         v = channel.val_record
         if len(v) == 1:
@@ -400,7 +417,6 @@ class StepShrinker(TrainExtension, TerminationCriterion):
         self.monitor_channel.set_value(np.cast[config.floatX](cur))
         self.prev = latest
 
-
     def __call__(self, model):
         """
         .. todo::
@@ -409,7 +425,9 @@ class StepShrinker(TrainExtension, TerminationCriterion):
         """
         return self.continue_learning
 
+
 class ScaleStep(TrainExtension):
+
     """
     .. todo::
 
@@ -443,7 +461,9 @@ class ScaleStep(TrainExtension):
         algorithm.scale_step = cur
         self.monitor_channel.set_value(np.cast[config.floatX](cur))
 
+
 class BacktrackingStepShrinker(TrainExtension, TerminationCriterion):
+
     """
     .. todo::
 
@@ -451,7 +471,7 @@ class BacktrackingStepShrinker(TrainExtension, TerminationCriterion):
     """
 
     def __init__(self, channel, scale, giveup_after, scale_up=1.,
-            max_scale=1.):
+                 max_scale=1.):
         self.__dict__.update(locals())
         del self.self
         self.continue_learning = True
@@ -512,8 +532,7 @@ class BacktrackingStepShrinker(TrainExtension, TerminationCriterion):
         self.monitor_channel.set_value(np.cast[config.floatX](cur))
         self.prev = latest
         self.stored_values = [param.get_value() for param in
-                model.get_params()]
-
+                              model.get_params()]
 
     def __call__(self, model):
         """

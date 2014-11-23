@@ -12,6 +12,7 @@ import warnings
 # Third-party imports
 import numpy
 import scipy
+from theano.compat.six.moves import reduce, xrange
 import theano
 try:
     from matplotlib import pyplot
@@ -20,7 +21,6 @@ except ImportError:
     warnings.warn("Could not import some dependencies.")
 
 # Local imports
-from pylearn2.utils import sharedX
 from pylearn2.utils.rng import make_np_rng
 
 
@@ -258,46 +258,6 @@ class BatchIterator(object):
 # Miscellaneous
 ##################################################
 
-
-def blend(dataset, set_proba, **kwargs):
-    """
-    Randomized blending of datasets in data according to parameters in conf
-
-    .. note:: pylearn2.utils.datasets.blend is deprecated and will be
-              removed on or after 13 August 2014.
-
-    Parameters
-    ----------
-    set_proba : WRITEME
-    kwargs : WRITEME
-
-    Returns
-    -------
-    WRITEME
-    """
-    warnings.warn("pylearn2.utils.datasets.blend is deprecated"
-                  "and will be removed on or after 13 August 2014.",
-                  stacklevel=2)
-    iterator = BatchIterator(dataset, set_proba, 1, **kwargs)
-    nrow = len(iterator)
-    if (isinstance(dataset[0], theano.Variable)):
-        ncol = dataset[0].get_value().shape[1]
-    else:
-        ncol = dataset[0].shape[1]
-    if (scipy.sparse.issparse(dataset[0])):
-        # Special case: the dataset is sparse
-        blocks = [[batch] for batch in iterator]
-        return scipy.sparse.bmat(blocks, 'csr')
-
-    else:
-        # Normal case: the dataset is dense
-        row = 0
-        array = numpy.empty((nrow, ncol), dataset[0].dtype)
-        for batch in iterator:
-            array[row] = batch
-            row += 1
-
-        return sharedX(array, borrow=True)
 
 def minibatch_map(fn, batch_size, input_data, output_data=None,
                   output_width=None):

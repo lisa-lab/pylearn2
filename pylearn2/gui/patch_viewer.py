@@ -2,6 +2,7 @@
 Functionality for display and saving images of collections of images patches.
 """
 import numpy as np
+from theano.compat.six.moves import xrange
 from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
 from pylearn2.utils.image import Image, ensure_Image
 from pylearn2.utils.image import show
@@ -404,7 +405,7 @@ class PatchViewer(object):
             best_c = -1
             best_ratio = 0
 
-            for r in xrange(1,int(np.sqrt(n))+1):
+            for r in xrange(1, int(np.sqrt(n)) + 1):
                 if n % r != 0:
                     continue
                 c = n / r

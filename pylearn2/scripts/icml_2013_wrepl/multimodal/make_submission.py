@@ -1,6 +1,9 @@
+from __future__ import print_function
+
 import numpy as np
 import sys
 
+from theano.compat.six.moves import xrange
 from theano import function
 from theano import tensor as T
 
@@ -17,7 +20,7 @@ where <test set> is public_test or private_test
 
 if len(sys.argv) != 3:
     usage()
-    print "(You used the wrong number of arguments)"
+    print("(You used the wrong number of arguments)")
     quit(-1)
 
 _, model_path, test_set = sys.argv

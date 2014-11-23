@@ -1,4 +1,5 @@
 import numpy
+from theano.compat.six.moves import xrange
 import theano
 from theano.compat.python2x import Counter
 from pylearn2.expr.stochastic_pool import stochastic_max_pool_bc01, weighted_max_pool_bc01

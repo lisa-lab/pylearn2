@@ -10,6 +10,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 import numpy as np
+from theano.compat.six.moves import xrange
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
 from pylearn2.utils import contains_nan
@@ -131,7 +132,8 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
 
         view_converter = dense_design_matrix.DefaultViewConverter((96, 96, 3))
 
-        super(STL10, self).__init__(X=X, y=y, view_converter=view_converter)
+        super(STL10, self).__init__(X=X, y=y, y_labels=10,
+                                    view_converter=view_converter)
 
         for i in xrange(self.X.shape[0]):
             mat = X[i:i + 1, :]

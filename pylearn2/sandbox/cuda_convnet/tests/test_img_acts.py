@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 __authors__ = "David Warde-Farley, Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["David Warde-Farley", "Ian Goodfellow"]
@@ -78,14 +80,14 @@ def test_match_full_conv():
         assert type(output) == type(output_conv2d)
         assert output.dtype == output_conv2d.dtype
         if output.shape != output_conv2d.shape:
-            print 'cuda-convnet shape: ',output.shape
-            print 'theano shape: ',output_conv2d.shape
+            print('cuda-convnet shape: ',output.shape)
+            print('theano shape: ',output_conv2d.shape)
             assert False
         err = np.abs(output - output_conv2d)
-        print 'absolute error range: ', (err.min(), err.max())
-        print 'mean absolute error: ', err.mean()
-        print 'cuda-convnet value range: ', (output.min(), output.max())
-        print 'theano value range: ', (output_conv2d.min(), output_conv2d.max())
+        print('absolute error range: ', (err.min(), err.max()))
+        print('mean absolute error: ', err.mean())
+        print('cuda-convnet value range: ', (output.min(), output.max()))
+        print('theano value range: ', (output_conv2d.min(), output_conv2d.max()))
         assert False
 
 def test_match_full_conv_grad():

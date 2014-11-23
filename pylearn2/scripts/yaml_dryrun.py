@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Script to load (or just parse) a YAML file to verify it before launch."""
+from __future__ import print_function
+
 __authors__ = "David Warde-Farley"
 __copyright__ = "Copyright 2014, Universite de Montreal"
 __credits__ = ["David Warde-Farley"]
@@ -39,10 +41,10 @@ def main(args=None):
     initialize()
     if args.no_instantiate:
         yaml_load(args.yaml_file)
-        print "Successfully parsed %s (but objects not instantiated)." % name
+        print("Successfully parsed %s (but objects not instantiated)." % name)
     else:
         load(args.yaml_file)
-        print "Successfully parsed and loaded %s." % name
+        print("Successfully parsed and loaded %s." % name)
 
 
 if __name__ == "__main__":

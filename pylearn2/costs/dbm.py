@@ -9,17 +9,20 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 
+import collections
 import numpy as np
 import logging
+import operator
 import warnings
 
-from theano.compat.python2x import OrderedDict
+from theano.compat.six.moves import reduce, xrange
 from theano import config
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 RandomStreams = MRG_RandomStreams
 from theano import tensor as T
 
 import pylearn2
+from pylearn2.compat import OrderedDict
 from pylearn2.costs.cost import Cost
 from pylearn2.costs.cost import (
     FixedVarDescr, DefaultDataSpecsMixin, NullDataSpecsMixin
@@ -315,7 +318,7 @@ class BaseCD(Cost):
                 return x.zeros_like()
             layer_to_pos_samples[layer] = recurse_zeros(mf_state)
 
-        layer_to_pos_samples = model.mcmc_steps(
+        layer_to_pos_samples = model.sampling_procedure.sample(
             layer_to_state=layer_to_pos_samples,
             layer_to_clamp=layer_to_clamp,
             num_steps=self.num_gibbs_steps,
@@ -368,7 +371,7 @@ class PCD(DefaultDataSpecsMixin, BaseCD):
         layer_to_chains = model.make_layer_to_state(self.num_chains)
 
         def recurse_check(l):
-            if isinstance(l, (list, tuple)):
+            if isinstance(l, (list, tuple, collections.ValuesView)):
                 for elem in l:
                     recurse_check(elem)
             else:
@@ -711,14 +714,19 @@ class VariationalCD(DefaultDataSpecsMixin, BaseCD):
         # state of the chains
         # We first initialize the chain by clamping the visible layer and the
         # target layer (if it exists)
-        layer_to_chains = model.mcmc_steps(layer_to_chains,
-                                           self.theano_rng,
-                                           layer_to_clamp=layer_to_clamp,
-                                           num_steps=1)
+        layer_to_chains = model.sampling_procedure.sample(
+            layer_to_chains,
+            self.theano_rng,
+            layer_to_clamp=layer_to_clamp,
+            num_steps=1
+        )
+
         # We then do the required mcmc steps
-        layer_to_chains = model.mcmc_steps(layer_to_chains,
-                                           self.theano_rng,
-                                           num_steps=self.num_gibbs_steps)
+        layer_to_chains = model.sampling_procedure.sample(
+            layer_to_chains,
+            self.theano_rng,
+            num_steps=self.num_gibbs_steps
+        )
 
         if self.toronto_neg:
             neg_phase_grads = self._get_toronto_neg(model, layer_to_chains)
@@ -794,7 +802,7 @@ class MF_L1_ActCost(DefaultDataSpecsMixin, Cost):
         if len(layer_costs) == 0:
             return T.as_tensor_variable(0.)
         else:
-            total_cost = reduce(lambda x, y: x + y, layer_costs)
+            total_cost = reduce(operator.add, layer_costs)
         total_cost.name = 'MF_L1_ActCost'
 
         assert total_cost.ndim == 0
@@ -1017,7 +1025,7 @@ class WeightDecay(NullDataSpecsMixin, Cost):
             rval.name = '0_weight_decay'
             return rval
         else:
-            total_cost = reduce(lambda x, y: x + y, layer_costs)
+            total_cost = reduce(operator.add, layer_costs)
         total_cost.name = 'DBM_WeightDecay'
 
         assert total_cost.ndim == 0

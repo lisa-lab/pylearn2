@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -13,12 +15,12 @@ starting from that seed data to see how the DBM's MCMC
 sampling changes the data.
 
 """
-
 from pylearn2.utils import serial
 import sys
 from pylearn2.config import yaml_parse
 from pylearn2.gui.patch_viewer import PatchViewer
 import time
+from theano.compat.six.moves import input, xrange
 from theano import function
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 import numpy as np
@@ -30,14 +32,14 @@ m = rows * cols
 
 _, model_path = sys.argv
 
-print 'Loading model...'
+print('Loading model...')
 model = serial.load(model_path)
 model.set_batch_size(m)
 
 
 dataset_yaml_src = model.dataset_yaml_src
 
-print 'Loading data (used for setting up visualization and seeding gibbs chain) ...'
+print('Loading data (used for setting up visualization and seeding gibbs chain) ...')
 dataset = yaml_parse.load(dataset_yaml_src)
 
 
@@ -73,12 +75,12 @@ def show():
 if hasattr(model.visible_layer, 'beta'):
     beta = model.visible_layer.beta.get_value()
 #model.visible_layer.beta.set_value(beta * 100.)
-    print 'beta: ',(beta.min(), beta.mean(), beta.max())
+    print('beta: ',(beta.min(), beta.mean(), beta.max()))
 
-print 'showing seed data...'
+print('showing seed data...')
 show()
 
-print 'How many Gibbs steps should I run with the seed data clamped? (negative = ignore seed data) '
+print('How many Gibbs steps should I run with the seed data clamped? (negative = ignore seed data) ')
 x = int(input())
 
 
@@ -141,7 +143,7 @@ if x > 0:
     t1 = time.time()
     sample_func = function([], updates=sampling_updates)
     t2 = time.time()
-    print 'Clamped sampling function compilation took',t2-t1
+    print('Clamped sampling function compilation took',t2-t1)
     sample_func()
 
 
@@ -153,12 +155,12 @@ t1 = time.time()
 sample_func = function([], updates=sampling_updates)
 t2 = time.time()
 
-print 'Sampling function compilation took',t2-t1
+print('Sampling function compilation took',t2-t1)
 
 while True:
-    print 'Displaying samples. How many steps to take next? (q to quit, ENTER=1)'
+    print('Displaying samples. How many steps to take next? (q to quit, ENTER=1)')
     while True:
-        x = raw_input()
+        x = input()
         if x == 'q':
             quit()
         if x == '':
@@ -169,10 +171,10 @@ while True:
                 x = int(x)
                 break
             except ValueError:
-                print 'Invalid input, try again'
+                print('Invalid input, try again')
 
     for i in xrange(x):
-        print i
+        print(i)
         sample_func()
 
     validate_all_samples()
@@ -186,7 +188,7 @@ while True:
         y = np.argmax(value, axis=1)
         assert y.ndim == 1
         for i in xrange(0, y.shape[0], cols):
-            print y[i:i+cols]
+            print(y[i:i+cols])
 
 
 

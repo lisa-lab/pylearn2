@@ -2,6 +2,7 @@
 Tests for the pylearn2.utils.serial module. Currently only tests
 read_bin_lush_matrix and load_train_file methods.
 """
+from theano.compat.six.moves import xrange
 import pylearn2
 from pylearn2.utils.serial import read_bin_lush_matrix, load_train_file
 import numpy as np

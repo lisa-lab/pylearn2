@@ -1,11 +1,14 @@
+from __future__ import print_function
+
 import time
 import warnings
 
 import theano
 import theano.tensor as TT
 import numpy
-from linesearch import scalar_armijo_search
-from linesearch import scalar_search_wolfe2
+from theano.compat.six.moves import xrange
+from .linesearch import scalar_armijo_search
+from .linesearch import scalar_search_wolfe2
 
 
 def line_search_armijo(ftemp, derphi0, old_fval, args=(), c1=1e-4, alpha0=1,
@@ -163,15 +166,15 @@ def test():
         thrval2 = f2()
         t_th2 += time.time() - t0
 
-    print 'THEANO (armijo) output :: ', thrval
-    print 'THEANO (wolfe)  output :: ', thrval2
-    print 'NUMPY  (armijo) output :: ', rval
-    print
-    print 'Timings'
-    print
-    print 'theano (armijo)---------> time %e' % t_th
-    print 'theano (wolfe) ---------> time %e' % t_th2
-    print 'numpy  (armijo)---------> time %e' % t_py
+    print('THEANO (armijo) output :: ', thrval)
+    print('THEANO (wolfe)  output :: ', thrval2)
+    print('NUMPY  (armijo) output :: ', rval)
+    print()
+    print('Timings')
+    print()
+    print('theano (armijo)---------> time %e' % t_th)
+    print('theano (wolfe) ---------> time %e' % t_th2)
+    print('numpy  (armijo)---------> time %e' % t_py)
 
 
 if __name__ == '__main__':

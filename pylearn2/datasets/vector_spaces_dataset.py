@@ -79,11 +79,8 @@ class VectorSpacesDataset(Dataset):
 
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 topo=None, targets=None, rng=None, data_specs=None,
+                 rng=None, data_specs=None,
                  return_tuple=False):
-
-        if topo is not None or targets is not None:
-            raise ValueError("You should use the new interface iterator")
 
         if mode is None:
             if hasattr(self, '_iter_subset_class'):

@@ -2,6 +2,7 @@
 from operator import mul
 
 import numpy as np
+from theano.compat.six.moves import reduce
 import theano.sparse
 if theano.sparse.enable_sparse:
     scipy_available = True
@@ -9,7 +10,6 @@ if theano.sparse.enable_sparse:
 else:
     scipy_available = False
 from theano import tensor, config
-
 from pylearn2.utils.exc import reraise_as
 
 
@@ -284,3 +284,101 @@ def convert_to_one_hot(integer_vector, dtype=None, max_labels=None,
     return OneHotFormatter(max_labels, dtype=dtype).format(
         integer_vector, mode=mode, sparse=sparse
     )
+
+
+def _validate_labels(labels, ndim):
+    """
+    Validate that the passed label is in a right data type, and convert
+    it into the desired shape.
+
+    Parameters
+    ----------
+    labels : array_like, 1-dimensional (or 2-dimensional (nlabels, 1))
+        The integer labels to use to construct the one hot matrix.
+    ndim : int
+        Number of dimensions the label have.
+
+    Returns
+    -------
+    labels : ndarray, (nlabels, ) or (nlabels, )
+        The resulting label vector.
+    """
+    labels = np.asarray(labels)
+    if labels.dtype.kind not in ('u', 'i'):
+        raise ValueError("labels must have int or uint dtype")
+    if ndim == 1 and labels.ndim != 1:
+        if labels.ndim == 2 and labels.shape[1] == 1:
+            labels = labels.squeeze()
+        else:
+            raise ValueError("labels must be 1-dimensional")
+    elif ndim == 2 and labels.ndim != 2:
+        raise ValueError("labels must be 2-dimensional, no ragged "
+                         "lists-of-lists")
+    return labels
+
+
+def compressed_one_hot(labels, dtype=None, out=None, simplify_binary=True,
+                       mode='stack', sparse=False):
+    """
+    Construct a one-hot matrix from a vector of integer labels, but
+    only including columns corresponding to integer labels that
+    actually appear.
+
+    Parameters
+    ----------
+    labels : array_like, 1-dimensional (or 2-dimensional (nlabels, 1))
+        The integer labels to use to construct the one hot matrix.
+
+    dtype : str or dtype object, optional
+        The dtype you wish the returned array to have. Defaults
+        to `labels.dtype` if not provided.
+
+    out : ndarray, optional
+        An array to use in lieu of allocating one. Must be the
+        right shape, i.e. same first dimension as `labels` and
+        second dimension greater than or equal to the number of
+        unique values in `labels`.
+
+    simplify_binary : bool, optional
+        If `True`, if there are only two distinct labels, return
+        an `(nlabels, 1)` matrix with 0 denoting the lesser integer
+        label and 1 denoting the greater, instead of a redundant
+        `(nlabels, 2)` matrix.
+    mode : string
+        The way in which to convert the labels to arrays. Takes
+        three different options:
+
+            - "concatenate" : concatenates the one-hot vectors from
+              multiple labels
+            - "stack" : returns a matrix where each row is the
+              one-hot vector of a label
+            - "merge" : merges the one-hot vectors together to
+              form a vector where the elements are
+              the result of an indicator function
+              NB: As the result of an indicator function
+              the result is the same in case a label
+              is duplicated in the input.
+    sparse : bool
+        If true then the return value is sparse matrix. Note that
+        if sparse is True, then mode cannot be 'stack' because
+        sparse matrices need to be 2D
+
+    Returns
+    -------
+    out : ndarray, (nlabels, max_label + 1) or (nlabels, 1)
+        The resulting one-hot matrix.
+
+    uniq : ndarray, 1-dimensional
+        The array of unique values in `labels` in the order
+        in which the corresponding columns appear in `out`.
+    """
+    labels = _validate_labels(labels, ndim=1)
+    labels_ = labels.copy()
+    uniq = np.unique(labels_)
+    for i, e in enumerate(uniq):
+        labels_[labels_ == e] = i
+    if simplify_binary and len(uniq) == 2:
+        return labels_.reshape((labels_.shape[0], 1)), uniq
+    else:
+        return OneHotFormatter(len(uniq), dtype=dtype).format(
+            labels_, mode=mode, sparse=sparse), uniq

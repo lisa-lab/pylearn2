@@ -1,7 +1,6 @@
 """
-.. todo::
-
-    WRITEME
+A dataset that applies a transformation on the fly as examples
+are requested.
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
@@ -10,6 +9,8 @@ __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
+from theano.compat.six import Iterator
+
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.space import CompositeSpace
 from pylearn2.utils.data_specs import is_flat_specs
@@ -17,10 +18,9 @@ from pylearn2.utils import wraps
 
 
 class TransformerDataset(Dataset):
-
     """
-        A dataset that applies a transformation on the fly
-        as examples are requested.
+    A dataset that applies a transformation on the fly
+    as examples are requested.
     """
 
     def __init__(self, raw, transformer, cpu_only=False,
@@ -80,7 +80,7 @@ class TransformerDataset(Dataset):
         return X.reshape(X.shape[0], X.shape[1], 1, 1)
 
     def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 topo=None, targets=None, rng=None, data_specs=None,
+                 rng=None, data_specs=None,
                  return_tuple=False):
         """
         .. todo::
@@ -126,7 +126,7 @@ class TransformerDataset(Dataset):
 
         raw_iterator = self.raw.iterator(
             mode=mode, batch_size=batch_size,
-            num_batches=num_batches, topo=topo, targets=targets, rng=rng,
+            num_batches=num_batches, rng=rng,
             data_specs=raw_data_specs, return_tuple=return_tuple)
 
         final_iterator = TransformerIterator(raw_iterator, self,
@@ -185,7 +185,7 @@ class TransformerDataset(Dataset):
         return self.raw.get_num_examples()
 
 
-class TransformerIterator(object):
+class TransformerIterator(Iterator):
 
     """
     .. todo::
@@ -213,7 +213,7 @@ class TransformerIterator(object):
         """
         return self
 
-    def next(self):
+    def __next__(self):
         """
         .. todo::
 

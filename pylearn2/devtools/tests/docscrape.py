@@ -2,11 +2,15 @@
 
 """
 
+from __future__ import print_function
+
 import inspect
 from nose.plugins.skip import SkipTest
 import re
 import sys
-import types
+
+from theano.compat import six
+
 
 class Reader(object):
     """A line-based string reader.
@@ -127,7 +131,7 @@ class NumpyDocString(object):
         return self._parsed_data[key]
 
     def __setitem__(self,key,val):
-        if not self._parsed_data.has_key(key):
+        if key not in self._parsed_data:
             raise ValueError("Unknown section %s" % key)
         else:
             self._parsed_data[key] = val
@@ -360,7 +364,7 @@ class NumpyDocString(object):
         idx = self['index']
         out = []
         out += ['.. index:: %s' % idx.get('default','')]
-        for section, references in idx.iteritems():
+        for section, references in six.iteritems(idx):
             if section == 'default':
                 continue
             out += ['   :%s: %s' % (section, ', '.join(references))]
@@ -591,7 +595,7 @@ class SphinxDocString(NumpyDocString):
         idx = self['index']
         out = []
         out += ['.. index:: %s' % idx.get('default','')]
-        for section, references in idx.iteritems():
+        for section, references in six.iteritems(idx):
             if section == 'default':
                 continue
             out += ['   :%s: %s' % (section, ', '.join(references))]
@@ -618,10 +622,10 @@ class FunctionDoc(object):
         doclines = inspect.getdoc(self._f) or ''
         try:
             doc = SphinxDocString(doclines)
-        except Exception, e:
-            print '*'*78
-            print "ERROR: '%s' while parsing `%s`" % (e, self._f)
-            print '*'*78
+        except Exception as e:
+            print('*'*78)
+            print("ERROR: '%s' while parsing `%s`" % (e, self._f))
+            print('*'*78)
             #print "Docstring follows:"
             #print doclines
             #print '='*78
@@ -637,7 +641,7 @@ class FunctionDoc(object):
                 argspec = inspect.formatargspec(*argspec)
                 argspec = argspec.replace('*','\*')
                 out += header('%s%s' % (self._f.__name__, argspec), '-')
-            except TypeError, e:
+            except TypeError as e:
                 out += '%s\n' % header('**%s()**'  % self._f.__name__, '-')
 
         out += str(doc)
@@ -667,7 +671,7 @@ class ClassDoc(object):
             return '"'*(match.end() - match.start())
 
         for m in self.methods:
-            print "Parsing `%s`" % m
+            print("Parsing `%s`" % m)
             out += str(FunctionDoc(getattr(self._cls,m))) + '\n\n'
             out += '.. index::\n   single: %s; %s\n\n' % (self._name, m)
 
@@ -734,7 +738,7 @@ def handle_class(val, class_name):
         # Get public methods and parse their docstrings
         methods = dict(((name, func) for name, func in inspect.getmembers(val)
                         if not name.startswith('_') and callable(func) and type(func) is not type))
-        for m_name, method in methods.iteritems():
+        for m_name, method in six.iteritems(methods):
             # skip error check if the method was inherited
             # from a parent class (which means it wasn't
             # defined in this source file)
@@ -774,14 +778,16 @@ def docstring_errors(filename, global_dict=None):
     if '__doc__' not in global_dict:
         global_dict['__doc__'] = None
     try:
-        execfile(filename, global_dict)
+        with open(filename) as f:
+            code = compile(f.read(), filename, 'exec')
+            exec(code, global_dict)
     except SystemExit:
         pass
     except SkipTest:
         raise AssertionError("Couldn't verify format of " + filename +
                 "due to SkipTest")
     all_errors = []
-    for key, val in global_dict.iteritems():
+    for key, val in six.iteritems(global_dict):
         if not key.startswith('_'):
             module_name = ""
             if hasattr(inspect.getmodule(val), '__name__'):
@@ -802,7 +808,7 @@ def docstring_errors(filename, global_dict=None):
 if __name__ == "__main__":
     all_errors = docstring_errors(sys.argv[1])
     if len(all_errors) > 0:
-        print "*" * 30, "docstring errors", "*" * 30
+        print("*" * 30, "docstring errors", "*" * 30)
         for line in all_errors:
-            print ':'.join(line)
+            print(':'.join(line))
     sys.exit(int(len(all_errors) > 0))

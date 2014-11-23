@@ -13,13 +13,14 @@ __email__ = "pylearn-dev@googlegroups"
 
 import logging
 import warnings
-import numpy as np
 
+import numpy as np
+from theano.compat import six
 from theano import config
 from theano import function
-from theano.compat.python2x import OrderedDict
 from theano.gof.op import get_debug_values
 
+from pylearn2.compat import OrderedDict, first_key
 from pylearn2.monitor import Monitor
 from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.train_extensions import TrainExtension
@@ -118,15 +119,6 @@ class SGD(TrainingAlgorithm):
 
         This argument allows more sophisticated learning rules, such
         as SGD with momentum.
-    init_momentum : float, **DEPRECATED** option
-        Use learning_rule instead.
-        If None, does not use momentum otherwise, use momentum and
-        initialize the momentum coefficient to init_momentum. Callbacks
-        can change this over time just like the learning rate. If the
-        gradient is the same on every step, then the update taken by the
-        SGD algorithm is scaled by a factor of 1/(1-momentum). See
-        section 9 of Geoffrey Hinton's "A Practical Guide to Training
-        Restricted Boltzmann Machines" for details.
     set_batch_size : bool, optional
         Defaults to False.
         If True, and batch_size conflicts with model.force_batch_size,
@@ -162,7 +154,7 @@ class SGD(TrainingAlgorithm):
                  monitoring_batch_size=None, monitoring_batches=None,
                  monitoring_dataset=None, monitor_iteration_mode='sequential',
                  termination_criterion=None, update_callbacks=None,
-                 learning_rule = None, init_momentum = None,
+                 learning_rule = None,
                  set_batch_size = False,
                  train_iteration_mode = None, batches_per_iter=None,
                  theano_function_mode = None, monitoring_costs=None,
@@ -173,15 +165,7 @@ class SGD(TrainingAlgorithm):
                             "Costs to represent a sum of Costs. Use " +
                             "pylearn2.costs.cost.SumOfCosts instead.")
 
-        if init_momentum:
-            warnings.warn("init_momentum interface is deprecated and will "
-            "become officially unsuported as of May 9, 2014. Please use the "
-            "`learning_rule` parameter instead, providing an object of type "
-            "`pylearn2.training_algorithms.learning_rule.Momentum` instead")
-            # Convert to new interface under the hood.
-            self.learning_rule = Momentum(init_momentum)
-        else:
-            self.learning_rule = learning_rule
+        self.learning_rule = learning_rule
 
         self.learning_rate = sharedX(learning_rate, 'learning_rate')
         self.cost = cost
@@ -219,7 +203,7 @@ class SGD(TrainingAlgorithm):
         since it may have an effect on `learning_rule.add_channels_to_monitor`
         (that is currently the case for `learning_rule.RMSProp`).
         """
-        if self.monitoring_dataset is not None:
+        if bool(self.monitoring_dataset):
             if (self.monitoring_batch_size is None and
                     self.monitoring_batches is None):
                 self.monitoring_batch_size = self.batch_size
@@ -230,7 +214,7 @@ class SGD(TrainingAlgorithm):
                                num_batches=self.monitoring_batches,
                                extra_costs=self.monitoring_costs,
                                mode=self.monitor_iteration_mode)
-            dataset_name = self.monitoring_dataset.keys()[0]
+            dataset_name = first_key(self.monitoring_dataset)
             monitoring_dataset = self.monitoring_dataset[dataset_name]
             #TODO: have Monitor support non-data-dependent channels
             self.monitor.add_channel(name='learning_rate',
@@ -277,9 +261,7 @@ class SGD(TrainingAlgorithm):
         train_dataset_is_uneven = \
             dataset.get_num_examples() % self.batch_size != 0
 
-        has_monitoring_datasets = \
-            self.monitoring_dataset is not None and \
-            self.monitoring_dataset.values() > 0
+        has_monitoring_datasets = bool(self.monitoring_dataset)
 
         if has_monitoring_datasets:
             monitoring_datasets_are_uneven = \
@@ -888,24 +870,6 @@ class LinearDecay(object):
         new_lr = np.cast[config.floatX](new_lr)
         algorithm.learning_rate.set_value(new_lr)
 
-
-def MomentumAdjustor(final_momentum, start, saturate):
-    """
-    Deprecated class used with the deprecated init_momentum argument.
-    Use learning_rule.MomentumAdjustor instead.
-
-    Parameters
-    ----------
-    final_momentum : WRITEME
-    start : WRITEME
-    saturate : WRITEME
-    """
-    warnings.warn("sgd.MomentumAdjustor interface is deprecated and will "
-    "become officially unsupported as of May 9, 2014. Please use "
-    "`learning_rule.MomentumAdjustor` instead.")
-    return LRMomentumAdjustor(final_momentum, start, saturate)
-
-
 class OneOverEpoch(TrainExtension):
     """
     Scales the learning rate like one over # epochs
@@ -992,6 +956,23 @@ class LinearDecayOverEpoch(TrainExtension):
         assert start >= 0
         assert saturate >= start
 
+    def setup(self, model, dataset, algorithm):
+        """
+        Initializes the decay schedule based on epochs_seen.
+
+        Parameters
+        ----------
+        model : pylearn2.models.Model
+            The model to which the training algorithm is applied.
+        dataset : pylearn2.datasets.Dataset
+            The dataset to which the model is applied.
+        algorithm : pylearn2.training_algorithms.TrainingAlgorithm
+            Describes how gradients should be updated.
+        """
+        monitor = Monitor.get_monitor(model)
+        self._count = monitor.get_epochs_seen()
+        self._apply_learning_rate(algorithm)
+
     def on_monitor(self, model, dataset, algorithm):
         """
         Updates the learning rate based on the linear decay schedule.
@@ -1002,12 +983,16 @@ class LinearDecayOverEpoch(TrainExtension):
         dataset : Dataset
         algorithm : WRITEME
         """
+        self._count += 1
+        self._apply_learning_rate(algorithm)
+
+    def _apply_learning_rate(self, algorithm): 
+        """Updates the learning rate on algorithm based on the epochs elapsed."""
         if not self._initialized:
             self._init_lr = algorithm.learning_rate.get_value()
             self._step = ((self._init_lr - self._init_lr * self.decay_factor) /
                           (self.saturate - self.start + 1))
             self._initialized = True
-        self._count += 1
         algorithm.learning_rate.set_value(np.cast[config.floatX](
             self.current_lr()))
 

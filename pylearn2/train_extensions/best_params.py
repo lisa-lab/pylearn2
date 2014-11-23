@@ -1,8 +1,12 @@
-"""
-.. todo::
+"""TrainExtensions for keeping track of and saving the best
+   parameters during training. TODO: fill out properly."""
+__authors__ = "XXX"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["XXX", "YYY"]
+__license__ = "3-clause BSD"
+__maintainer__ = "LISA Lab"
+__email__ = "pylearn-dev@googlegroups"
 
-    WRITEME
-"""
 from copy import deepcopy
 import logging
 import os.path
@@ -13,6 +17,8 @@ from pylearn2.train_extensions import TrainExtension
 import theano
 import theano.tensor as T
 from pylearn2.utils import serial
+from pylearn2.utils.timing import log_timing
+
 
 log = logging.getLogger(__name__)
 
@@ -44,10 +50,10 @@ class KeepBestParams(TrainExtension):
         if cost.supervised:
             self.supervised = True
             self.cost_function = theano.function(inputs=[self.minibatch,
-                                                          self.target],
-                                                  outputs=cost(model,
-                                                               self.minibatch,
-                                                               self.target))
+                                                         self.target],
+                                                 outputs=cost(model,
+                                                              self.minibatch,
+                                                              self.target))
         else:
             self.supervised = False
             self.cost_function = theano.function(inputs=[self.minibatch],
@@ -192,7 +198,8 @@ class MonitorBasedSaveBest(TrainExtension):
             if self.store_best_model:
                 self.best_model = deepcopy(model)
             if self.save_path is not None:
-                serial.save(self.save_path, model, on_overwrite='backup')
+                with log_timing(log, 'Saving to ' + self.save_path):
+                    serial.save(self.save_path, model, on_overwrite='backup')
 
     def _update_tag(self, model):
         """

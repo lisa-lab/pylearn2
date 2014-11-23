@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import numpy as np
 from optparse import OptionParser
 from pylearn2.models.independent_multiclass_logistic import IndependentMulticlassLogistic
@@ -5,6 +7,7 @@ from galatea.s3c.feature_loading import get_features
 from pylearn2.utils import serial
 from pylearn2.datasets.cifar10 import CIFAR10
 from pylearn2.datasets.cifar100 import CIFAR100
+from theano.compat.six.moves import xrange
 import gc
 gc.collect()
 
@@ -22,18 +25,18 @@ def get_labels_and_fold_indices(cifar10, cifar100, stl10):
     assert stl10+cifar10+cifar100 == 1
 
     if stl10:
-        print 'loading entire stl-10 train set just to get the labels and folds'
+        print('loading entire stl-10 train set just to get the labels and folds')
         stl10 = serial.load("${PYLEARN2_DATA_PATH}/stl10/stl10_32x32/train.pkl")
         train_y = stl10.y
 
         fold_indices = stl10.fold_indices
     elif cifar10 or cifar100:
         if cifar10:
-            print 'loading entire cifar10 train set just to get the labels'
+            print('loading entire cifar10 train set just to get the labels')
             cifar = CIFAR10(which_set = 'train')
         else:
             assert cifar100
-            print 'loading entire cifar100 train set just to get the labels'
+            print('loading entire cifar100 train set just to get the labels')
             cifar = CIFAR100(which_set = 'train')
             cifar.y = cifar.y_fine
         train_y = cifar.y
@@ -64,12 +67,12 @@ def main(train_path,
     cifar100 = dataset == 'cifar100'
     assert stl10 + cifar10 + cifar100 == 1
 
-    print 'getting labels and oflds'
+    print('getting labels and oflds')
     train_y, fold_indices = get_labels_and_fold_indices(cifar10, cifar100, stl10)
     gc.collect()
     assert train_y is not None
 
-    print 'loading training features'
+    print('loading training features')
     train_X = get_features(train_path, split = False, standardize = standardize)
 
     assert str(train_X.dtype) == 'float32'
@@ -79,10 +82,10 @@ def main(train_path,
         assert train_X.shape[0] == 50000
         assert train_y.shape == (50000,)
 
-    print 'training model'
+    print('training model')
     model =  train(train_X, train_y, C)
 
-    print 'saving model'
+    print('saving model')
     serial.save(out_path, model)
 
 if __name__ == '__main__':
@@ -109,7 +112,7 @@ if __name__ == '__main__':
     #log.write('log file started succesfully\n')
     #log.flush()
 
-    print 'parsed the args'
+    print('parsed the args')
     main(train_path='features.npy',
          out_path = 'final_model.pkl',
          C = .01,

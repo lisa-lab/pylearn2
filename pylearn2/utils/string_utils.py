@@ -3,6 +3,8 @@
 import os
 import re
 
+from theano.compat.six.moves import xrange
+
 from pylearn2.utils.exc import EnvironmentVariableError, NoDataPathError
 from pylearn2.utils.exc import reraise_as
 from pylearn2.utils.python26 import cmp_to_key
@@ -80,14 +82,17 @@ def find_number(s):
     Parameters
     ----------
     s : str
-        WRITEME
+        The string to search
 
     Returns
     -------
-    WRITEME
+    output : tuple or None
+        None if no number found
+        Tuple containing the range of character indices of the first
+        number found otherwise.
     """
 
-    r = re.search('-?\d+[.e]?\d*', s)
+    r = re.search('[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?', s)
     if r is not None:
         return r.span(0)
     return None
@@ -101,11 +106,13 @@ def tokenize_by_number(s):
     Parameters
     ----------
     s : str
-        WRITEME
+        The string to be tokenized.
 
     Returns
     -------
-    WRITEME
+    output : list
+        A list. Each element is either a float, or a string containing
+        no numbers.
     """
 
     r = find_number(s)
@@ -173,7 +180,8 @@ def number_aware_alphabetical_cmp(str1, str2):
 
     return 0
 
-#key for sorting strings alphabetically with numbers
+
+# key for sorting strings alphabetically with numbers
 number_aware_alphabetical_key = cmp_to_key(number_aware_alphabetical_cmp)
 
 
@@ -256,6 +264,16 @@ def match(wrong, candidates):
 def censor_non_alphanum(s):
     """
     Returns s with all non-alphanumeric characters replaced with *
+
+    Parameters
+    ----------
+    s : str
+        The string to be censored.
+
+    Returns
+    -------
+    output : str
+        The censored version of `s`
     """
 
     def censor(ch):

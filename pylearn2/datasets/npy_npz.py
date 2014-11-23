@@ -1,7 +1,6 @@
 """Objects for datasets serialized in the NumPy native format (.npy/.npz)."""
 import functools
 import numpy
-from theano import config
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 
 

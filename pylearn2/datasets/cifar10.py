@@ -4,7 +4,7 @@
     WRITEME
 """
 import os
-import cPickle
+from theano.compat.six.moves import cPickle, xrange
 import logging
 _logger = logging.getLogger(__name__)
 
@@ -32,7 +32,6 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     gcn : float, optional
         Multiplicative constant to use for global contrast normalization.
         No global contrast normalization is applied, if None
-    one_hot : WRITEME
     start : WRITEME
     stop : WRITEME
     axes : WRITEME
@@ -41,7 +40,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     """
 
     def __init__(self, which_set, center=False, rescale=False, gcn=None,
-                 one_hot=None, start=None, stop=None, axes=('b', 0, 1, 'c'),
+                 start=None, stop=None, axes=('b', 0, 1, 'c'),
                  toronto_prepro = False, preprocessor = None):
         # note: there is no such thing as the cifar10 validation set;
         # pylearn1 defined one but really it should be user-configurable
@@ -97,15 +96,6 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         if which_set == 'test':
             assert y.shape[0] == 10000
             y = y.reshape((y.shape[0], 1))
-
-        max_labels = 10
-        if one_hot is not None:
-            warnings.warn("the `one_hot` parameter is deprecated. To get "
-                          "one-hot encoded targets, request that they "
-                          "live in `VectorSpace` through the `data_specs` "
-                          "parameter of MNIST's iterator method. "
-                          "`one_hot` will be removed on or after "
-                          "September 20, 2014.", stacklevel=2)
 
         if center:
             X -= 127.5

@@ -1,4 +1,6 @@
 """Tests for iterators."""
+from __future__ import print_function
+
 import numpy as np
 from pylearn2.utils.iteration import (
     SubsetIterator,
@@ -69,7 +71,7 @@ def test_correct_shuffled_sequential_slices():
             visited[idx] = True
         num_batches += 1
 
-    print visited
+    print(visited)
     assert all(visited)
 
     assert num_batches == np.ceil(float(dataset_size)/float(batch_size))

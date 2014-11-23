@@ -12,6 +12,7 @@ try:
 except ImportError:
     h5py = None
 import numpy as np
+from theano.compat.six.moves import xrange
 import warnings
 
 from pylearn2.datasets.dense_design_matrix import (DenseDesignMatrix,

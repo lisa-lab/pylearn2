@@ -10,11 +10,11 @@ To read about different sparse formats, see U{http://www-users.cs.umn.edu/~saad/
 import logging
 import numpy
 from scipy import sparse as scipy_sparse
+from theano.compat.six.moves import xrange
 
 import theano
 import theano.sparse
 from theano import sparse, gof, Op, tensor
-from theano.printing import Print
 
 raise ImportError("THIS OLD CODE'S TESTS ARE BIT-ROTTEN")
 
@@ -233,12 +233,14 @@ class Remove0(Op):
         """
         return gof.Apply(self, [x], [x.type()])
 
-    def perform(self,node, (x,), (z,)):
+    def perform(self,node, xs, zs):
         """
         .. todo::
 
             WRITEME
         """
+        x = xs[0]
+        z = zs[0]
         if x.format != 'csc':
             raise TypeError('Remove0 only works on csc matrices')
 
@@ -262,13 +264,13 @@ class Remove0(Op):
 
         z[0] = sparse.csc_matrix((new_data, new_indices, new_indptr), (M,N))
 
-    def grad(self, (x,), (gz,)):
+    def grad(self, x, gz):
         """
         .. todo::
 
             WRITEME
         """
-        return [gz]
+        return [gz[0]]
 
 remove0 = Remove0()
 
@@ -295,21 +297,21 @@ class EnsureSortedIndices(Op):
         """
         return gof.Apply(self, [x], [x.type()])
 
-    def perform(self,node, (x,), (z,)):
+    def perform(self,node, xs, zs):
         """
         .. todo::
 
             WRITEME
         """
-        z[0] = x.ensure_sorted_indices(inplace=self.inplace)
+        zs[0][0] = xs[0].ensure_sorted_indices(inplace=self.inplace)
 
-    def grad(self, (x,), (gz,)):
+    def grad(self, xs, gz):
         """
         .. todo::
 
             WRITEME
         """
-        return [gz]
+        return [gz[0]]
 
 ensure_sorted_indices = EnsureSortedIndices(inplace=False)
 
@@ -393,14 +395,15 @@ class ConvolutionIndices(Op):
     """
 
     @staticmethod
-    def sparse_eval(inshp, kshp, nkern, (dx,dy)=(1,1), mode='valid'):
+    def sparse_eval(inshp, kshp, nkern, offset=(1, 1), mode='valid'):
         """
         .. todo::
 
             WRITEME
         """
         # STALE
-        return convolution_indices.evaluate(inshp,kshp,(dx,dy),nkern,mode=mode,ws=False)
+        return convolution_indices.evaluate(inshp, kshp, offset, nkern,
+                                            mode=mode, ws=False)
 
     @staticmethod
     def conv_eval(IR, IC, KR, KC, C, subsample=(1,1), mode='valid'):
@@ -414,7 +417,7 @@ class ConvolutionIndices(Op):
 
     # img_shape and ker_shape are (height,width)
     @staticmethod
-    def evaluate(imshp,kshp, (dx,dy)=(1,1), nkern=1, mode='valid', ws=True):
+    def evaluate(imshp, kshp, offset=(1, 1), nkern=1, mode='valid', ws=True):
         """
         Build a sparse matrix which can be used for performing...
         * convolution: in this case, the dot product of this matrix with the
@@ -436,7 +439,7 @@ class ConvolutionIndices(Op):
             'full' full convolution obtained by zero-padding the input
         ws : bool
             True if weight sharing, False otherwise
-        (dx,dy) : tuple of int
+        offset : tuple of int
             Offset parameter. In the case of no weight sharing, gives the \
             pixel offset between two receptive fields. With weight sharing \
             gives the offset between the top-left pixels of the generated \
@@ -449,6 +452,7 @@ class ConvolutionIndices(Op):
             the image which will be the result of filtering.
         """
         N = numpy
+        dx, dy = offset
 
         # inshp contains either 2 entries (height,width) or 3 (nfeatures,h,w)
         # in the first case, default nfeatures to 1
@@ -578,13 +582,15 @@ class ConvolutionIndices(Op):
 
         return rval
 
-    def perform(self, node, (inshp, kshp),\
-                (out_indices, out_indptr, spmat_shape)):
+    def perform(self, node, shape, out):
         """
         .. todo::
 
             WRITEME
         """
+        inshp, kshp = shape
+        out_indices, out_indptr, spmat_shape = out
+
         indices, indptr, spmatshp, outshp = self.evaluate(inshp, kshp)
         out_indices[0] = indices
         out_indptr[0] = indptr

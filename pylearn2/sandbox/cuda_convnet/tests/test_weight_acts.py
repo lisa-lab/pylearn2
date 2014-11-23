@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -89,15 +91,15 @@ def test_match_grad_valid_conv():
             assert type(output) == type(output_conv2d)
             assert output.dtype == output_conv2d.dtype
             if output.shape != output_conv2d.shape:
-                print 'cuda-convnet shape: ', output.shape
-                print 'theano shape: ', output_conv2d.shape
+                print('cuda-convnet shape: ', output.shape)
+                print('theano shape: ', output_conv2d.shape)
                 assert False
             err = np.abs(output - output_conv2d)
-            print 'absolute error range: ', (err.min(), err.max())
-            print 'mean absolute error: ', err.mean()
-            print 'cuda-convnet value range: ', (output.min(), output.max())
-            print 'theano value range: ', (output_conv2d.min(),
-                                           output_conv2d.max())
+            print('absolute error range: ', (err.min(), err.max()))
+            print('mean absolute error: ', err.mean())
+            print('cuda-convnet value range: ', (output.min(), output.max()))
+            print('theano value range: ', (output_conv2d.min(),
+                                           output_conv2d.max()))
             assert False
 
         warnings.warn(
@@ -112,16 +114,16 @@ def test_match_grad_valid_conv():
                                      str(weights_grad))
             assert weights_grad.dtype == weights_grad_conv2d.dtype
             if weights_grad.shape != weights_grad_conv2d.shape:
-                print 'cuda-convnet shape: ', weights_grad.shape
-                print 'theano shape: ', weights_grad_conv2d.shape
+                print('cuda-convnet shape: ', weights_grad.shape)
+                print('theano shape: ', weights_grad_conv2d.shape)
                 assert False
             err = np.abs(weights_grad - weights_grad_conv2d)
-            print 'absolute error range: ', (err.min(), err.max())
-            print 'mean absolute error: ', err.mean()
-            print 'cuda-convnet value range: ', (weights_grad.min(),
-                                                 weights_grad.max())
-            print 'theano value range: ', (weights_grad_conv2d.min(),
-                                           weights_grad_conv2d.max())
+            print('absolute error range: ', (err.min(), err.max()))
+            print('mean absolute error: ', err.mean())
+            print('cuda-convnet value range: ', (weights_grad.min(),
+                                                 weights_grad.max()))
+            print('theano value range: ', (weights_grad_conv2d.min(),
+                                           weights_grad_conv2d.max()))
             assert False
 
 if __name__ == '__main__':

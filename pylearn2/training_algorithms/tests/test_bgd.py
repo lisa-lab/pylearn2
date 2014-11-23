@@ -1,4 +1,4 @@
-import cStringIO
+from theano.compat.six.moves import cStringIO, xrange
 import numpy as np
 
 import theano.tensor as T
@@ -193,7 +193,7 @@ def test_determinism():
                 disturb_mem.disturb_mem()
                 def mlp_pred(non_linearity):
                     Z = [T.dot(X, W) for W in model.W1]
-                    H = map(non_linearity, Z)
+                    H = [non_linearity(z) for z in Z]
                     Z = [T.dot(h, W) for h, W in safe_izip(H, model.W2)]
                     pred = sum(Z)
                     return pred
@@ -238,13 +238,13 @@ def test_determinism():
 
 
 
-    output = cStringIO.StringIO()
+    output = cStringIO()
     record = Record(file_object=output, replay=False)
     record_mode = RecordMode(record)
 
     run_bgd(record_mode)
 
-    output = cStringIO.StringIO(output.getvalue())
+    output = cStringIO(output.getvalue())
     playback = Record(file_object=output, replay=True)
     playback_mode = RecordMode(playback)
 

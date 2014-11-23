@@ -20,6 +20,7 @@ import logging
 import warnings
 
 import numpy as np
+from theano.compat.six.moves import xrange
 
 from pylearn2.datasets import cache
 from pylearn2.utils.iteration import (
@@ -172,20 +173,12 @@ class DenseDesignMatrix(Dataset):
     def __init__(self, X=None, topo_view=None, y=None,
                  view_converter=None, axes=('b', 0, 1, 'c'),
                  rng=_default_seed, preprocessor=None, fit_preprocessor=False,
-                 max_labels=None, X_labels=None, y_labels=None):
+                 X_labels=None, y_labels=None):
         self.X = X
         self.y = y
         self.view_converter = view_converter
         self.X_labels = X_labels
         self.y_labels = y_labels
-
-        if max_labels is not None:
-            warnings.warn("The max_labels argument to DenseDesignMatrix is "
-                          "deprecated. Use the y_labels argument instead. The "
-                          "max_labels argument will be removed on or after "
-                          "6 October 2014", stacklevel=2)
-            assert y_labels is None
-            self.y_labels = max_labels
 
         self._check_labels()
 
@@ -268,75 +261,34 @@ class DenseDesignMatrix(Dataset):
 
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 topo=None, targets=None, rng=None, data_specs=None,
+                 rng=None, data_specs=None,
                  return_tuple=False):
 
-        if topo is not None or targets is not None:
-            if data_specs is not None:
-                raise ValueError('In DenseDesignMatrix.iterator, both the '
-                                 '"data_specs" argument and deprecated '
-                                 'arguments "topo" or "targets" were '
-                                 'provided.',
-                                 (data_specs, topo, targets))
+        if data_specs is None:
+            data_specs = self._iter_data_specs
 
-            warnings.warn("Usage of `topo` and `target` arguments are "
-                          "being deprecated, and will be removed "
-                          "around November 7th, 2013. `data_specs` "
-                          "should be used instead.",
-                          stacklevel=2)
-
-            # build data_specs from topo and targets if needed
-            if topo is None:
-                topo = getattr(self, '_iter_topo', False)
-            if topo:
-                # self.iterator is called without a data_specs, and with
-                # "topo=True", so we use the default topological space
-                # stored in self.X_topo_space
-                assert self.X_topo_space is not None
-                X_space = self.X_topo_space
-            else:
-                X_space = self.X_space
-
-            if targets is None:
-                targets = getattr(self, '_iter_targets', False)
-            if targets:
-                assert self.y is not None
-                y_space = self.data_specs[0].components[1]
-                space = CompositeSpace((X_space, y_space))
-                source = ('features', 'targets')
-            else:
-                space = X_space
-                source = 'features'
-
-            data_specs = (space, source)
-            convert = None
-
+        # If there is a view_converter, we have to use it to convert
+        # the stored data for "features" into one that the iterator
+        # can return.
+        space, source = data_specs
+        if isinstance(space, CompositeSpace):
+            sub_spaces = space.components
+            sub_sources = source
         else:
-            if data_specs is None:
-                data_specs = self._iter_data_specs
+            sub_spaces = (space,)
+            sub_sources = (source,)
 
-            # If there is a view_converter, we have to use it to convert
-            # the stored data for "features" into one that the iterator
-            # can return.
-            space, source = data_specs
-            if isinstance(space, CompositeSpace):
-                sub_spaces = space.components
-                sub_sources = source
+        convert = []
+        for sp, src in safe_zip(sub_spaces, sub_sources):
+            if src == 'features' and \
+               getattr(self, 'view_converter', None) is not None:
+                conv_fn = (lambda batch, self=self, space=sp:
+                           self.view_converter.get_formatted_batch(batch,
+                                                                   space))
             else:
-                sub_spaces = (space,)
-                sub_sources = (source,)
+                conv_fn = None
 
-            convert = []
-            for sp, src in safe_zip(sub_spaces, sub_sources):
-                if src == 'features' and \
-                   getattr(self, 'view_converter', None) is not None:
-                    conv_fn = (lambda batch, self=self, space=sp:
-                               self.view_converter.get_formatted_batch(batch,
-                                                                       space))
-                else:
-                    conv_fn = None
-
-                convert.append(conv_fn)
+            convert.append(conv_fn)
 
         # TODO: Refactor
         if mode is None:
@@ -1525,30 +1477,36 @@ def from_dataset(dataset, num_examples):
     Returns
     -------
     sub_dataset : DenseDesignMatrix
-        A new dataset containing `num_examples` examples randomly
-        drawn (without replacement) from `dataset`
+        A new dataset containing `num_examples` examples. It is a random subset
+        of continuous 'num_examples' examples drawn from `dataset`.
     """
-    try:
+    if dataset.view_converter is not None:
+        try:
 
-        V, y = dataset.get_batch_topo(num_examples, True)
+            V, y = dataset.get_batch_topo(num_examples, True)
 
-    except TypeError:
+        except TypeError:
 
-        # This patches a case where control.get_load_data() is false so
-        # dataset.X is None This logic should be removed whenever we implement
-        # lazy loading
+            # This patches a case where control.get_load_data() is false so
+            # dataset.X is None This logic should be removed whenever we
+            # implement lazy loading
 
-        if isinstance(dataset, DenseDesignMatrix) and \
-           dataset.X is None and \
-           not control.get_load_data():
-            warnings.warn("from_dataset wasn't able to make subset of "
-                          "dataset, using the whole thing")
-            return DenseDesignMatrix(X=None,
-                                     view_converter=dataset.view_converter)
-        raise
+            if isinstance(dataset, DenseDesignMatrix) and \
+               dataset.X is None and \
+               not control.get_load_data():
+                warnings.warn("from_dataset wasn't able to make subset of "
+                              "dataset, using the whole thing")
+                return DenseDesignMatrix(
+                    X=None, view_converter=dataset.view_converter
+                )
+            raise
 
-    rval = DenseDesignMatrix(topo_view=V, y=y, y_labels=dataset.y_labels)
-    rval.adjust_for_viewer = dataset.adjust_for_viewer
+        rval = DenseDesignMatrix(topo_view=V, y=y, y_labels=dataset.y_labels)
+        rval.adjust_for_viewer = dataset.adjust_for_viewer
+
+    else:
+        X, y = dataset.get_batch_design(num_examples, True)
+        rval = DenseDesignMatrix(X=X, y=y, y_labels=dataset.y_labels)
 
     return rval
 

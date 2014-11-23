@@ -4,6 +4,7 @@ Unit tests for ./norb.py
 
 import unittest
 import numpy
+from theano.compat import six
 from pylearn2.datasets.norb import SmallNORB
 from pylearn2.datasets.norb_small import FoveatedNORB
 from pylearn2.datasets.new_norb import NORB
@@ -20,8 +21,7 @@ class TestNORB(unittest.TestCase):
 
         # Test that the FoveatedNORB class can be instantiated
         norb_train = FoveatedNORB(which_set="train",
-                                  scale=1, restrict_instances=[4, 6, 7, 8],
-                                  one_hot=1)
+                                  scale=1, restrict_instances=[4, 6, 7, 8])
 
     def test_get_topological_view(self):
 
@@ -92,7 +92,7 @@ class TestNORB(unittest.TestCase):
             for (label_to_value_map,
                  label_to_value_func) in zip(label_to_value_maps,
                                              norb.label_to_value_funcs):
-                for label, expected_value in label_to_value_map.iteritems():
+                for label, expected_value in six.iteritems(label_to_value_map):
                     actual_value = label_to_value_func(label)
                     assert expected_value == actual_value
 

@@ -12,7 +12,7 @@ __email__ = "pylearn-dev@googlegroups"
 import numpy
 import theano
 import theano.tensor as T
-from theano.compat.python2x import OrderedDict
+from pylearn2.compat import OrderedDict
 from pylearn2.models import Model
 from pylearn2.models.mlp import Linear, CompositeLayer
 from pylearn2.space import VectorSpace, CompositeSpace

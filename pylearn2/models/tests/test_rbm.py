@@ -45,7 +45,7 @@ def test_train_batch():
 
     m = 1
     dim = 2
-    rng = np.random.RandomState([2014, 03, 17])
+    rng = np.random.RandomState([2014, 3, 17])
     X = rng.randn(m, dim)
     train = DenseDesignMatrix(X=X)
 

@@ -15,12 +15,12 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 
+import collections
 import logging
 import numpy as np
 import sys
 
-from theano.compat.python2x import OrderedDict
-
+from pylearn2.compat import OrderedDict
 from pylearn2.expr.nnet import inverse_sigmoid_numpy
 from pylearn2.blocks import Block
 from pylearn2.utils import block_gradient
@@ -120,9 +120,12 @@ class DBMSampler(Block):
         layer_to_chains[self.dbm.visible_layer] = inputs
 
         layer_to_clamp = OrderedDict([(self.dbm.visible_layer, True)])
-        layer_to_chains = self.dbm.mcmc_steps(layer_to_chains, self.theano_rng,
-                                              layer_to_clamp=layer_to_clamp,
-                                              num_steps=1)
+        layer_to_chains = self.dbm.sampling_procedure.sample(
+            layer_to_state=layer_to_chains,
+            theano_rng=self.theano_rng,
+            layer_to_clamp=layer_to_clamp,
+            num_steps=1
+        )
 
         rval = layer_to_chains[last_layer]
         rval = last_layer.upward_state(rval)
@@ -219,7 +222,7 @@ def flatten(l):
     -------
     WRITEME
     """
-    if isinstance(l, (list, tuple)):
+    if isinstance(l, (list, tuple, collections.ValuesView)):
         rval = []
         for elem in l:
             if isinstance(elem, (list, tuple)):

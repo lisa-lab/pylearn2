@@ -23,7 +23,10 @@ import gzip
 import logging
 import os
 import warnings
-import exceptions
+try:
+    from exceptions import DeprecationWarning
+except ImportError:
+    pass
 
 import numpy
 import theano
@@ -40,7 +43,7 @@ logger = logging.getLogger(__name__)
 warnings.warn("Using deprecated module pylearn2.datasets.norb. "
               "This will be replaced with pylearn2.datasets.new_norb in "
               "December 2014. Users are encouraged to switch to that "
-              "module now.", exceptions.DeprecationWarning)
+              "module now.", DeprecationWarning)
 
 
 class SmallNORB(dense_design_matrix.DenseDesignMatrix):
@@ -187,6 +190,7 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
         super(SmallNORB, self).__init__(X=X,
                                         y=y,
+                                        y_labels=numpy.max(y) + 1,
                                         view_converter=view_converter)
 
     @classmethod

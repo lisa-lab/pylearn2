@@ -9,7 +9,7 @@ import operator
 import numpy
 import theano
 from theano import tensor
-from theano.compat.six.moves import zip as izip
+from theano.compat.six.moves import zip as izip, reduce
 
 # Local imports
 from pylearn2.blocks import Block, StackedBlocks
@@ -64,7 +64,11 @@ class Autoencoder(Block, Model):
 
     def __init__(self, nvis, nhid, act_enc, act_dec,
                  tied_weights=False, irange=1e-3, rng=9001):
+        """
+        WRITEME
+        """
         super(Autoencoder, self).__init__()
+        Model.__init__(self)
         assert nvis > 0, "Number of visible units must be non-negative"
         assert nhid > 0, "Number of hidden units must be positive"
 

@@ -42,11 +42,7 @@ class Iris(DenseDesignMatrix):
         assert min(y) == 0
         assert max(y) == 2
 
-        one_hot = np.zeros((150, 3))
-        for i in xrange(len(y)):
-            one_hot[i, y[i]] = 1
-
-        super(Iris, self).__init__(X=X, y=one_hot, preprocessor=preprocessor)
+        super(Iris, self).__init__(X=X, y=y, y_labels=3, preprocessor=preprocessor)
 
 
 iris_data = \

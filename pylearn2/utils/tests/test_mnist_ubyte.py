@@ -1,8 +1,12 @@
 import struct
 import tempfile
+
 import numpy
+from theano.compat import six
+
 from pylearn2.utils.mnist_ubyte import read_mnist_images, read_mnist_labels
 from pylearn2.utils.mnist_ubyte import MNIST_LABEL_MAGIC, MNIST_IMAGE_MAGIC
+
 
 def test_read_labels():
     with tempfile.TemporaryFile() as f:
@@ -17,10 +21,11 @@ def test_read_labels():
         assert arr[2] == 3
         assert arr[3] == 1
 
+
 def test_read_images():
     header = struct.pack('>iiii', MNIST_IMAGE_MAGIC, 4, 3, 2)
-    data =  ('\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00'
-             '\t\x00\x00\x00\x00\x00\x00\xff.\x00\x00\x00\x00\x00')
+    data = six.b('\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00'
+                 '\t\x00\x00\x00\x00\x00\x00\xff.\x00\x00\x00\x00\x00')
     with tempfile.TemporaryFile() as f:
         buf = header + data
         f.write(buf)
@@ -43,5 +48,5 @@ def test_read_images():
         f.seek(0)
         arr = read_mnist_images(f, dtype='bool')
         assert arr.dtype == numpy.dtype('bool')
-        assert arr[2, 2, 1] == True
+        assert arr[2, 2, 1]
         assert (arr == 0).sum() == 23

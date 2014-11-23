@@ -9,6 +9,7 @@ Small NORB: http://www.cs.nyu.edu/~ylclab/data/norb-v1.0-small/
 
 NORB and Small NORB datasets by Fu Jie Huang and Yann LeCun.
 """
+from __future__ import print_function
 
 __authors__ = "Guillaume Desjardins and Matthew Koichi Grimes"
 __copyright__ = "Copyright 2010-2014, Universite de Montreal"
@@ -16,7 +17,6 @@ __credits__ = __authors__.split(" and ")
 __license__ = "3-clause BSD"
 __maintainer__ = "Matthew Koichi Grimes"
 __email__ = "mkg alum mit edu (@..)"
-
 
 import os
 import copy
@@ -223,7 +223,7 @@ class NORB(DenseDesignMatrix):
 
             row_index = 0
             for norb_file in norb_files:
-                print "copying NORB file %s" % os.path.split(norb_file)[1]
+                print("copying NORB file %s" % os.path.split(norb_file)[1])
                 norb_data = read_norb_file(norb_file)
                 norb_data = norb_data.reshape(-1, output.shape[1])
                 end_row = row_index + norb_data.shape[0]
@@ -272,7 +272,7 @@ class NORB(DenseDesignMatrix):
                 if not os.path.isdir(memmap_dir):
                     os.mkdir(memmap_dir)
 
-                print "Allocating memmap file %s" % memmap_path
+                print("Allocating memmap file %s" % memmap_path)
                 writeable_memmap = numpy.memmap(filename=memmap_path,
                                                 dtype=dtype,
                                                 mode='w+',
@@ -281,8 +281,8 @@ class NORB(DenseDesignMatrix):
                 read_norb_files(dat_files, writeable_memmap)
 
             if not os.path.isfile(memmap_path):
-                print ("Caching images to memmap file. This "
-                       "will only be done once.")
+                print("Caching images to memmap file. This "
+                      "will only be done once.")
                 make_memmap()
 
             images = numpy.memmap(filename=memmap_path,
@@ -317,12 +317,12 @@ class NORB(DenseDesignMatrix):
                 if not os.path.isdir(memmap_dir):
                     os.mkdir(memmap_dir)
 
-                print "allocating labels' memmap..."
+                print("allocating labels' memmap...")
                 writeable_memmap = numpy.memmap(filename=memmap_path,
                                                 dtype=dtype,
                                                 mode='w+',
                                                 shape=shape)
-                print "... done."
+                print("... done.")
 
                 cat_memmap = writeable_memmap[:, :1]   # 1st column
                 info_memmap = writeable_memmap[:, 1:]  # remaining columns
@@ -332,8 +332,8 @@ class NORB(DenseDesignMatrix):
                     read_norb_files(norb_files, memmap)
 
             if not os.path.isfile(memmap_path):
-                print ("Caching images to memmap file %s.\n"
-                       "This will only be done once." % memmap_path)
+                print("Caching images to memmap file %s.\n"
+                      "This will only be done once." % memmap_path)
                 make_memmap()
 
             labels = numpy.memmap(filename=memmap_path,
@@ -430,6 +430,7 @@ class NORB(DenseDesignMatrix):
 
         super(NORB, self).__init__(X=images,
                                    y=labels,
+                                   y_labels=numpy.max(labels) + 1,
                                    view_converter=view_converter)
 
         # Needed for pickling / unpickling.

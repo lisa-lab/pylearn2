@@ -20,7 +20,7 @@ import logging
 import numpy as np
 import warnings
 
-from theano.compat.python2x import OrderedDict
+from theano.compat.six.moves import xrange
 from theano.sandbox import cuda
 import theano.tensor as T
 
@@ -29,6 +29,7 @@ if cuda.cuda_available:
     from theano.sandbox.cuda import gpu_from_host
     from theano.sandbox.cuda import host_from_gpu
 
+from pylearn2.compat import OrderedDict
 from pylearn2.linear.conv2d import default_seed, default_sparse_seed
 from pylearn2.linear.linear_transform import LinearTransform
 from pylearn2.sandbox.cuda_convnet import check_cuda
@@ -314,7 +315,7 @@ def make_sparse_random_conv2D(num_nonzero, input_space, output_space,
                   pad=pad, message=message, partial_sum=partial_sum)
 
 
-def setup_detector_layer_c01b(layer, input_space, rng, irange="not specified"):
+def setup_detector_layer_c01b(layer, input_space, rng):
     """
     .. todo::
 
@@ -358,17 +359,6 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange="not specified"):
     rng : WRITEME
         A numpy RandomState or equivalent
     """
-
-    if irange != "not specified":
-        raise AssertionError(
-            "There was a bug in setup_detector_layer_c01b."
-            "It uses layer.irange instead of the irange parameter to the "
-            "function. The irange parameter is now disabled by this "
-            "AssertionError, so that this error message can alert you that "
-            "the bug affected your code and explain why the interface is "
-            "changing. The irange parameter to the function and this "
-            "error message may be removed after April 21, 2014."
-        )
 
     # Use "self" to refer to layer from now on, so we can pretend we're
     # just running in the set_input_space method of the layer

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow", "David Warde-Farley"]
@@ -67,14 +69,14 @@ def test_match_valid_conv():
         assert type(output) == type(output_conv2d)
         assert output.dtype == output_conv2d.dtype
         if output.shape != output_conv2d.shape:
-            print 'cuda-convnet shape: ',output.shape
-            print 'theano shape: ',output_conv2d.shape
+            print('cuda-convnet shape: ',output.shape)
+            print('theano shape: ',output_conv2d.shape)
             assert False
         err = np.abs(output - output_conv2d)
-        print 'absolute error range: ', (err.min(), err.max())
-        print 'mean absolute error: ', err.mean()
-        print 'cuda-convnet value range: ', (output.min(), output.max())
-        print 'theano value range: ', (output_conv2d.min(), output_conv2d.max())
+        print('absolute error range: ', (err.min(), err.max()))
+        print('mean absolute error: ', err.mean())
+        print('cuda-convnet value range: ', (output.min(), output.max()))
+        print('theano value range: ', (output_conv2d.min(), output_conv2d.max()))
         assert False
 
 
@@ -125,14 +127,14 @@ def test_match_valid_conv_strided():
         assert type(output) == type(output_conv2d)
         assert output.dtype == output_conv2d.dtype
         if output.shape != output_conv2d.shape:
-            print 'cuda-convnet shape: ',output.shape
-            print 'theano shape: ',output_conv2d.shape
+            print('cuda-convnet shape: ',output.shape)
+            print('theano shape: ',output_conv2d.shape)
             assert False
         err = np.abs(output - output_conv2d)
-        print 'absolute error range: ', (err.min(), err.max())
-        print 'mean absolute error: ', err.mean()
-        print 'cuda-convnet value range: ', (output.min(), output.max())
-        print 'theano value range: ', (output_conv2d.min(), output_conv2d.max())
+        print('absolute error range: ', (err.min(), err.max()))
+        print('mean absolute error: ', err.mean())
+        print('cuda-convnet value range: ', (output.min(), output.max()))
+        print('theano value range: ', (output_conv2d.min(), output_conv2d.max()))
         assert False
 
 
@@ -191,14 +193,14 @@ def test_match_valid_conv_padded():
         assert type(output) == type(output_conv2d)
         assert output.dtype == output_conv2d.dtype
         if output.shape != output_conv2d.shape:
-            print 'cuda-convnet shape: ',output.shape
-            print 'theano shape: ',output_conv2d.shape
+            print('cuda-convnet shape: ',output.shape)
+            print('theano shape: ',output_conv2d.shape)
             assert False
         err = np.abs(output - output_conv2d)
-        print 'absolute error range: ', (err.min(), err.max())
-        print 'mean absolute error: ', err.mean()
-        print 'cuda-convnet value range: ', (output.min(), output.max())
-        print 'theano value range: ', (output_conv2d.min(), output_conv2d.max())
+        print('absolute error range: ', (err.min(), err.max()))
+        print('mean absolute error: ', err.mean())
+        print('cuda-convnet value range: ', (output.min(), output.max()))
+        print('theano value range: ', (output_conv2d.min(), output_conv2d.max()))
         assert False
 
 
@@ -253,36 +255,36 @@ def test_grad():
                      Probably theano CPU 64 bit is OK but it's worth checking the others.""")
     # XXX: Refactor
     if np.abs(images_grad - images_conv2d_grad).max() > 1.15e-5:
-        print "=== IMAGES GRADIENT ==="
+        print("=== IMAGES GRADIENT ===")
         assert type(images_grad) == type(images_conv2d_grad)
         assert images_grad.dtype == images_conv2d_grad.dtype
         if images_grad.shape != images_conv2d_grad.shape:
-            print 'cuda-convnet shape: ',images_grad.shape
-            print 'theano shape: ',images_conv2d_grad.shape
+            print('cuda-convnet shape: ',images_grad.shape)
+            print('theano shape: ',images_conv2d_grad.shape)
             assert False
         err = np.abs(images_grad - images_conv2d_grad)
-        print 'absolute error range: ', (err.min(), err.max())
-        print 'mean absolute error: ', err.mean()
-        print 'cuda-convnet value range: ', (images_grad.min(),
-                                             images_grad.max())
-        print 'theano value range: ', (images_conv2d_grad.min(),
-                                       images_conv2d_grad.max())
+        print('absolute error range: ', (err.min(), err.max()))
+        print('mean absolute error: ', err.mean())
+        print('cuda-convnet value range: ', (images_grad.min(),
+                                             images_grad.max()))
+        print('theano value range: ', (images_conv2d_grad.min(),
+                                       images_conv2d_grad.max()))
         assert False
     if np.abs(filters_grad - filters_conv2d_grad).max() > 1.15e-5:
-        print "=== FILTERS GRADIENT ==="
+        print("=== FILTERS GRADIENT ===")
         assert type(filters_grad) == type(filters_conv2d_grad)
         assert filters_grad.dtype == filters_conv2d_grad.dtype
         if filters_grad.shape != filters_conv2d_grad.shape:
-            print 'cuda-convnet shape: ',filters_grad.shape
-            print 'theano shape: ',filters_conv2d_grad.shape
+            print('cuda-convnet shape: ',filters_grad.shape)
+            print('theano shape: ',filters_conv2d_grad.shape)
             assert False
         err = np.abs(filters_grad - filters_conv2d_grad)
-        print 'absolute error range: ', (err.min(), err.max())
-        print 'mean absolute error: ', err.mean()
-        print 'cuda-convnet value range: ', (filters_grad.min(),
-                                             filters_grad.max())
-        print 'theano value range: ', (filters_conv2d_grad.min(),
-                                       filters_conv2d_grad.max())
+        print('absolute error range: ', (err.min(), err.max()))
+        print('mean absolute error: ', err.mean())
+        print('cuda-convnet value range: ', (filters_grad.min(),
+                                             filters_grad.max()))
+        print('theano value range: ', (filters_conv2d_grad.min(),
+                                       filters_conv2d_grad.max()))
         assert False
 
 
@@ -343,36 +345,36 @@ def test_grad_strided():
                      Probably theano CPU 64 bit is OK but it's worth checking the others.""")
     # XXX: Refactor
     if np.abs(images_grad - images_conv2d_grad).max() > 1.15e-5:
-        print "=== IMAGES GRADIENT ==="
+        print("=== IMAGES GRADIENT ===")
         assert type(images_grad) == type(images_conv2d_grad)
         assert images_grad.dtype == images_conv2d_grad.dtype
         if images_grad.shape != images_conv2d_grad.shape:
-            print 'cuda-convnet shape: ',images_grad.shape
-            print 'theano shape: ',images_conv2d_grad.shape
+            print('cuda-convnet shape: ',images_grad.shape)
+            print('theano shape: ',images_conv2d_grad.shape)
             assert False
         err = np.abs(images_grad - images_conv2d_grad)
-        print 'absolute error range: ', (err.min(), err.max())
-        print 'mean absolute error: ', err.mean()
-        print 'cuda-convnet value range: ', (images_grad.min(),
-                                             images_grad.max())
-        print 'theano value range: ', (images_conv2d_grad.min(),
-                                       images_conv2d_grad.max())
+        print('absolute error range: ', (err.min(), err.max()))
+        print('mean absolute error: ', err.mean())
+        print('cuda-convnet value range: ', (images_grad.min(),
+                                             images_grad.max()))
+        print('theano value range: ', (images_conv2d_grad.min(),
+                                       images_conv2d_grad.max()))
         assert False
     if np.abs(filters_grad - filters_conv2d_grad).max() > 1e-5:
-        print "=== FILTERS GRADIENT ==="
+        print("=== FILTERS GRADIENT ===")
         assert type(filters_grad) == type(filters_conv2d_grad)
         assert filters_grad.dtype == filters_conv2d_grad.dtype
         if filters_grad.shape != filters_conv2d_grad.shape:
-            print 'cuda-convnet shape: ',filters_grad.shape
-            print 'theano shape: ',filters_conv2d_grad.shape
+            print('cuda-convnet shape: ',filters_grad.shape)
+            print('theano shape: ',filters_conv2d_grad.shape)
             assert False
         err = np.abs(filters_grad - filters_conv2d_grad)
-        print 'absolute error range: ', (err.min(), err.max())
-        print 'mean absolute error: ', err.mean()
-        print 'cuda-convnet value range: ', (filters_grad.min(),
-                                             filters_grad.max())
-        print 'theano value range: ', (filters_conv2d_grad.min(),
-                                       filters_conv2d_grad.max())
+        print('absolute error range: ', (err.min(), err.max()))
+        print('mean absolute error: ', err.mean())
+        print('cuda-convnet value range: ', (filters_grad.min(),
+                                             filters_grad.max()))
+        print('theano value range: ', (filters_conv2d_grad.min(),
+                                       filters_conv2d_grad.max()))
         assert False
 
 

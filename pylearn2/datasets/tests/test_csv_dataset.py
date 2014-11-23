@@ -9,7 +9,7 @@ def test_loading_classification():
                              'datasets', 'tests', 'test.csv')
     d = CSVDataset(path=test_path, expect_headers=False)
     assert(np.array_equal(d.X, np.array([[1., 2., 3.], [4., 5., 6.]])))
-    assert(np.array_equal(d.y, np.array([0., 1.])))
+    assert(np.array_equal(d.y, np.array([[0.], [1.]])))
 
 
 def test_loading_regression():

@@ -10,7 +10,7 @@ from .linear import dot_shape_from_shape
 from .linear import dot
 
 def assert_compute_equal(outputs, inputs=[]):
-    outputs = map(tensor.as_tensor_variable, outputs)
+    outputs = [tensor.as_tensor_variable(o) for o in outputs]
     f = theano.function(inputs, outputs)
     outvals = f()
     assert all(numpy.all(outvals[i] == outvals[0])
@@ -18,7 +18,7 @@ def assert_compute_equal(outputs, inputs=[]):
 
 
 def assert_compute_allclose(outputs, inputs=[]):
-    outputs = map(tensor.as_tensor_variable, outputs)
+    outputs = [tensor.as_tensor_variable(o) for o in outputs]
     f = theano.function(inputs, outputs)
     outvals = f()
     assert all(numpy.allclose(outvals[i], outvals[0])

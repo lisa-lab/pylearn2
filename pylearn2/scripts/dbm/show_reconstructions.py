@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -16,6 +18,7 @@ from pylearn2.utils import serial
 import sys
 from pylearn2.config import yaml_parse
 from pylearn2.gui.patch_viewer import PatchViewer
+from theano.compat.six.moves import input, xrange
 from theano import function
 
 rows = 5
@@ -24,17 +27,17 @@ m = rows * cols
 
 _, model_path = sys.argv
 
-print 'Loading model...'
+print('Loading model...')
 model = serial.load(model_path)
 model.set_batch_size(m)
 
 
 dataset_yaml_src = model.dataset_yaml_src
 
-print 'Loading data...'
+print('Loading data...')
 dataset = yaml_parse.load(dataset_yaml_src)
 
-x = raw_input('use test set? (y/n) ')
+x = input('use test set? (y/n) ')
 
 if x == 'y':
     dataset = dataset.get_test_set()
@@ -121,20 +124,20 @@ def show():
 if hasattr(model.visible_layer, 'beta'):
     beta = model.visible_layer.beta.get_value()
     #model.visible_layer.beta.set_value(beta * 100.)
-    print 'beta: ',(beta.min(), beta.mean(), beta.max())
+    print('beta: ',(beta.min(), beta.mean(), beta.max()))
 
 while True:
     show()
-    print 'Displaying reconstructions. (q to quit, ENTER = show more)'
+    print('Displaying reconstructions. (q to quit, ENTER = show more)')
     while True:
-        x = raw_input()
+        x = input()
         if x == 'q':
             quit()
         if x == '':
             x = 1
             break
         else:
-            print 'Invalid input, try again'
+            print('Invalid input, try again')
 
     vis_batch = dataset.get_batch_topo(m)
 

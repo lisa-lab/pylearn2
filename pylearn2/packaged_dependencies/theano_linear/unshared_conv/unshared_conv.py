@@ -2,7 +2,10 @@
 XXX
 """
 
+from __future__ import print_function
+
 import numpy
+from theano.compat.six.moves import xrange
 import theano
 
 # Use grad_not_implemented for versions of theano that support it
@@ -114,7 +117,7 @@ class FilterActs(Base):
 
                     try:
                         rc_hidacts = numpy.dot(left_arg, right_arg)
-                    except ValueError, e:
+                    except ValueError as e:
                         if 'matrices are not aligned' in str(e):
                             raise ValueError("matrices are not aligned: " + \
                                     str(left_arg.shape) + ' vs ' + str(right_arg.shape))
@@ -122,12 +125,12 @@ class FilterActs(Base):
                             raise
                     hidacts[gg, :, mR, mC, :] = rc_hidacts
         ostor[0][0] = hidacts
-        
+
         print_sizes = 0
         if print_sizes:
-            print 'FilterActs shapes: images', images.shape
-            print 'FilterActs shapes: filters', filters.shape
-            print 'FilterActs shapes: hidacts', hidacts.shape
+            print('FilterActs shapes: images', images.shape)
+            print('FilterActs shapes: filters', filters.shape)
+            print('FilterActs shapes: hidacts', hidacts.shape)
 
     def grad(self, inputs, goutputs):
         images, filters = inputs
