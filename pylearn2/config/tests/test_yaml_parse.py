@@ -52,13 +52,11 @@ def test_notation_regexp():
     Notes
     -----
     This regexp overmatches. E.g. 1.2e+3 matches the regexp,
-    but is already correctly parsed by YAML. On the contrary,
-    .e4 is a border case that's matched by the regexp but is not
-    a valid python expression.
+    but is already correctly parsed by YAML.
     """
-    pattern = re.compile(r'[\-\+]?\d*(\.\d*)?[eE][\-\+]?\d+$')
+    pattern = re.compile(r'^[\-\+]?(\d+\.?\d*|\d*\.?\d+)?[eE][\-\+]?\d+$')
     matches = ['1e3', '1.E4', '-1e-3', '2.3e+4', '.2e4']
-    fails = ['string', '4', '2.1', '1.2e3.2']
+    fails = ['string', '4', '2.1', '1.2e3.2', '.e4', 'a3e4']
 
     for match in matches:
         assert pattern.match(match)

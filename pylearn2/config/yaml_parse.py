@@ -463,7 +463,7 @@ def initialize():
     yaml.add_constructor('!import', constructor_import)
     yaml.add_constructor("!float", constructor_float)
 
-    pattern = re.compile(r'[\-\+]?\d*(\.\d*)?[eE][\-\+]?\d+$')
+    pattern = re.compile(r'^[\-\+]?(\d+\.?\d*|\d*\.?\d+)?[eE][\-\+]?\d+$')
     yaml.add_implicit_resolver('!float', pattern)
 
     is_initialized = True
