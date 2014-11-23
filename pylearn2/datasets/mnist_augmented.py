@@ -9,7 +9,7 @@ from pylearn2.utils import serial
 class MNIST_AUGMENTED(DenseDesignMatrix):
     
     """
-    Loads MNIST dataset and build augmented dataset
+    Loads MNIST dataset and builds augmented dataset
     for DBM discriminative finetuning.
 
     Parameters
