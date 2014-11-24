@@ -37,6 +37,7 @@ class Block(object):
     #       theano Op. Supporting CompositeSpace would allow more complicated
     #       structures than just chains.
     def __init__(self):
+        super(Block, self).__init__()
         self.fn = None
         self.cpu_only = False
 

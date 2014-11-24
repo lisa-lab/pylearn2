@@ -1,0 +1,36 @@
+!obj:pylearn2.train.Train {
+    dataset: &train !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix {
+        rng: !obj:numpy.random.RandomState { seed: [2013, 3, 16] },
+        num_examples: 10,
+        dim: 5,
+        num_classes: 5
+    },
+    model: !obj:pylearn2.models.autoencoder.HigherOrderContractiveAutoencoder {
+        nvis: 5,
+        nhid: 5,
+        irange: 0.05,
+        act_enc: "sigmoid",
+        act_dec: "sigmoid",
+        num_corruptions: 2,
+        corruptor: !obj:pylearn2.corruption.BinomialCorruptor {
+            corruption_level: 0.5
+        }
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        batch_size: 10,
+        learning_rate: .1,
+        monitoring_dataset:
+            {
+                'train' : *train
+            },
+        cost: !obj:pylearn2.costs.cost.SumOfCosts {
+        costs: [
+            !obj:pylearn2.costs.autoencoder.MeanBinaryCrossEntropy {},
+            [0.1, !obj:pylearn2.costs.cost.MethodCost { method: higher_order_penalty }]
+        ]
+    },
+        termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
+            max_epochs: 1,
+        },
+    },
+}
