@@ -1,3 +1,8 @@
+"""
+This is the test version that achieves the
+Hinton & Salakhutdinov's results.
+"""
+
 __authors__ = "Carlo D'Eramo, Francesco Visin, Matteo Matteucci"
 __copyright__ = "Copyright 2014-2015, Politecnico di Milano"
 __credits__ = ["Carlo D'Eramo, Francesco Visin, Matteo Matteucci"]
@@ -39,6 +44,11 @@ MF_STEPS = 1  # mf_steps for data augmentation
 
 @no_debug_mode
 def test_train_example():
+
+    """
+    Parameters
+    ----------
+    """
 
     # path definition
     cwd = os.getcwd()

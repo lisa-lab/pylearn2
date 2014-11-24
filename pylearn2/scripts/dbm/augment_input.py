@@ -1,7 +1,3 @@
-from pylearn2.utils import sharedX
-from theano import function
-import numpy
-
 """
 This module augments the dataset in order to make it suitable for
 DBM discriminative finetuning.
@@ -12,6 +8,10 @@ It returns a dataset where each example is composed of its previous
 value concatenated with the respective initialization of the second
 hidden layer of the DBM.
 """
+
+from pylearn2.utils import sharedX
+from theano import function
+import numpy
 
 
 def augment_input(X, model, mf_steps):

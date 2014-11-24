@@ -1,3 +1,8 @@
+"""
+This is a fast version of test script
+for DBM training.
+"""
+
 __authors__ = "Carlo D'Eramo, Francesco Visin, Matteo Matteucci"
 __copyright__ = "Copyright 2014-2015, Politecnico di Milano"
 __credits__ = ["Carlo D'Eramo, Francesco Visin, Matteo Matteucci"]
@@ -20,7 +25,8 @@ from theano import function
 def test_train_example():
 
     """
-    Fast version of test script
+    Parameters
+    ----------
     """
 
     # path definition
