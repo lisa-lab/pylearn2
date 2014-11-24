@@ -20,7 +20,7 @@ class MNIST_AUGMENTED(DenseDesignMatrix):
     ----------
     dataset : `pylearn2.datasets.dataset.Dataset`
     which_set : str
-        Select between training or test set.
+        Select between training and test set.
     model : `pylearn2.models.model.Model`
         The DBM to be finetuned.
     mf_steps : int
