@@ -12,7 +12,7 @@ import pylearn2.train_extensions.live_monitoring as lm
 
 
 def train_mlp():
-    train('live_monitor_test.yaml')
+    train('pylearn2/pylearn2/train_extensions/tests/live_monitor_test.yaml')
 
 
 def test_live_monitoring():
