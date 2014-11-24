@@ -14,6 +14,7 @@ from theano.printing import Print
 from theano import tensor as T
 from theano.gof.op import get_debug_values
 
+
 def softmax_numpy(x):
     """
     .. todo::
@@ -32,6 +33,7 @@ def softmax_numpy(x):
     stable_x = (x.T - x.max(axis=1)).T
     numer = np.exp(stable_x)
     return (numer.T / numer.sum(axis=1)).T
+
 
 def pseudoinverse_softmax_numpy(x):
     """
@@ -56,6 +58,7 @@ def pseudoinverse_softmax_numpy(x):
     rval -= rval.mean()
     return rval
 
+
 def sigmoid_numpy(x):
     """
     .. todo::
@@ -65,6 +68,7 @@ def sigmoid_numpy(x):
     assert not isinstance(x, theano.gof.Variable)
     return 1. / (1. + np.exp(-x))
 
+
 def inverse_sigmoid_numpy(x):
     """
     .. todo::
@@ -72,6 +76,7 @@ def inverse_sigmoid_numpy(x):
         WRITEME
     """
     return np.log(x / (1. - x))
+
 
 def arg_of_softmax(Y_hat):
     """
@@ -107,6 +112,7 @@ def arg_of_softmax(Y_hat):
     z ,= owner.inputs
     assert z.ndim == 2
     return z
+
 
 def kl(Y, Y_hat, batch_axis):
     """
@@ -168,6 +174,7 @@ def kl(Y, Y_hat, batch_axis):
     ave = total.mean(axis=axes_to_reduce)
 
     return ave
+
 
 def elemwise_kl(Y, Y_hat):
     """
@@ -253,6 +260,7 @@ def softmax_ratio(numer, denom):
 
     return new_num / new_den
 
+
 def compute_precision(tp, fp):
     """
     Computes the precision for the binary decisions.
@@ -273,6 +281,7 @@ def compute_precision(tp, fp):
     precision = tp / T.maximum(1., tp + fp)
     return precision
 
+
 def compute_recall(y, tp):
     """
     Computes the recall for the binary classification.
@@ -291,6 +300,7 @@ def compute_recall(y, tp):
     """
     recall = tp / T.maximum(1., y.sum())
     return recall
+
 
 def compute_f1(precision, recall):
     """
@@ -312,6 +322,6 @@ def compute_f1(precision, recall):
         f1 score for the binary decisions.
     """
     f1 = (2. * precision * recall /
-            T.maximum(1, precision + recall))
+          T.maximum(1, precision + recall))
     return f1
 
