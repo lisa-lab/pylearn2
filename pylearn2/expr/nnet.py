@@ -107,9 +107,9 @@ def arg_of_softmax(Y_hat):
         op = owner.op
     if not isinstance(op, T.nnet.Softmax):
         raise ValueError("Expected Y_hat to be the output of a softmax, "
-                "but it appears to be the output of " + str(op) + " of type "
-                + str(type(op)))
-    z ,= owner.inputs
+                         "but it appears to be the output of " + str(op) +
+                         " of type " + str(type(op)))
+    z, = owner.inputs
     assert z.ndim == 2
     return z
 
@@ -324,4 +324,3 @@ def compute_f1(precision, recall):
     f1 = (2. * precision * recall /
           T.maximum(1, precision + recall))
     return f1
-
