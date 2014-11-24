@@ -26,6 +26,10 @@ def test_train_example():
 
     """
     Fast test script.
+
+    Parameters
+    ----------
+    WRITEME
     """
 
     # path definition

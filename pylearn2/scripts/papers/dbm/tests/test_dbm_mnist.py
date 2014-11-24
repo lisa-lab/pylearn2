@@ -47,6 +47,10 @@ def test_train_example():
 
     """
     Test script.
+
+    Parameters
+    ----------
+    WRITEME
     """
 
     # path definition
