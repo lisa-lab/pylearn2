@@ -18,7 +18,7 @@ from theano import function
 
 @no_debug_mode
 def test_train_example():
-    
+
     """
     Fast version of test script
     """
@@ -145,23 +145,25 @@ def test_train_example():
         dbm = serial.load(os.path.join(train_path, 'dbm_mnist.pkl'))
 
         train.dataset = mnist_augmented.MNIST_AUGMENTED(
-                                        dataset=train.dataset,
-                                        which_set='train',
-                                        one_hot=1,
-                                        model=dbm,
-                                        start=0,
-                                        stop=hyper_params_mlp['train_stop'],
-                                        mf_steps=1)
+            dataset=train.dataset,
+            which_set='train',
+            one_hot=1,
+            model=dbm,
+            start=0,
+            stop=hyper_params_mlp['train_stop'],
+            mf_steps=1)
         train.algorithm.monitoring_dataset = {
-        # 'valid': mnist_augmented.MNIST_AUGMENTED(
-        #                 dataset=train.algorithm.monitoring_dataset['valid'],
-        #                 which_set='train', one_hot=1, model=dbm,
-        #                 start=hyper_params_mlp['train_stop'],
-        #                 stop=hyper_params_mlp['valid_stop'], mf_steps=1),
-        'test': mnist_augmented.MNIST_AUGMENTED(
-                          dataset=train.algorithm.monitoring_dataset['test'],
-                          which_set='test', one_hot=1, model=dbm, start=0,
-                          stop=20, mf_steps=1)
+            '''
+            'valid': mnist_augmented.MNIST_AUGMENTED(
+                dataset=train.algorithm.monitoring_dataset['valid'],
+                which_set='train', one_hot=1, model=dbm,
+                start=hyper_params_mlp['train_stop'],
+                stop=hyper_params_mlp['valid_stop'], mf_steps=1),
+            '''
+            'test': mnist_augmented.MNIST_AUGMENTED(
+                dataset=train.algorithm.monitoring_dataset['test'],
+                which_set='test', one_hot=1, model=dbm, start=0,
+                stop=20, mf_steps=1)
         }
 
         # DBM TRAINED WEIGHTS CLAMPED FOR FINETUNING AS
@@ -170,9 +172,9 @@ def test_train_example():
         # Concatenate weights between first and second hidden layer &
         # weights between visible and first hidden layer
         train.model.layers[0].set_weights(
-                        numpy.concatenate((
-                        dbm.hidden_layers[1].get_weights().transpose(),
-                        dbm.hidden_layers[0].get_weights())))
+            numpy.concatenate((
+                dbm.hidden_layers[1].get_weights().transpose(),
+                dbm.hidden_layers[0].get_weights())))
 
         # then clamp all the others normally
         for l, h in zip(train.model.layers[1:], dbm.hidden_layers[1:]):

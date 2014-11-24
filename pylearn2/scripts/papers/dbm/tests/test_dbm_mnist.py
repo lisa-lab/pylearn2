@@ -152,7 +152,7 @@ def test_train_example():
             # START SUPERVISED TRAINING WITH BACKPROPAGATION
             print("\n-----------------------------------"
                   "       Supervised training           "
-                  "-----------------------------------\n"
+                  "-----------------------------------\n")
 
             # load dbm as a mlp
             if DROPOUT:
@@ -183,23 +183,25 @@ def test_train_example():
                                                'dbm_mnist.pkl'))
 
             train.dataset = mnist_augmented.MNIST_AUGMENTED(
-                                          dataset=train.dataset,
-                                          which_set='train',
-                                          one_hot=1,
-                                          model=dbm, start=0,
-                                          stop=hyper_params_mlp['train_stop'],
-                                          mf_steps=MF_STEPS)
+                dataset=train.dataset,
+                which_set='train',
+                one_hot=1,
+                model=dbm, start=0,
+                stop=hyper_params_mlp['train_stop'],
+                mf_steps=MF_STEPS)
             train.algorithm.monitoring_dataset = {
-            # 'valid' : mnist_augmented.MNIST_AUGMENTED(
-            #              dataset=train.algorithm.monitoring_dataset['valid'],
-            #              which_set='train', one_hot=1, model=dbm,
-            #              start=hyper_params_mlp['train_stop'],
-            #              stop=hyper_params_mlp['valid_stop'],
-            #              mf_steps=mf_steps),
-            'test' : mnist_augmented.MNIST_AUGMENTED(
-                           dataset=train.algorithm.monitoring_dataset['test'],
-                           which_set='test', one_hot=1, model=dbm,
-                           mf_steps=MF_STEPS)}
+                '''
+                'valid': mnist_augmented.MNIST_AUGMENTED(
+                    dataset=train.algorithm.monitoring_dataset['valid'],
+                    which_set='train', one_hot=1, model=dbm,
+                    start=hyper_params_mlp['train_stop'],
+                    stop=hyper_params_mlp['valid_stop'],
+                    mf_steps=mf_steps),
+                '''
+                'test': mnist_augmented.MNIST_AUGMENTED(
+                    dataset=train.algorithm.monitoring_dataset['test'],
+                    which_set='test', one_hot=1, model=dbm,
+                    mf_steps=MF_STEPS)}
 
             # DBM TRAINED WEIGHTS CLAMPED FOR FINETUNING AS
             # EXPLAINED BY HINTON
@@ -207,9 +209,9 @@ def test_train_example():
             # Concatenate weights between first and second hidden
             # layer & weights between visible and first hidden layer
             train.model.layers[0].set_weights(
-                                numpy.concatenate((
-                                dbm.hidden_layers[1].get_weights().transpose(),
-                                dbm.hidden_layers[0].get_weights())))
+                numpy.concatenate((
+                    dbm.hidden_layers[1].get_weights().transpose(),
+                    dbm.hidden_layers[0].get_weights())))
 
             # then clamp all the others normally
             for l, h in zip(train.model.layers[1:], dbm.hidden_layers[1:]):
