@@ -11,7 +11,7 @@ hidden layer of the DBM and augments the example with this state.
 It returns a dataset where each example is composed of its previous
 value concatenated with the respective initialization of the second
 hidden layer of the DBM.
-
+"""
 
 def augment_input(X, model, mf_steps):
 
