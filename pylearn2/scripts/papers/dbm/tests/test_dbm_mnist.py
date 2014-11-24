@@ -46,8 +46,7 @@ MF_STEPS = 1  # mf_steps for data augmentation
 def test_train_example():
 
     """
-    Parameters
-    ----------
+    Test script.
     """
 
     # path definition

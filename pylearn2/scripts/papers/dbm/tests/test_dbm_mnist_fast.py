@@ -25,8 +25,7 @@ from theano import function
 def test_train_example():
 
     """
-    Parameters
-    ----------
+    Fast test script.
     """
 
     # path definition

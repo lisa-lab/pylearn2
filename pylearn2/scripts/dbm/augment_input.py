@@ -17,6 +17,8 @@ import numpy
 def augment_input(X, model, mf_steps):
 
     """
+    Input augmentation script.
+
     Parameters
     ----------
     X : ndarray, 2-dimensional
