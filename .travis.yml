@@ -1,7 +1,4 @@
 language: python
-python:
-  - "2.6"
-  - "3.4"
 before_install:
   - sudo apt-get install -qq libatlas3gf-base libatlas-dev liblapack-dev gfortran
   - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
@@ -17,11 +14,17 @@ install:
   - pip install -q --no-deps git+git://github.com/Theano/Theano.git
   - pip install -q nose-exclude
   - python setup.py develop
-env:
-  - FLAGS=floatX=float64 PART="--exclude-dir=pylearn2/models"
-  - FLAGS=floatX=float64 PART=pylearn2/models
-  - FLAGS=floatX=float32 PART="--exclude-dir=pylearn2/models"
-  - FLAGS=floatX=float32 PART=pylearn2/models
-  - TEST_DOC=YES
+matrix:
+  include:
+    - python: "2.6"
+      env: FLAGS=floatX=float64 PART="--exclude-dir=pylearn2/models"
+    - python: "2.6"
+      env: FLAGS=floatX=float64 PART=pylearn2/models
+    - python: "2.6"
+      env: TEST_DOC=YES
+    - python: "3.4"
+      env: FLAGS=floatX=float32 PART="--exclude-dir=pylearn2/models"
+    - python: "3.4"
+      env: FLAGS=floatX=float32 PART=pylearn2/models
 script:
   - sh .travis.sh
