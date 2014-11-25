@@ -62,10 +62,14 @@ def make_argument_parser():
                         dest='has_row_label',
                         action='store_true',
                         help='Indicates the first column in the input file is row labels')
+    parser.add_argument('--delimiter', '-D',
+                        default=',',
+                        help="Specifies the CSV delimiter for the test file. Usual values are \
+                             comma (default) ',' semicolon ';' colon ':' tabulation '\\t' and space ' '")
     return parser
 
 def predict(model_path, test_path, output_path, predictionType="classification", outputType="int",
-            headers=False, first_col_label=False):
+            headers=False, first_col_label=False, delimiter=","):
     """
     Predict from a pkl file.
 
@@ -111,7 +115,7 @@ def predict(model_path, test_path, output_path, predictionType="classification",
     # x is a numpy array
     # x = pickle.load(open(test_path, 'rb'))
     skiprows = 1 if headers else 0
-    x = np.loadtxt(test_path, delimiter=',', skiprows=skiprows)
+    x = np.loadtxt(test_path, delimiter=delimiter, skiprows=skiprows)
 
     if first_col_label:
         x = x[:,1:]
@@ -135,7 +139,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     ret = predict(args.model_filename, args.test_filename, args.output_filename,
         args.prediction_type, args.output_type,
-        args.has_headers, args.has_row_label)
+        args.has_headers, args.has_row_label, args.delimiter)
     if not ret:
         sys.exit(-1)
 
