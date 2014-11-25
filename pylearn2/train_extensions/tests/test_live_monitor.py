@@ -1,5 +1,6 @@
 import unittest
 from nose.tools import assert_raises
+import os
 import multiprocessing as mp
 
 try:
@@ -7,12 +8,16 @@ try:
 except:
     raise unittest.SkipTest
 
+import pylearn2
 from pylearn2.scripts.train import train
 import pylearn2.train_extensions.live_monitoring as lm
 
 
 def train_mlp():
-    train('pylearn2/pylearn2/train_extensions/tests/live_monitor_test.yaml')
+    train(os.path.join(
+        pylearn2.__path__[0],
+        'train_extensions/tests/live_monitor_test.yaml'
+    ))
 
 
 def test_live_monitoring():
