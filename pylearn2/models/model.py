@@ -342,6 +342,7 @@ class Model(object):
         """
         Deprecated method. Callers should call modify_updates instead.
         Subclasses should override _modify_updates instead.
+        This method may be removed on or after 2015-05-25.
 
         Parameters
         ----------
@@ -593,6 +594,7 @@ class Model(object):
         Returns the number of visible units of the model.
         Deprecated; this assumes the model operates on a vector.
         Use get_input_space instead.
+        This method may be removed on or after 2015-05-25.
         """
         raise NotImplementedError()
 
@@ -601,6 +603,7 @@ class Model(object):
         Returns the number of visible units of the model.
         Deprecated; this assumes the model operates on a vector.
         Use get_input_space instead.
+        This method may be removed on or after 2015-05-25.
         """
         raise NotImplementedError()
 

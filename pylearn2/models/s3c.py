@@ -2096,19 +2096,6 @@ class E_Step(object):
 
         return H
 
-    def variational_inference(self, V, return_history = False):
-        """
-        .. todo::
-
-            WRITEME
-
-        TODO: rename to infer (for now, infer exists as a synonym)
-        """
-
-        warnings.warn("E_Step.variational_inference is deprecated. It has been renamd to E_step.infer", stacklevel = 2)
-
-        return self.infer( V, return_history)
-
     def infer(self, V, return_history = False):
         """
         ... todo::

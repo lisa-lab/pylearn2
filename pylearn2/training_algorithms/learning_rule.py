@@ -224,10 +224,6 @@ class MomentumAdjustor(TrainExtension):
         """Updates the momentum on algorithm based on the epochs elapsed."""
         if hasattr(algorithm, 'learning_rule'):
             momentum = algorithm.learning_rule.momentum
-        else:
-            # TODO: remove once training_algorithm.sgd.SGD(init_momentum)
-            # is officially deprecated.
-            momentum = algorithm.momentum
 
         if not self._initialized:
             self._init_momentum = momentum.get_value()
