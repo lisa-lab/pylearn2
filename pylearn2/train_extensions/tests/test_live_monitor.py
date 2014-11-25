@@ -14,6 +14,9 @@ import pylearn2.train_extensions.live_monitoring as lm
 
 
 def train_mlp():
+    """
+    Function that trains an MLP for testing the Live Monitoring extension.
+    """
     train(os.path.join(
         pylearn2.__path__[0],
         'train_extensions/tests/live_monitor_test.yaml'
@@ -21,6 +24,11 @@ def train_mlp():
 
 
 def test_live_monitoring():
+    """
+    Function that starts a secondary process to train an MLP with the
+    LiveMonitoring train extension and then uses a LiveMonitor to query for
+    data.
+    """
     # Start training an MLP with the LiveMonitoring train extension
     p = mp.Process(target=train_mlp)
     p.start()
