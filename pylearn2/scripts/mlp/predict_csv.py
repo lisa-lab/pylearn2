@@ -104,7 +104,7 @@ def predict(model_path, test_path, output_path, predictionType="classification",
     if predictionType == "classification":
         Y = T.argmax(Y, axis=1)
 
-    f = function([X], Y)
+    f = function([X], Y, allow_input_downcast=True)
 
     print("loading data and predicting...")
 
