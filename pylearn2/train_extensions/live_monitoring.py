@@ -143,6 +143,10 @@ class LiveMonitoring(TrainExtension):
     A training extension for remotely monitoring and filtering the channels
     being monitored in real time. PyZMQ must be installed for this extension
     to work.
+
+    Parameters
+    ----------
+    None
     """
     def __init__(self, address='*', req_port=5555, pub_port=5556):
         """
