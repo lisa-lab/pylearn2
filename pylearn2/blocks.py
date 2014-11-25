@@ -4,13 +4,12 @@ for operation on design matrices rather than generic Spaces, and without
 a concept of parameters.
 """
 # Standard library imports
-from __future__ import print_function
-
 import warnings
 
 # Third-party imports
 import theano
 from theano import tensor
+
 try:
     from theano.sparse import SparseType
 except ImportError:
@@ -21,10 +20,11 @@ theano.config.warn.sum_div_dimshuffle_bug = False
 
 use_slow_rng = 0
 if use_slow_rng:
-    print('WARNING: using SLOW rng')
+    print 'WARNING: using SLOW rng'
     RandomStreams = tensor.shared_randomstreams.RandomStreams
 else:
     import theano.sandbox.rng_mrg
+
     RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
 
 
@@ -94,8 +94,8 @@ class Block(object):
 
             WRITEME
         """
-        raise NotImplementedError(
-            "%s does not implement set_input_space yet" % str(type(self)))
+        raise NotImplementedError("%s does not implement "
+                                  "set_input_space yet" % str(type(self)))
 
     def get_input_space(self):
         """
@@ -103,8 +103,8 @@ class Block(object):
 
             WRITEME
         """
-        raise NotImplementedError(
-            "%s does not implement get_input_space yet" % str(type(self)))
+        raise NotImplementedError("%s does not implement "
+                                  "get_input_space yet" % str(type(self)))
 
     def get_output_space(self):
         """
@@ -112,8 +112,8 @@ class Block(object):
 
             WRITEME
         """
-        raise NotImplementedError(
-            "%s does not implement get_output_space yet" % str(type(self)))
+        raise NotImplementedError("%s does not implement "
+                                  "get_output_space yet" % str(type(self)))
 
 
 class StackedBlocks(Block):
@@ -227,11 +227,10 @@ class StackedBlocks(Block):
         WRITEME
         """
         inputs = tensor.matrix()
-        return theano.function(
-            [inputs],
-            outputs=tensor.concatenate(
-                self(inputs)[start_index:end_index]),
-            name=name)
+        outputs = tensor.concatenate(self(inputs)[start_index:end_index])
+        return theano.function([inputs],
+                               outputs=outputs,
+                               name=name)
 
     def append(self, layer):
         """

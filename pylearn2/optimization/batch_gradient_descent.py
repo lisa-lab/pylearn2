@@ -14,13 +14,12 @@ import logging
 import time
 
 import numpy as np
-from theano.compat.six.moves import xrange
 
 from theano import config
+from theano.compat.python2x import OrderedDict
 from theano.printing import var_descriptor
 import theano.tensor as T
 
-from pylearn2.compat import OrderedDict
 from pylearn2.utils import function
 from pylearn2.utils import grad
 from pylearn2.utils import safe_zip
@@ -77,6 +76,7 @@ class BatchGradientDescent(object):
     Calling the `minimize` method with values for for `inputs` will
     update `params` to minimize `objective`.
     """
+
     def __init__(self, objective, params, inputs=None,
                  param_constrainers=None, max_iter=-1,
                  lr_scalers=None, verbose=0, tol=None,
@@ -147,7 +147,7 @@ class BatchGradientDescent(object):
                 name='BatchGradientDescent._compute_grad')
         if self.verbose:
             t2 = time.time()
-            logger.info('done. Took {0}'.format(t2-t1))
+            logger.info('done. Took {0}'.format(t2 - t1))
 
         if self.verbose:
             logger.info('batch gradient class compiling objective function')
@@ -239,8 +239,9 @@ class BatchGradientDescent(object):
                 return sum([(x_elem * y_elem).sum()
                            for x_elem, y_elem in safe_zip(x, y)])
 
-            beta_pr = (dot_product(grad_ordered, grad_ordered) - dot_product(grad_ordered, old_grad_ordered)) / \
-                (1e-7+dot_product(old_grad_ordered, old_grad_ordered))
+            beta_pr = ((dot_product(grad_ordered, grad_ordered) - 
+                       dot_product(grad_ordered, old_grad_ordered)) / 
+                       (1e-7+dot_product(old_grad_ordered, old_grad_ordered)))
             assert beta_pr.ndim == 0
 
             beta = T.maximum(beta_pr, 0.)
@@ -292,7 +293,7 @@ class BatchGradientDescent(object):
         self.ave_step_size = sharedX(0.)
         self.ave_grad_mult = sharedX(0.)
 
-    def minimize(self, * inputs):
+    def minimize(self, *inputs):
         """
         .. todo::
 
@@ -398,7 +399,7 @@ class BatchGradientDescent(object):
                     # we've executed the 'expanding the range of step sizes'
                     # case multiple times)
                     a = np.asarray(alpha_list)
-                    s = a[1:]/a[:-1]
+                    s = a[1:] / a[:-1]
                     max_gap = 5.
                     if s.max() > max_gap:
                         weight = .99
@@ -470,11 +471,11 @@ class BatchGradientDescent(object):
                             elem = results[i]
                             ex = elem[0]
                             if x == ex:
-                                raise AssertionError(str(ex) + "is \
-                                                     already in the list.")
+                                raise AssertionError(str(ex) + "is" 
+                                                     "already in the list.")
                             if x > ex:
-                                if i + 1 == len(results) \
-                                   or x < results[i+1][0]:
+                                if (i + 1 == len(results) or
+                                    x < results[i+1][0]):
                                     results.insert(i+1, (x, res))
                                     return mn - res
                         assert False  # should be unreached
@@ -484,10 +485,10 @@ class BatchGradientDescent(object):
                     elif idx == len(alpha_list) - 1:
                         x = 2 * alpha_list[-1]
                     else:
-                        if obj[idx+1] < obj[idx-1]:
-                            x = (alpha_list[idx] + alpha_list[idx+1])/2.
+                        if obj[idx + 1] < obj[idx - 1]:
+                            x = (alpha_list[idx] + alpha_list[idx + 1]) / 2.
                         else:
-                            x = (alpha_list[idx] + alpha_list[idx-1])/2.
+                            x = (alpha_list[idx] + alpha_list[idx - 1]) / 2.
 
                     if x < 1e-20:
                         break
@@ -517,13 +518,13 @@ class BatchGradientDescent(object):
                 if self.min_init_alpha is not None:
                     x = max(x, 2. * self.min_init_alpha)
 
-                alpha_list = [x/2., x]
+                alpha_list = [x / 2., x]
                 best_obj = mn
             # end if branching on type of line search
 
             new_weight = self.new_weight.get_value()
             old = self.ave_step_size.get_value()
-            update = new_weight * step_size + (1-new_weight) * old
+            update = new_weight * step_size + (1 - new_weight) * old
             update = np.cast[config.floatX](update)
             if self.ave_step_size.dtype == 'float32':
                 assert update.dtype == 'float32'
@@ -589,8 +590,8 @@ class Accumulator(object):
                                    for var in updates])
             for var in updates:
                 update = updates[var]
-                transformed_updates[var] = var + \
-                    (batch_size / total_examples) * update
+                transformed_updates[var] = (var +
+                    (batch_size / total_examples) * update)
         self._shared_mask = [hasattr(elem, 'get_value') for elem in inputs]
         true_inputs = self._true_inputs(inputs)
         self._shared = self._shared_inputs(inputs)
@@ -631,7 +632,7 @@ class Accumulator(object):
             if mask:
                 shared.set_value(elem)
 
-    def __call__(self, * batches):
+    def __call__(self, *batches):
         """
         .. todo::
 
@@ -641,7 +642,7 @@ class Accumulator(object):
             if not isinstance(batch, list):
                 raise TypeError("Expected each argument to be a list,"
                                 " but one argument is " +
-                                str(batch) + " of type "+str(type(batch)))
+                                str(batch) + " of type " + str(type(batch)))
         total_examples = np.cast[config.floatX](
             sum([batch[0].shape[0] for batch in batches]))
         if self.has_updates:

@@ -2,8 +2,6 @@
 Unit tests for format checking
 """
 
-from __future__ import print_function
-
 from nose.plugins.skip import SkipTest
 
 import os
@@ -197,7 +195,6 @@ whitelist_pep8 = [
     "datasets/control.py",
     "datasets/cifar100.py",
     "datasets/transformer_dataset.py",
-    "datasets/dataset.py",
     "termination_criteria/__init__.py",
     "__init__.py",
     "utils/logger.py",
@@ -417,6 +414,7 @@ whitelist_docstrings = [
     'datasets/adult.py',
     'datasets/tfd.py',
     'datasets/icml07.py',
+    'datasets/zca_dataset.py',
     'datasets/filetensor.py',
     'datasets/npy_npz.py',
     'datasets/hepatitis.py',
@@ -455,6 +453,7 @@ whitelist_docstrings = [
     'utils/tests/test_rng.py',
     'utils/tests/test_pooling.py',
     'utils/tests/test_iteration.py',
+    'utils/tests/test_string_utils.py',
     'utils/tests/test_insert_along_axis.py',
     'utils/tests/test_utlc.py',
     'utils/tests/test_compile.py',
@@ -462,6 +461,7 @@ whitelist_docstrings = [
     'utils/key_aware.py',
     'utils/image.py',
     'utils/video.py',
+    'utils/string_utils.py',
     'utils/bit_strings.py',
     'utils/iteration.py',
     'utils/pooling.py',
@@ -582,6 +582,7 @@ whitelist_docstrings = [
     'devtools/nan_guard.py',
     'devtools/__init__.py',
     'devtools/record.py',
+    'train_extensions/best_params.py',
     'corruption.py',
     'datasets/tests/test_tl_challenge.py',
     'datasets/tests/test_tfd.py',
@@ -607,7 +608,6 @@ whitelist_docstrings.extend([
 
 # add files which fail to run to whitelist_docstrings
 whitelist_docstrings.extend([
-    'sandbox/rnn/models/mlp_hook.py',
     'training_algorithms/tests/test_learning_rule.py',
     'models/pca.py',
     'datasets/tests/test_hdf5.py',
@@ -694,12 +694,12 @@ def print_files_information_pep8():
         else:
             if rel_path in whitelist_pep8:
                 non_infracting_files.append(path)
-    print("Files that must be corrected or added to whitelist:")
+    print "Files that must be corrected or added to whitelist:"
     for file in infracting_files:
-        print(file)
-    print("Files that can be removed from whitelist:")
+        print file
+    print "Files that can be removed from whitelist:"
     for file in non_infracting_files:
-        print(file)
+        print file
 
 
 def test_format_docstrings():
@@ -709,7 +709,7 @@ def test_format_docstrings():
 
     try:
         verify_format_docstrings()
-    except SkipTest as e:
+    except SkipTest, e:
         import traceback
         traceback.print_exc(e)
         raise AssertionError(
@@ -731,7 +731,7 @@ def verify_format_docstrings():
             continue
         try:
             format_infractions.extend(docstring_errors(path))
-        except Exception as e:
+        except StandardError as e:
             format_infractions.append(["%s failed to run so format cannot "
                                        "be checked. Error message:\n %s" %
                                        (rel_path, e)])
