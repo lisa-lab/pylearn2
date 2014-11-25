@@ -67,6 +67,15 @@ import os
 # Third-party imports
 import numpy as np
 
+# Disable the display for the plot extension to work
+# An alternative is to create another training script
+if os.getenv('DISPLAY') is None:
+    try:
+        import matplotlib
+        matplotlib.use('Agg')
+    except:
+        pass
+
 # Local imports
 from pylearn2.utils import serial
 from pylearn2.utils.logger import (
