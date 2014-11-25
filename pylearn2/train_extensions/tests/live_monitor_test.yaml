@@ -1,5 +1,10 @@
 !obj:pylearn2.train.Train {
-    dataset: &train !obj:pylearn2.datasets.mnist.MNIST { which_set: 'train' },
+    dataset: &train !obj:pylearn2.testing.datasets.random_dense_design_matrix {
+        rng: !obj:numpy.random.RandomState { seed: 1},
+        num_examples: 50000,
+        dim: 784,
+        num_classes: 10
+    },
     model: !obj:pylearn2.models.softmax_regression.SoftmaxRegression {
         n_classes: 10,
         nvis: 784,
