@@ -12,6 +12,8 @@ import re
 
 from theano.compat import six
 
+SCIENTIFIC_NOTATION_REGEXP = r'^[\-\+]?(\d+\.?\d*|\d*\.?\d+)?[eE][\-\+]?\d+$'
+
 is_initialized = False
 additional_environ = None
 logger = logging.getLogger(__name__)
@@ -463,7 +465,7 @@ def initialize():
     yaml.add_constructor('!import', constructor_import)
     yaml.add_constructor("!float", constructor_float)
 
-    pattern = re.compile(r'^[\-\+]?(\d+\.?\d*|\d*\.?\d+)?[eE][\-\+]?\d+$')
+    pattern = re.compile(SCIENTIFIC_NOTATION_REGEXP)
     yaml.add_implicit_resolver('!float', pattern)
 
     is_initialized = True

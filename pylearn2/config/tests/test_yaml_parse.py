@@ -18,6 +18,7 @@ from pylearn2.compat import first_key, first_value
 from pylearn2.config.yaml_parse import load, load_path, initialize
 from pylearn2.utils import serial
 from pylearn2.utils.exc import reraise_as
+from pylearn2.config.yaml_parse import SCIENTIFIC_NOTATION_REGEXP
 import yaml
 import re
 
@@ -54,7 +55,7 @@ def test_notation_regexp():
     This regexp overmatches. E.g. 1.2e+3 matches the regexp,
     but is already correctly parsed by YAML.
     """
-    pattern = re.compile(r'^[\-\+]?(\d+\.?\d*|\d*\.?\d+)?[eE][\-\+]?\d+$')
+    pattern = re.compile(SCIENTIFIC_NOTATION_REGEXP)
     matches = ['1e3', '1.E4', '-1e-3', '2.3e+4', '.2e4']
     fails = ['string', '4', '2.1', '1.2e3.2', '.e4', 'a3e4']
 
@@ -69,12 +70,16 @@ def test_scientific_notation():
     """
     Test if yaml parses scientific notation as floats.
     """
-    loaded = load('a: {a: 1e3, b: 1.E4, c: -1e-3, d: 2.3e+4, e: .2e4}')
+    loaded = load('a: {a: 1e3, b: 1.E4, c: -1e-3, d: 2.3e+4, e: .2e4, '
+                  'f: 23.53e1, g: 32284.2e+9, h: 2.333993939e-3}')
     assert isinstance(loaded['a']['a'], float)
     assert isinstance(loaded['a']['b'], float)
     assert isinstance(loaded['a']['c'], float)
     assert isinstance(loaded['a']['d'], float)
     assert isinstance(loaded['a']['e'], float)
+    assert isinstance(loaded['a']['f'], float)
+    assert isinstance(loaded['a']['g'], float)
+    assert isinstance(loaded['a']['h'], float)
 
 
 def test_import():
