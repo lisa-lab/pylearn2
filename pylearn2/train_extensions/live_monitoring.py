@@ -202,7 +202,7 @@ class LiveMonitoring(TrainExtension):
             rsp_msg = rsqt_msg.get_response()
 
             if isinstance(rsp_msg, ChannelListResponse):
-                rsp_msg.data = monitor.channels.keys()
+                rsp_msg.data = list(monitor.channels.keys())
 
             if isinstance(rsp_msg, ChannelsResponse):
                 channel_list = rsp_msg.channel_list
