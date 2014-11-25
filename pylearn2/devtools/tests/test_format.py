@@ -168,7 +168,6 @@ whitelist_pep8 = [
     "packaged_dependencies/theano_linear/__init__.py",
     "packaged_dependencies/theano_linear/test_linear.py",
     "expr/tests/test_nnet.py",
-    "expr/nnet.py",
     "expr/image.py",
     "expr/coding.py",
     "expr/normalize.py",
