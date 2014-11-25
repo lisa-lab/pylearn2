@@ -18,3 +18,9 @@ from deprecated.classifier import numpy
 from deprecated.classifier import sharedX
 from deprecated.classifier import tensor
 from deprecated.classifier import theano
+
+def main():
+    pass
+
+if __name__ == "__main__":
+    main()

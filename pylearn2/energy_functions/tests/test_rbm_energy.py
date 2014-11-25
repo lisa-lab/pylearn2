@@ -8,43 +8,44 @@ from pylearn2.utils import as_floatX
 from pylearn2.utils import sharedX
 from pylearn2.linear.matrixmul import MatrixMul
 
-test_m = 2
-
-rng = N.random.RandomState([1, 2, 3])
-nv = 3
-nh = 4
-
-vW = rng.randn(nv, nh)
-W = sharedX(vW)
-vbv = as_floatX(rng.randn(nv))
-bv = T.as_tensor_variable(vbv)
-bv.tag.test_value = vbv
-vbh = as_floatX(rng.randn(nh))
-bh = T.as_tensor_variable(vbh)
-bh.tag.test_value = bh
-vsigma = as_floatX(rng.uniform(0.1, 5))
-sigma = T.as_tensor_variable(vsigma)
-sigma.tag.test_value = vsigma
-
-E = GRBM_Type_1(transformer=MatrixMul(W), bias_vis=bv,
-                bias_hid=bh, sigma=sigma)
-
-V = T.matrix()
-V.tag.test_value = as_floatX(rng.rand(test_m, nv))
-H = T.matrix()
-H.tag.test_value = as_floatX(rng.rand(test_m, nh))
-
-E_func = function([V, H], E([V, H]))
-F_func = function([V], E.free_energy(V))
-log_P_H_given_V_func = function([H, V], E.log_P_H_given_V(H, V))
-score_func = function([V], E.score(V))
-
-F_of_V = E.free_energy(V)
-dummy = T.sum(F_of_V)
-negscore = T.grad(dummy, V)
-score = - negscore
-
-generic_score_func = function([V], score)
+def main():
+    test_m = 2
+    
+    rng = N.random.RandomState([1, 2, 3])
+    nv = 3
+    nh = 4
+    
+    vW = rng.randn(nv, nh)
+    W = sharedX(vW)
+    vbv = as_floatX(rng.randn(nv))
+    bv = T.as_tensor_variable(vbv)
+    bv.tag.test_value = vbv
+    vbh = as_floatX(rng.randn(nh))
+    bh = T.as_tensor_variable(vbh)
+    bh.tag.test_value = bh
+    vsigma = as_floatX(rng.uniform(0.1, 5))
+    sigma = T.as_tensor_variable(vsigma)
+    sigma.tag.test_value = vsigma
+    
+    E = GRBM_Type_1(transformer=MatrixMul(W), bias_vis=bv,
+                    bias_hid=bh, sigma=sigma)
+    
+    V = T.matrix()
+    V.tag.test_value = as_floatX(rng.rand(test_m, nv))
+    H = T.matrix()
+    H.tag.test_value = as_floatX(rng.rand(test_m, nh))
+    
+    E_func = function([V, H], E([V, H]))
+    F_func = function([V], E.free_energy(V))
+    log_P_H_given_V_func = function([H, V], E.log_P_H_given_V(H, V))
+    score_func = function([V], E.score(V))
+    
+    F_of_V = E.free_energy(V)
+    dummy = T.sum(F_of_V)
+    negscore = T.grad(dummy, V)
+    score = - negscore
+    
+    generic_score_func = function([V], score)
 
 
 class TestGRBM_Type_1:
@@ -108,3 +109,7 @@ class TestGRBM_Type_1:
         gSv = generic_score_func(Vv)
 
         assert N.allclose(Sv, gSv)
+
+
+if __name__ == "__main__":
+    main()

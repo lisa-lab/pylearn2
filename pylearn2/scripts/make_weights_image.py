@@ -18,7 +18,7 @@ warnings.warn("make_weights_image.py is deprecated. Use show_weights.py with"
         " the --out flag. make_weights_image.py may be removed on or after "
         "2014-08-28.")
 
-if __name__ == "__main__":
+def main():
     print 'loading model'
     path = sys.argv[1]
     print 'loading done'
@@ -31,3 +31,6 @@ if __name__ == "__main__":
     pv = get_weights_report.get_weights_report(path, rescale)
 
     pv.save(sys.argv[1]+'.png')
+
+if __name__ == "__main__":
+    main()

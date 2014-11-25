@@ -17,23 +17,25 @@ from pylearn2.utils.rng import make_theano_rng
 from pylearn2.models.rbm import BlockGibbsSampler
 
 
-logger = logging.getLogger(__name__)
+def main():
+    logger = logging.getLogger(__name__)
+    
+    logger.debug("Cost changing the recursion limit.")
+    # We need this to be high enough that the big theano graphs we make
+    # when unrolling inference don't cause python to complain.
+    # python intentionally declares stack overflow well before the stack
+    # segment is actually exceeded. But we can't make this value too big
+    # either, or we'll get seg faults when the python interpreter really
+    # does go over the stack segment.
+    # IG encountered seg faults on eos3 (a machine at LISA labo) when using
+    # 50000 so for now it is set to 40000.
+    # I think the actual safe recursion limit can't be predicted in advance
+    # because you don't know how big of a stack frame each function will
+    # make, so there is not really a "correct" way to do this. Really the
+    # python interpreter should provide an option to raise the error
+    # precisely when you're going to exceed the stack segment.
+    sys.setrecursionlimit(40000)
 
-logger.debug("Cost changing the recursion limit.")
-# We need this to be high enough that the big theano graphs we make
-# when unrolling inference don't cause python to complain.
-# python intentionally declares stack overflow well before the stack
-# segment is actually exceeded. But we can't make this value too big
-# either, or we'll get seg faults when the python interpreter really
-# does go over the stack segment.
-# IG encountered seg faults on eos3 (a machine at LISA labo) when using
-# 50000 so for now it is set to 40000.
-# I think the actual safe recursion limit can't be predicted in advance
-# because you don't know how big of a stack frame each function will
-# make, so there is not really a "correct" way to do this. Really the
-# python interpreter should provide an option to raise the error
-# precisely when you're going to exceed the stack segment.
-sys.setrecursionlimit(40000)
 
 class NCE(DefaultDataSpecsMixin, Cost):
     """
@@ -338,3 +340,7 @@ class CDk(Cost):
 
     def get_data_specs(self, model):
         return (model.get_input_space(), model.get_input_source())
+
+
+if __name__ == "__main__":
+    main()
