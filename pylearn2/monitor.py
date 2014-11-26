@@ -49,6 +49,16 @@ class Monitor(object):
     Parameters
     ----------
     model : `pylearn2.models.model.Model`
+
+    Attributes
+    ----------
+    on_channel_conflict : string
+        `error` : this is a behavior when there is conlfict
+            on creating a channel twice
+        `copy_history` : this is a behavior when creating a
+            new channel and transfering history of old_monitor
+        `overwrite` : this is a behavior when creating a
+            new channel without taking an account of old_monitor
     """
 
     def __init__(self, model):
@@ -698,15 +708,21 @@ class Monitor(object):
             reraise_as(ValueError("The dataset specified is not one of the " +
                                   "monitor's datasets"))
 
+        if ((self.on_channel_conflict not in
+             ('error', 'copy_history', 'overwrite'))):
+            raise ValueError("on_channel_conflict should be either 'error'" +
+                             "'copy_history', or 'overwrite'")
+
         if name in self.channels and self.on_channel_conflict == 'error':
             raise ValueError("Tried to create the same channel twice (%s)" %
                              name)
-        elif name in self.channels and\
-                self.on_channel_conflict == 'copy_history':
+        elif ((name in self.channels and
+               self.on_channel_conflict == 'copy_history')):
             self.channels[name] = MonitorChannel(ipt, val, name, data_specs,
                                                  dataset, prereqs,
                                                  self.channels[name])
-        else:
+        elif ((name not in self.channels or
+               self.on_channel_conflict == 'overwrite')):
             self.channels[name] = MonitorChannel(ipt, val, name, data_specs,
                                                  dataset, prereqs)
         self._dirty = True
