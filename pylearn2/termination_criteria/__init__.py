@@ -11,8 +11,6 @@ __email__ = "pylearn-dev@googlegroups"
 
 import functools
 import numpy as np
-import warnings
-
 
 class TerminationCriterion(object):
     """
@@ -37,13 +35,6 @@ class TerminationCriterion(object):
 
         raise NotImplementedError(str(type(self)) + " does not implement " +
                                   "continue_learning.")
-
-    def __call__(self, model):
-        """Support for a deprecated interface."""
-        warnings.warn("TerminationCriterion.__call__ is deprecated, use " +
-                      "continue_learning. __call__ will be removed on or " +
-                      "after July 31, 2014.", stacklevel=2)
-        return self.continue_learning(model)
 
 
 class MonitorBased(TerminationCriterion):

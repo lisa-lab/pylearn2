@@ -1036,8 +1036,6 @@ class MaxoutLocalC01B(Layer):
         If true, all biases in the same channel are constrained to be the
         same as each other. Otherwise, each bias at each location is
         learned independently.
-    max_filter_norm : float, optional
-        DEPRECATED, use max_kernel_norm instead.
     max_kernel_norm : float, optional
         If specified, each kernel is constrained to have at most this norm.
     input_normalization : callable
@@ -1080,7 +1078,6 @@ class MaxoutLocalC01B(Layer):
                  fix_kernel_shape=False,
                  partial_sum=1,
                  tied_b=False,
-                 max_filter_norm=None,
                  max_kernel_norm=None,
                  input_normalization=None,
                  detector_normalization=None,
@@ -1088,13 +1085,6 @@ class MaxoutLocalC01B(Layer):
                  output_normalization=None,
                  input_groups=1,
                  kernel_stride=(1, 1)):
-
-        if max_filter_norm is not None:
-            max_kernel_norm = max_filter_norm
-            warnings.warn("max_filter_norm argument is deprecated, use "
-                          "max_kernel_norm instead. max_filter_norm "
-                          "will be removed on or after 2014-10-02.",
-                          stacklevel=2)
 
         assert (pool_shape is None) == (pool_stride is None)
 
