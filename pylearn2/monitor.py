@@ -49,6 +49,16 @@ class Monitor(object):
     Parameters
     ----------
     model : `pylearn2.models.model.Model`
+
+    Attributes
+    ----------
+    on_channel_conflict : string
+        `error` : this is a behavior when there is conlfict
+            on creating a channel twice
+        `copy_history` : this is a behavior when creating a
+            new channel and transfering history of old_monitor
+        `overwrite` : this is a behavior when creating a
+            new channel without taking an account of old_monitor
     """
 
     def __init__(self, model):
@@ -67,6 +77,7 @@ class Monitor(object):
         self.names_to_del = ['theano_function_mode']
         self.t0 = time.time()
         self.theano_function_mode = None
+        self.on_channel_conflict = 'error'
 
         # Initialize self._nested_data_specs, self._data_specs_mapping,
         # and self._flat_data_specs
@@ -697,12 +708,23 @@ class Monitor(object):
             reraise_as(ValueError("The dataset specified is not one of the " +
                                   "monitor's datasets"))
 
-        if name in self.channels:
+        if ((self.on_channel_conflict not in
+             ('error', 'copy_history', 'overwrite'))):
+            raise ValueError("on_channel_conflict should be either 'error'" +
+                             "'copy_history', or 'overwrite'")
+
+        if name in self.channels and self.on_channel_conflict == 'error':
             raise ValueError("Tried to create the same channel twice (%s)" %
                              name)
-
-        self.channels[name] = MonitorChannel(ipt, val, name, data_specs,
-                                             dataset, prereqs)
+        elif ((name in self.channels and
+               self.on_channel_conflict == 'copy_history')):
+            self.channels[name] = MonitorChannel(ipt, val, name, data_specs,
+                                                 dataset, prereqs,
+                                                 self.channels[name])
+        elif ((name not in self.channels or
+               self.on_channel_conflict == 'overwrite')):
+            self.channels[name] = MonitorChannel(ipt, val, name, data_specs,
+                                                 dataset, prereqs)
         self._dirty = True
 
     def _sanity_check(self):
@@ -961,10 +983,15 @@ class MonitorChannel(object):
         exactly once per each new batch of data before the channel
         value is computed if two channels provide a prereq with exactly
         the same id, that prereq will only be called once
+    old_channel : MonitorChannel
+        MonitorChannel of old monitor, if not None, records of
+        MonitorChannel will be initialized with records of old channel.
+        When initializing the channel, the last value will be excluded,
+        since it will be instantly recomputed by the next launch.
     """
 
     def __init__(self, graph_input, val, name, data_specs, dataset,
-                 prereqs=None):
+                 prereqs=None, old_channel=None):
         self.name = name
         self.prereqs = prereqs
         self.graph_input = graph_input
@@ -988,15 +1015,26 @@ class MonitorChannel(object):
                              str(val.ndim))
         # Dataset monitored by this channel
         self.dataset = dataset
-        # Value of the desired quantity at measurement time.
-        self.val_record = []
-        # Number of batches seen at measurement time.
-        self.batch_record = []
-        # Number of examples seen at measurement time (batch sizes may
-        # fluctuate).
-        self.example_record = []
-        self.epoch_record = []
-        self.time_record = []
+        if old_channel is not None:
+            # Value of the desired quantity at measurement time.
+            self.val_record = old_channel.val_record[:-1]
+            # Number of batches seen at measurement time.
+            self.batch_record = old_channel.batch_record[:-1]
+            # Number of examples seen at measurement time (batch sizes may
+            # fluctuate).
+            self.example_record = old_channel.example_record[:-1]
+            self.epoch_record = old_channel.epoch_record[:-1]
+            self.time_record = old_channel.time_record[:-1]
+        else:
+            # Value of the desired quantity at measurement time.
+            self.val_record = []
+            # Number of batches seen at measurement time.
+            self.batch_record = []
+            # Number of examples seen at measurement time (batch sizes may
+            # fluctuate).
+            self.example_record = []
+            self.epoch_record = []
+            self.time_record = []
 
     def __str__(self):
         """
@@ -1098,7 +1136,8 @@ class MonitorChannel(object):
             self.time_record = [None] * len(self.val_record)
 
 
-def push_monitor(model, name, transfer_experience=False):
+def push_monitor(model, name, transfer_experience=False,
+                 save_records=False):
     """
     When you load a model in a yaml file and you want to store its
     old monitor under a different name and start a new monitor, wrap
@@ -1116,6 +1155,10 @@ def push_monitor(model, name, transfer_experience=False):
         batches seen, and examples seen set to where the old monitor
         left off. This is nice for stitching together learning curves
         across multiple stages of learning.
+    save_records : bool
+        If True, val_record, batch_record, example_record, epoch_record,
+        and time_record of the new monitor will be initialzed with the
+        records of old monitor.
 
     Returns
     -------
@@ -1135,6 +1178,11 @@ def push_monitor(model, name, transfer_experience=False):
         monitor._num_batches_seen = old_monitor._num_batches_seen
         monitor._examples_seen = old_monitor._examples_seen
         monitor._epochs_seen = old_monitor._epochs_seen
+        if save_records:
+            monitor.on_channel_conflict = 'copy_history'
+            monitor.channels = copy.copy(old_monitor.channels)
+            for key, value in list(monitor.channels.items()):
+                value.prereqs = None
 
     return model
 
