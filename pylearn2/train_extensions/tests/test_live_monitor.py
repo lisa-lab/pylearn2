@@ -56,6 +56,8 @@ def test_live_monitoring():
     ]
     monitor = lm.LiveMonitor()
     result = monitor.list_channels().data
+    if result != correct_result:
+        raise ValueError(str(result))
     assert(result == correct_result)
 
     # Query for first two elements of train_objective data
