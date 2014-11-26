@@ -384,6 +384,30 @@ def test_get_layer_monitor_channels():
     mlp.get_layer_monitoring_channels(state_below=state_below,
             state=None, targets=targets)
 
+def test_flattener_layer_state_separation_for_softmax():
+    """
+    Creates a CompositeLayer wrapping two Softmax layers
+    and ensures that state gets correctly picked apart.
+    """
+    mlp = MLP(
+            layers=[
+                FlattenerLayer(
+                    CompositeLayer(
+                        'composite',
+                        [Softmax(5, 'sf1', 0.1),
+                         Softmax(5, 'sf2', 0.1)]
+                    )
+                )
+            ],
+            nvis=2
+            )
+
+    dataset = DenseDesignMatrix(X=np.random.rand(20, 2).astype(theano.config.floatX),
+            y=np.random.rand(20, 10).astype(theano.config.floatX))
+
+    train = Train(dataset, mlp, SGD(0.1, batch_size=5,monitoring_dataset = dataset))
+    train.algorithm.termination_criterion = EpochCounter(1)
+    train.main_loop()
 
 def test_nested_mlp():
     """
