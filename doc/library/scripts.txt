@@ -43,11 +43,6 @@ Summarize Model
 Visualization
 #############
 
-Make Weights Image
-==================
-.. automodule:: pylearn2.scripts.make_weights_image
-    :members:
-
 Show binocular greyscale examples
 =================================
 .. automodule:: pylearn2.scripts.show_binocular_greyscale_examples
