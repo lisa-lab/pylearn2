@@ -9,7 +9,6 @@ __email__ = "pylearn-dev@googlegroups"
 from collections import defaultdict
 from theano.compat.six.moves import zip as izip_no_length_check
 import numpy as np
-import warnings
 
 from theano.compat import six
 from theano import tensor as T
@@ -387,7 +386,7 @@ class Model(object):
 
         self._ensure_extensions()
         for extension in self.extensions:
-            extension.post_modify_updates(updates)
+            extension.post_modify_updates(updates, self)
 
     def _modify_updates(self, updates):
         """

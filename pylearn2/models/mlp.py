@@ -27,6 +27,7 @@ from pylearn2.costs.mlp import Default
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels
 from pylearn2.linear import conv2d
 from pylearn2.linear.matrixmul import MatrixMul
+from pylearn2.model_extensions.norm_constraint import MaxL2ColNorm
 from pylearn2.models.model import Model
 from pylearn2.monitor import get_monitor_doc
 from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
@@ -1144,6 +1145,9 @@ class Softmax(Layer):
 
         super(Softmax, self).__init__()
 
+        if max_col_norm is not None:
+            self.extensions.append(MaxL2ColNorm(max_col_norm))
+
         if non_redundant:
             if init_bias_target_marginals:
                 msg = ("init_bias_target_marginals currently only works "
@@ -1476,14 +1480,6 @@ class Softmax(Layer):
                 desired_norms = T.clip(row_norms, 0, self.max_row_norm)
                 scales = desired_norms / (1e-7 + row_norms)
                 updates[W] = updated_W * scales.dimshuffle(0, 'x')
-        if self.max_col_norm is not None:
-            assert self.max_row_norm is None
-            W = self.W
-            if W in updates:
-                updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
 
 class SoftmaxPool(Layer):

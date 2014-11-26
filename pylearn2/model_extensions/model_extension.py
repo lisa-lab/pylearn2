@@ -9,7 +9,7 @@ class ModelExtension(object):
     to it.
     """
 
-    def post_modify_updates(self, updates):
+    def post_modify_updates(self, updates, model):
         """"
         Modifies the parameters before a learning update is applied.
         This method acts *after* the model subclass' _modify_updates
@@ -21,6 +21,8 @@ class ModelExtension(object):
         updates : dict
             A dictionary mapping shared variables to symbolic values they
             will be updated to.
+        model : Model
+            The Model to act on
         """
 
         pass
