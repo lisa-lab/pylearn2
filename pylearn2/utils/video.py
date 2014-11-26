@@ -120,7 +120,7 @@ def spatiotemporal_cubes(file_tuples, shape, n_patches=numpy.inf, rng=None):
     done = 0
     rng = make_np_rng(rng, which_method="random_integers")
     while done < n_patches:
-        frame = numpy.random.random_integers(0, len(frame_lookup) - 1)
+        frame = rng.random_integers(0, len(frame_lookup) - 1)
         filename, file_length, frame_no = frame_lookup[frame]
         # Check that there is a contiguous block of frames starting at
         # frame_no that is at least as long as our desired cube length.
