@@ -51,7 +51,7 @@ def summarize(path):
 
     if hasattr(model, 'monitor'):
         print('trained on', model.monitor.get_examples_seen(), 'examples')
-        print('which corresponds to', end='')
+        print('which corresponds to ', end='')
         print(model.monitor.get_batches_seen(), 'batches')
         key = first_key(model.monitor.channels)
         hour = float(model.monitor.channels[key].time_record[-1]) / 3600.
