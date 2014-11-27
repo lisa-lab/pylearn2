@@ -67,16 +67,16 @@ class ChannelsResponse(LiveMonitorMsg):
 
     Parameters
     ----------
-    channel_list: list
+    channel_list : list
         A list of the channels for which data has been requested.
 
-    start: int
+    start : int
         The starting epoch for which data should be returned.
 
-    end: int
+    end : int
         The epoch after which data should be returned.
 
-    step: int
+    step : int
         The number of epochs to be skipped between data points.
     """
     def __init__(self, channel_list, start, end, step=1):
@@ -101,16 +101,16 @@ class ChannelsRequest(LiveMonitorMsg):
 
     Parameters
     ----------
-    channel_list: list
+    channel_list : list
         A list of the channels for which data has been requested.
 
-    start: int
+    start : int
         The starting epoch for which data should be returned.
 
-    end: int
+    end : int
         The epoch after which data should be returned.
 
-    step: int
+    step : int
         The number of epochs to be skipped between data points.
     """
     def __init__(self, channel_list, start=0, end=-1, step=1):
@@ -146,22 +146,16 @@ class LiveMonitoring(TrainExtension):
 
     Parameters
     ----------
-    None
+    address : string
+        The IP addresses of the interfaces on which the monitor should listen.
+
+    req_port : int
+        The port number to be used to service request.
+
+    pub_port : int
+        The port number to be used to publish updates.
     """
     def __init__(self, address='*', req_port=5555, pub_port=5556):
-        """
-        Parameters
-        ----------
-        address: string
-            The IP addresses of the interfaces on which the monitor should
-            listen.
-
-        req_port: int
-            The port number to be used to service request.
-
-        pub_port: int
-            The port number to be used to publish updates.
-        """
         if not zmq_available:
             raise ImportError('zeromq needs to be installed to '
                               'use this module.')
@@ -263,10 +257,10 @@ class LiveMonitor(object):
 
     Parameters
     ----------
-    address: string
+    address : string
         The IP address on which a LiveMonitoring process is listening.
 
-    req_port: int
+    req_port : int
         The port number on which a LiveMonitoring process is listening.
     """
     def __init__(self, address='127.0.0.1', req_port=5555):
@@ -309,13 +303,13 @@ class LiveMonitor(object):
 
         Parameters
         ----------
-        channel_list: list
+        channel_list : list
             A list of the channels for which data should be requested.
 
-        start: int
+        start : int
             The starting epoch for which data should be requested.
 
-        step: int
+        step : int
             The number of epochs to be skipped between data points.
         """
         assert((start == -1 and end == -1) or end > start)
@@ -357,7 +351,7 @@ class LiveMonitor(object):
 
         Parameters
         ----------
-        channel_list: list
+        channel_list : list
             A list of the channels for which data has been requested.
         """
         if not pyplot_available:
