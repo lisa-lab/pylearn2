@@ -1,8 +1,9 @@
-from pylearn2.datasets.mnistplus import MNISTPlus 
+from pylearn2.datasets.mnistplus import MNISTPlus
 from pylearn2.space import IndexSpace, VectorSpace
 import unittest
 from pylearn2.testing.skip import skip_if_no_data
 import numpy as np
+
 
 def test_MNISTPlus():
     """
@@ -27,21 +28,21 @@ def test_MNISTPlus():
     assert train_y.y.max() == 9
     assert train_y.y.min() == 0
     assert train_y.y.shape == (train_y.X.shape[0], 1)
-    
+
     train_y = MNISTPlus(which_set='train', label_type='azimuth')
     assert 0.99 <= train_y.X.max() <= 1.0
     assert 0.0 <= train_y.X.min() <= 0.01
     assert 0.0 <= train_y.y.max() <= 1.0
     assert 0.0 <= train_y.y.min() <= 1.0
     assert train_y.y.shape == (train_y.X.shape[0], 1)
-    
+
     train_y = MNISTPlus(which_set='train', label_type='rotation')
     assert 0.99 <= train_y.X.max() <= 1.0
     assert 0.0 <= train_y.X.min() <= 0.01
     assert train_y.y.max() == 9
     assert train_y.y.min() == 0
     assert train_y.y.shape == (train_y.X.shape[0], 1)
-    
+
     train_y = MNISTPlus(which_set='train', label_type='texture_id')
     assert 0.99 <= train_y.X.max() <= 1.0
     assert 0.0 <= train_y.X.min() <= 0.01
