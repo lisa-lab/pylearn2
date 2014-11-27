@@ -37,7 +37,7 @@ def test_live_monitoring():
     p.start()
 
     # Query for list of channels being monitored
-    correct_result = [
+    correct_result = set([
         'train_objective',
         'train_y_col_norms_max',
         'train_y_row_norms_min',
@@ -53,9 +53,9 @@ def test_live_monitoring():
         'learning_rate',
         'training_seconds_this_epoch',
         'total_seconds_last_epoch'
-    ]
+    ])
     monitor = lm.LiveMonitor()
-    result = monitor.list_channels().data
+    result = set(monitor.list_channels().data)
     if result != correct_result:
         raise ValueError(str(result))
     assert(result == correct_result)
