@@ -323,7 +323,7 @@ class LiveMonitor(object):
         if start == -1:
             start = 0
             if len(self.channels.keys()) > 0:
-                channel_name = self.channels.keys()[0]
+                channel_name = list(self.channels.keys())[0]
                 start = len(self.channels[channel_name].epoch_record)
 
         self.req_sock.send_pyobj(ChannelsRequest(
