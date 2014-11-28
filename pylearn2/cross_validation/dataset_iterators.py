@@ -119,7 +119,7 @@ class DatasetCV(object):
 
             # which_set
             if self.which_set is not None:
-                for label, dataset in datasets.items():
+                for label, dataset in list(datasets.items()):
                     if label not in self.which_set:
                         del datasets[label]
                         del data_subsets[label]
