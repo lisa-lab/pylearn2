@@ -1,3 +1,8 @@
+"""
+This file tests the MNISTPlus class. majorly concerning the X and y member
+of the dataset and their corresponding sizes, data scales and topological
+views.
+"""
 from pylearn2.datasets.mnistplus import MNISTPlus
 from pylearn2.space import IndexSpace, VectorSpace
 import unittest

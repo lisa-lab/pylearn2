@@ -1,3 +1,9 @@
+"""
+This file tests the NORBSmall and the FoveatedNORB class. majorly concerning
+the X and y member of the dataset and their corresponding sizes, data scales
+and topological views.
+"""
+
 import numpy
 from pylearn2.testing.skip import skip_if_no_data
 from pylearn2.datasets.norb_small import NORBSmall, FoveatedNORB
