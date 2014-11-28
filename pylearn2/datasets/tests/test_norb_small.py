@@ -1,7 +1,7 @@
 """
-This file tests the NORBSmall and the FoveatedNORB class. majorly concerning
-the X and y member of the dataset and their corresponding sizes, data scales
-and topological views.
+This file tests the NORBSmall and the FoveatedNORB class. majorly
+concerning the X and y member of the dataset and their corresponding
+sizes, data scales and topological views.
 """
 
 import numpy
