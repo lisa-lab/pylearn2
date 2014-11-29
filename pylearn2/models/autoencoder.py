@@ -29,6 +29,48 @@ class AbstractAutoencoder(Model, Block):
     def __init__(self):
         super(AbstractAutoencoder, self).__init__()
 
+    def encode(self, inputs):
+        """
+        Map inputs through the encoder function.
+
+        Parameters
+        ----------
+        inputs : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the input
+            minibatch(es) to be encoded. Assumed to be 2-tensors, with the
+            first dimension indexing training examples and the second
+            indexing data dimensions.
+
+        Returns
+        -------
+        encoded : tensor_like or list of tensor_like
+            Theano symbolic (or list thereof) representing the corresponding
+            minibatch(es) after encoding.
+        """
+        raise NotImplementedError(
+            str(type(self)) + " does not implement encode.")
+
+    def decode(self, hiddens):
+        """
+        Map inputs through the encoder function.
+
+        Parameters
+        ----------
+        hiddens : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the input
+            minibatch(es) to be encoded. Assumed to be 2-tensors, with the
+            first dimension indexing training examples and the second
+            indexing data dimensions.
+
+        Returns
+        -------
+        decoded : tensor_like or list of tensor_like
+            Theano symbolic (or list thereof) representing the corresponding
+            minibatch(es) after decoding.
+        """
+        raise NotImplementedError(
+            str(type(self)) + " does not implement decode.")
+
     def reconstruct(self, inputs):
         """
         Reconstruct (decode) the inputs after mapping through the encoder.
@@ -48,6 +90,16 @@ class AbstractAutoencoder(Model, Block):
             reconstructed minibatch(es) after encoding/decoding.
         """
         return self.decode(self.encode(inputs))
+
+    def __call__(self, inputs):
+        """
+        Forward propagate (symbolic) input through this module, obtaining
+        a representation to pass on to layers above.
+
+        This just aliases the `encode()` function for syntactic
+        sugar/convenience.
+        """
+        return self.encode(inputs)
 
 
 class Autoencoder(AbstractAutoencoder):
@@ -347,16 +399,6 @@ class Autoencoder(AbstractAutoencoder):
             return act_dec(self.visbias + tensor.dot(hiddens, self.w_prime))
         else:
             return [self.decode(v) for v in hiddens]
-
-    def __call__(self, inputs):
-        """
-        Forward propagate (symbolic) input through this module, obtaining
-        a representation to pass on to layers above.
-
-        This just aliases the `encode()` function for syntactic
-        sugar/convenience.
-        """
-        return self.encode(inputs)
 
     def get_weights(self, borrow=False):
         """

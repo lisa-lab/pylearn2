@@ -112,9 +112,12 @@ def test_untied_ae():
 
 def test_dcae():
     """
-    Tests that DeepComposedAutoencoder calls the Model superclass constructor
+    Tests that DeepComposedAutoencoder works correctly
     """
     ae = Autoencoder(5, 7, act_enc='tanh', act_dec='cos',
                      tied_weights=True)
     model = DeepComposedAutoencoder([ae])
     model._ensure_extensions()
+
+    data = np.random.randn(10, 5).astype(config.floatX)
+    model.perform(data)
