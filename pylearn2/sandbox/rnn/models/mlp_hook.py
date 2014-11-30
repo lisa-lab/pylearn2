@@ -234,6 +234,9 @@ class RNNWrapper(MetaLibVersion):
                         reshaped_Y_hat.append(Y_hat[i].reshape(input_shape[i]))
                     reshaped_Y_hat = tuple(reshaped_Y_hat)
                 else:
+                    input_shape = ([Y_hat.shape[0] * Y_hat.shape[1]] +
+                                   [Y_hat.shape[i]
+                                   for i in xrange(2, Y_hat.ndim)])
                     reshaped_Y_hat = Y_hat.reshape(input_shape)
                 # Here we need to take the indices of only the unmasked data
                 if self._requires_unmask:
