@@ -112,6 +112,12 @@ class DenseDesignMatrix(Dataset):
     view_converter : object, optional
         An object for converting between the design matrix \
         stored internally and the topological view of the data.
+    axes: tuple, optional
+        The axes ordering of the provided topo_view. Must be some permutation
+        of ('b', 0, 1, 'c') where :
+            - 'b' indicates the axis indexing samples
+            - 0 and 1 indicate the row/cols dimensions
+            - 'c' indicates the axis indexing color channels
     rng : object, optional
         A random number generator used for picking random \
         indices into the design matrix when choosing minibatches.
@@ -750,6 +756,9 @@ class DenseDesignMatrix(Dataset):
             training examples.
         axes : WRITEME
         """
+        if len(V.shape) != len(axes):
+            raise ValueError("The topological view must have exactly 4 "
+                             "dimensions, corresponding to %s" % str(axes))
         assert not contains_nan(V)
         rows = V.shape[axes.index(0)]
         cols = V.shape[axes.index(1)]
