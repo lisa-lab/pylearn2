@@ -114,10 +114,9 @@ class DenseDesignMatrix(Dataset):
         stored internally and the topological view of the data.
     axes: tuple, optional
         The axes ordering of the provided topo_view. Must be some permutation
-        of ('b', 0, 1, 'c') where :
-            - 'b' indicates the axis indexing samples
-            - 0 and 1 indicate the row/cols dimensions
-            - 'c' indicates the axis indexing color channels
+        of ('b', 0, 1, 'c') where 'b' indicates the axis indexing examples,
+        0 and 1 indicate the row/cols dimensions and 'c' indicates the axis
+        indexing color channels.
     rng : object, optional
         A random number generator used for picking random \
         indices into the design matrix when choosing minibatches.
