@@ -37,7 +37,7 @@ from theano import tensor as T
 
 from pylearn2.compat import OrderedDict
 from pylearn2.linear.matrixmul import MatrixMul
-from pylearn2.model_extensions.norm_constraint import MaxL2ColNorm
+from pylearn2.model_extensions.norm_constraint import MaxL2FilterNorm
 from pylearn2.models.mlp import Layer
 from pylearn2.models.model import Model
 from pylearn2.space import Conv2DSpace
@@ -169,7 +169,7 @@ class Maxout(Layer):
             raise NotImplementedError()
 
         if max_col_norm is not None:
-            self.extensions.append(MaxL2ColNorm(max_col_norm))
+            self.extensions.append(MaxL2FilterNorm(max_col_norm))
 
     @functools.wraps(Model.get_lr_scalers)
     def get_lr_scalers(self):

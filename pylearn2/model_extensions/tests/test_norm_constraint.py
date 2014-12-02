@@ -8,7 +8,7 @@ from theano.compat import OrderedDict
 from theano import function
 
 from pylearn2.models.model import Model
-from pylearn2.model_extensions.norm_constraint import MaxL2ColNorm
+from pylearn2.model_extensions.norm_constraint import MaxL2FilterNorm
 from pylearn2.utils import sharedX
 
 
@@ -27,13 +27,13 @@ class ModelWithW(Model):
         super(ModelWithW, self).__init__()
 
 
-def test_max_l2_col_norm():
+def test_max_l2_filter_norm():
     """
-    Test that MaxL2ColNorm matches a manual implementation.
+    Test that MaxL2FilterNorm matches a manual implementation.
     """
 
     limit = 1.
-    ext = MaxL2ColNorm(limit)
+    ext = MaxL2FilterNorm(limit)
 
     W = np.zeros((2, 4))
     # Column 0 tests the case where a column has zero norm

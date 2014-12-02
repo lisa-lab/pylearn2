@@ -1,14 +1,14 @@
 """
 Classes for constraining the norms of weight matrices.
 """
-from functools import wraps
+from pylearn2.utils import wraps
 
 from theano import tensor as T
 
 from pylearn2.model_extensions.model_extension import ModelExtension
 
 
-class MaxL2ColNorm(ModelExtension):
+class MaxL2FilterNorm(ModelExtension):
 
     """
     Constrains the maximum L2 norm (not squared L2) norm of a
@@ -38,7 +38,7 @@ class MaxL2ColNorm(ModelExtension):
             transformer = model.transformer
             params = transformer.get_params()
             if len(params) != 1:
-                raise TypeError("transformer does not have exactly one"
+                raise TypeError("self.transformer does not have exactly one "
                                 "parameter tensor.")
             W, = params
 
