@@ -4,19 +4,18 @@
     WRITEME
 """
 try:
-    import cPickle
     from cPickle import BadPickleGet
 except ImportError:
-    import pickle as cPickle
     from pickle import UnpicklingError as BadPickleGet
 import pickle
 import logging
 import numpy as np
-from theano.compat.six.moves import xrange
+from theano.compat.six.moves import cPickle, xrange
 import os
 import time
 import warnings
 import sys
+from pylearn2.compat import pickle_load
 from pylearn2.utils.string_utils import preprocess
 from pylearn2.utils.mem import improve_memory_error_message
 io = None
@@ -138,8 +137,8 @@ def load(filepath, recurse_depth=0, retry=True):
                         '{0}'.format(filepath))
             logger.info('attempting to open via reading string')
             with open(filepath, 'rb') as f:
-                content = f.read()
-            return cPickle.loads(content)
+                obj = pickle_load(f)
+            return obj
         else:
             nsec = 0.5 * (2.0 ** float(recurse_depth))
             logger.info("Waiting {0} seconds and trying again".format(nsec))
@@ -149,7 +148,7 @@ def load(filepath, recurse_depth=0, retry=True):
     try:
         if not joblib_available:
             with open(filepath, 'rb') as f:
-                obj = cPickle.load(f)
+                obj = pickle_load(f)
         else:
             try:
                 obj = joblib.load(filepath)
