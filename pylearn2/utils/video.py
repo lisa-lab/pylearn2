@@ -131,8 +131,8 @@ def spatiotemporal_cubes(file_tuples, shape, n_patches=numpy.inf, rng=None):
         # fall within frame.
         last_row = video_height - patch_height
         last_col = video_width - patch_width
-        row = numpy.random.random_integers(0, last_row)
-        col = numpy.random.random_integers(0, last_col)
+        row = rng.random_integers(0, last_row)
+        col = rng.random_integers(0, last_col)
         patch_slice = (slice(frame_no, frame_no + patch_length),
                        slice(row, row + patch_height),
                        slice(col, col + patch_width))
