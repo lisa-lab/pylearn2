@@ -1,28 +1,23 @@
 """ Expressions for encoding features """
 
 import theano.tensor as T
-from theano.printing import Print
 
 
 def triangle_code(X, centroids):
     """
-    .. todo::
-
-        WRITEME properly
-
     Compute the triangle activation function used in Adam Coates' AISTATS 2011
-    paper
+    paper.
 
     Parameters
     ----------
-    X : WRITEME
+    X : theano matrix
         design matrix
-    centroids : WRITEME
+    centroids : theano matrix
         k-means dictionary, one centroid in each row
 
     Returns
     -------
-    WRITEME
+    code : theano matrix
         A design matrix of triangle code activations
     """
 
@@ -34,10 +29,10 @@ def triangle_code(X, centroids):
 
     sq_dists =  c_sqr + X_sqr - 2. * Xc
 
-    #TODO: why do I have to do this and Adam doesn't?
-    #is it just because he uses float64 and I usually use
-    #float32? or are our libraries numerically unstable somehow,
-    #or does matlab handle sqrt differently?
+    # TODO: why do I have to do this and Adam doesn't?
+    # is it just because he uses float64 and I usually use
+    # float32? or are our libraries numerically unstable somehow,
+    # or does matlab handle sqrt differently?
     sq_dists_safe = T.clip(sq_dists,0.,1e30)
 
     Z = T.sqrt( sq_dists_safe)
