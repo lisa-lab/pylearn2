@@ -78,9 +78,10 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
 
             if example_range is not None:
                 X = X[example_range[0]:example_range[1], :]
-
-            # this is uint8
-            y = train['y'][:, 0]
+            
+            y_labels = 10
+            # this is uint8 but labels range should be corrected
+            y = train['y'][:, 0] - 1
             assert y.shape == (5000,)
         elif which_set == 'test':
             test = load('${PYLEARN2_DATA_PATH}/stl10/stl10_matlab/test.mat')
@@ -99,8 +100,9 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
             if example_range is not None:
                 X = X[example_range[0]:example_range[1], :]
 
-            # this is uint8
-            y = test['y'][:, 0]
+            y_labels = 10
+            # this is uint8 but labels range should be corrected
+            y = test['y'][:, 0] - 1
             assert y.shape == (8000,)
 
         elif which_set == 'unlabeled':
@@ -120,7 +122,7 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
             X = np.cast['float32'](X.T)
 
             unlabeled.close()
-
+            y_labels = None
             y = None
 
         else:
@@ -132,7 +134,7 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
 
         view_converter = dense_design_matrix.DefaultViewConverter((96, 96, 3))
 
-        super(STL10, self).__init__(X=X, y=y, y_labels=10,
+        super(STL10, self).__init__(X=X, y=y, y_labels=y_labels,
                                     view_converter=view_converter)
 
         for i in xrange(self.X.shape[0]):
