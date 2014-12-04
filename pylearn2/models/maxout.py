@@ -825,7 +825,10 @@ class MaxoutConvC01B(Layer):
 
         self.detector_space.validate(z)
 
-        assert self.detector_space.num_channels % 16 == 0
+        assert self.detector_space.num_channels % 16 == 0, 'Wrong ' \
+            'channels number: ' + str(self.detector_space.num_channels) + '. '\
+            'The number of channels should be a multiple of 16. Note that the ' \
+            'number of channels is determined as: num_channels* num_pieces'
 
         if self.output_space.num_channels % 16 == 0:
             # alex's max pool op only works when the number of channels
