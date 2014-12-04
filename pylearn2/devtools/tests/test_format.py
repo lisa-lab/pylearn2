@@ -91,7 +91,6 @@ whitelist_pep8 = [
     "costs/ebm_estimation.py",
     "costs/gsn.py",
     "costs/mlp/missing_target_cost.py",
-    "costs/autoencoder.py",
     "linear/conv2d.py",
     "linear/local_c01b.py",
     "linear/linear_transform.py",
