@@ -240,6 +240,8 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         """
         Loads pickled data.
 
+            What is this? why not just use serial.load like the CIFAR-100
+            class? Whoever wrote it shows up as "unknown" in git blame.
         Parameters
         ----------
         name : str
