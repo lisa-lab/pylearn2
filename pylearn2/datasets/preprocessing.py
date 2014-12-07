@@ -988,10 +988,14 @@ class PCA(object):
     Parameters
     ----------
     num_components : WRITEME
+    whiten : bool, mandatory
+        If False, whitening (or sphering) will not be performed (default).
+        If True, the preprocessed data will have zero mean and unit covariance.
     """
 
-    def __init__(self, num_components):
+    def __init__(self, num_components, whiten=False):
         self._num_components = num_components
+        self._whiten = whiten
         self._pca = None
         # TODO: Is storing these really necessary? This computation
         # can't really be merged since we're basically creating the
@@ -1010,7 +1014,7 @@ class PCA(object):
                 raise ValueError("can_fit is False, but PCA preprocessor "
                                  "object has no fitted model stored")
             from pylearn2 import pca
-            self._pca = pca.CovEigPCA(self._num_components)
+            self._pca = pca.CovEigPCA(self._num_components,whiten=self._whiten)
             self._pca.train(dataset.get_design_matrix())
             self._transform_func = function([self._input],
                                             self._pca(self._input))
@@ -1028,7 +1032,9 @@ class PCA(object):
         proc_data = dataset.get_design_matrix()
         orig_var = orig_data.var(axis=0)
         proc_var = proc_data.var(axis=0)
-        assert proc_var[0] > orig_var.max()
+        # assert below fails when 'whiten' is True or sometimes on test
+        # or validation set when the preprocessor was fit on train set
+        # assert proc_var[0] > orig_var.max()
 
         log.info('original variance: {0}'.format(orig_var.sum()))
         log.info('processed variance: {0}'.format(proc_var.sum()))
