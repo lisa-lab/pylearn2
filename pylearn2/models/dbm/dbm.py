@@ -88,17 +88,17 @@ class DBM(Model):
 
     def get_all_layers(self):
         """
-        .. todo::
+        Get all layers in this model.
 
-            WRITEME
+        Returns
+        -------
+        layers : list
         """
         return [self.visible_layer] + self.hidden_layers
 
     def energy(self, V, hidden):
         """
-        .. todo::
-
-            WRITEME
+        Compute the energy of current model with visible and hidden samples.
 
         Parameters
         ----------
@@ -150,16 +150,15 @@ class DBM(Model):
 
     def mf(self, *args, **kwargs):
         """
-        .. todo::
-
-            WRITEME
+        Perform mean field inference, using the model's inference procedure.
         """
         self.setup_inference_procedure()
         return self.inference_procedure.mf(*args, **kwargs)
 
     def expected_energy(self, V, mf_hidden):
         """
-        WRITEME
+        Compute the energy of current model with the visible samples
+        and variational parameters.
 
         Parameters
         ----------
@@ -216,17 +215,14 @@ class DBM(Model):
 
     def setup_rng(self):
         """
-        .. todo::
-
-            WRITEME
+        Set the random number generator for the model.
         """
         self.rng = make_np_rng(None, [2012, 10, 17], which_method="uniform")
 
     def setup_inference_procedure(self):
         """
-        .. todo::
-
-            WRITEME
+        Set the inference procedure for the model.
+        Default using `WeightDoubling`
         """
         if not hasattr(self, 'inference_procedure') or \
                 self.inference_procedure is None:
@@ -235,9 +231,8 @@ class DBM(Model):
 
     def setup_sampling_procedure(self):
         """
-        .. todo::
-
-            WRITEME
+        Set the sampling procedure for the model.
+        Default using `GibbsEvenOdd`
         """
         if not hasattr(self, 'sampling_procedure') or \
                 self.sampling_procedure is None:
@@ -277,7 +272,8 @@ class DBM(Model):
 
         Parameters
         ----------
-        layers : WRITEME
+        layers : list
+            layers to be added
         """
 
         # Patch old pickle files
@@ -440,8 +436,9 @@ class DBM(Model):
         Parameters
         ----------
         num_examples : int
-            WRITEME
-        rng : WRITEME
+            Number of examples to make up the state
+        rng : MRG_RandomStreams
+            Random number generator, if None then use model's rng
         """
 
         # Make a list of all layers
@@ -473,10 +470,6 @@ class DBM(Model):
 
     def make_layer_to_symbolic_state(self, num_examples, rng=None):
         """
-        .. todo::
-
-            Explain the difference with `make_layer_to_state`
-
         Makes and returns a dictionary mapping layers to states.
 
         By states, we mean here a real assignment, not a mean field
@@ -491,8 +484,14 @@ class DBM(Model):
         Parameters
         ----------
         num_examples : int
-            WRITEME
-        rng : WRITEME
+            Number of examples to make up the state
+        rng : MRG_RandomStreams
+            Random number generator
+
+        Notes
+        -----
+        This method returns a symbolic expression of the state, while
+        `make_layer_to_state` returns a certain shared variable.
         """
 
         # Make a list of all layers
@@ -527,16 +526,17 @@ class DBM(Model):
             self to shared variables representing batches of samples of them.
             (you can allocate one by calling self.make_layer_to_state)
         theano_rng : MRG_RandomStreams
-            WRITEME
+            Random number generator
         layer_to_clamp : dict, optional
             Dictionary mapping layers to bools. If a layer is not in the
             dictionary, defaults to False. True indicates that this layer
             should be clamped, so we are sampling from a conditional
             distribution rather than the joint distribution
         num_steps : int, optional
-            WRITEME
+            Steps of the sampling procedure. It samples for `num_steps`
+            times and use the last sample.
         return_layer_to_updated : bool, optional
-            WRITEME
+            Whether returns the sample additionally
 
         Returns
         -------
@@ -668,9 +668,13 @@ class DBM(Model):
 
     def reconstruct(self, V):
         """
-        .. todo::
+        Reconstruct the visible variables.
 
-            WRITEME
+        Returns
+        -------
+        recons : tensor_like
+            Unmasked reconstructed visible variables.
+
         """
 
         H = self.mf(V)[0]
@@ -686,9 +690,8 @@ class DBM(Model):
 
     def do_inpainting(self, *args, **kwargs):
         """
-        .. todo::
-
-            WRITEME
+        Does the inference required for multi-prediction training,
+        using the model's inference procedure.
         """
         self.setup_inference_procedure()
         return self.inference_procedure.do_inpainting(*args, **kwargs)
