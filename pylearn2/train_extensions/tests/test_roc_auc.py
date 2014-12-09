@@ -56,7 +56,7 @@ test_yaml = """
         },
         batches_per_iter: 1,
         monitoring_batches: 1,
-        termination_criterion: !obj:pylearn2.termination_criteria.And {
+        termination_criterion: !obj:pylearn2.termination_criteria.Or {
             criteria: [
                 !obj:pylearn2.termination_criteria.EpochCounter {
                     max_epochs: 1,
@@ -106,7 +106,7 @@ test_yaml_ovr = """
         },
         batches_per_iter: 1,
         monitoring_batches: 1,
-        termination_criterion: !obj:pylearn2.termination_criteria.And {
+        termination_criterion: !obj:pylearn2.termination_criteria.Or {
             criteria: [
                 !obj:pylearn2.termination_criteria.EpochCounter {
                     max_epochs: 1,
@@ -167,7 +167,7 @@ test_yaml_ovo = """
         },
         batches_per_iter: 1,
         monitoring_batches: 1,
-        termination_criterion: !obj:pylearn2.termination_criteria.And {
+        termination_criterion: !obj:pylearn2.termination_criteria.Or {
             criteria: [
                 !obj:pylearn2.termination_criteria.EpochCounter {
                     max_epochs: 1,
