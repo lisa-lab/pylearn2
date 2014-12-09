@@ -255,8 +255,7 @@ class And(TerminationCriterion):
 
     @functools.wraps(TerminationCriterion.continue_learning)
     def continue_learning(self, model):
-        decisions = [criterion.continue_learning(model)
-                     for criterion in self._criteria]
+        decisions = [c.continue_learning(model) for c in self._criteria]
         # return False if all decisions are False, True otherwise
         return not all(not d for d in decisions)
 
@@ -283,7 +282,6 @@ class Or(TerminationCriterion):
 
     @functools.wraps(TerminationCriterion.continue_learning)
     def continue_learning(self, model):
-        decisions = [criterion.continue_learning(model)
-                     for criterion in self._criteria]
+        decisions = [c.continue_learning(model) for c in self._criteria]
         # return False if any decision is False, True otherwise
         return not any(not d for d in decisions)
