@@ -775,8 +775,15 @@ class FiniteDatasetIterator(object):
             sub_spaces = space.components
         assert len(source) == len(sub_spaces)
 
-        self._raw_data = tuple(all_data[dataset_source.index(s)]
-                               for s in source)
+        self._raw_data = ()
+        for s in source:
+            try:
+                self._raw_data += (all_data[dataset_source.index(s)],)
+            except ValueError as e:
+                msg = str(e) + '\nThe dataset does not provide '\
+                               'a source with name: '+s+'.'
+                reraise_as(ValueError(msg))
+
         self._source = source
         self._space = sub_spaces
 
