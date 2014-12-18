@@ -66,6 +66,21 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
         # prepare loading
         fnames = ['data_batch_%i' % i for i in range(1, 6)]
+        datasets = {}
+        datapath = os.path.join(
+            string_utils.preprocess('${PYLEARN2_DATA_PATH}'),
+            'cifar10', 'cifar-10-batches-py')
+        for name in fnames + ['test_batch']:
+            fname = os.path.join(datapath, name)
+            if not os.path.exists(fname):
+                raise IOError(fname + " was not found. You probably need to "
+                              "download the CIFAR-10 dataset by using the "
+                              "download script in "
+                              "pylearn2/scripts/datasets/download_cifar10.sh "
+                              "or manually from "
+                              "http://www.cs.utoronto.ca/~kriz/cifar.html")
+            datasets[name] = cache.datasetCache.cache_file(fname)
+
         lenx = numpy.ceil((ntrain + nvalid) / 10000.) * 10000
         x = numpy.zeros((lenx, self.img_size), dtype=dtype)
         y = numpy.zeros((lenx, 1), dtype=dtype)
@@ -73,7 +88,8 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         # load train data
         nloaded = 0
         for i, fname in enumerate(fnames):
-            data = CIFAR10._unpickle(fname)
+            _logger.info('loading file %s' % datasets[fname])
+            data = serial.load(datasets[fname])
             x[i * 10000:(i + 1) * 10000, :] = data['data']
             y[i * 10000:(i + 1) * 10000, 0] = data['labels']
             nloaded += 10000
@@ -81,7 +97,8 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
                 break
 
         # load test data
-        data = CIFAR10._unpickle('test_batch')
+        _logger.info('loading file %s' % datasets['test_batch'])
+        data = serial.load(datasets['test_batch'])
 
         # process this data
         Xs = {'train': x[0:ntrain],
@@ -234,29 +251,3 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
                        rescale=self.rescale, gcn=self.gcn,
                        toronto_prepro=self.toronto_prepro,
                        axes=self.axes)
-
-    @classmethod
-    def _unpickle(cls, name):
-        """
-        Loads pickled data.
-
-            What is this? why not just use serial.load like the CIFAR-100
-            class? Whoever wrote it shows up as "unknown" in git blame.
-        Parameters
-        ----------
-        name : str
-            The name of the data file
-        """
-        fname = os.path.join(string_utils.preprocess('${PYLEARN2_DATA_PATH}'),
-                             'cifar10', 'cifar-10-batches-py', name)
-        if not os.path.exists(fname):
-            raise IOError(fname + " was not found. You probably need to "
-                          "download the CIFAR-10 dataset by using the "
-                          "download script in "
-                          "pylearn2/scripts/datasets/download_cifar10.sh "
-                          "or manually from "
-                          "http://www.cs.utoronto.ca/~kriz/cifar.html")
-        fname = cache.datasetCache.cache_file(fname)
-
-        _logger.info('loading file %s' % fname)
-        return serial.load(fname)
