@@ -54,7 +54,7 @@ def adult(which_set):
     # examples
     content = [line for line in content if line.find('?') == -1]
     num_examples = {'train': 30162, 'test': 15060}[which_set]
-    assert len(content) == num_examples
+    assert len(content) == num_examples, (len(content), num_examples)
 
     # strip off endlines, separate entries
     content = map(lambda l: l[:-1].split(', '), content)
@@ -67,7 +67,7 @@ def adult(which_set):
     # convert targets to binary
     assert all(map(lambda l: l in ['>50K', '<=50K', '>50K.', '<=50K.'],
                    targets))
-    y = map(lambda l: l[0] == '>', targets)
+    y = map(lambda l: [l[0] == '>'], targets)
     y = np.array(y)
     del targets
 
