@@ -78,7 +78,7 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
 
             if example_range is not None:
                 X = X[example_range[0]:example_range[1], :]
-            
+
             y_labels = 10
             # this is uint8 but labels range should be corrected
             y = train['y'][:, 0] - 1
