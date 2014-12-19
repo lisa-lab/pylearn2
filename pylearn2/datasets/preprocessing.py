@@ -988,7 +988,7 @@ class PCA(object):
     Parameters
     ----------
     num_components : WRITEME
-    whiten : bool, mandatory
+    whiten : bool, optional
         If False, whitening (or sphering) will not be performed (default).
         If True, the preprocessed data will have zero mean and unit covariance.
     """
@@ -1035,7 +1035,8 @@ class PCA(object):
         proc_var = proc_data.var(axis=0)
         # assert below fails when 'whiten' is True or sometimes on test
         # or validation set when the preprocessor was fit on train set
-        # assert proc_var[0] > orig_var.max()
+        if not self._whiten and can_fit:
+            assert proc_var[0] > orig_var.max()
 
         log.info('original variance: {0}'.format(orig_var.sum()))
         log.info('processed variance: {0}'.format(proc_var.sum()))
