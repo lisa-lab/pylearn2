@@ -239,6 +239,7 @@ class testPCA:
         rng = np.random.RandomState([1, 2, 3])
         self.dataset = DenseDesignMatrix(X=as_floatX(rng.randn(15, 10)),
                                          y=as_floatX(rng.randn(15, 1)))
+        self.num_components = self.dataset.get_design_matrix().shape[1] - 1
 
     def test_apply_no_whiten(self):
         """
@@ -246,7 +247,7 @@ class testPCA:
         principal components are arranged in decreasing order by variance
         """
         # sut is an abbreviation for System Under Test
-        sut = PCA(self.dataset.get_design_matrix().shape[0])
+        sut = PCA(self.num_components)
         sut.apply(self.dataset, True)
         cm = np.cov(self.dataset.get_design_matrix().T)  # covariance matrix
 
@@ -263,7 +264,7 @@ class testPCA:
         Confirms that PCA has decorrelated the input dataset and
         variance is the same along all principal components and equal to one
          """
-        sut = PCA(self.dataset.get_design_matrix().shape[0], whiten=True)
+        sut = PCA(self.num_components, whiten=True)
         sut.apply(self.dataset, True)
         cm = np.cov(self.dataset.get_design_matrix().T)  # covariance matrix
 
@@ -274,3 +275,12 @@ class testPCA:
 
         # testing whether the eigenvalues are all ones
         np.testing.assert_almost_equal(np.diag(cm), np.ones(cm.shape[0]))
+
+    def test_apply_reduce_num_components(self):
+        """
+        Checks whether PCA performs dimensionality reduction
+        """
+        sut = PCA(self.num_components - 1, whiten=True)
+        sut.apply(self.dataset, True)
+
+        assert self.dataset.get_design_matrix().shape[1] == self.num_components - 1
