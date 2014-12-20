@@ -122,7 +122,7 @@ class SequenceDatasetIterator(FiniteDatasetIterator):
                                  data[0].shape[1:], dtype=data[0].dtype)
                 for i, sample in enumerate(rval):
                     batch[i, :len(sample)] = sample
-                    
+
                 # Create mask
                 if source in self.mask_needed:
                     mask = self._create_mask(rval)
