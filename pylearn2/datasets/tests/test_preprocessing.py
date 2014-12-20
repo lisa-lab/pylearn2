@@ -252,8 +252,8 @@ class testPCA:
         cm = np.cov(self.dataset.get_design_matrix().T)  # covariance matrix
 
         # testing whether the covariance matrix is a diagonal one
-        np.testing.assert_almost_equal(cm*(np.ones(cm.shape[0]) -
-                                           np.eye(cm.shape[0])),
+        np.testing.assert_almost_equal(cm * (np.ones(cm.shape[0]) -
+                                       np.eye(cm.shape[0])),
                                        np.zeros((cm.shape[0], cm.shape[0])))
 
         # testing whether the eigenvalues are in decreasing order
@@ -269,8 +269,8 @@ class testPCA:
         cm = np.cov(self.dataset.get_design_matrix().T)  # covariance matrix
 
         # testing whether the covariance matrix is a diagonal one
-        np.testing.assert_almost_equal(cm*(np.ones(cm.shape[0]) -
-                                           np.eye(cm.shape[0])),
+        np.testing.assert_almost_equal(cm * (np.ones(cm.shape[0]) -
+                                       np.eye(cm.shape[0])),
                                        np.zeros((cm.shape[0], cm.shape[0])))
 
         # testing whether the eigenvalues are all ones
@@ -283,4 +283,5 @@ class testPCA:
         sut = PCA(self.num_components - 1, whiten=True)
         sut.apply(self.dataset, True)
 
-        assert self.dataset.get_design_matrix().shape[1] == self.num_components - 1
+        assert self.dataset.get_design_matrix().shape[1] ==\
+            self.num_components - 1
