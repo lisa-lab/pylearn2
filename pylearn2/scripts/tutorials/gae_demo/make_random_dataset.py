@@ -96,13 +96,13 @@ def generate(opc):
         [Conv2DSpace((reg, reg), num_channels=1, axes=axes),
          Conv2DSpace((reg, reg), num_channels=1, axes=axes),
          VectorSpace(1)]),
-                  ('featuresX', 'featuresY', 'targets'))
+        ('featuresX', 'featuresY', 'targets'))
     train = VectorSpacesDataset((topo_X1, topo_X2, Y), data_specs=data_specs)
 
     # As a VectorSpace
     # data_specs = (CompositeSpace(
-    #     [VectorSpace(reg * reg),
-    #      VectorSpace(reg * reg),
+    # [VectorSpace(reg * reg),
+    # VectorSpace(reg * reg),
     #      VectorSpace(1)]),
     #               ('featuresX', 'featuresY', 'targets'))
     train = VectorSpacesDataset(data=(X1, X2, Y), data_specs=data_specs)
