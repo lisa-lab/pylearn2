@@ -38,7 +38,6 @@ def train(yaml_file_path, save_path):
     yaml = yaml % (params)
     train_yaml(yaml)
 
-
 def test_gae():
     """
     The function generates a dataset and uses it to train the model.

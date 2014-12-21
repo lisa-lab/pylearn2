@@ -344,6 +344,14 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
     def decodeX(self, inputs):
         """
         Returns the reconstruction of 'x' before the act_dec function
+
+        Parameters
+        ----------
+        inputs : tuple
+            Tuple (lenght 2) of theano symbolic  representing the input
+            minibatch(es) to be encoded. Assumed to be 2-tensors, with the
+            first dimension indexing training examples and the second
+            indexing the two data dimensions (X, Y).
         """
         return self.visbiasX + tensor.dot(
             self._factorsY(inputs) * self._factorsH(inputs), self.wxf.T)
@@ -351,6 +359,14 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
     def decodeY(self, inputs):
         """
         Returns the reconstruction of 'y' before the act_dec function
+
+        Parameters
+        ----------
+        inputs : tuple
+            Tuple (lenght 2) of theano symbolic  representing the input
+            minibatch(es) to be encoded. Assumed to be 2-tensors, with the
+            first dimension indexing training examples and the second
+            indexing the two data dimensions (X, Y).
         """
         return self.visbiasY + tensor.dot(
             self._factorsX(inputs) * self._factorsH(inputs), self.wyf.T)
@@ -361,9 +377,11 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
 
         Parameters
         ----------
-        inputs : tensor_like
-            Theano symbolic (or list thereof) representing the input
-            minibatch(es) to be encoded
+        inputs : tuple
+            Tuple (lenght 2) of theano symbolic  representing the input
+            minibatch(es) to be encoded. Assumed to be 2-tensors, with the
+            first dimension indexing training examples and the second
+            indexing the two data dimensions (X, Y).
         """
         if self.act_dec is None:
             act_dec = lambda x: x
@@ -377,9 +395,11 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
 
         Parameters
         ----------
-        inputs : tensor_like
-            Theano symbolic (or list thereof) representing the input
-            minibatch(es) to be encoded
+        inputs : tuple
+            Tuple (lenght 2) of theano symbolic  representing the input
+            minibatch(es) to be encoded. Assumed to be 2-tensors, with the
+            first dimension indexing training examples and the second
+            indexing the two data dimensions (X, Y).
         """
         if self.act_dec is None:
             act_dec = lambda x: x
@@ -389,15 +409,21 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
 
     def reconstructXY(self, inputs):
         """
-        Reconstruction of both images.
+        Reconstruction of both datasets.
 
         Parameters
         ----------
-        inputs : tensor_like
-            Theano symbolic (or list thereof) representing the input
+        inputs : tuple
+            Tuple (lenght 2) of theano symbolic  representing the input
             minibatch(es) to be encoded. Assumed to be 2-tensors, with the
             first dimension indexing training examples and the second
             indexing the two data dimensions (X, Y).
+
+        Returns
+        -------
+        Reconstruction: tuple
+            Tuple (lenght 2) of the tensor_like reconstruction of the
+            datasets.
         """
         return (self.reconstructX(inputs),
                 self.reconstructY(inputs))
@@ -498,6 +524,36 @@ class DenoisingFactoredGatedAutoencoder(FactoredGatedAutoencoder):
     corruptor : object
         Instance of a corruptor object to use for corrupting the
         inputs.
+    nfac : int
+        Number of factors used to project the images.
+    nmap : int
+        Number of mappings units.
+    input_space : Space object, opt
+        A Space specifying the kind of input. If None, input space
+        is specified by nvisX and nvisY.
+    nvisX : int, opt
+        Number of visible units in the first image.
+    nvisY : int, opt
+        Number of visible units in the second image.
+    input_source : tuple of strings, opt
+        A tuple of strings specifiying the input sources this
+        model accepts. The structure should match that of input_space.
+    act_enc : callable or string
+        Activation function (elementwise nonlinearity) to use for the
+        encoder. Strings (e.g. 'tanh' or 'sigmoid') will be looked up as
+        functions in `theano.tensor.nnet` and `theano.tensor`. Use `None`
+        for linear units.
+    act_dec : callable or string
+        Activation function (elementwise nonlinearity) to use for the
+        decoder. Strings (e.g. 'tanh' or 'sigmoid') will be looked up as
+        functions in `theano.tensor.nnet` and `theano.tensor`. Use `None`
+        for linear units.
+    irange : float, opt
+        Width of the initial range around 0 from which to sample initial
+        values for the weights.
+    rng : RandomState object or seed, opt
+        NumPy random number generator object (or seed to create one) used
+        to initialize the model parameters.
     """
 
     def __init__(self, corruptor, nfac, nmap, input_space=None,
@@ -532,6 +588,18 @@ class DenoisingFactoredGatedAutoencoder(FactoredGatedAutoencoder):
     def reconstructXY_NoiseFree(self, inputs):
         """
         Method that returns the reconstruction without noise
+        Parameters
+        ----------
+        inputs : tuple
+            Tuple (lenght 2) of theano symbolic  representing the input
+            minibatch(es) to be encoded. Assumed to be 2-tensors, with the
+            first dimension indexing training examples and the second
+            indexing the two data dimensions (X, Y).
+        Returns
+        -------
+        Reconstruction: tuple
+            Tuple (lenght 2) of the tensor_like reconstruction of the
+            datasets.
         """
         return (self.reconstructX(inputs),
                 self.reconstructY(inputs))
