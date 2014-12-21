@@ -3,7 +3,7 @@ This module tests gae_demo/gae_random.yaml
 """
 
 import os
-
+import logging
 from pylearn2.testing import no_debug_mode
 from pylearn2.config import yaml_parse
 from make_random_dataset import generate
@@ -54,9 +54,8 @@ def test_gae():
         os.remove("{0}/train_preprocessed.pkl".format(save_path))
         os.remove("{0}/gae_196_50.pkl".format(save_path))
         os.remove("{0}/gae_196_50_best.pkl".format(save_path))
-        print "Generated files erased"
     except OSError:
-        print "Files not found"
+        logging.warning("Files not found")
 
 if __name__ == '__main__':
     test_gae()

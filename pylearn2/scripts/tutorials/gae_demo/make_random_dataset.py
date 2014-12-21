@@ -29,7 +29,6 @@ def generate(opc):
 
     if transformation == 'shifts':
         # Shifts
-        print "Transformation:", transformation
         # only shifts between [-3, +3] pixels
         shifts = list(itertools.product(range(-3, 4), range(-3, 4)))
         t = 0
@@ -48,7 +47,6 @@ def generate(opc):
     else:
         assert transformation == 'rotations'
         # Rotations
-        print "Transformation:", transformation
         import Image
         # import cv2
         angs = numpy.linspace(0, 359, 90)
@@ -74,7 +72,7 @@ def generate(opc):
     design_X = view_converter.topo_view_to_design_mat(im1)
     design_Y = view_converter.topo_view_to_design_mat(im2)
 
-    print "Normalizing"  # Normalize data:
+    # Normalize data:
     pipeline = preprocessing.Pipeline()
     gcn = preprocessing.GlobalContrastNormalization(
         sqrt_bias=10., use_std=True)
@@ -85,8 +83,6 @@ def generate(opc):
 
     X1 = XY_ImP.X[0:design_X.shape[0], :]
     X2 = XY_ImP.X[design_X.shape[0]:, :]
-
-    print "Saving"
 
     # As a Conv2DSpace
     topo_X1 = view_converter.design_mat_to_topo_view(X1)
@@ -111,8 +107,6 @@ def generate(opc):
 
     save_path = os.path.dirname(os.path.realpath(__file__))
     serial.save(os.path.join(save_path, 'train_preprocessed.pkl'), train)
-    print "Done"
-
 
 if __name__ == '__main__':
     # Define the desired transformation between views
