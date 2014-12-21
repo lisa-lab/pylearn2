@@ -3,6 +3,7 @@
 import os
 import re
 
+from theano.compat.six import string_types
 from theano.compat.six.moves import xrange
 
 from pylearn2.utils.exc import EnvironmentVariableError, NoDataPathError
@@ -167,7 +168,11 @@ def number_aware_alphabetical_cmp(str1, str2):
     i = 0
 
     while i < l:
-        if seq1[i] < seq2[i]:
+        if isinstance(seq1[i], float) and isinstance(seq2[i], string_types):
+            return -1
+        elif isinstance(seq1[i], string_types) and isinstance(seq2[i], float):
+            return 1
+        elif seq1[i] < seq2[i]:
             return -1
         elif seq1[i] > seq2[i]:
             return 1

@@ -161,10 +161,10 @@ def test_number_aware_alphabetical_key():
     on a specific example.
     """
 
-    l = ['mystr_1', 'mystr_10', 'mystr_2', 'mystr_1_a', 'mystr']
+    l = ['0', 'mystr_1', 'mystr_10', 'mystr_2', 'mystr_1_a', 'mystr']
 
     l.sort(key=number_aware_alphabetical_key)
 
     print(l)
 
-    assert l == ['mystr', 'mystr_1', 'mystr_1_a', 'mystr_2', 'mystr_10']
+    assert l == ['0', 'mystr', 'mystr_1', 'mystr_1_a', 'mystr_2', 'mystr_10']
