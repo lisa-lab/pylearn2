@@ -11,13 +11,17 @@ from make_random_dataset import generate
 
 @no_debug_mode
 def train_yaml(yaml_file):
-
+    """
+    Executes the the main_loop()
+    """
     train = yaml_parse.load(yaml_file)
     train.main_loop()
 
 
 def train(yaml_file_path, save_path):
-
+    """
+    Loads the parameters used for training
+    """
     yaml = open("{0}/gae_random.yaml".format(yaml_file_path), 'r').read()
     data = os.path.join(save_path, 'train_preprocessed.pkl')
     params = {'save_path': save_path,
@@ -36,10 +40,13 @@ def train(yaml_file_path, save_path):
 
 
 def test_gae():
+    """
+    The function generates a dataset and uses it to train the model.
+    """
     generate('shifts')
     print __file__
     yaml_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                                  '../gae_demo'))
+                                                  "../gae_demo"))
     save_path = os.path.dirname(os.path.realpath(__file__))
 
     train(yaml_file_path, save_path)
