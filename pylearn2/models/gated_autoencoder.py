@@ -467,11 +467,10 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
                                          num_channels=convy.num_channels,
                                          axes=('b', 0, 1, 'c')))
         h = int(numpy.ceil(numpy.sqrt(self.nfac)))
-        new_weights = numpy.zeros((
-                                      wxf_view.shape[0] * 2,
-                                      wxf_view.shape[1],
-                                      wxf_view.shape[2],
-                                      wxf_view.shape[3]), dtype=wxf_view.dtype)
+        new_weights = numpy.zeros((wxf_view.shape[0] * 2,
+                                   wxf_view.shape[1],
+                                   wxf_view.shape[2],
+                                   wxf_view.shape[3]), dtype=wxf_view.dtype)
         t = 0
         while t < (self.nfac // h):
             filter_pair = numpy.concatenate(
