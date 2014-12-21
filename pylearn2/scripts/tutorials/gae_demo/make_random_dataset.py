@@ -1,8 +1,10 @@
-# This script creates a preprocessed dataset of image pairs
-# related by the defined transformation. The content of the
-# images is generated with a uniform distribution, this to
-# to show that the gating models do not depend on the
-# content but only on the relations.
+"""
+This script creates a preprocessed dataset of image pairs
+related by the defined transformation. The content of the
+images is generated with a uniform distribution, this to
+to show that the gating models do not depend on the
+content but only on the relations.
+"""
 
 import itertools
 import numpy

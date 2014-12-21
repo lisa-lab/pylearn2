@@ -588,6 +588,7 @@ class DenoisingFactoredGatedAutoencoder(FactoredGatedAutoencoder):
     def reconstructXY_NoiseFree(self, inputs):
         """
         Method that returns the reconstruction without noise
+
         Parameters
         ----------
         inputs : tuple
@@ -595,6 +596,7 @@ class DenoisingFactoredGatedAutoencoder(FactoredGatedAutoencoder):
             minibatch(es) to be encoded. Assumed to be 2-tensors, with the
             first dimension indexing training examples and the second
             indexing the two data dimensions (X, Y).
+
         Returns
         -------
         Reconstruction: tuple
