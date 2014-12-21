@@ -1,0 +1,60 @@
+!obj:pylearn2.train.Train {
+    dataset: &train !pkl: "%(train_data)s",
+    model: !obj:pylearn2.models.gated_autoencoder.FactoredGatedAutoencoder {
+        nfac : %(nfac)i,
+        nmap : %(nmap)i,
+#        nvisX : %(nvisX)i,
+#        nvisY : %(nvisY)i,
+        input_space: !obj:pylearn2.space.CompositeSpace {
+             components: [
+                 !obj:pylearn2.space.Conv2DSpace {
+                     shape: [%(region)i, %(region)i],
+                     num_channels: 1
+                 },
+                 !obj:pylearn2.space.Conv2DSpace {
+                     shape: [%(region)i, %(region)i],
+                     num_channels: 1
+                 },
+             ],
+        },
+        act_enc : 'sigmoid',
+        act_dec : null,
+        irange : 0.01,
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        learning_rate : %(lr)f,
+        cost : !obj:pylearn2.costs.gated_autoencoder.SymmetricMSRE {},
+        batch_size : %(batch_size)i,
+        termination_criterion: !obj:pylearn2.termination_criteria.And {
+            criteria: [
+                !obj:pylearn2.termination_criteria.EpochCounter {
+                    max_epochs: %(max_epochs)i
+                }
+            ]
+        },
+        monitoring_dataset :
+            {
+                'train' : *train,
+            },
+        learning_rule : !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: 0.5
+        },
+        monitoring_costs : {
+             'Normalized' : !obj:pylearn2.costs.gated_autoencoder.NormalizedSymmetricMSRE {},
+        },
+    },
+    extensions: [
+            !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
+            start: 1,
+            saturate: 10,
+            final_momentum: .9
+        },
+        !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
+             channel_name: 'train_objective',
+             save_path: "%(save_path)s/gae_%(nfac)s_%(nmap)s_best.pkl"
+        }
+    ],
+    allow_overwrite: True,
+    save_path: "%(save_path)s/gae_%(nfac)s_%(nmap)s.pkl",
+    save_freq : 10
+}
