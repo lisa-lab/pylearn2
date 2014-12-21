@@ -15,9 +15,9 @@ from pylearn2.space import VectorSpace, CompositeSpace, Conv2DSpace
 
 
 def generate(opc):
+    dim = 19  # outer square
     # A bigger image is used to avoid empty pixels in the
     # borders.
-    dim = 19  # outer square
     reg = 13  # inner square
     total = 20000  # Number of training examples
 
@@ -35,13 +35,13 @@ def generate(opc):
         t = 0
         while t < total:
             x = rng.uniform(0, 1, (dim, dim))
-            x = numpy.ceil(x*255)
+            x = numpy.ceil(x * 255)
             im_x = x[3:16, 3:16][:, :, None]
             ind = rng.randint(0, len(shifts))
             Y[t] = ind
             txy = shifts[ind]
             tx, ty = txy
-            im_y = x[(3+tx):(16+tx), (3+ty):(16+ty)][:, :, None]
+            im_y = x[(3 + tx):(16 + tx), (3 + ty):(16 + ty)][:, :, None]
             im1[t, :] = im_x
             im2[t, :] = im_y
             t += 1
@@ -55,7 +55,7 @@ def generate(opc):
         t = 0
         while t < total:
             x = rng.uniform(0, 1, (dim, dim))
-            x = numpy.ceil(x*255)
+            x = numpy.ceil(x * 255)
             im_x = x[3:16, 3:16][:, :, None]
             ind = rng.randint(0, len(angs))
             Y[t] = ind
@@ -74,8 +74,7 @@ def generate(opc):
     design_X = view_converter.topo_view_to_design_mat(im1)
     design_Y = view_converter.topo_view_to_design_mat(im2)
 
-    #NORMALIZE DATA:
-    print "Normalizing"
+    print "Normalizing"  # Normalize data:
     pipeline = preprocessing.Pipeline()
     gcn = preprocessing.GlobalContrastNormalization(
         sqrt_bias=10., use_std=True)
@@ -90,29 +89,30 @@ def generate(opc):
     print "Saving"
 
     # As a Conv2DSpace
-    # topo_X1 = view_converter.design_mat_to_topo_view(X1)
-    # topo_X2 = view_converter.design_mat_to_topo_view(X2)
-    # axes = ('b', 0, 1, 'c')
-    # data_specs = (CompositeSpace(
-    #               [Conv2DSpace((reg, reg), num_channels=1, axes=axes),
-    #                Conv2DSpace((reg, reg), num_channels=1, axes=axes),
-    #                VectorSpace(1)]),
-    #              ('featuresX', 'featuresY', 'targets'))
-    # train = VectorSpacesDataset((topo_X1, topo_X2, Y), data_specs=data_specs)
+    topo_X1 = view_converter.design_mat_to_topo_view(X1)
+    topo_X2 = view_converter.design_mat_to_topo_view(X2)
+    axes = ('b', 0, 1, 'c')
+    data_specs = (CompositeSpace(
+        [Conv2DSpace((reg, reg), num_channels=1, axes=axes),
+         Conv2DSpace((reg, reg), num_channels=1, axes=axes),
+         VectorSpace(1)]),
+                  ('featuresX', 'featuresY', 'targets'))
+    train = VectorSpacesDataset((topo_X1, topo_X2, Y), data_specs=data_specs)
 
     # As a VectorSpace
-    data_specs = (CompositeSpace(
-                  [VectorSpace(reg*reg),
-                   VectorSpace(reg*reg),
-                   VectorSpace(1)]),
-                 ('featuresX', 'featuresY', 'targets'))
+    # data_specs = (CompositeSpace(
+    #     [VectorSpace(reg * reg),
+    #      VectorSpace(reg * reg),
+    #      VectorSpace(1)]),
+    #               ('featuresX', 'featuresY', 'targets'))
     train = VectorSpacesDataset(data=(X1, X2, Y), data_specs=data_specs)
 
     import os
+
     save_path = os.path.dirname(os.path.realpath(__file__))
-    # train.use_design_loc(os.path.join(save_path, 'train_design.npy'))
     serial.save(os.path.join(save_path, 'train_preprocessed.pkl'), train)
     print "Done"
+
 
 if __name__ == '__main__':
     # Define the desired transformation between views
