@@ -44,7 +44,6 @@ def test_gae():
     The function generates a dataset and uses it to train the model.
     """
     generate('shifts')
-    print __file__
     yaml_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                   "../gae_demo"))
     save_path = os.path.dirname(os.path.realpath(__file__))

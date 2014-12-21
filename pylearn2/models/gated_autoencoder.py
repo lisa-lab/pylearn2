@@ -77,8 +77,7 @@ class GatedAutoencoder(Block, Model):
         Model.__init__(self)
         assert nmap > 0, "Number of mapping units must be positive"
 
-        if ((nvisx is not None and
-                     nvisy is not None) or (input_space is not None)):
+        if nvisx is not None and nvisy is not None or input_space is not None:
             if nvisx is not None and nvisy is not None:
                 assert nvisx > 0, "Number of visx units must be non-negative"
                 assert nvisy > 0, "Number of visy units must be non-negative"
@@ -469,10 +468,10 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
                                          axes=('b', 0, 1, 'c')))
         h = int(numpy.ceil(numpy.sqrt(self.nfac)))
         new_weights = numpy.zeros((
-                                  wxf_view.shape[0] * 2,
-                                  wxf_view.shape[1],
-                                  wxf_view.shape[2],
-                                  wxf_view.shape[3]), dtype=wxf_view.dtype)
+                                      wxf_view.shape[0] * 2,
+                                      wxf_view.shape[1],
+                                      wxf_view.shape[2],
+                                      wxf_view.shape[3]), dtype=wxf_view.dtype)
         t = 0
         while t < (self.nfac // h):
             filter_pair = numpy.concatenate(
