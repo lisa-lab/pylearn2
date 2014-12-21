@@ -29,8 +29,8 @@ class SymmetricCost(DefaultDataSpecsMixin, Cost):
         """
         raise NotImplementedError
 
+    @wraps(Cost.expr)
     def expr(self, model, data, *args, **kwargs):
-
         self.get_data_specs(model)[0].validate(data)
         x, y = data
         input_space = model.get_input_space()

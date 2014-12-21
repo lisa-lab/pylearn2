@@ -8,7 +8,7 @@ And the autoencoder implementation of Pylearn2.
 """
 
 __authors__ = "Raul Peralta Lozada"
-__copyright__ = "(c) 2014, University of Edinburgh"
+__copyright__ = "(c) 2014, The University of Edinburgh"
 __license__ = "3-clause BSD License"
 __contact__ = "raulpl25@gmail.com"
 
@@ -43,9 +43,9 @@ class GatedAutoencoder(Block, Model):
     input_space : Space object, opt
         A CompositeSpace specifying the kind of inputs. If None, input space
         is specified by nvisX and nvisY.
-    nvisX : int, opt
+    nvisx : int, opt
         Number of visible units in the first set.
-    nvisY : int, opt
+    nvisy : int, opt
         Number of visible units in the second set.
     input_source : tuple of strings, opt
         A tuple of strings specifiying the input sources this
@@ -67,7 +67,8 @@ class GatedAutoencoder(Block, Model):
         NumPy random number generator object (or seed to create one) used
         to initialize the model parameters.
     """
-    def __init__(self, nmap, input_space=None, nvisX=None, nvisY=None,
+
+    def __init__(self, nmap, input_space=None, nvisx=None, nvisy=None,
                  input_source=("featuresX", "featuresY"),
                  act_enc=None, act_dec=None,
                  irange=1e-3, rng=9001):
@@ -75,23 +76,23 @@ class GatedAutoencoder(Block, Model):
         Model.__init__(self)
         assert nmap > 0, "Number of mapping units must be positive"
 
-        if ((nvisX is not None and
-           nvisY is not None) or (input_space is not None)):
-            if nvisX is not None and nvisY is not None:
-                assert nvisX > 0, "Number of visX units must be non-negative"
-                assert nvisY > 0, "Number of visY units must be non-negative"
+        if ((nvisx is not None and
+                     nvisy is not None) or (input_space is not None)):
+            if nvisx is not None and nvisy is not None:
+                assert nvisx > 0, "Number of visX units must be non-negative"
+                assert nvisy > 0, "Number of visY units must be non-negative"
                 input_space = CompositeSpace([
-                    VectorSpace(nvisX),
-                    VectorSpace(nvisY)])
-                self.nvisX = nvisX
-                self.nvisY = nvisY
+                    VectorSpace(nvisx),
+                    VectorSpace(nvisy)])
+                self.nvisx = nvisx
+                self.nvisy = nvisy
             elif isinstance(input_space.components[0], Conv2DSpace):
                 rx, cx = input_space.components[0].shape
                 chx = input_space.components[0].num_channels
                 ry, cy = input_space.components[1].shape
                 chy = input_space.components[1].num_channels
-                self.nvisX = rx*cx*chx
-                self.nvisY = ry*cy*chy
+                self.nvisx = rx * cx * chx
+                self.nvisy = ry * cy * chy
             else:
                 raise NotImplementedError(
                     str(type(self)) + " does not support that input_space.")
@@ -109,8 +110,8 @@ class GatedAutoencoder(Block, Model):
         self.input_source = input_source
         self.nmap = nmap
         self.output_space = VectorSpace(self.nmap)
-        self._initialize_visbiasX(self.nvisX)  # self.visbiasX
-        self._initialize_visbiasY(self.nvisY)  # self.visbiasY
+        self._initialize_visbiasX(self.nvisx)  # self.visbiasX
+        self._initialize_visbiasY(self.nvisy)  # self.visbiasY
         self._initialize_mapbias()  # self.mapbias
         self.irange = irange
         self.rng = make_np_rng(rng, which_method="randn")
@@ -132,7 +133,7 @@ class GatedAutoencoder(Block, Model):
                 return getattr(tensor, conf[conf_attr])
             else:
                 raise ValueError("Couldn't interpret %s value: '%s'" %
-                                (conf_attr, conf[conf_attr]))
+                                 (conf_attr, conf[conf_attr]))
 
         self.act_enc = _resolve_callable(locals(), 'act_enc')
         self.act_dec = _resolve_callable(locals(), 'act_dec')
@@ -147,22 +148,22 @@ class GatedAutoencoder(Block, Model):
             borrow=True
         )
 
-    def _initialize_visbiasX(self, nvisX):
+    def _initialize_visbiasX(self, nvisx):
         """
         Initialize the biases of the first set of visible units.
         """
         self.visbiasX = sharedX(
-            numpy.zeros(nvisX),
+            numpy.zeros(nvisx),
             name='vbX',
             borrow=True
         )
 
-    def _initialize_visbiasY(self, nvisY):
+    def _initialize_visbiasY(self, nvisy):
         """
         Initialize the biases of the second set of visible units.
         """
         self.visbiasY = sharedX(
-            numpy.zeros(nvisY),
+            numpy.zeros(nvisy),
             name='vbY',
             borrow=True
         )
@@ -210,15 +211,15 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
         to initialize the model parameters.
     """
 
-    def __init__(self, nfac, nmap, input_space=None, nvisX=None, nvisY=None,
+    def __init__(self, nfac, nmap, input_space=None, nvisx=None, nvisy=None,
                  input_source=("featuresX", "featuresY"),
                  act_enc=None, act_dec=None,
                  irange=1e-3, rng=9001):
         super(FactoredGatedAutoencoder, self).__init__(
             nmap,
             input_space,
-            nvisX,
-            nvisY,
+            nvisx,
+            nvisy,
             input_source,
             act_enc,
             act_dec,
@@ -228,20 +229,16 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
 
         # Parameters
         self.nfac = nfac
-        self._initialize_wxf(self.nvisX, self.nfac)  # self.wxf
-        self._initialize_wyf(self.nvisY, self.nfac)  # self.wyf
+        self._initialize_wxf(self.nvisx, self.nfac)  # self.wxf
+        self._initialize_wyf(self.nvisy, self.nfac)  # self.wyf
         self._initialize_whf(self.nmap, self.nfac)  # self.whf
         self._initialize_whf_in(self.nmap, self.nfac)  # self.whf_in
 
         self._params = [self.wxf, self.wyf, self.whf_in, self.whf,
                         self.mapbias, self.visbiasX, self.visbiasY]
 
-        inputX = sharedX(self.rng.randn(5, self.nvisX), name='iX', borrow=True)
-        inputY = sharedX(self.rng.randn(5, self.nvisY), name='iY', borrow=True)
-        f_inputs = (inputX, inputY)
 
-
-    def _initialize_wxf(self, nvisX, nfac, rng=None, irange=None):
+    def _initialize_wxf(self, nvisx, nfac, rng=None, irange=None):
         """
         Creation of weight matrix wxf.
         """
@@ -250,12 +247,12 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
         if irange is None:
             irange = self.irange
         self.wxf = sharedX(
-            (rng.randn(nvisX, nfac)) * irange,
+            (rng.randn(nvisx, nfac)) * irange,
             name='wxf',
             borrow=True
         )
 
-    def _initialize_wyf(self, nvisY, nfac, rng=None, irange=None):
+    def _initialize_wyf(self, nvisy, nfac, rng=None, irange=None):
         """
         Creation of weight matrix wyf.
         """
@@ -264,7 +261,7 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
         if irange is None:
             irange = self.irange
         self.wyf = sharedX(
-            (rng.randn(nvisY, nfac)) * irange,
+            (rng.randn(nvisy, nfac)) * irange,
             name='wyf',
             borrow=True
         )
@@ -298,12 +295,23 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
         )
 
     def _factorsX(self, inputs):
+        """
+        Applies the filters wxf to the first input and returns
+        the corresponding factors
+        """
         return tensor.dot(inputs[0], self.wxf)
 
     def _factorsY(self, inputs):
+        """
+        Applies the filters wyf to the second input and returns
+        the corresponding factors
+        """
         return tensor.dot(inputs[1], self.wyf)
 
     def _mappings(self, inputs):
+        """
+        Returns the mapping units.
+        """
         return self.mapbias + tensor.dot(
             self._factorsX(inputs) * self._factorsY(inputs), self.whf_in.T)
 
@@ -330,13 +338,22 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
 
 
     def _factorsH(self, inputs):
+        """
+        Returns the factors corresponding to the mapping units.
+        """
         return tensor.dot(self._hidden_activation(inputs), self.whf)
 
     def decodeX(self, inputs):
+        """
+        Returns the reconstruction of 'x' before the act_dec function
+        """
         return self.visbiasX + tensor.dot(
             self._factorsY(inputs) * self._factorsH(inputs), self.wxf.T)
 
     def decodeY(self, inputs):
+        """
+        Returns the reconstruction of 'y' before the act_dec function
+        """
         return self.visbiasY + tensor.dot(
             self._factorsX(inputs) * self._factorsH(inputs), self.wyf.T)
 
@@ -412,8 +429,8 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
         centered_wxf = wxf_updated - wxf_updated.mean(0)
         centered_wyf = wyf_updated - wyf_updated.mean(0)
         # Fix standard deviation
-        wxf_updated = centered_wxf*(meannxf/nwxf)
-        wyf_updated = centered_wyf*(meannyf/nwyf)
+        wxf_updated = centered_wxf * (meannxf / nwxf)
+        wyf_updated = centered_wyf * (meannyf / nwyf)
         updates[wxf] = wxf_updated
         updates[wyf] = wyf_updated
 
@@ -433,14 +450,14 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
             is exact.
         """
         if (not isinstance(self.input_space.components[0], Conv2DSpace) or
-            not isinstance(self.input_space.components[1], Conv2DSpace)):
+                not isinstance(self.input_space.components[1], Conv2DSpace)):
             raise NotImplementedError()
         wxf = self.wxf.get_value(borrow=False).T
         wyf = self.wyf.get_value(borrow=False).T
         convx = self.input_space.components[0]
         convy = self.input_space.components[1]
-        vecx = VectorSpace(self.nvisX)
-        vecy = VectorSpace(self.nvisY)
+        vecx = VectorSpace(self.nvisx)
+        vecy = VectorSpace(self.nvisy)
         wxf_view = vecx.np_format_as(wxf,
                                      Conv2DSpace(convx.shape,
                                                  num_channels=convx.num_channels,
@@ -451,24 +468,25 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
                                                  axes=('b', 0, 1, 'c')))
         h = int(numpy.ceil(numpy.sqrt(self.nfac)))
         new_weights = numpy.zeros((
-                                  wxf_view.shape[0]*2,
-                                  wxf_view.shape[1],
-                                  wxf_view.shape[2],
-                                  wxf_view.shape[3]), dtype=wxf_view.dtype)
+                                      wxf_view.shape[0] * 2,
+                                      wxf_view.shape[1],
+                                      wxf_view.shape[2],
+                                      wxf_view.shape[3]), dtype=wxf_view.dtype)
         t = 0
         while t < (self.nfac // h):
             filter_pair = numpy.concatenate(
                 (
-                    wxf_view[h*t:h*(t + 1), ...],
-                    wyf_view[h*t:h*(t + 1), ...]
+                    wxf_view[h * t:h * (t + 1), ...],
+                    wyf_view[h * t:h * (t + 1), ...]
                 ), 0)
-            new_weights[h*2*t:h*2*(t + 1), ...] = filter_pair
+            new_weights[h * 2 * t:h * 2 * (t + 1), ...] = filter_pair
             t += 1
         return new_weights
 
+    @wraps(GatedAutoencoder.get_weights_view_shape)
     def get_weights_view_shape(self):
         return (int(numpy.ceil(numpy.sqrt(self.nfac))),
-                int(numpy.ceil(numpy.sqrt(self.nfac)))*2)
+                int(numpy.ceil(numpy.sqrt(self.nfac))) * 2)
 
 
 class DenoisingFactoredGatedAutoencoder(FactoredGatedAutoencoder):
@@ -482,22 +500,23 @@ class DenoisingFactoredGatedAutoencoder(FactoredGatedAutoencoder):
         Instance of a corruptor object to use for corrupting the
         inputs.
     """
+
     def __init__(self, corruptor, nfac, nmap, input_space=None,
-                 nvisX=None, nvisY=None,
+                 nvisx=None, nvisy=None,
                  input_source=("featuresX", "featuresY"),
                  act_enc=None, act_dec=None, irange=1e-3, rng=9001):
         super(DenoisingFactoredGatedAutoencoder, self).__init__(
             nfac,
             nmap,
             input_space,
-            nvisX,
-            nvisY,
+            nvisx,
+            nvisy,
             input_source,
             act_enc,
             act_dec,
             irange,
             rng
-            )
+        )
         self.corruptor = corruptor
 
     @wraps(FactoredGatedAutoencoder.reconstructXY)
@@ -512,5 +531,8 @@ class DenoisingFactoredGatedAutoencoder(FactoredGatedAutoencoder):
                 self.reconstructY(corrupted))
 
     def reconstructXY_NoiseFree(self, inputs):
+        """
+        Method that returns the reconstruction without noise
+        """
         return (self.reconstructX(inputs),
                 self.reconstructY(inputs))
