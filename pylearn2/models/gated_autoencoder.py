@@ -2,8 +2,9 @@
 Factored Gated AutoEncoder Class.
 
 This code is adapted from the implementation of Roland Memisevic,
-specifically from the paper: "Gradient-based learning of higher-order
-image features" (http://www.iro.umontreal.ca/~memisevr/code/rae/index.html).
+specifically from the paper:
+"Gradient-based learning of higher-order image features"
+(http://www.iro.umontreal.ca/~memisevr/code/rae/index.html).
 And the autoencoder implementation of Pylearn2.
 """
 
@@ -79,8 +80,8 @@ class GatedAutoencoder(Block, Model):
         if ((nvisx is not None and
                      nvisy is not None) or (input_space is not None)):
             if nvisx is not None and nvisy is not None:
-                assert nvisx > 0, "Number of visX units must be non-negative"
-                assert nvisy > 0, "Number of visY units must be non-negative"
+                assert nvisx > 0, "Number of visx units must be non-negative"
+                assert nvisy > 0, "Number of visy units must be non-negative"
                 input_space = CompositeSpace([
                     VectorSpace(nvisx),
                     VectorSpace(nvisy)])
@@ -237,7 +238,6 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
         self._params = [self.wxf, self.wyf, self.whf_in, self.whf,
                         self.mapbias, self.visbiasX, self.visbiasY]
 
-
     def _initialize_wxf(self, nvisx, nfac, rng=None, irange=None):
         """
         Creation of weight matrix wxf.
@@ -335,7 +335,6 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
         else:
             act_enc = self.act_enc
         return act_enc(self._mappings(inputs))
-
 
     def _factorsH(self, inputs):
         """
@@ -436,8 +435,8 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
 
     def get_weights_topo(self):
         """
-        Returns a topological view of the weights, the first half corresponds to
-        wxf and the second half to wyf.
+        Returns a topological view of the weights, the first half
+        corresponds to wxf and the second half to wyf.
 
         Returns
         -------
@@ -459,19 +458,21 @@ class FactoredGatedAutoencoder(GatedAutoencoder):
         vecx = VectorSpace(self.nvisx)
         vecy = VectorSpace(self.nvisy)
         wxf_view = vecx.np_format_as(wxf,
-                                     Conv2DSpace(convx.shape,
-                                                 num_channels=convx.num_channels,
-                                                 axes=('b', 0, 1, 'c')))
+                                     Conv2DSpace(
+                                         convx.shape,
+                                         num_channels=convx.num_channels,
+                                         axes=('b', 0, 1, 'c')))
         wyf_view = vecy.np_format_as(wyf,
-                                     Conv2DSpace(convy.shape,
-                                                 num_channels=convy.num_channels,
-                                                 axes=('b', 0, 1, 'c')))
+                                     Conv2DSpace(
+                                         convy.shape,
+                                         num_channels=convy.num_channels,
+                                         axes=('b', 0, 1, 'c')))
         h = int(numpy.ceil(numpy.sqrt(self.nfac)))
         new_weights = numpy.zeros((
-                                      wxf_view.shape[0] * 2,
-                                      wxf_view.shape[1],
-                                      wxf_view.shape[2],
-                                      wxf_view.shape[3]), dtype=wxf_view.dtype)
+                                  wxf_view.shape[0] * 2,
+                                  wxf_view.shape[1],
+                                  wxf_view.shape[2],
+                                  wxf_view.shape[3]), dtype=wxf_view.dtype)
         t = 0
         while t < (self.nfac // h):
             filter_pair = numpy.concatenate(

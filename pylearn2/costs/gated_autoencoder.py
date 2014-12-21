@@ -5,6 +5,12 @@ import theano
 
 
 class SymmetricCost(DefaultDataSpecsMixin, Cost):
+    """
+    Class representing the symmetric cost, subclasses can
+    define the type of data they will use
+    real -> Mean Reconstruction error
+    binary -> Cross-Entropy loss
+    """
     @staticmethod
     def cost(x, y, rx, ry):
         """
@@ -47,6 +53,9 @@ class SymmetricCost(DefaultDataSpecsMixin, Cost):
 
 
 class SymmetricMSRE(SymmetricCost):
+    """
+    Symmetric cost for real valued data.
+    """
     @staticmethod
     @wraps(SymmetricCost.cost)
     def cost(x, y, rx, ry):
@@ -62,6 +71,10 @@ class SymmetricMSRE(SymmetricCost):
 
 
 class NormalizedSymmetricMSRE(SymmetricCost):
+    """
+    Normalized Symmetric cost for real valued data.
+    Values between one and zero.
+    """
     @staticmethod
     @wraps(SymmetricCost.cost)
     def cost(x, y, rx, ry):
