@@ -105,7 +105,7 @@ def generate(opc):
     # VectorSpace(reg * reg),
     #      VectorSpace(1)]),
     #               ('featuresX', 'featuresY', 'targets'))
-    train = VectorSpacesDataset(data=(X1, X2, Y), data_specs=data_specs)
+    # train = VectorSpacesDataset(data=(X1, X2, Y), data_specs=data_specs)
 
     import os
 
