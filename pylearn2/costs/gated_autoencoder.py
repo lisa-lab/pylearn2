@@ -1,15 +1,18 @@
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 from pylearn2.utils import wraps
 from pylearn2.space import VectorSpace
-import theano
 
 
 class SymmetricCost(DefaultDataSpecsMixin, Cost):
     """
     Class representing the symmetric cost, subclasses can
-    define the type of data they will use
-    real -> Mean Reconstruction error
-    binary -> Cross-Entropy loss
+    define the type of data they will use. Mean reconstruction
+    error is used for real valued data and cross-Entropy loss
+    is used for binary.
+
+    See Also
+    --------
+    "Gradient-based learning of higher-order image features"
     """
     @staticmethod
     def cost(x, y, rx, ry):
@@ -32,6 +35,12 @@ class SymmetricCost(DefaultDataSpecsMixin, Cost):
             Reconstruction of the first minibatch by the model.
         ry: tensor_like
             Reconstruction of the second minibatch by the model.
+
+        Returns
+        -------
+        Cost: theano_like expression
+            Representation of the cost
+
         """
         raise NotImplementedError
 
@@ -55,6 +64,10 @@ class SymmetricCost(DefaultDataSpecsMixin, Cost):
 class SymmetricMSRE(SymmetricCost):
     """
     Symmetric cost for real valued data.
+
+    See Also
+    --------
+    "Gradient-based learning of higher-order image features"
     """
     @staticmethod
     @wraps(SymmetricCost.cost)
@@ -74,6 +87,10 @@ class NormalizedSymmetricMSRE(SymmetricCost):
     """
     Normalized Symmetric cost for real valued data.
     Values between one and zero.
+
+    Notes
+    -----
+    Value used to observe the percentage of reconstruction.
     """
     @staticmethod
     @wraps(SymmetricCost.cost)
