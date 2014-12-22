@@ -574,9 +574,24 @@ class DenoisingFactoredGatedAutoencoder(FactoredGatedAutoencoder):
         )
         self.corruptor = corruptor
 
-    @wraps(FactoredGatedAutoencoder.reconstructXY)
     def reconstructXY(self, inputs):
         """
+        Reconstruction of both datasets.
+
+        Parameters
+        ----------
+        inputs : tuple
+            Tuple (lenght 2) of theano symbolic  representing the input
+            minibatch(es) to be encoded. Assumed to be 2-tensors, with the
+            first dimension indexing training examples and the second
+            indexing the two data dimensions (X, Y).
+
+        Returns
+        -------
+        Reconstruction: tuple
+            Tuple (lenght 2) of the tensor_like reconstruction of the
+            datasets.
+
         Notes
         -----
         Reconstructions from corrupted data.

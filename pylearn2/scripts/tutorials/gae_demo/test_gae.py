@@ -6,7 +6,7 @@ import os
 import logging
 from pylearn2.testing import no_debug_mode
 from pylearn2.config import yaml_parse
-from make_random_dataset import generate
+from pylearn2.scripts.tutorials.gae_demo.make_random_dataset import generate
 
 
 @no_debug_mode
@@ -37,6 +37,7 @@ def train(yaml_file_path, save_path):
 
     yaml = yaml % (params)
     train_yaml(yaml)
+
 
 def test_gae():
     """
