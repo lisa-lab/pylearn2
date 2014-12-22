@@ -91,6 +91,10 @@ class SymmetricMSRE(SymmetricCost):
     @wraps(SymmetricCost.cost)
     def cost(x, y, rx, ry):
         """
+        Summary (Definition of the cost).
+
+        Mean squared reconstruction error.
+
         Parameters
         ----------
         x : tensor_like
@@ -135,6 +139,11 @@ class NormalizedSymmetricMSRE(SymmetricCost):
     @wraps(SymmetricCost.cost)
     def cost(x, y, rx, ry):
         """
+        Summary (Definition of the cost).
+
+        Normalized Mean squared reconstruction error. Values
+        between 0 and 1.
+
         Parameters
         ----------
         x : tensor_like
