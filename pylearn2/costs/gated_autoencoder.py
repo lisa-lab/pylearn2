@@ -3,7 +3,6 @@ Definitions of the cost for the gated-autoencoder.
 """
 
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
-from pylearn2.utils import wraps
 from pylearn2.space import VectorSpace
 
 
@@ -88,7 +87,6 @@ class SymmetricMSRE(SymmetricCost):
     "Gradient-based learning of higher-order image features"
     """
     @staticmethod
-    @wraps(SymmetricCost.cost)
     def cost(x, y, rx, ry):
         """
         Summary (Definition of the cost).
@@ -136,7 +134,6 @@ class NormalizedSymmetricMSRE(SymmetricCost):
     Value used to observe the percentage of reconstruction.
     """
     @staticmethod
-    @wraps(SymmetricCost.cost)
     def cost(x, y, rx, ry):
         """
         Summary (Definition of the cost).
