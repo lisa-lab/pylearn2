@@ -13,6 +13,11 @@ from pylearn2.scripts.tutorials.gae_demo.make_random_dataset import generate
 def train_yaml(yaml_file):
     """
     Executes the the main_loop()
+
+    Parameters
+    ----------
+    yaml_file: string
+        Configuration yaml
     """
     train = yaml_parse.load(yaml_file)
     train.main_loop()
@@ -21,6 +26,13 @@ def train_yaml(yaml_file):
 def train(yaml_file_path, save_path):
     """
     Loads the parameters used for training
+
+    Parameters
+    ----------
+    yaml_file_path: string
+        Path to the configuration file
+    save_path: string
+        Saving path
     """
     yaml = open("{0}/gae_random.yaml".format(yaml_file_path), 'r').read()
     data = os.path.join(save_path, 'train_preprocessed.pkl')
