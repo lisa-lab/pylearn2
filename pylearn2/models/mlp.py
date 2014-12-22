@@ -4335,20 +4335,8 @@ class FlattenerLayer(Layer):
                                       state=None, targets=None):
 
         raw_space = self.raw_layer.get_output_space()
-
-        if isinstance(raw_space, CompositeSpace):
-            # Pick apart the Join that fprop used to make state.
-            assert hasattr(state, 'owner')
-            owner = state.owner
-            assert owner is not None
-            assert str(owner.op) == 'Join'
-            # First input to join op in the axis.
-            raw_state = tuple(owner.inputs[1:])
-            raw_space.validate(raw_state)
-            state = raw_state
-        else:
-            # Format state as layer output space.
-            state = self.get_output_space().format_as(state, raw_space)
+        state = raw_space.undo_format_as(state,
+                                         self.get_output_space())
 
         if targets is not None:
             targets = self.get_target_space().format_as(
@@ -4404,22 +4392,9 @@ class FlattenerLayer(Layer):
 
         raw_space = self.raw_layer.get_output_space()
         target_space = self.output_space
-        raw_Y = target_space.format_as(Y, raw_space)
 
-        if isinstance(raw_space, CompositeSpace):
-            # Pick apart the Join that our fprop used to make Y_hat
-            assert hasattr(Y_hat, 'owner')
-            owner = Y_hat.owner
-            assert owner is not None
-            assert str(owner.op) == 'Join'
-            # first input to join op is the axis
-            raw_Y_hat = tuple(owner.inputs[1:])
-        else:
-            # To implement this generally, we'll need to give Spaces an
-            # undo_format or something. You can't do it with format_as
-            # in the opposite direction because Layer.cost needs to be
-            # able to assume that Y_hat is the output of fprop
-            raise NotImplementedError()
+        raw_Y = target_space.format_as(Y, raw_space)
+        raw_Y_hat = raw_space.undo_format_as(Y_hat, target_space)
         raw_space.validate(raw_Y_hat)
 
         return self.raw_layer.cost(raw_Y, raw_Y_hat)
