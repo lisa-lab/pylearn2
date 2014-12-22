@@ -224,6 +224,34 @@ def _cast(arg, dtype):
         raise TypeError("Unsupported arg type '%s'" % str(type(arg)))
 
 
+def _undo_op(arg, string, strict=False):
+    """
+    Undo symbolic op if string is in str(op).
+
+    Returns <arg> untouched if there was no symbolic op.
+
+    Parameters
+    ----------
+    arg : any symbolic variable.
+    string : str
+        String that specifies op.
+    strict : bool
+        Whether to force op undo or not (default False).
+    """
+
+    if hasattr(arg.owner, 'op'):
+        owner = arg.owner
+        if string in str(owner.op):
+            return owner.inputs[0]
+        elif strict:
+            raise ValueError(string + ' not found in op ' +
+                             str(owner.op) + '.')
+    elif strict:
+        raise ValueError(string + ' op not found in variable ' +
+                         str(arg) + '.')
+    return arg
+
+
 class Space(object):
     """
     A vector space that can be transformed by a linear operator.
@@ -546,6 +574,88 @@ class Space(object):
         """
 
         raise NotImplementedError("%s does not implement _format_as_impl()." %
+                                  type(self))
+
+    def undo_np_format_as(self, batch, space):
+        """
+        Returns a numeric batch (e.g. a numpy.ndarray or scipy.sparse sparse
+        array), with formatting from space undone.
+
+        This is just a wrapper around self._undo_format_as, with an extra check
+        to throw an exception if <batch> is symbolic.
+
+        Parameters
+        ----------
+        batch : numpy.ndarray, or one of the scipy.sparse matrices.
+            Array which lies in this space.
+        space : Space
+            Space to undo formatting from.
+
+        Returns
+        -------
+        numpy.ndarray or one of the scipy.sparse matrices
+            The formatted batch.
+        """
+
+        self._check_is_numeric(batch)
+
+        return space.np_format_as(batch=batch,
+                                  space=self)
+
+    def undo_format_as(self, batch, space):
+        """
+        Returns a symbolic batch (e.g. a theano.tensor or theano.sparse
+        array), with formatting from space undone.
+
+        This is just a wrapper around self._undo_format_as, with an extra check
+        to throw an exception if <batch> is symbolic. Formatting to space
+
+        Parameters
+        ----------
+        batch : numpy.ndarray, or one of the scipy.sparse matrices.
+            Array which lies in this space.
+        space : Space
+            Space to undo formatting from.
+
+        Returns
+        -------
+        A symbolic Theano variable
+            The batch formatted as self.
+        """
+        self._check_is_symbolic(batch)
+        space.validate(batch)
+        self._check_sizes(space)
+
+        batch = self._undo_format_as_impl(batch=batch,
+                                          space=space)
+        # Checks if batch belongs to this space
+        self.validate(batch)
+
+        return batch
+
+    def _undo_format_as_impl(self, batch, target_space):
+        """
+        Actual implementation of undo_format_as.
+        Undoes target_space_formatting.
+        Note that undo_np_format_as calls np_format_as.
+
+        Parameters
+        ----------
+        batch : a theano symbol, or a nested tuple thereof
+            Implementations of this method may assume that batch lies in
+            space (i.e. that it passed self._validate(batch) without throwing
+            an exception).
+        target_space : A Space subclass
+            The space to undo batch formatting from.
+
+        Returns
+        -------
+        A symbolic Theano variable
+            The batch, converted from target_space, back to self.
+        """
+
+        raise NotImplementedError("%s does not implement "
+                                  "_undo_format_as_impl()." %
                                   type(self))
 
     def validate(self, batch):
@@ -1200,6 +1310,110 @@ class VectorSpace(SimplyTypedSpace):
 
         return _cast(result, dtype=to_type)
 
+    @functools.wraps(Space._undo_format_as_impl)
+    def _undo_format_as_impl(self, batch, space):
+
+        def is_sparse(batch):
+            return isinstance(batch, theano.sparse.SparseVariable)
+
+        if not isinstance(space, IndexSpace):
+            my_dimension = self.get_total_dimension()
+            other_dimension = space.get_total_dimension()
+            if my_dimension != other_dimension:
+                raise ValueError(str(self) + " with total dimension " +
+                                 str(my_dimension) +
+                                 " can't undo format a batch from " +
+                                 str(space) +
+                                 "because its total dimension is " +
+                                 str(other_dimension))
+
+        if isinstance(space, CompositeSpace):
+            if isinstance(batch, theano.sparse.SparseVariable):
+                warnings.warn('Undo formatting from a sparse VectorSpace to a '
+                              'CompositeSpace is currently (2 Jan 2014) a '
+                              'non-differentiable action. This is because it '
+                              'calls slicing operations on a sparse batch '
+                              '(e.g. "my_matrix[r:R, c:C]", which Theano does '
+                              'not yet have a gradient operator for. If '
+                              'autodifferentiation is reporting an error, '
+                              'this may be why. Formatting batch type %s '
+                              'from space %s to space %s' %
+                              (type(batch), self, space))
+
+            # Recursively try and find a non-Composite, non-Null space
+            # to extract underlying theano variable
+            def extract_vector_variable(composite_space, batch_tuple):
+                found = False
+                for sp, el in safe_zip(composite_space.components,
+                                       batch_tuple):
+                    dim = sp.get_total_dimension()
+                    if not isinstance(sp, NullSpace) and dim > 0:
+                        if isinstance(sp, CompositeSpace):
+                            var, found = extract_vector_variable(sp, el)
+                            var = var.owner.inputs[0]
+                        else:
+                            dummy_sp = VectorSpace(dim=dim,
+                                                   sparse=sp.sparse,
+                                                   dtype=sp.dtype
+                                                   )
+                            var = dummy_sp.undo_format_as(el, sp)
+                            found = True
+                    if found:
+                        break
+                return var, found
+
+            var, found = extract_vector_variable(space, batch)
+            batch = var
+
+            if not found:
+                raise TypeError("Could not find a valid space "
+                                "to undo format from in the "
+                                "CompositeSpace.")
+            else:
+                # Undo subtensor slice
+                owner = batch.owner
+                assert 'Subtensor' in str(owner.op)
+                batch = owner.inputs[0]
+
+        elif isinstance(space, Conv2DSpace):
+            if is_sparse(batch):
+                raise TypeError("Undo formatting a SparseVariable to a "
+                                "Conv2DSpace is not supported, since "
+                                "neither scipy nor Theano has sparse "
+                                "tensors with more than 2 dimensions. "
+                                "We need 4 dimensions to represent a "
+                                "Conv2DSpace batch")
+            # Check for cast
+            batch = _undo_op(batch, 'Cast')
+            # Undo axes shuffle
+            if space.axes != space.default_axes:
+                batch = _undo_op(batch, 'DimShuffle', strict=True)
+            # Undo reshape
+            batch = _undo_op(batch, 'Reshape{4}', strict=True)
+
+        elif isinstance(space, VectorSpace):
+            if self.dim != space.dim:
+                raise ValueError("Can't convert between VectorSpaces of "
+                                 "different sizes (%d to %d)."
+                                 % (self.dim, space.dim))
+            # Check for cast
+            batch = _undo_op(batch, 'Cast')
+            # Undo any sparse-dense switches
+            if self.sparse != is_sparse(batch):
+                if space.sparse:
+                    batch = _undo_op(batch, 'SparseFromDense', strict=True)
+                elif isinstance(batch, theano.sparse.SparseVariable):
+                    batch = _undo_op(batch, 'DenseFromSparse', strict=True)
+                else:
+                    assert False, ("Unplanned-for branch in if-elif "
+                                   "chain. This is a bug in the code.")
+
+        else:
+            raise NotImplementedError("%s doesn't know how to format as %s" %
+                                      (self, space))
+
+        return batch
+
     def __eq__(self, other):
         """
         .. todo::
@@ -1837,6 +2051,30 @@ class Conv2DSpace(SimplyTypedSpace):
 
         return _cast(result, space.dtype)
 
+    @functools.wraps(Space._undo_format_as_impl)
+    def _undo_format_as_impl(self, batch, space):
+        # Check for cast
+        batch = _undo_op(batch, 'Cast')
+
+        if isinstance(space, VectorSpace):
+            # Check for SparseFromDense
+            batch = _undo_op(batch, 'SparseFromDense')
+            # Undo reshape op
+            batch = _undo_op(batch, 'Reshape', strict=True)
+            # Check to see if axis ordering was changed
+            if self.axes != self.default_axes:
+                batch = _undo_op(batch, 'DimShuffle', strict=True)
+
+        elif isinstance(space, Conv2DSpace):
+            # Check to see if axis ordering was changed
+            if space.axes != self.axes:
+                batch = _undo_op(batch, 'DimShuffle', strict=True)
+        else:
+            raise NotImplementedError("%s doesn't know how to format as %s"
+                                      % (str(self), str(space)))
+
+        return batch
+
 
 class CompositeSpace(Space):
     """
@@ -2078,6 +2316,105 @@ class CompositeSpace(Space):
                     return orig_space._format_as(is_numeric, batch, dest_space)
 
             return recursive_format_as(self, batch, space)
+
+        raise NotImplementedError(str(self) +
+                                  " does not know how to format as " +
+                                  str(space))
+
+    @functools.wraps(Space._undo_format_as_impl)
+    def _undo_format_as_impl(self, batch, space):
+        """
+        Undoes the formatting to a single VectorSpace, or to a CompositeSpace.
+
+        CompositeSpace->VectorSpace:
+          Traverses the nested components in depth-first order, serializing the
+          leaf nodes (i.e. the non-composite subspaces) into the VectorSpace.
+
+        CompositeSpace->CompositeSpace:
+
+          Only works for two CompositeSpaces that have the same nested
+          structure. Traverses both CompositeSpaces' nested components in
+          parallel, converting between corresponding non-composite components
+          in <self> and <space> as:
+
+              `self_component._format_as(is_numeric,
+                                         batch_component,
+                                         space_component)`
+
+        Parameters
+        ----------
+        batch : WRITEME
+        space : WRITEME
+
+        Returns
+        -------
+        WRITEME
+        """
+
+        if isinstance(space, VectorSpace):
+            # Undo join
+            if space.sparse:
+                owner = batch.owner
+                assert owner is not None
+                assert 'HStack' in str(owner.op)
+                batch = owner.inputs
+            else:
+                owner = batch.owner
+                assert owner is not None
+                assert str(owner.op) == 'Join'
+                # First component is join axis
+                batch = owner.inputs[1:]
+
+            def extract_dtype(dtype):
+                if isinstance(dtype, tuple):
+                    return extract_dtype(dtype[0])
+                else:
+                    return dtype
+
+            def compose_batch(composite_space, batch_list):
+                rval = ()
+                for sp, bt in safe_zip(composite_space.components, batch_list):
+                    if False and isinstance(sp, CompositeSpace):
+                        composed, batch_list = compose_batch(sp, batch_list)
+                        rval += (composed,)
+                    else:
+                        sparse = getattr(sp, 'sparse', False)
+                        dtype = extract_dtype(sp.dtype)
+                        new_sp = VectorSpace(dim=sp.get_total_dimension(),
+                                             dtype=dtype,
+                                             sparse=sparse
+                                             )
+                        new_batch = sp.undo_format_as(bt,
+                                                      new_sp)
+                        rval += (new_batch,)
+
+                return rval
+            composed = compose_batch(self, batch)
+            return composed
+
+        if isinstance(space, CompositeSpace):
+            def recursive_undo_format_as(orig_space, batch, dest_space):
+                if not (isinstance(orig_space, CompositeSpace) ==
+                        isinstance(dest_space, CompositeSpace)):
+                    raise TypeError("Can't convert between CompositeSpaces "
+                                    "with different tree structures")
+
+                # No need to check batch's tree structure.
+                # Space.undo_format_as() already did that
+                # by calling _validate(), before calling this
+                # method.
+
+                if isinstance(orig_space, CompositeSpace):
+                    return tuple(recursive_undo_format_as(os, bt, ds)
+                                 for os, bt, ds
+                                 in safe_zip(orig_space.components,
+                                             batch,
+                                             dest_space.components))
+                else:
+                    return orig_space.undo_format_as(batch,
+                                                     dest_space)
+
+            return recursive_undo_format_as(self, batch, space)
 
         raise NotImplementedError(str(self) +
                                   " does not know how to format as " +
