@@ -17,6 +17,14 @@ from pylearn2.space import VectorSpace, CompositeSpace, Conv2DSpace
 
 
 def generate(opc):
+    """
+    Summary (Generates a dataset with the chosen transformation).
+
+    Parameters
+    ----------
+    opc: string
+        Only two options, shifts or rotations.
+    """
     dim = 19  # outer square
     # A bigger image is used to avoid empty pixels in the
     # borders.
