@@ -873,6 +873,9 @@ class IndexSpace(SimplyTypedSpace):
                                            max_labels=self.max_labels,
                                            dtype=self.dtype)
 
+    def __hash__(self):
+        return hash((type(self), self.dim, self.max_labels, self.dtype))
+
     def __eq__(self, other):
         """
         .. todo::
