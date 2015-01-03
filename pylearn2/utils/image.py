@@ -8,6 +8,7 @@ import numpy as np
 plt = None
 axes = None
 from theano.compat.six.moves import xrange
+from theano.compat.six import string_types
 import warnings
 try:
     import matplotlib.pyplot as plt
@@ -352,7 +353,7 @@ def load(filepath, rescale_image=True, dtype='float64'):
 
         WRITEME
     """
-    assert type(filepath) == str
+    assert isinstance(filepath, string_types)
 
     if rescale_image == False and dtype == 'uint8':
         ensure_Image()
