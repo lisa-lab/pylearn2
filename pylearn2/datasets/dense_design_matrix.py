@@ -753,7 +753,11 @@ class DenseDesignMatrix(Dataset):
         V : ndarray
             An array containing a design matrix representation of
             training examples.
-        axes : WRITEME
+        axes : tuple, optional
+            The axes ordering of the provided topo_view. Must be some
+            permutation of ('b', 0, 1, 'c') where 'b' indicates the axis
+            indexing examples, 0 and 1 indicate the row/cols dimensions and
+            'c' indicates the axis indexing color channels.
         """
         if len(V.shape) != len(axes):
             raise ValueError("The topological view must have exactly 4 "
@@ -1169,11 +1173,14 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         ----------
         V : ndarray
             An array containing a design matrix representation of training \
-            examples. If unspecified, the entire dataset (`self.X`) is used \
-            instead.
-        axes : WRITEME
-            WRITEME
-        start : WRITEME
+            examples.
+        axes : tuple, optional
+            The axes ordering of the provided topo_view. Must be some
+            permutation of ('b', 0, 1, 'c') where 'b' indicates the axis
+            indexing examples, 0 and 1 indicate the row/cols dimensions and
+            'c' indicates the axis indexing color channels.
+        start : int
+            The start index to write data.
         """
         assert not contains_nan(V)
         rows = V.shape[axes.index(0)]
@@ -1189,11 +1196,15 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
 
     def init_hdf5(self, path, shapes):
         """
-        .. todo::
+        Initializes the hdf5 file into which the data will be stored. This must
+        be called before calling fill_hdf5.
 
-            WRITEME properly
-
-        Initialize hdf5 file to be used ba dataset
+        Parameters
+        ----------
+        path : string
+            The name of the hdf5 file.
+        shapes : tuple
+            The shapes of X and y.
         """
 
         x_shape, y_shape = shapes
@@ -1217,14 +1228,25 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
                   start=0,
                   batch_size=5000):
         """
-        .. todo::
+        Saves the data to the hdf5 file.
 
-            WRITEME properly
+        PyTables tends to crash if you write large amounts of data into them
+        at once. As such this function writes data in batches.
 
-        PyTables tends to crash if you write large data on them at once.
-        This function write data on file_handle in batches
-
-        start: the start index to write data
+        Parameters
+        ----------
+        file_handle : hdf5 file handle
+            Handle to an hdf5 object.
+        data_x : nd array
+            X data. Must be the same shape as specified to init_hdf5.
+        data_y : nd array, optional
+            y data. Must be the same shape as specified to init_hdf5.
+        node : string, optional
+            The hdf5 node into which the data should be stored.
+        start : int
+            The start index to write data.
+        batch_size : int, optional
+            The size of the batch to be saved.
         """
 
         if node is None:
@@ -1245,9 +1267,17 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
 
     def resize(self, h5file, start, stop):
         """
-        .. todo::
+        Resizes the X and y tables. This must be called before calling
+        fill_hdf5.
 
-            WRITEME
+        Parameters
+        ----------
+        h5file : hdf5 file handle
+            Handle to an hdf5 object.
+        start : int
+            The start index to write data.
+        stop : int
+            The index of the record following the last record to be written.
         """
         ensure_tables()
         # TODO is there any smarter and more efficient way to this?
