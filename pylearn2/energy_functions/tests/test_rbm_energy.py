@@ -8,47 +8,49 @@ from theano import function
 from pylearn2.utils import as_floatX
 from pylearn2.utils import sharedX
 from pylearn2.linear.matrixmul import MatrixMul
+import unittest                                                       
 
-test_m = 2
+class TestGRBM_Type_1(unittest.TestCase):                             
+    
+    def setUpClass(cls):                                              
+        cls.test_m = 2                                                
+        
+        cls.rng = N.random.RandomState([1, 2, 3])                     
+        cls.nv = 3                                                    
+        cls.nh = 4                                                    
+        
+        cls.vW = cls.rng.randn(cls.nv, cls.nh)                        
+        cls.W = sharedX(cls.vW)
+        cls.vbv = as_floatX(cls.rng.randn(cls.nv))                    
+        cls.bv = T.as_tensor_variable(cls.vbv)                        
+        cls.bv.tag.test_value = cls.vbv
+        cls.vbh = as_floatX(cls.rng.randn(cls.nh))                    
+        cls.bh = T.as_tensor_variable(cls.vbh)                        
+        cls.bh.tag.test_value = cls.bh
+        cls.vsigma = as_floatX(cls.rng.uniform(0.1, 5))               
+        cls.sigma = T.as_tensor_variable(cls.vsigma)                  
+        cls.sigma.tag.test_value = cls.vsigma                         
+        
+        cls.E = GRBM_Type_1(transformer=MatrixMul(cls.W), bias_vis=cls.bv,
+                            bias_hid=cls.bh, sigma=cls.sigma)         
+                                                                      
+        cls.V = T.matrix()
+        cls.V.tag.test_value = as_floatX(cls.rng.rand(cls.test_m, cls.nv))
+        cls.H = T.matrix()
+        cls.H.tag.test_value = as_floatX(cls.rng.rand(cls.test_m, cls.nh))
 
-rng = N.random.RandomState([1, 2, 3])
-nv = 3
-nh = 4
+        cls.E_func = function([cls.V, cls.H], cls.E([cls.V, cls.H]))
+        cls.F_func = function([cls.V], cls.E.free_energy(cls.V))
+        cls.log_P_H_given_V_func = function([cls.H, cls.V], cls.E.log_P_H_given_V(cls.H, cls.V))
+        cls.score_func = function([cls.V], cls.E.score(cls.V))
 
-vW = rng.randn(nv, nh)
-W = sharedX(vW)
-vbv = as_floatX(rng.randn(nv))
-bv = T.as_tensor_variable(vbv)
-bv.tag.test_value = vbv
-vbh = as_floatX(rng.randn(nh))
-bh = T.as_tensor_variable(vbh)
-bh.tag.test_value = bh
-vsigma = as_floatX(rng.uniform(0.1, 5))
-sigma = T.as_tensor_variable(vsigma)
-sigma.tag.test_value = vsigma
+        cls.F_of_V = cls.E.free_energy(cls.V)
+        cls.dummy = T.sum(cls.F_of_V)
+        cls.negscore = T.grad(cls.dummy, cls.V)
+        cls.score = - cls.negscore
 
-E = GRBM_Type_1(transformer=MatrixMul(W), bias_vis=bv,
-                bias_hid=bh, sigma=sigma)
+        cls.generic_score_func = function([cls.V], cls.score)
 
-V = T.matrix()
-V.tag.test_value = as_floatX(rng.rand(test_m, nv))
-H = T.matrix()
-H.tag.test_value = as_floatX(rng.rand(test_m, nh))
-
-E_func = function([V, H], E([V, H]))
-F_func = function([V], E.free_energy(V))
-log_P_H_given_V_func = function([H, V], E.log_P_H_given_V(H, V))
-score_func = function([V], E.score(V))
-
-F_of_V = E.free_energy(V)
-dummy = T.sum(F_of_V)
-negscore = T.grad(dummy, V)
-score = - negscore
-
-generic_score_func = function([V], score)
-
-
-class TestGRBM_Type_1:
     def test_mean_H_given_V(self):
         tol = 1e-6
 
@@ -62,13 +64,13 @@ class TestGRBM_Type_1:
 
         m = 5
 
-        Vv = as_floatX(N.zeros((m, nv)) + rng.randn(nv))
+        Vv = as_floatX(N.zeros((m, self.nv)) + rng.randn(self.nv))
 
-        Hv = as_floatX(rng.randn(m, nh) > 0.)
+        Hv = as_floatX(rng.randn(m, self.nh) > 0.)
 
-        log_Pv = log_P_H_given_V_func(Hv, Vv)
+        log_Pv = self.log_P_H_given_V_func(Hv, Vv)
 
-        Ev = E_func(Vv, Hv)
+        Ev = self.E_func(Vv, Hv)
 
         for i in xrange(m):
             for j in xrange(i + 1, m):
@@ -81,19 +83,19 @@ class TestGRBM_Type_1:
 
         rng = N.random.RandomState([1, 2, 3])
 
-        m = 2 ** nh
+        m = 2 ** self.nh
 
-        Vv = as_floatX(N.zeros((m, nv)) + rng.randn(nv))
+        Vv = as_floatX(N.zeros((m, self.nv)) + rng.randn(self.nv))
 
-        F, = F_func(Vv[0:1, :])
+        F, = self.F_func(Vv[0:1, :])
 
-        Hv = as_floatX(N.zeros((m, nh)))
+        Hv = as_floatX(N.zeros((m, self.nh)))
 
         for i in xrange(m):
-            for j in xrange(nh):
+            for j in xrange(self.nh):
                 Hv[i, j] = (i & (2 ** j)) / (2 ** j)
 
-        Ev = E_func(Vv, Hv)
+        Ev = self.E_func(Vv, Hv)
 
         Fv = -N.log(N.exp(-Ev).sum())
         assert abs(F-Fv) < 1e-6
@@ -103,9 +105,11 @@ class TestGRBM_Type_1:
 
         m = 10
 
-        Vv = as_floatX(rng.randn(m, nv))
+        Vv = as_floatX(rng.randn(m, self.nv))
 
-        Sv = score_func(Vv)
-        gSv = generic_score_func(Vv)
+        Sv = self.score_func(Vv)
+        gSv = self.generic_score_func(Vv)
 
         assert N.allclose(Sv, gSv)
+
+
