@@ -1271,7 +1271,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         fill_hdf5.
 
         Parameters
-        ---------
+        ----------
         h5file : hdf5 file handle
             Handle to an hdf5 object.
         start : int
