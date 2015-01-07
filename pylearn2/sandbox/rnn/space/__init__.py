@@ -257,8 +257,29 @@ class SequenceMaskSpace(space.SimplyTypedSpace):
 
     @wraps(space.Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
-        return tensor.matrix(name=name, dtype=dtype)
+        rval = tensor.matrix(name=name, dtype=dtype)
+        if config.compute_test_value != 'off':
+            if batch_size == 1:
+                n = 1
+            else:
+                # TODO: try to extract constant scalar value from batch_size
+                n = 4
+            rval.tag.test_value = self.get_origin_batch(batch_size=n,
+                                                        dtype=dtype)
+        
+        return rval
 
     @wraps(space.Space._validate_impl)
     def _validate_impl(self, is_numeric, batch):
         assert batch.ndim == 2
+
+    @wraps(space.Space.get_origin_batch)
+    def get_origin_batch(self, batch_size, dtype=None):
+        dtype = self._clean_dtype_arg(dtype)
+        # Set a number which is not equal to batch_size for comfort debugging
+        time_step = 5
+        # creating masks that have different zero values. Non-zeros is 15 out of 20
+        rval = np.zeros((time_step, batch_size), dtype=dtype)
+        rval[:3,:1] = 1
+        rval[:4,1:] = 1
+        return rval
