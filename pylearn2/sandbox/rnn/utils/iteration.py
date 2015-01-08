@@ -130,7 +130,8 @@ class SequenceDatasetIterator(FiniteDatasetIterator):
                 if fn:
                     rval = fn(rval)
                 rvals.append(rval)
-                rvals.append(mask)
+                if source in self.mask_needed:
+                    rvals.append(mask)
             else:
                 if fn:
                     rval = fn(rval)
