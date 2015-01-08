@@ -114,6 +114,46 @@ def arg_of_softmax(Y_hat):
     return z
 
 
+def arg_of_sigmoid(Y_hat):
+    """
+    Given the output of a call to theano.tensor.nnet.sigmoid,
+    returns the argument to the sigmoid (by tracing the Theano
+    graph).
+
+    Parameters
+    ----------
+    Y_hat : Variable
+        T.nnet.sigmoid(Z)
+
+    Returns
+    -------
+    Z : Variable
+        The variable that was passed to T.nnet.sigmoid to create `Y_hat`.
+        Raises an error if `Y_hat` is not actually the output of a theano
+        sigmoid.
+    """
+    assert hasattr(Y_hat, 'owner')
+    owner = Y_hat.owner
+    assert owner is not None
+    op = owner.op
+    if isinstance(op, Print):
+        assert len(owner.inputs) == 1
+        Y_hat, = owner.inputs
+        owner = Y_hat.owner
+        op = owner.op
+    success = False
+    if isinstance(op, T.Elemwise):
+        if isinstance(op.scalar_op, T.nnet.sigm.ScalarSigmoid):
+            success = True
+    if not success:
+        raise TypeError("Expected Y_hat to be the output of a sigmoid, "
+                        "but it appears to be the output of " + str(op) +
+                        " of type " + str(type(op)))
+    z, = owner.inputs
+    assert z.ndim == 2
+    return z
+
+
 def kl(Y, Y_hat, batch_axis):
     """
     Warning: This function expects a sigmoid nonlinearity in the
