@@ -8,32 +8,34 @@ from theano import function
 from pylearn2.utils import as_floatX
 from pylearn2.utils import sharedX
 from pylearn2.linear.matrixmul import MatrixMul
-import unittest                                                       
+import unittest
 
-class TestGRBM_Type_1(unittest.TestCase):                             
-    
-    def setUpClass(cls):                                              
-        cls.test_m = 2                                                
-        
-        cls.rng = N.random.RandomState([1, 2, 3])                     
-        cls.nv = 3                                                    
-        cls.nh = 4                                                    
-        
-        cls.vW = cls.rng.randn(cls.nv, cls.nh)                        
+
+class TestGRBM_Type_1(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.test_m = 2
+
+        cls.rng = N.random.RandomState([1, 2, 3])
+        cls.nv = 3
+        cls.nh = 4
+
+        cls.vW = cls.rng.randn(cls.nv, cls.nh)
         cls.W = sharedX(cls.vW)
-        cls.vbv = as_floatX(cls.rng.randn(cls.nv))                    
-        cls.bv = T.as_tensor_variable(cls.vbv)                        
+        cls.vbv = as_floatX(cls.rng.randn(cls.nv))
+        cls.bv = T.as_tensor_variable(cls.vbv)
         cls.bv.tag.test_value = cls.vbv
-        cls.vbh = as_floatX(cls.rng.randn(cls.nh))                    
-        cls.bh = T.as_tensor_variable(cls.vbh)                        
+        cls.vbh = as_floatX(cls.rng.randn(cls.nh))
+        cls.bh = T.as_tensor_variable(cls.vbh)
         cls.bh.tag.test_value = cls.bh
-        cls.vsigma = as_floatX(cls.rng.uniform(0.1, 5))               
-        cls.sigma = T.as_tensor_variable(cls.vsigma)                  
-        cls.sigma.tag.test_value = cls.vsigma                         
-        
+        cls.vsigma = as_floatX(cls.rng.uniform(0.1, 5))
+        cls.sigma = T.as_tensor_variable(cls.vsigma)
+        cls.sigma.tag.test_value = cls.vsigma
+
         cls.E = GRBM_Type_1(transformer=MatrixMul(cls.W), bias_vis=cls.bv,
-                            bias_hid=cls.bh, sigma=cls.sigma)         
-                                                                      
+                            bias_hid=cls.bh, sigma=cls.sigma)
+
         cls.V = T.matrix()
         cls.V.tag.test_value = as_floatX(cls.rng.rand(cls.test_m, cls.nv))
         cls.H = T.matrix()
@@ -111,5 +113,3 @@ class TestGRBM_Type_1(unittest.TestCase):
         gSv = self.generic_score_func(Vv)
 
         assert N.allclose(Sv, gSv)
-
-
