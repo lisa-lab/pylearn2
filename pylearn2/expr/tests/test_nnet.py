@@ -158,4 +158,3 @@ def test_arg_of_sigmoid_bad():
     except TypeError:
         return
     assert False # Should have failed
-

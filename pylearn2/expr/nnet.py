@@ -149,9 +149,10 @@ def arg_of_sigmoid(Y_hat):
         raise TypeError("Expected Y_hat to be the output of a sigmoid, "
                         "but it appears to be the output of " + str(op) +
                         " of type " + str(type(op)))
-    z ,= owner.inputs
+    z, = owner.inputs
     assert z.ndim == 2
     return z
+
 
 def kl(Y, Y_hat, batch_axis):
     """
