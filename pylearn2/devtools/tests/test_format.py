@@ -131,7 +131,6 @@ whitelist_pep8 = [
     "training_algorithms/tests/test_default.py",
     "training_algorithms/default.py",
     "training_algorithms/training_algorithm.py",
-    "training_algorithms/sgd.py",
     "distributions/tests/test_mnd.py",
     "distributions/parzen.py",
     "distributions/uniform_hypersphere.py",
