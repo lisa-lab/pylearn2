@@ -43,7 +43,8 @@ class TestGRBM_Type_1(unittest.TestCase):
 
         cls.E_func = function([cls.V, cls.H], cls.E([cls.V, cls.H]))
         cls.F_func = function([cls.V], cls.E.free_energy(cls.V))
-        cls.log_P_H_given_V_func = function([cls.H, cls.V], cls.E.log_P_H_given_V(cls.H, cls.V))
+        cls.log_P_H_given_V_func = \
+            function([cls.H, cls.V], cls.E.log_P_H_given_V(cls.H, cls.V))
         cls.score_func = function([cls.V], cls.E.score(cls.V))
 
         cls.F_of_V = cls.E.free_energy(cls.V)
