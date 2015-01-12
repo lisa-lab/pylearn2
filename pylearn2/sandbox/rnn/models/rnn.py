@@ -451,7 +451,7 @@ class LSTM(Recurrent):
 
         if mask is not None:
             # This branch is not tested.
-            def fprop_step(state_below, state_before, U):
+            def fprop_step(state_below, mask, state_before, U):
 
                 g_on = state_below + tensor.dot(state_before[:, :self.dim], U)
                 i_on = tensor.nnet.sigmoid(g_on[:, :self.dim])
