@@ -233,7 +233,12 @@ class HDF5DatasetIterator(FiniteDatasetIterator):
             try:
                 this_data = data[next_index]
             except TypeError:
-                this_data = data[next_index, :]
+                # Why this try..except is there? FB: I think this is useless.
+                # Do not hide the original if we can't fall back.
+                if data.ndim > 1:
+                    this_data = data[next_index, :]
+                else:
+                    raise
             if fn:
                 this_data = fn(this_data)
             assert not contains_nan(this_data)
