@@ -195,12 +195,12 @@ class Recurrent(Layer):
         u_row_norms = tensor.sqrt(sq_U.sum(axis=1))
         u_col_norms = tensor.sqrt(sq_U.sum(axis=0))
 
-        rval = OrderedDict([('W_row_norms_min',  row_norms.min()),
+        rval = OrderedDict([('W_row_norms_min', row_norms.min()),
                             ('W_row_norms_mean', row_norms.mean()),
-                            ('W_row_norms_max',  row_norms.max()),
-                            ('W_col_norms_min',  col_norms.min()),
+                            ('W_row_norms_max', row_norms.max()),
+                            ('W_col_norms_min', col_norms.min()),
                             ('W_col_norms_mean', col_norms.mean()),
-                            ('W_col_norms_max',  col_norms.max()),
+                            ('W_col_norms_max', col_norms.max()),
                             ('U_row_norms_min', u_row_norms.min()),
                             ('U_row_norms_mean', u_row_norms.mean()),
                             ('U_row_norms_max', u_row_norms.max()),
@@ -211,8 +211,10 @@ class Recurrent(Layer):
         if (state is not None) or (state_below is not None):
             if state is None:
                 state = self.fprop(state_below)
-            state, _ = state
-            state_below, _ = state_below
+            if isinstance(state, tuple):
+                state, _ = state
+            if isinstance(state_below, tuple):
+                state_below, _ = state_below
 
             mx = state.max(axis=0)
             mean = state.mean(axis=0)
@@ -330,7 +332,10 @@ class Recurrent(Layer):
             else:
                 return z[self.indices[0]]
         else:
-            return (z, mask)
+            if mask is not None:
+                return (z, mask)
+            else:
+                return z
 
 
 class LSTM(Recurrent):
@@ -415,7 +420,7 @@ class LSTM(Recurrent):
         U = np.zeros((self.dim, self.dim * 4))
         for i in xrange(4):
             u = rng.randn(self.dim, self.dim)
-            U[:, i*self.dim:(i+1)*self.dim], _ = scipy.linalg.qr(u)
+            U[:, i * self.dim:(i + 1) * self.dim], _ = scipy.linalg.qr(u)
 
         # b is the bias
         b = np.zeros((self.dim * 4,))
@@ -455,13 +460,13 @@ class LSTM(Recurrent):
 
                 g_on = state_below + tensor.dot(state_before[:, :self.dim], U)
                 i_on = tensor.nnet.sigmoid(g_on[:, :self.dim])
-                f_on = tensor.nnet.sigmoid(g_on[:, self.dim:2*self.dim])
-                o_on = tensor.nnet.sigmoid(g_on[:, 2*self.dim:3*self.dim])
+                f_on = tensor.nnet.sigmoid(g_on[:, self.dim:2 * self.dim])
+                o_on = tensor.nnet.sigmoid(g_on[:, 2 * self.dim:3 * self.dim])
 
                 z = tensor.set_subtensor(state_before[:, self.dim:],
                                          f_on * state_before[:, self.dim:] +
                                          i_on * tensor.tanh(g_on[:,
-                                                            3*self.dim:]))
+                                                            3 * self.dim:]))
                 z = tensor.set_subtensor(z[:, :self.dim],
                                          o_on * tensor.tanh(z[:, self.dim:]))
 
@@ -480,13 +485,13 @@ class LSTM(Recurrent):
 
                 g_on = state_below + tensor.dot(z[:, :self.dim], U)
                 i_on = tensor.nnet.sigmoid(g_on[:, :self.dim])
-                f_on = tensor.nnet.sigmoid(g_on[:, self.dim:2*self.dim])
-                o_on = tensor.nnet.sigmoid(g_on[:, 2*self.dim:3*self.dim])
+                f_on = tensor.nnet.sigmoid(g_on[:, self.dim:2 * self.dim])
+                o_on = tensor.nnet.sigmoid(g_on[:, 2 * self.dim:3 * self.dim])
 
                 z = tensor.set_subtensor(z[:, self.dim:],
                                          f_on * z[:, self.dim:] +
                                          i_on * tensor.tanh(g_on[:,
-                                                            3*self.dim:]))
+                                                            3 * self.dim:]))
                 z = tensor.set_subtensor(z[:, :self.dim],
                                          o_on * tensor.tanh(z[:, self.dim:]))
 
