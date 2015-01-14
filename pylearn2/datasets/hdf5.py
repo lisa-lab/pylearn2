@@ -17,7 +17,7 @@ import warnings
 
 from pylearn2.datasets.dense_design_matrix import (DenseDesignMatrix,
                                                    DefaultViewConverter)
-from pylearn2.space import CompositeSpace, VectorSpace
+from pylearn2.space import CompositeSpace, VectorSpace, IndexSpace
 from pylearn2.utils.iteration import FiniteDatasetIterator, safe_izip
 from pylearn2.utils import contains_nan
 
