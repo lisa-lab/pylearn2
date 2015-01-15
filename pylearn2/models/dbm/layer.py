@@ -2062,6 +2062,7 @@ class GaussianVisLayer(VisibleLayer):
             bias_from_marginals = None,
             beta_lr_scale = 'by_sharing',
             axes = ('b', 0, 1, 'c')):
+        super(type(self), self).__init__()
 
         warnings.warn("GaussianVisLayer math very faith based, need to finish working through gaussian.lyx")
 

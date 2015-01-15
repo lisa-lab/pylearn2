@@ -20,11 +20,11 @@
         # divergence term. May be left unspecified, in which case VAE will try
         # to find it automatically in pylearn2.models.vae.kl.
         kl_integrator: !obj:pylearn2.models.vae.kl.DiagonalGaussianPriorPosteriorKL {},
+        learn_prior: 1,
         # Object (subclass of `pylearn2.models.vae.prior.Prior`)
         # responsible for implementing methods related to the prior
         # distribution p(z).
         prior: !obj:pylearn2.models.vae.prior.DiagonalGaussianPrior {
-            learn_prior : 1,
         },
         # Object (subclass of `pylearn2.models.vae.conditional.Conditional`)
         # responsible for implementing methods related to the conditional
