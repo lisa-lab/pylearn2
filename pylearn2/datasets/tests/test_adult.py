@@ -5,6 +5,7 @@ import numpy
 from pylearn2.datasets.adult import adult
 from pylearn2.testing.skip import skip_if_no_data
 
+
 def test_adult():
     """
     Tests if it will work correctly for train and test set.

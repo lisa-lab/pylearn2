@@ -3,6 +3,7 @@ import numpy
 from pylearn2.datasets.cos_dataset import CosDataset
 from pylearn2.testing.skip import skip_if_no_data
 
+
 def test_cos_dataset():
     """Tests if the dataset generator yields the desired value."""
     skip_if_no_data()
