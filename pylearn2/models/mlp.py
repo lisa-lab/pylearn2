@@ -1264,10 +1264,11 @@ class Softmax(Layer):
                                      ('min_max_class', mx.min())]))
 
             if (targets is not None):
-                if (not self._has_binary_target or self.binary_target_dim == 1):
+                if ((not self._has_binary_target) or 
+                    self.binary_target_dim == 1):
                     # if binary_target_dim>1, the misclass rate is ill-defined
                     y_hat = T.argmax(state, axis=1)
-                    y = (targets.reshape(y_hat.shape) 
+                    y = (targets.reshape(y_hat.shape)
                          if self._has_binary_target
                          else T.argmax(targets, axis=1))
                     misclass = T.neq(y, y_hat).mean()
