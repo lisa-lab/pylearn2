@@ -1263,13 +1263,15 @@ class Softmax(Layer):
                                      ('max_max_class', mx.max()),
                                      ('min_max_class', mx.min())]))
 
-            if targets is not None:
-                y_hat = T.argmax(state, axis=1)
-                y = (targets.reshape(y_hat.shape) if self._has_binary_target
-                     else T.argmax(targets, axis=1))
-                misclass = T.neq(y, y_hat).mean()
-                misclass = T.cast(misclass, config.floatX)
-                rval['misclass'] = misclass
+            if (targets is not None):
+                if (not self._has_binary_target or self.binary_target_dim==1):
+                    # if binary_target_dim>1, the misclass rate is not well-defined
+                    y_hat = T.argmax(state, axis=1)
+                    y = (targets.reshape(y_hat.shape) if self._has_binary_target
+                         else T.argmax(targets, axis=1))
+                    misclass = T.neq(y, y_hat).mean()
+                    misclass = T.cast(misclass, config.floatX)
+                    rval['misclass'] = misclass
                 rval['nll'] = self.cost(Y_hat=state, Y=targets)
 
         return rval
@@ -1425,9 +1427,14 @@ class Softmax(Layer):
             # happen on the GPU rather than CPU.
 
             flat_Y = Y.flatten()
+            flat_Y.name = 'flat_Y'
             flat_log_prob = log_prob.flatten()
-            flat_indices = flat_Y + T.arange(Y.shape[0]) * self.n_classes
+            flat_log_prob.name = 'flat_log_prob'
+            flat_indices = flat_Y + T.tile(T.arange(Y.shape[0]), 
+                                           (self.binary_target_dim,)) * self.n_classes
+            flat_indices.name = 'flat_indices'
             log_prob_of = flat_log_prob[flat_indices].dimshuffle(0, 'x')
+            log_prob_of.name = 'log_prob_of'
 
         else:
             log_prob_of = (Y * log_prob)
