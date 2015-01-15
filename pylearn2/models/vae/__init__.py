@@ -176,8 +176,12 @@ class VAE(Model):
 
     @wraps(Model.get_weights)
     def get_weights(self):
-        # TODO: This choice is arbitrary. It's something that's useful to
-        # visualize, but is it the most intuitive choice?
+        return self.posterior.get_weights()
+
+    def get_conditional_weights(self):
+        """
+        Returns the weights of the first layer of the decoding network
+        """
         return self.conditional.get_weights()
 
     def get_prior_params(self):
