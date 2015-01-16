@@ -10,6 +10,7 @@ from pylearn2.utils import serial
 from pylearn2.datasets import preprocessing
 from pylearn2.utils import string_utils
 from pylearn2.datasets.cifar100 import CIFAR100
+import textwrap
 
 def main():
     data_dir = string_utils.preprocess('${PYLEARN2_DATA_PATH}/cifar100')
@@ -22,7 +23,7 @@ def main():
     serial.mkdir( output_dir )
     README = open(output_dir + '/README','w')
     
-    README.write("""
+    README.write(textwrap.dedent("""
     The .pkl files in this directory may be opened in python using
     cPickle, pickle, or pylearn2.serial.load.
     
@@ -41,7 +42,7 @@ def main():
     All other files in this directory, including this README, were
     created by the same script and are necessary for the other files
     to function correctly.
-    """)
+    """))
     
     README.close()
     

@@ -589,19 +589,7 @@ whitelist_docstrings = [
     'devtools/tests/pep8/__init__.py']
 
 # add files which have long execution time to whitelist_docstrings
-whitelist_docstrings.extend([
-    'sandbox/cuda_convnet/debug.py',
-    'energy_functions/tests/test_rbm_energy.py',
-    'scripts/icml_2013_wrepl/multimodal/make_wordlist.py',
-    'scripts/make_weights_image.py', 'costs/ebm_estimation.py',
-    'classifier.py', 'scripts/lcc_tangents/make_dataset.py',
-    'scripts/datasets/make_cifar10_whitened.py',
-    'scripts/datasets/make_cifar100_patches.py',
-    'scripts/datasets/make_cifar10_gcn_whitened.py',
-    'scripts/datasets/make_stl10_patches_8x8.py',
-    'scripts/datasets/make_cifar100_gcn_whitened.py',
-    'scripts/datasets/make_stl10_whitened.py',
-    'scripts/datasets/make_stl10_patches.py'])
+whitelist_docstrings.extend([])
 
 # add files which fail to run to whitelist_docstrings
 whitelist_docstrings.extend([
