@@ -654,7 +654,7 @@ def test_softmax_two_binary_targets():
     # binary and vector costs can only match 
     # if binary targets are mutually exclusive
     y_bin_data = np.concatenate([
-                             np.random.choice(10, size=(1, 2), replace=False)
+                             np.random.permutation(10)[:2].reshape((1,2))
                              for _ in range(batch_size)])
     y_vec_data = np.zeros((batch_size, num_classes))
     y_vec_data[np.arange(batch_size),y_bin_data[:,0].flatten()] = 1
