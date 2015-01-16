@@ -625,7 +625,7 @@ def test_softmax_binary_targets():
 
 def test_softmax_two_binary_targets():
     """
-    Constructs softmax layers with binary target and with vector targets
+    Constructs softmax layers with two binary targets and with vector targets
     to check that they give the same cost.
     """
     num_classes = 10

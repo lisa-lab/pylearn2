@@ -1432,8 +1432,12 @@ class Softmax(Layer):
             flat_Y.name = 'flat_Y'
             flat_log_prob = log_prob.flatten()
             flat_log_prob.name = 'flat_log_prob'
-            range_ = T.tile(T.arange(Y.shape[0]).dimshuffle(0,'x'), 
-                            (1, self.binary_target_dim)).flatten()
+            range_ = T.arange(Y.shape[0])
+            if self.binary_target_dim > 1:
+                # because of an error in optimization (local_useless_tile)
+                # when tiling with (1, 1)
+                range_ = T.tile(range_.dimshuffle(0,'x'), 
+                                (1, self.binary_target_dim)).flatten()
             flat_indices = flat_Y + range_ * self.n_classes
             flat_indices.name = 'flat_indices'
             log_prob_of = flat_log_prob[flat_indices].reshape(Y.shape, ndim=2)
