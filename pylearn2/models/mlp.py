@@ -1433,10 +1433,10 @@ class Softmax(Layer):
             flat_log_prob = log_prob.flatten()
             flat_log_prob.name = 'flat_log_prob'
             range_ = T.tile(T.arange(Y.shape[0]).dimshuffle(0,'x'), 
-                            (1,self.binary_target_dim)).flatten()
+                            (1, self.binary_target_dim)).flatten()
             flat_indices = flat_Y + range_ * self.n_classes
             flat_indices.name = 'flat_indices'
-            log_prob_of = flat_log_prob[flat_indices].dimshuffle(0, 'x')
+            log_prob_of = flat_log_prob[flat_indices].reshape(Y.shape, ndim=2)
             log_prob_of.name = 'log_prob_of'
 
         else:
