@@ -1,38 +1,24 @@
 """
-Testing class that simply checks to see if the adult dataset
+Test code for adult.py
 """
-import unittest
-import numpy as np
+import numpy
 from pylearn2.datasets.adult import adult
 from pylearn2.testing.skip import skip_if_no_data
 
 
-class TestAdult(unittest.TestCase):
+def test_adult():
     """
-    Parameters
-    ----------
-    None
-
-    Notes
-    -----
-    Testing class that simply checks to see if the adult dataset
-    is loadable
+    Tests if it will work correctly for train and test set.
     """
-    def setUp(self):
-        """
-        Skips test if data does not exist
-        """
-        skip_if_no_data()
+    skip_if_no_data()
+    adult_train = adult(which_set='train')
+    assert (adult_train.X >= 0.).all()
+    assert adult_train.y.dtype == bool
+    assert adult_train.X.shape == (30162, 104)
+    assert adult_train.y.shape == (30162, 1)
 
-    def test_adult():
-        """
-        Tests that the dataset loads correctly
-        and that there is no inf in the data
-        """
-        skip_if_no_data()
-        data = adult(which_set='train')
-        assert data.X is not None
-        assert data.X is not np.inf
-        data = adult(which_set='test')
-        assert data.X is not None
-        assert data.X is not np.inf
+    adult_test = adult(which_set='test')
+    assert (adult_test.X >= 0.).all()
+    assert adult_test.y.dtype == bool
+    assert adult_test.X.shape == (15060, 103)
+    assert adult_test.y.shape == (15060, 1)

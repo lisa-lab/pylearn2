@@ -98,7 +98,3 @@ def adult(which_set):
     X = np.concatenate(pieces, axis=1)
 
     return DenseDesignMatrix(X=X, y=y)
-
-if __name__ == "__main__":
-    adult(which_set='train')
-    adult(which_set='test')
