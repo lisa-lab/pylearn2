@@ -156,10 +156,14 @@ class ProjectionLayer(Layer):
         W, = self.transformer.get_params()
         assert W.name is not None
 
+    def _fprop_recursive(self, state_below):
+        if isinstance(state_below, tuple):
+            return tuple(self._fprop_recursive(s) for s in state_below)
+        return self.transformer.project(state_below)
+
     @wraps(Layer.fprop)
     def fprop(self, state_below):
-        z = self.transformer.project(state_below)
-        return z
+        return self._fprop_recursive(state_below)
 
     @wraps(Layer.get_params)
     def get_params(self):
