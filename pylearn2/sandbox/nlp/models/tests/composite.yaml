@@ -38,7 +38,7 @@
     },
     model: !obj:pylearn2.models.mlp.MLP {
         layers: [
-            !obj:models.mlp.ProjectionLayer {
+            !obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
                 layer_name: 'projection',
                 dim: 4,
                 irange: 0.05,
