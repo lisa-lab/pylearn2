@@ -112,7 +112,6 @@ class ProjectionLayer(Layer):
                             ('col_norms_mean', col_norms.mean()),
                             ('col_norms_max',  col_norms.max()), ])
 
-
     def _check_input_space_and_get_max_labels(self, space):
         if isinstance(space, IndexSpace):
             return space.max_labels
@@ -120,39 +119,34 @@ class ProjectionLayer(Layer):
             ml = []
             for c in space.components:
                 ml.append(self._check_input_space_and_get_max_labels(c))
-            if len(set(ml)) != 1: # all of them are equal
-                raise ValueError("Composite space is empty or containing incompatible index spaces")
+            # check that all of them are equal
+            if len(set(ml)) != 1:
+                raise ValueError("Composite space is empty or containing "
+                                 "incompatible index spaces")
             return ml[0]
-        raise ValueError("ProjectionLayer needs an IndexSpace or a CompositeSpace of them as input")
-
+        raise ValueError("ProjectionLayer needs an IndexSpace or a "
+                         "CompositeSpace of them as input")
 
     def _build_output_space(self, space):
         if isinstance(space, IndexSpace):
             return VectorSpace(self.dim * space.dim)
         if isinstance(space, CompositeSpace):
-            return CompositeSpace([self._build_output_space(c) 
+            return CompositeSpace([self._build_output_space(c)
                                    for c in space.components])
         assert False
-
 
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
         max_labels = self._check_input_space_and_get_max_labels(space)
         self.input_space = space
         self.output_space = self._build_output_space(space)
-        if isinstance(space, IndexSpace):
-            self.input_dim = space.dim
-            self.input_space = space
-        else:
-            raise ValueError("ProjectionLayer needs an IndexSpace as input")
-        self.output_space = VectorSpace(self.dim * self.input_dim)
         rng = self.mlp.rng
         if self._irange is not None:
             W = rng.uniform(-self._irange,
                             self._irange,
-                            (space.max_labels, self.dim))
+                            (max_labels, self.dim))
         else:
-            W = rng.randn(space.max_labels, self.dim) * self._istdev
+            W = rng.randn(max_labels, self.dim) * self._istdev
 
         W = sharedX(W)
         W.name = self.layer_name + '_W'

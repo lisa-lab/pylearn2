@@ -1,12 +1,12 @@
 !obj:pylearn2.train.Train {
     dataset: &train !obj:pylearn2.datasets.vector_spaces_dataset.VectorSpacesDataset {
         data: !obj:pylearn2.sandbox.nlp.models.as_tuple { list_: [
-                  !obj:numpy.random.randint { 
+                  &feature1 !obj:numpy.random.randint { 
                           'low': 0, 
                           'high': &max_labels 10, 
                           'size':[5, 16] 
                         },
-                  !obj:numpy.random.randint { 
+                  &feature2 !obj:numpy.random.randint { 
                           'low': 0, 
                           'high': *max_labels, 
                           'size':[5, 1] 
