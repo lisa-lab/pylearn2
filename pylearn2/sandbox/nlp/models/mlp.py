@@ -8,6 +8,7 @@ from pylearn2.models import mlp
 from pylearn2.models.mlp import Layer
 from pylearn2.space import IndexSpace
 from pylearn2.space import VectorSpace
+from pylearn2.space import CompositeSpace
 from pylearn2.utils import sharedX
 from pylearn2.utils import wraps
 from pylearn2.sandbox.nlp.linear.matrixmul import MatrixMul
@@ -111,8 +112,34 @@ class ProjectionLayer(Layer):
                             ('col_norms_mean', col_norms.mean()),
                             ('col_norms_max',  col_norms.max()), ])
 
+
+    def _check_input_space_and_get_max_labels(self, space):
+        if isinstance(space, IndexSpace):
+            return space.max_labels
+        if isinstance(space, CompositeSpace):
+            ml = []
+            for c in space.components:
+                ml.append(self._check_input_space_and_get_max_labels(c))
+            if len(set(ml)) != 1: # all of them are equal
+                raise ValueError("Composite space is empty or containing incompatible index spaces")
+            return ml[0]
+        raise ValueError("ProjectionLayer needs an IndexSpace or a CompositeSpace of them as input")
+
+
+    def _build_output_space(self, space):
+        if isinstance(space, IndexSpace):
+            return VectorSpace(self.dim * space.dim)
+        if isinstance(space, CompositeSpace):
+            return CompositeSpace([self._build_output_space(c) 
+                                   for c in space.components])
+        assert False
+
+
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
+        max_labels = self._check_input_space_and_get_max_labels(space)
+        self.input_space = space
+        self.output_space = self._build_output_space(space)
         if isinstance(space, IndexSpace):
             self.input_dim = space.dim
             self.input_space = space
