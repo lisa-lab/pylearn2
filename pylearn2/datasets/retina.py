@@ -233,7 +233,7 @@ def restore_ring(output, coord, width, dense_input, start_idx):
                              coord + width,
                              coord +
                              width,
-                             96 - coord - width,
+                             img_w - coord - width,
                              width,
                              dense_input,
                              start_idx)
