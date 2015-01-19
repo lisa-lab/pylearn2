@@ -823,7 +823,12 @@ class FiniteDatasetIterator(object):
                                 "dataset (e.g. X and y) to be a matrix. If "
                                 "your data is vector shaped you should "
                                 "convert it into a one-column 2D matrix i.e. "
-                                "its shape should be [num_samples, 1]"
+                                "its shape should be [num_samples, 1]. You "
+                                "should also specify the y_labels parameter "
+                                "so that pylearn2 will use an IndexSpace "
+                                "instead of a VectorSpace. This will ensure "
+                                "an automatic conversion of the vector into a "
+                                "one-hot matrix when needed"
                             )
                             # raise, preserving also the original message
                             reraise_as(ValueError(msg))
