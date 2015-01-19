@@ -54,20 +54,26 @@ mini-batches.
 
 Notable methods of the :class:`Space` class are:
 
-- :meth:`Space.make_theano_batch`: creates a Theano Variable
+- .. py:method:: Space.make_theano_batch()
+
+  creates a Theano Variable
   (or tuple of Theano Variable in the case of ``CompositeSpace``)
   representing a *symbolic* mini-batch of data. For instance,
   ``VectorSpace(...).make_theano_batch(...)`` will essentially call
   ``theano.tensor.matrix()``.
 
-- :meth:`Space.validate(batch)` will check that symbolic
+- .. py:method:: Space.validate(batch)
+
+  will check that symbolic
   variable ``batch`` can correctly represent a mini-batch
   of data for the corresponding space. For instance,
   ``VectorSpace(...).validate(theano.tensor.matrix())`` will work, but
   ``VectorSpace(...).validate(theano.tensor.vector())`` will raise an
   exception.
 
-- :meth:`Space.np_validate(batch)` (where ``np`` stands for NumPy)
+- .. py:method:: Space.np_validate(batch)
+
+  (``np`` stands for NumPy)
   is similar, but operates on a mini-batch of numeric data, rather than
   on a symbolic variable. This enables more checks to be performed. For
   instance, ``VectorSpace(dim=3).validate(np.zeros((4, 3)))`` will work,
@@ -75,8 +81,13 @@ Notable methods of the :class:`Space` class are:
   3, but ``VectorSpace(dim=4).validate(np.zeros((4, 3)))`` will raise an
   exception.
 
-- :meth:`Space.format_as(batch, space)` and
-  :meth:`Space.np_format_as(batch, space)` are the way we can convert
+- .. py:method:: Space.format_as(batch, space)
+
+  and
+
+  .. py:method:: Space.np_format_as(batch, space)
+
+  are the way we can convert
   data from their original space into the destination ``space``.
   ``format_as`` operates on a symbolic ``batch``, and returns a symbolic
   expression of the newly-formatted data, whereas ``np_format_as``
