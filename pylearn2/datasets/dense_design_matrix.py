@@ -790,7 +790,7 @@ class DenseDesignMatrix(Dataset):
 
             # This is to support old pickled models as well to trigger the
             # conversion of the labels vector into a 2D one-hot matrix if
-            # y_labels is specified
+            # y_labels is specified and the cost requires it
             if getattr(self, 'y_labels', None) is not None:
                 y_space = IndexSpace(dim=dim, max_labels=self.y_labels)
             elif getattr(self, 'max_labels', None) is not None:
