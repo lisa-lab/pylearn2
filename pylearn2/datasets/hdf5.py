@@ -254,26 +254,45 @@ class HDF5ViewConverter(DefaultViewConverter):
     """
     View converter that doesn't have to transpose the data.
 
-    In order to keep data on disk, does not generate a full design matrix.
-    Instead, an instance of HDF5TopoViewConverter is returned, which
-    transforms data from the topological view into the design view for each
-    batch.
-
     Parameters
     ----------
-    shape : tuple
-        Shape of this view.
-    axes : tuple, optional (default ('b', 0, 1, 'c'))
-        Order of axes in topological view.
+    shape: list
+        Shape of this view, [num_rows, num_cols, channels].
+    axes: tuple, optional (default ('b', 0, 1, 'c'))
+        The axis ordering to use in topological views of the data. Must be some
+        permutation of ('b', 0, 1, 'c'). Default: ('b', 0, 1, 'c')
+
+    Attributes
+    ----------
+    axes
+    pixels_per_channel
+    shape
+    topo_space
+    view_shape
+    weights_view_shape
     """
 
     def topo_view_to_design_mat(self, V):
         """
         Generate a design matrix from the topological view.
 
-        This override of DefaultViewConverter.topo_view_to_design_mat does
-        not attempt to transpose the topological view, since transposition
-        is not supported by HDF5 datasets.
+        Parameters
+        ----------
+        topo_array: numpy.ndarray
+            An N-D array with axis order given by self.axes. Non-batch axes'
+            dimension sizes must agree with corresponding sizes in self.shape.
+
+        Returns
+        -------
+        rval: HDF5TopoViewConverter
+            This override of DefaultViewConverter.topo_view_to_design_mat does
+            not attempt to transpose the topological view, since transposition
+            is not supported by HDF5 datasets. In order to keep data on disk,
+            does not generate a full design matrix. Instead, an instance of
+            HDF5TopoViewConverter is returned, which transforms data from the
+            topological view into the design view for each batch, with data in
+            rows according to the default axis order ('b', 'c', 0, 1).
+
         """
         v_shape = (V.shape[self.axes.index('b')],
                    V.shape[self.axes.index(0)],
@@ -281,9 +300,9 @@ class HDF5ViewConverter(DefaultViewConverter):
                    V.shape[self.axes.index('c')])
 
         if np.any(np.asarray(self.shape) != np.asarray(v_shape[1:])):
-            raise ValueError('View converter for views of shape batch size '
-                             'followed by ' + str(self.shape) +
-                             ' given tensor of shape ' + str(v_shape))
+            raise ValueError('View converter for views of shape [batch_size, '
+                             + str(self.shape) + '. Instead was given '
+                             'a tensor of shape' + str(v_shape))
 
         rval = HDF5TopoViewConverter(V, self.axes)
         return rval
@@ -292,18 +311,30 @@ class HDF5ViewConverter(DefaultViewConverter):
 class HDF5TopoViewConverter(object):
 
     """
-    Class for transforming batches from the topological view to the design
-    matrix view.
+    Class to simulate a dense design matrix. Reads data stored in the disk as a
+    topological view and transforms the batches in a dense design matrix.
 
-    Parameters
+    Attributes
     ----------
+    axes : tuple
+        Order of axes in topological view.
+    ndim: int
+        The number of dimensions of the dense design matrix (i.e. 2).
+    shape: tuple
+        The shape of the dense design matrix.
     topo_view : HDF5 dataset
         On-disk topological view.
-    axes : tuple, optional (default ('b', 0, 1, 'c'))
-        Order of axes in topological view.
     """
 
     def __init__(self, topo_view, axes=('b', 0, 1, 'c')):
+        """
+        Parameters
+        ----------
+        topo_view : HDF5 dataset
+            On-disk topological view.
+        axes : tuple, optional (defaults to 'b', 0, 1, 'c')
+            Order of axes in topological view.
+        """
         self.topo_view = topo_view
         self.axes = axes
         self.topo_view_shape = (topo_view.shape[axes.index('b')],
@@ -319,13 +350,15 @@ class HDF5TopoViewConverter(object):
 
     def __getitem__(self, item):
         """
-        Indexes the design matrix and transforms the requested batch from
-        the topological view.
+        Receives indexes in design matrix view format, transforms them in
+        topologica view format, retrieves the requested data on disk and
+        returns them in design matrix view format.
 
         Parameters
         ----------
-        item : slice or ndarray
-            Batch selection. Either a slice or a boolean mask.
+        item : slice or ndarray or tuple
+            Batch selection.        Either a slice or a boolean mask (ndarray).
+            Design matrix index.    Tuple
         """
         sel = [slice(None)] * len(self.topo_view_shape)
         sel[self.axes.index('b')] = item
