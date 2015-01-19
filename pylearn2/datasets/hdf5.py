@@ -257,8 +257,6 @@ class HDF5DatasetIterator(FiniteDatasetIterator):
             # one-column matrix. This is needed to automatically convert the
             # shape of the data later (in the format_as method of the
             # Space.)
-            if this_data.ndim == 1:
-                this_data = this_data[:, np.newaxis]
             if fn:
                 this_data = fn(this_data)
             assert not contains_nan(this_data)

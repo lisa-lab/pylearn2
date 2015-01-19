@@ -816,11 +816,16 @@ class FiniteDatasetIterator(object):
 
                     def fn(batch, dspace=dspace, sp=sp):
                         try:
-                              return dspace.np_format_as(batch, sp)
-                        except ValueError as e:
-                            msg = str(e) + '\nMake sure that the model and '\
-                                           'dataset have been initialized with '\
-                                           'correct values.'
+                            return dspace.np_format_as(batch, sp)
+                        except ValueError:
+                            msg = (
+                                "\nPylearn2 expects the elements of the "
+                                "dataset (e.g. X and y) to be a matrix. If "
+                                "your data is vector shaped you should "
+                                "convert it into a one-column 2D matrix i.e. "
+                                "its shape should be [num_samples, 1]"
+                            )
+                            # raise, preserving also the original message
                             reraise_as(ValueError(msg))
                 else:
                     fn = (lambda batch, dspace=dspace, sp=sp, fn_=fn:
