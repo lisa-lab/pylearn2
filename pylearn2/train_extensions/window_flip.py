@@ -7,6 +7,7 @@ from . import TrainExtension
 from pylearn2.datasets.preprocessing import CentralWindow
 from pylearn2.utils.exc import reraise_as
 from pylearn2.utils.rng import make_np_rng
+from pylearn2.utils import py_integer_types
 
 try:
     from ..utils._window_flip import random_window_and_flip_c01b
@@ -113,6 +114,15 @@ class WindowAndFlip(TrainExtension):
         self._center = center if center else []
         self._pad_randomized = pad_randomized
         self._flip = flip
+
+        assert isinstance(self._randomize, list), (
+            "The 'randomize' parameter of WindowAndFlip should be a list")
+        assert isinstance(self._randomize_once, list), (
+            "The 'randomize_once' parameter of WindowAndFlip should be a list")
+        assert isinstance(self._center, list), (
+            "The 'center' parameter of WindowAndFlip should be a list")
+        assert isinstance(self._pad_randomized, py_integer_types), (
+            "The 'pad_randomized' parameter of WindowAndFlip should be an int")
 
         if randomize is None and randomize_once is None and center is None:
             warnings.warn(self.__class__.__name__ + " instantiated without "
