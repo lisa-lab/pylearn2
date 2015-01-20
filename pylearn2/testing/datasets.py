@@ -7,6 +7,7 @@ __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
 import numpy as np
+from theano.compat.six.moves import xrange
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 
 
@@ -26,14 +27,31 @@ class ArangeDataset(DenseDesignMatrix):
 
 
 def random_dense_design_matrix(rng, num_examples, dim, num_classes):
+    """
+    Creates a random dense design matrix that has class labels.
+
+    Parameters
+    ----------
+    rng : numpy.random.RandomState
+        The random number generator used to generate the dataset.
+    num_examples : int
+        The number of examples to create.
+    dim : int
+        The number of features in each example.
+    num_classes : int
+        The number of classes to assign the examples to.
+        0 indicates that no class labels will be generated.
+    """
     X = rng.randn(num_examples, dim)
 
     if num_classes:
         Y = rng.randint(0, num_classes, (num_examples, 1))
+        y_labels = num_classes
     else:
         Y = None
+        y_labels = None
 
-    return DenseDesignMatrix(X=X, y=Y)
+    return DenseDesignMatrix(X=X, y=Y, y_labels=y_labels)
 
 
 def random_one_hot_dense_design_matrix(rng, num_examples, dim, num_classes):

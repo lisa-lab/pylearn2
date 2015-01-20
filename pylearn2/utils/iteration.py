@@ -16,9 +16,9 @@ Presets:
   container is empty after num_examples / batch_size calls
 """
 from __future__ import division
-import functools
-import inspect
+
 import numpy as np
+from theano.compat import six
 
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_izip, wraps
@@ -102,6 +102,9 @@ class SubsetIterator(object):
             When there are no more batches to return.
         """
         raise NotImplementedError()
+
+    def __next__(self):
+        self.next()
 
     def __iter__(self):
         return self
@@ -322,6 +325,9 @@ class ForcedEvenIterator(SubsetIterator):
 
         return batch
 
+    def __next__(self):
+        return self.next()
+
 
 def as_even(iterator_cls):
     """
@@ -410,6 +416,9 @@ class SequentialSubsetIterator(SubsetIterator):
             self._batch += 1
             return self._last
 
+    def __next__(self):
+        return self.next()
+
     fancy = False
     stochastic = False
     uniform_batch_size = False
@@ -470,6 +479,9 @@ class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
             self._batch += 1
             return rval
 
+    def __next__(self):
+        return self.next()
+
 
 class RandomUniformSubsetIterator(SubsetIterator):
     """
@@ -508,6 +520,9 @@ class RandomUniformSubsetIterator(SubsetIterator):
                                                    size=(self._batch_size,))
             self._next_batch_no += 1
             return self._last
+
+    def __next__(self):
+        return self.next()
 
     fancy = True
     stochastic = True
@@ -551,6 +566,9 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
             self._last = slice(start, start + self._batch_size)
             self._next_batch_no += 1
             return self._last
+
+    def __next__(self):
+        return self.next()
 
     fancy = False
     stochastic = True
@@ -596,7 +614,7 @@ class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
         self._num_batches = int(num_batches)
         self._next_batch_no = 0
         self._idx = 0
-        self._batch_order = range(self._num_batches)
+        self._batch_order = list(range(self._num_batches))
         self._rng.shuffle(self._batch_order)
 
     @wraps(SubsetIterator.next)
@@ -611,6 +629,9 @@ class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
                 self._last = slice(start, start + self._batch_size)
             self._next_batch_no += 1
             return self._last
+
+    def __next__(self):
+        return self.next()
 
     fancy = False
     stochastic = True
@@ -675,7 +696,7 @@ def resolve_iterator_class(mode):
         A class instance (i.e., an instance of type `type`) that
         interface defined in :py:class:`SubsetIterator`.
     """
-    if isinstance(mode, basestring) and mode not in _iteration_schemes:
+    if isinstance(mode, six.string_types) and mode not in _iteration_schemes:
         raise ValueError("unknown iteration mode string: %s" % mode)
     elif mode in _iteration_schemes:
         subset_iter_class = _iteration_schemes[mode]
@@ -754,9 +775,17 @@ class FiniteDatasetIterator(object):
             sub_spaces = space.components
         assert len(source) == len(sub_spaces)
 
-        self._raw_data = tuple(all_data[dataset_source.index(s)]
-                               for s in source)
+        self._raw_data = ()
+        for s in source:
+            try:
+                self._raw_data += (all_data[dataset_source.index(s)],)
+            except ValueError as e:
+                msg = str(e) + '\nThe dataset does not provide '\
+                               'a source with name: '+s+'.'
+                reraise_as(ValueError(msg))
+
         self._source = source
+        self._space = sub_spaces
 
         if convert is None:
             self._convert = [None for s in source]
@@ -831,6 +860,9 @@ class FiniteDatasetIterator(object):
         if not self._return_tuple and len(rval) == 1:
             rval, = rval
         return rval
+
+    def __next__(self):
+        return self.next()
 
     @property
     @wraps(SubsetIterator.batch_size, assigned=(), updated=())

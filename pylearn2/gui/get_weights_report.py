@@ -4,6 +4,9 @@
     WRITEME
 """
 import logging
+
+from theano.compat.six.moves import input
+
 from pylearn2.utils import serial
 from pylearn2.gui import patch_viewer
 from pylearn2.config import yaml_parse
@@ -83,7 +86,7 @@ def get_weights_report(model_path=None,
                 logger.info('Which is the weights?')
                 for key in keys:
                     logger.info('\t{0}'.format(key))
-                key = raw_input()
+                key = input()
         else:
             key, = keys
         weights = model[key]
@@ -113,7 +116,7 @@ def get_weights_report(model_path=None,
 
         try:
             W = model.get_weights()
-        except AttributeError, e:
+        except AttributeError as e:
             reraise_as(AttributeError("""
 Encountered an AttributeError while trying to call get_weights on a model.
 This probably means you need to implement get_weights for this model class,
@@ -276,7 +279,7 @@ def get_binocular_greyscale_weights_report(model_path=None,
 
         try:
             W = model.get_weights()
-        except AttributeError, e:
+        except AttributeError as e:
             reraise_as(AttributeError("""
 Encountered an AttributeError while trying to call get_weights on a model.
 This probably means you need to implement get_weights for this model class,

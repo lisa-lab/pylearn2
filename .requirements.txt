@@ -1,0 +1,4 @@
+# This is for readthedocs.org to be able to build the documentation,
+# ignore otherwise
+numpydoc
+git+git://github.com/Theano/Theano.git

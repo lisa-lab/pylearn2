@@ -55,14 +55,3 @@ def test_split():
                                            split=(n_train, n_valid, n_test))
     assert data.X.shape[0] == n_test, "Unexpected size of test set"
     assert data.y.shape[0] == n_test, "Unexpected size of test set"
-
-
-def test_one_hot():
-    skip_if_no_data()
-    data = icml07.MNIST_rotated_background(which_set='train', one_hot=True,
-                                           split=(100, 100, 100))
-    assert data.y.shape[1] == 10   # MNITS hast 10 classes
-
-    data = icml07.Rectangles(which_set='train', one_hot=True,
-                             split=(100, 100, 100))
-    assert data.y.shape[1] == 2   # Two classes

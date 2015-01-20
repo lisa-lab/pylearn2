@@ -37,11 +37,6 @@ Datasets
 .. automodule:: pylearn2.utils.datasets
     :members:
 
-Environment
-===========
-.. automodule:: pylearn2.utils.environ
-    :members:
-
 Exceptions
 ==========
 .. automodule:: pylearn2.utils.exc
@@ -80,11 +75,6 @@ Memory
 MNIST
 =====
 .. automodule:: pylearn2.utils.mnist_ubyte
-    :members:
-
-One Hot Encoding
-================
-.. automodule:: pylearn2.utils.one_hot
     :members:
 
 Pooling

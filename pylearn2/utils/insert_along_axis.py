@@ -11,6 +11,7 @@ __maintainer__ = "David Warde-Farley"
 __email__ = "wardefar@iro"
 
 import numpy as np
+from theano.compat.six.moves import xrange
 import theano
 import theano.tensor as tensor
 from theano.gradient import grad_not_implemented
@@ -157,7 +158,7 @@ class InsertAlongAxis(theano.Op):
         """
         x, new_length, nonconstants = inputs
         d_out = gradients[0]
-        swap = range(self.ndim)
+        swap = list(range(self.ndim))
         swap.remove(self.axis)
         swap.insert(0, self.axis)
         return [d_out.dimshuffle(swap)[nonconstants].dimshuffle(swap),

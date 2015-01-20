@@ -9,19 +9,19 @@ __maintainer__ = "LISA Lab"
 
 import functools
 import logging
+import operator
 import numpy as np
-import warnings
 
-from theano.compat import OrderedDict
+from theano.compat.six.moves import reduce, xrange
 from theano import tensor as T, config
 
+from pylearn2.compat import OrderedDict
 from pylearn2.models import Model
 from pylearn2.models.dbm import flatten
 from pylearn2.models.dbm.inference_procedure import WeightDoubling
 from pylearn2.models.dbm.sampling_procedure import GibbsEvenOdd
 from pylearn2.utils import safe_zip, safe_izip
 from pylearn2.utils.rng import make_np_rng
-
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ class DBM(Model):
         The batch size the model should use. Some convolutional
         LinearTransforms require a compile-time hardcoded batch size,
         otherwise this would not be part of the model specification.
-    visible_layer : WRITEME
+    visible_layer : VisibleLayer
         The visible layer of the DBM.
     hidden_layers : list
         The hidden layers. A list of HiddenLayer objects. The first
@@ -47,12 +47,18 @@ class DBM(Model):
     niter : int
         Number of mean field iterations for variational inference
         for the positive phase.
-    sampling_procedure : WRITEME
-    inference_procedure : WRITEME
+    sampling_procedure : SamplingProcedure (optional)
+        An object that specifies how to draw samples from the model.
+        If not specified, some standard algorithm will be used.
+    inference_procedure : InferenceProcedure (optional)
+        An object that specifies how to perform mean field inference
+        in the model. If not specified, some standard algorithm will
+        be used.
     """
 
     def __init__(self, batch_size, visible_layer, hidden_layers, niter,
                  sampling_procedure=None, inference_procedure=None):
+        super(DBM, self).__init__()
         self.__dict__.update(locals())
         del self.self
         assert len(hidden_layers) >= 1
@@ -82,17 +88,17 @@ class DBM(Model):
 
     def get_all_layers(self):
         """
-        .. todo::
+        Get all layers in this model.
 
-            WRITEME
+        Returns
+        -------
+        layers : list
         """
         return [self.visible_layer] + self.hidden_layers
 
     def energy(self, V, hidden):
         """
-        .. todo::
-
-            WRITEME
+        Compute the energy of current model with visible and hidden samples.
 
         Parameters
         ----------
@@ -137,23 +143,22 @@ class DBM(Model):
 
         assert len(terms) > 0
 
-        rval = reduce(lambda x, y: x + y, terms)
+        rval = reduce(operator.add, terms)
 
         assert rval.ndim == 1
         return rval
 
     def mf(self, *args, **kwargs):
         """
-        .. todo::
-
-            WRITEME
+        Perform mean field inference, using the model's inference procedure.
         """
         self.setup_inference_procedure()
         return self.inference_procedure.mf(*args, **kwargs)
 
     def expected_energy(self, V, mf_hidden):
         """
-        WRITEME
+        Compute the energy of current model with the visible samples
+        and variational parameters.
 
         Parameters
         ----------
@@ -203,24 +208,21 @@ class DBM(Model):
 
         assert len(terms) > 0
 
-        rval = reduce(lambda x, y: x + y, terms)
+        rval = reduce(operator.add, terms)
 
         assert rval.ndim == 1
         return rval
 
     def setup_rng(self):
         """
-        .. todo::
-
-            WRITEME
+        Set the random number generator for the model.
         """
         self.rng = make_np_rng(None, [2012, 10, 17], which_method="uniform")
 
     def setup_inference_procedure(self):
         """
-        .. todo::
-
-            WRITEME
+        Set the inference procedure for the model.
+        Default using `WeightDoubling`
         """
         if not hasattr(self, 'inference_procedure') or \
                 self.inference_procedure is None:
@@ -229,9 +231,8 @@ class DBM(Model):
 
     def setup_sampling_procedure(self):
         """
-        .. todo::
-
-            WRITEME
+        Set the sampling procedure for the model.
+        Default using `GibbsEvenOdd`
         """
         if not hasattr(self, 'sampling_procedure') or \
                 self.sampling_procedure is None:
@@ -271,7 +272,8 @@ class DBM(Model):
 
         Parameters
         ----------
-        layers : WRITEME
+        layers : list
+            layers to be added
         """
 
         # Patch old pickle files
@@ -434,8 +436,9 @@ class DBM(Model):
         Parameters
         ----------
         num_examples : int
-            WRITEME
-        rng : WRITEME
+            Number of examples to make up the state
+        rng : MRG_RandomStreams
+            Random number generator, if None then use model's rng
         """
 
         # Make a list of all layers
@@ -445,8 +448,6 @@ class DBM(Model):
             rng = self.rng
 
         states = [layer.make_state(num_examples, rng) for layer in layers]
-
-        zipped = safe_zip(layers, states)
 
         def recurse_check(layer, state):
             if isinstance(state, (list, tuple)):
@@ -460,19 +461,15 @@ class DBM(Model):
                                      str(m) + " examples in some component."
                                      "We requested " + str(num_examples))
 
-        for layer, state in zipped:
+        for layer, state in safe_zip(layers, states):
             recurse_check(layer, state)
 
-        rval = OrderedDict(zipped)
+        rval = OrderedDict(safe_zip(layers, states))
 
         return rval
 
     def make_layer_to_symbolic_state(self, num_examples, rng=None):
         """
-        .. todo::
-
-            Explain the difference with `make_layer_to_state`
-
         Makes and returns a dictionary mapping layers to states.
 
         By states, we mean here a real assignment, not a mean field
@@ -487,8 +484,14 @@ class DBM(Model):
         Parameters
         ----------
         num_examples : int
-            WRITEME
-        rng : WRITEME
+            Number of examples to make up the state
+        rng : MRG_RandomStreams
+            Random number generator
+
+        Notes
+        -----
+        This method returns a symbolic expression of the state, while
+        `make_layer_to_state` returns a certain shared variable.
         """
 
         # Make a list of all layers
@@ -505,20 +508,6 @@ class DBM(Model):
 
         return rval
 
-    def mcmc_steps(self, layer_to_state, theano_rng, layer_to_clamp=None,
-                   num_steps=1):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        warnings.warn("DBM.mcmc_steps is deprecated. You should instead " +
-                      "call DBM.sampling_procedure.sample, which defaults " +
-                      "to what DBM.mcmc_steps used to do. This method will " +
-                      "be removed on or after July 31, 2014.")
-        return self.sampling_procedure.sample(layer_to_state, theano_rng,
-                                              layer_to_clamp, num_steps)
-
     def get_sampling_updates(self, layer_to_state, theano_rng,
                              layer_to_clamp=None, num_steps=1,
                              return_layer_to_updated=False):
@@ -527,8 +516,8 @@ class DBM(Model):
 
         It thus implies that the samples are represented as shared variables.
         If you want an expression for a sampling step applied to arbitrary
-        theano variables, use the 'mcmc_steps' method. This is a wrapper around
-        that method.
+        theano variables, use the `DBM.sampling_procedure.sample` method.
+        This is a wrapper around that method.
 
         Parameters
         ----------
@@ -537,16 +526,17 @@ class DBM(Model):
             self to shared variables representing batches of samples of them.
             (you can allocate one by calling self.make_layer_to_state)
         theano_rng : MRG_RandomStreams
-            WRITEME
+            Random number generator
         layer_to_clamp : dict, optional
             Dictionary mapping layers to bools. If a layer is not in the
             dictionary, defaults to False. True indicates that this layer
             should be clamped, so we are sampling from a conditional
             distribution rather than the joint distribution
         num_steps : int, optional
-            WRITEME
+            Steps of the sampling procedure. It samples for `num_steps`
+            times and use the last sample.
         return_layer_to_updated : bool, optional
-            WRITEME
+            Whether returns the sample additionally
 
         Returns
         -------
@@ -678,9 +668,13 @@ class DBM(Model):
 
     def reconstruct(self, V):
         """
-        .. todo::
+        Reconstruct the visible variables.
 
-            WRITEME
+        Returns
+        -------
+        recons : tensor_like
+            Unmasked reconstructed visible variables.
+
         """
 
         H = self.mf(V)[0]
@@ -696,9 +690,8 @@ class DBM(Model):
 
     def do_inpainting(self, *args, **kwargs):
         """
-        .. todo::
-
-            WRITEME
+        Does the inference required for multi-prediction training,
+        using the model's inference procedure.
         """
         self.setup_inference_procedure()
         return self.inference_procedure.do_inpainting(*args, **kwargs)

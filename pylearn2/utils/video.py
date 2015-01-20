@@ -3,8 +3,7 @@ Utilities for working with videos, pulling out patches, etc.
 """
 import numpy
 
-from theano.compat.python2x import OrderedDict
-
+from pylearn2.compat import OrderedDict
 from pylearn2.utils.rng import make_np_rng
 
 __author__ = "David Warde-Farley"
@@ -121,7 +120,7 @@ def spatiotemporal_cubes(file_tuples, shape, n_patches=numpy.inf, rng=None):
     done = 0
     rng = make_np_rng(rng, which_method="random_integers")
     while done < n_patches:
-        frame = numpy.random.random_integers(0, len(frame_lookup) - 1)
+        frame = rng.random_integers(0, len(frame_lookup) - 1)
         filename, file_length, frame_no = frame_lookup[frame]
         # Check that there is a contiguous block of frames starting at
         # frame_no that is at least as long as our desired cube length.
@@ -132,8 +131,8 @@ def spatiotemporal_cubes(file_tuples, shape, n_patches=numpy.inf, rng=None):
         # fall within frame.
         last_row = video_height - patch_height
         last_col = video_width - patch_width
-        row = numpy.random.random_integers(0, last_row)
-        col = numpy.random.random_integers(0, last_col)
+        row = rng.random_integers(0, last_row)
+        col = rng.random_integers(0, last_col)
         patch_slice = (slice(frame_no, frame_no + patch_length),
                        slice(row, row + patch_height),
                        slice(col, col + patch_width))

@@ -40,7 +40,6 @@ class MNISTPlus(dense_design_matrix.DenseDesignMatrix):
            'test':  slice(60000, 70000)}
 
     def __init__(self, which_set, label_type=None,
-                 azimuth=False, rotation=False, texture=False,
                  center=False, contrast_normalize=False, seed=132987):
         assert which_set in ['train', 'valid', 'test']
         assert label_type in [
@@ -48,12 +47,14 @@ class MNISTPlus(dense_design_matrix.DenseDesignMatrix):
 
         # load data
         fname = '${PYLEARN2_DATA_PATH}/mnistplus/mnistplus'
-        if azimuth:
+        if label_type == 'azimuth':
             fname += '_azi'
-        if rotation:
+        if label_type == 'rotation':
             fname += '_rot'
-        if texture:
+            label_type = 'label'
+        if label_type == 'texture_id':
             fname += '_tex'
+            label_type = 'label'
 
         data = load(fname + '.pkl')
 
@@ -72,21 +73,27 @@ class MNISTPlus(dense_design_matrix.DenseDesignMatrix):
         # get labels
         data_y = None
         if label_type is not None:
-
-            data_y = data[label_type]
+            data_y = data[label_type].reshape(-1, 1)
 
             # convert to float for performing regression
-            if label_type in ['azimuth', 'rotation']:
+            if label_type == 'azimuth':
                 data_y = np.cast[config.floatX](data_y / 360.)
 
             # retrieve only subset of data
             data_y = data_y[MNISTPlus.idx[which_set]]
 
-        # create view converting for retrieving topological view
-        view_converter = dense_design_matrix.DefaultViewConverter((48, 48))
+        view_converter = dense_design_matrix.DefaultViewConverter((48, 48, 1))
 
         # init the super class
-        super(MNISTPlus, self).__init__(
-            X=data_x, y=data_y, view_converter=view_converter)
+        if data_y is not None:
+            super(MNISTPlus, self).__init__(
+                X=data_x, y=data_y, y_labels=np.max(data_y) + 1,
+                view_converter=view_converter
+            )
+        else:
+            super(MNISTPlus, self).__init__(
+                X=data_x,
+                view_converter=view_converter
+            )
 
         assert not contains_nan(self.X)

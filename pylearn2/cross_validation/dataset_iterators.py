@@ -16,8 +16,7 @@ try:
 except ImportError:
     warnings.warn("Could not import from sklearn.")
 
-from theano.compat import OrderedDict
-
+from pylearn2.compat import OrderedDict
 from pylearn2.cross_validation.blocks import StackedBlocksCV
 from pylearn2.cross_validation.subset_iterators import (
     ValidationKFold, StratifiedValidationKFold, ValidationShuffleSplit,
@@ -120,7 +119,7 @@ class DatasetCV(object):
 
             # which_set
             if self.which_set is not None:
-                for label, dataset in datasets.items():
+                for label, dataset in list(datasets.items()):
                     if label not in self.which_set:
                         del datasets[label]
                         del data_subsets[label]

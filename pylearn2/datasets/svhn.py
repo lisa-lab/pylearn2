@@ -12,6 +12,7 @@ except ImportError:
     warnings.warn("Couldn't import tables, so far SVHN is "
                   "only supported with PyTables")
 import numpy
+from theano.compat.six.moves import xrange
 from theano import config
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
@@ -102,6 +103,7 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
         view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3),
                                                                   axes)
         super(SVHN, self).__init__(X=data.X, y=data.y,
+                                   y_labels=numpy.max(data.y) + 1,
                                    view_converter=view_converter)
 
         if preprocessor:
@@ -139,18 +141,12 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
         # For consistency between experiments better to make new random stream
         rng = make_np_rng(None, 322, which_method="shuffle")
 
-        def design_matrix_view(data_x, data_y):
+        def design_matrix_view(data_x):
             """reshape data_x to deisng matrix view
-            and data_y to one_hot
             """
-
             data_x = numpy.transpose(data_x, axes=[3, 2, 0, 1])
             data_x = data_x.reshape((data_x.shape[0], 32 * 32 * 3))
-            # TODO assuming one_hot as default for now
-            one_hot = numpy.zeros((data_y.shape[0], 10), dtype=config.floatX)
-            for i in xrange(data_y.shape[0]):
-                one_hot[i, data_y[i] - 1] = 1.
-            return data_x, one_hot
+            return data_x
 
         def load_data(path):
             "Loads data from mat files"
@@ -160,7 +156,7 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
             data_y = data['y']
             del data
             gc.collect()
-            return design_matrix_view(data_x, data_y)
+            return design_matrix_view(data_x), data_y
 
         def split_train_valid(path, num_valid_train=400,
                               num_valid_extra=200):
@@ -239,8 +235,8 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
             train_x = numpy.cast[config.floatX](train_x)
             valid_x = numpy.cast[config.floatX](valid_x)
 
-            return design_matrix_view(train_x, train_y),\
-                design_matrix_view(valid_x, valid_y)
+            return design_matrix_view(train_x), train_y,\
+                design_matrix_view(valid_x), valid_y
 
         # The original splits
         if which_set in ['train', 'test']:
@@ -323,7 +319,7 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
 
         view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3),
                                                                   axes)
-        super(SVHN_On_Memory, self).__init__(X=data_x, y=data_y,
+        super(SVHN_On_Memory, self).__init__(X=data_x, y=data_y, y_labels=10,
                                              view_converter=view_converter)
 
         if preprocessor:
@@ -360,18 +356,12 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
         # For consistency between experiments better to make new random stream
         rng = make_np_rng(None, 322, which_method="shuffle")
 
-        def design_matrix_view(data_x, data_y):
+        def design_matrix_view(data_x):
             """reshape data_x to deisng matrix view
-            and data_y to one_hot
             """
-
             data_x = numpy.transpose(data_x, axes=[3, 2, 0, 1])
             data_x = data_x.reshape((data_x.shape[0], 32 * 32 * 3))
-            # TODO assuming one_hot as default for now
-            one_hot = numpy.zeros((data_y.shape[0], 10), dtype=config.floatX)
-            for i in xrange(data_y.shape[0]):
-                one_hot[i, data_y[i] - 1] = 1.
-            return data_x, one_hot
+            return data_x
 
         def load_data(path):
             "Loads data from mat files"
@@ -383,7 +373,7 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
             data_y = data['y']
             del data
             gc.collect()
-            return design_matrix_view(data_x, data_y)
+            return design_matrix_view(data_x), data_y
 
         def split_train_valid(path, num_valid_train=400,
                               num_valid_extra=200):
@@ -461,8 +451,8 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
 
             train_x = numpy.cast[config.floatX](train_x)
             valid_x = numpy.cast[config.floatX](valid_x)
-            return design_matrix_view(train_x, train_y),\
-                design_matrix_view(valid_x, valid_y)
+            return design_matrix_view(train_x), train_y,\
+                design_matrix_view(valid_x), valid_y
 
         # The original splits
         if which_set in ['train', 'test']:

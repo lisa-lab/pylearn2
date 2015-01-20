@@ -1,6 +1,7 @@
 # Local imports
 import pylearn2.config.yaml_parse
 
+from theano.compat import six
 import jobman
 from jobman.tools import expand, flatten
 
@@ -32,7 +33,7 @@ class ydict(dict):
         else:
             ret_list.append('{')
 
-        for key, val in args_dict.iteritems():
+        for key, val in six.iteritems(args_dict):
             # This will call str() on keys and values, not repr(), so unicode
             # objects will have the form 'blah', not "u'blah'".
             ret_list.append('%s: %s,' % (key, val))

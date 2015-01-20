@@ -1,5 +1,11 @@
 """Tests for iterators."""
+from __future__ import print_function
+
+from nose.tools import assert_raises
 import numpy as np
+import theano
+from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
+from pylearn2.space import VectorSpace
 from pylearn2.utils.iteration import (
     SubsetIterator,
     SequentialSubsetIterator,
@@ -69,7 +75,7 @@ def test_correct_shuffled_sequential_slices():
             visited[idx] = True
         num_batches += 1
 
-    print visited
+    print(visited)
     assert all(visited)
 
     assert num_batches == np.ceil(float(dataset_size)/float(batch_size))
@@ -180,3 +186,22 @@ def test_uneven_batches():
     test_include_uneven_iterator(SequentialSubsetIterator)
     test_include_uneven_iterator(ShuffledSequentialSubsetIterator)
     test_include_uneven_iterator(BatchwiseShuffledSequentialIterator)
+    
+def test_finitedataset_source_check():
+    """
+    Check that the FiniteDatasetIterator returns sensible
+    errors when there is a missing source in the dataset.
+    """
+    dataset = DenseDesignMatrix(X=np.random.rand(20,15).astype(theano.config.floatX),
+                                y=np.random.rand(20,5).astype(theano.config.floatX))
+    assert_raises(ValueError,
+                  dataset.iterator,
+                  mode='sequential',
+                  batch_size=5,
+                  data_specs=(VectorSpace(15),'featuresX'))
+    try:
+        dataset.iterator(mode='sequential',
+                         batch_size=5,
+                         data_specs=(VectorSpace(15),'featuresX'))
+    except ValueError as e:
+        assert 'featuresX' in str(e)

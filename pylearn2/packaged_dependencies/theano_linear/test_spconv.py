@@ -1,3 +1,4 @@
+from theano.compat.six.moves import xrange
 activate_test_spconv = 0
 if activate_test_spconv:
     import sys
@@ -19,9 +20,9 @@ if activate_test_spconv:
     sp = None
 
     def test_convolution():
-        print '\n\n*************************************************'
-        print '           TEST CONVOLUTION'
-        print '*************************************************'
+        print('\n\n*************************************************')
+        print('           TEST CONVOLUTION')
+        print('*************************************************')
 
         # fixed parameters
         channels=3
@@ -113,9 +114,9 @@ if activate_test_spconv:
 
     def test_sparse():
 
-        print '\n\n*************************************************'
-        print '           TEST SPARSE'
-        print '*************************************************'
+        print('\n\n*************************************************')
+        print('           TEST SPARSE')
+        print('*************************************************')
 
         # fixed parameters
         bsize = 10     # batch size
@@ -191,9 +192,9 @@ if activate_test_spconv:
                 visref = N.dot(out1,spmat.todense())
                 assert N.all(visref==visval)
 
-            print '**** Sparse Profiling Results ****'
-            print 'Numpy processing time: ', ntot
-            print 'Theano processing time: ', ttot
+            print('**** Sparse Profiling Results ****')
+            print('Numpy processing time: ', ntot)
+            print('Theano processing time: ', ttot)
         #profmode.print_summary()
 
 

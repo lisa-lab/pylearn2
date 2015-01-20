@@ -4,16 +4,19 @@
     WRITEME
 """
 import os
-import cPickle
 import logging
-_logger = logging.getLogger(__name__)
 
-import numpy as np
-import warnings
-N = np
+import numpy
+from theano.compat.six.moves import xrange
+
 from pylearn2.datasets import cache, dense_design_matrix
 from pylearn2.expr.preprocessing import global_contrast_normalize
 from pylearn2.utils import contains_nan
+from pylearn2.utils import serial
+from pylearn2.utils import string_utils
+
+
+_logger = logging.getLogger(__name__)
 
 
 class CIFAR10(dense_design_matrix.DenseDesignMatrix):
@@ -32,7 +35,6 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     gcn : float, optional
         Multiplicative constant to use for global contrast normalization.
         No global contrast normalization is applied, if None
-    one_hot : WRITEME
     start : WRITEME
     stop : WRITEME
     axes : WRITEME
@@ -41,7 +43,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     """
 
     def __init__(self, which_set, center=False, rescale=False, gcn=None,
-                 one_hot=None, start=None, stop=None, axes=('b', 0, 1, 'c'),
+                 start=None, stop=None, axes=('b', 0, 1, 'c'),
                  toronto_prepro = False, preprocessor = None):
         # note: there is no such thing as the cifar10 validation set;
         # pylearn1 defined one but really it should be user-configurable
@@ -57,21 +59,37 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
         # we also expose the following details:
         self.img_shape = (3, 32, 32)
-        self.img_size = N.prod(self.img_shape)
+        self.img_size = numpy.prod(self.img_shape)
         self.n_classes = 10
         self.label_names = ['airplane', 'automobile', 'bird', 'cat', 'deer',
                             'dog', 'frog', 'horse', 'ship', 'truck']
 
         # prepare loading
         fnames = ['data_batch_%i' % i for i in range(1, 6)]
-        lenx = N.ceil((ntrain + nvalid) / 10000.) * 10000
-        x = N.zeros((lenx, self.img_size), dtype=dtype)
-        y = N.zeros((lenx, 1), dtype=dtype)
+        datasets = {}
+        datapath = os.path.join(
+            string_utils.preprocess('${PYLEARN2_DATA_PATH}'),
+            'cifar10', 'cifar-10-batches-py')
+        for name in fnames + ['test_batch']:
+            fname = os.path.join(datapath, name)
+            if not os.path.exists(fname):
+                raise IOError(fname + " was not found. You probably need to "
+                              "download the CIFAR-10 dataset by using the "
+                              "download script in "
+                              "pylearn2/scripts/datasets/download_cifar10.sh "
+                              "or manually from "
+                              "http://www.cs.utoronto.ca/~kriz/cifar.html")
+            datasets[name] = cache.datasetCache.cache_file(fname)
+
+        lenx = numpy.ceil((ntrain + nvalid) / 10000.) * 10000
+        x = numpy.zeros((lenx, self.img_size), dtype=dtype)
+        y = numpy.zeros((lenx, 1), dtype=dtype)
 
         # load train data
         nloaded = 0
         for i, fname in enumerate(fnames):
-            data = CIFAR10._unpickle(fname)
+            _logger.info('loading file %s' % datasets[fname])
+            data = serial.load(datasets[fname])
             x[i * 10000:(i + 1) * 10000, :] = data['data']
             y[i * 10000:(i + 1) * 10000, 0] = data['labels']
             nloaded += 10000
@@ -79,7 +97,8 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
                 break
 
         # load test data
-        data = CIFAR10._unpickle('test_batch')
+        _logger.info('loading file %s' % datasets['test_batch'])
+        data = serial.load(datasets['test_batch'])
 
         # process this data
         Xs = {'train': x[0:ntrain],
@@ -88,24 +107,15 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         Ys = {'train': y[0:ntrain],
               'test': data['labels'][0:ntest]}
 
-        X = N.cast['float32'](Xs[which_set])
+        X = numpy.cast['float32'](Xs[which_set])
         y = Ys[which_set]
 
         if isinstance(y, list):
-            y = np.asarray(y).astype(dtype)
+            y = numpy.asarray(y).astype(dtype)
 
         if which_set == 'test':
             assert y.shape[0] == 10000
             y = y.reshape((y.shape[0], 1))
-
-        max_labels = 10
-        if one_hot is not None:
-            warnings.warn("the `one_hot` parameter is deprecated. To get "
-                          "one-hot encoded targets, request that they "
-                          "live in `VectorSpace` through the `data_specs` "
-                          "parameter of MNIST's iterator method. "
-                          "`one_hot` will be removed on or after "
-                          "September 20, 2014.", stacklevel=2)
 
         if center:
             X -= 127.5
@@ -178,7 +188,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         if self.gcn is not None:
             rval = X.copy()
             for i in xrange(rval.shape[0]):
-                rval[i, :] /= np.abs(rval[i, :]).max()
+                rval[i, :] /= numpy.abs(rval[i, :]).max()
             return rval
 
         if not self.center:
@@ -187,7 +197,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         if not self.rescale:
             rval /= 127.5
 
-        rval = np.clip(rval, -1., 1.)
+        rval = numpy.clip(rval, -1., 1.)
 
         return rval
 
@@ -215,10 +225,10 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
             rval = X.copy()
             if per_example:
                 for i in xrange(rval.shape[0]):
-                    rval[i, :] /= np.abs(orig[i, :]).max()
+                    rval[i, :] /= numpy.abs(orig[i, :]).max()
             else:
-                rval /= np.abs(orig).max()
-            rval = np.clip(rval, -1., 1.)
+                rval /= numpy.abs(orig).max()
+            rval = numpy.clip(rval, -1., 1.)
             return rval
 
         if not self.center:
@@ -227,7 +237,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         if not self.rescale:
             rval /= 127.5
 
-        rval = np.clip(rval, -1., 1.)
+        rval = numpy.clip(rval, -1., 1.)
 
         return rval
 
@@ -241,29 +251,3 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
                        rescale=self.rescale, gcn=self.gcn,
                        toronto_prepro=self.toronto_prepro,
                        axes=self.axes)
-
-    @classmethod
-    def _unpickle(cls, file):
-        """
-        .. todo::
-
-            What is this? why not just use serial.load like the CIFAR-100
-            class? Whoever wrote it shows up as "unknown" in git blame.
-        """
-        from pylearn2.utils import string_utils
-        fname = os.path.join(string_utils.preprocess('${PYLEARN2_DATA_PATH}'),
-                             'cifar10', 'cifar-10-batches-py', file)
-        if not os.path.exists(fname):
-            raise IOError(fname + " was not found. You probably need to "
-                          "download the CIFAR-10 dataset by using the "
-                          "download script in "
-                          "pylearn2/scripts/datasets/download_cifar10.sh "
-                          "or manually from "
-                          "http://www.cs.utoronto.ca/~kriz/cifar.html")
-        fname = cache.datasetCache.cache_file(fname)
-
-        _logger.info('loading file %s' % fname)
-        fo = open(fname, 'rb')
-        dict = cPickle.load(fo)
-        fo.close()
-        return dict

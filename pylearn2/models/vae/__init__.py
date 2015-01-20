@@ -28,7 +28,8 @@ __email__ = "pylearn-dev@googlegroups"
 import warnings
 import numpy
 import theano.tensor as T
-from theano.compat.python2x import OrderedDict
+
+from pylearn2.compat import OrderedDict
 from pylearn2.expr.basic import log_sum_exp
 from pylearn2.models.model import Model
 from pylearn2.models.vae.kl import find_integrator_for
@@ -138,12 +139,14 @@ class VAE(Model):
         rval = OrderedDict()
 
         X = data
-        epsilon_shape = (1, X.shape[0], self.nhid)
+        epsilon_shape = (X.shape[0], self.nhid)
         epsilon = self.sample_from_epsilon(shape=epsilon_shape)
         phi = self.encode_phi(X)
         z = self.sample_from_q_z_given_x(epsilon=epsilon, phi=phi)
-        z = z.reshape((epsilon.shape[0] * epsilon.shape[1], epsilon.shape[2]))
         theta = self.decode_theta(z)
+
+        X_r = self.means_from_theta(theta)
+        rval["reconstruction_mse"] = T.sqr(X - X_r).mean()
 
         posterior_channels = \
             self.posterior.monitoring_channels_from_conditional_params(phi)
@@ -173,8 +176,12 @@ class VAE(Model):
 
     @wraps(Model.get_weights)
     def get_weights(self):
-        # TODO: This choice is arbitrary. It's something that's useful to
-        # visualize, but is it the most intuitive choice?
+        return self.posterior.get_weights()
+
+    def get_conditional_weights(self):
+        """
+        Returns the weights of the first layer of the decoding network
+        """
         return self.conditional.get_weights()
 
     def get_prior_params(self):

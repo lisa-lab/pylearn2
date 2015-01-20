@@ -1,7 +1,7 @@
 """
 A unit test for the summarize_model.py script
 """
-import cPickle
+from theano.compat.six.moves import cPickle
 import os
 
 from pylearn2.testing.skip import skip_if_no_matplotlib

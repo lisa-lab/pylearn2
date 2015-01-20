@@ -4,6 +4,7 @@ Retina-inspired preprocessing as described in
     In *AISTATS* 2009.
 """
 import numpy
+from theano.compat.six.moves import xrange
 from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
 from pylearn2.space import Conv2DSpace
 

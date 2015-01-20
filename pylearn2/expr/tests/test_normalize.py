@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -8,6 +10,7 @@ __email__ = "pylearn-dev@googlegroups"
 import numpy as np
 import warnings
 
+from theano.compat.six.moves import xrange
 from theano import config
 from theano import function
 import theano.tensor as T
@@ -30,7 +33,7 @@ def ground_truth_normalize_row(row, k, n, alpha, beta):
     for i in xrange(row.shape[0]):
         s = k
         tot = 0
-        for j in xrange(max(0,i-n/2), min(row.shape[0],i+n/2+1)):
+        for j in xrange(max(0, i-n//2), min(row.shape[0], i+n//2+1)):
             tot += 1
             sq = row[j] ** 2.
             assert sq > 0.
@@ -84,12 +87,12 @@ def basic_test():
     max_err = err.max()
 
     if not np.allclose(out, ground_out):
-        print 'C01B test failed'
-        print 'error range: ',(err.min(), err.max())
-        print 'output: '
-        print out
-        print 'expected output: '
-        print ground_out
+        print('C01B test failed')
+        print('error range: ',(err.min(), err.max()))
+        print('output: ')
+        print(out)
+        print('expected output: ')
+        print(ground_out)
         assert False
         
     # Perform test for BC01
@@ -113,10 +116,10 @@ def basic_test():
     max_err = err.max()
 
     if not np.allclose(out, ground_out_BC01):
-        print 'BC01 test failed'
-        print 'error range: ',(err.min(), err.max())
-        print 'output: '
-        print out
-        print 'expected output: '
-        print ground_out
+        print('BC01 test failed')
+        print('error range: ',(err.min(), err.max()))
+        print('output: ')
+        print(out)
+        print('expected output: ')
+        print(ground_out)
         assert False

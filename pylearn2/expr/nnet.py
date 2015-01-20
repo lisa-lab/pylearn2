@@ -14,6 +14,7 @@ from theano.printing import Print
 from theano import tensor as T
 from theano.gof.op import get_debug_values
 
+
 def softmax_numpy(x):
     """
     .. todo::
@@ -32,6 +33,7 @@ def softmax_numpy(x):
     stable_x = (x.T - x.max(axis=1)).T
     numer = np.exp(stable_x)
     return (numer.T / numer.sum(axis=1)).T
+
 
 def pseudoinverse_softmax_numpy(x):
     """
@@ -56,6 +58,7 @@ def pseudoinverse_softmax_numpy(x):
     rval -= rval.mean()
     return rval
 
+
 def sigmoid_numpy(x):
     """
     .. todo::
@@ -65,6 +68,7 @@ def sigmoid_numpy(x):
     assert not isinstance(x, theano.gof.Variable)
     return 1. / (1. + np.exp(-x))
 
+
 def inverse_sigmoid_numpy(x):
     """
     .. todo::
@@ -72,6 +76,7 @@ def inverse_sigmoid_numpy(x):
         WRITEME
     """
     return np.log(x / (1. - x))
+
 
 def arg_of_softmax(Y_hat):
     """
@@ -102,11 +107,52 @@ def arg_of_softmax(Y_hat):
         op = owner.op
     if not isinstance(op, T.nnet.Softmax):
         raise ValueError("Expected Y_hat to be the output of a softmax, "
-                "but it appears to be the output of " + str(op) + " of type "
-                + str(type(op)))
-    z ,= owner.inputs
+                         "but it appears to be the output of " + str(op) +
+                         " of type " + str(type(op)))
+    z, = owner.inputs
     assert z.ndim == 2
     return z
+
+
+def arg_of_sigmoid(Y_hat):
+    """
+    Given the output of a call to theano.tensor.nnet.sigmoid,
+    returns the argument to the sigmoid (by tracing the Theano
+    graph).
+
+    Parameters
+    ----------
+    Y_hat : Variable
+        T.nnet.sigmoid(Z)
+
+    Returns
+    -------
+    Z : Variable
+        The variable that was passed to T.nnet.sigmoid to create `Y_hat`.
+        Raises an error if `Y_hat` is not actually the output of a theano
+        sigmoid.
+    """
+    assert hasattr(Y_hat, 'owner')
+    owner = Y_hat.owner
+    assert owner is not None
+    op = owner.op
+    if isinstance(op, Print):
+        assert len(owner.inputs) == 1
+        Y_hat, = owner.inputs
+        owner = Y_hat.owner
+        op = owner.op
+    success = False
+    if isinstance(op, T.Elemwise):
+        if isinstance(op.scalar_op, T.nnet.sigm.ScalarSigmoid):
+            success = True
+    if not success:
+        raise TypeError("Expected Y_hat to be the output of a sigmoid, "
+                        "but it appears to be the output of " + str(op) +
+                        " of type " + str(type(op)))
+    z, = owner.inputs
+    assert z.ndim == 2
+    return z
+
 
 def kl(Y, Y_hat, batch_axis):
     """
@@ -163,11 +209,12 @@ def kl(Y, Y_hat, batch_axis):
 
     total = term_1 + term_2
     naxes = total.ndim
-    axes_to_reduce = range(naxes)
+    axes_to_reduce = list(range(naxes))
     del axes_to_reduce[batch_axis]
     ave = total.mean(axis=axes_to_reduce)
 
     return ave
+
 
 def elemwise_kl(Y, Y_hat):
     """
@@ -253,6 +300,7 @@ def softmax_ratio(numer, denom):
 
     return new_num / new_den
 
+
 def compute_precision(tp, fp):
     """
     Computes the precision for the binary decisions.
@@ -273,6 +321,7 @@ def compute_precision(tp, fp):
     precision = tp / T.maximum(1., tp + fp)
     return precision
 
+
 def compute_recall(y, tp):
     """
     Computes the recall for the binary classification.
@@ -291,6 +340,7 @@ def compute_recall(y, tp):
     """
     recall = tp / T.maximum(1., y.sum())
     return recall
+
 
 def compute_f1(precision, recall):
     """
@@ -312,6 +362,5 @@ def compute_f1(precision, recall):
         f1 score for the binary decisions.
     """
     f1 = (2. * precision * recall /
-            T.maximum(1, precision + recall))
+          T.maximum(1, precision + recall))
     return f1
-

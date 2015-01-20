@@ -2,24 +2,31 @@
 Unit tests for ./yaml_parse.py
 """
 
+from __future__ import print_function
+
 import os
 import numpy as np
-import cPickle
+from theano.compat import six
+from theano.compat.six.moves import cPickle
 import tempfile
 from numpy.testing import assert_
-from pylearn2.config.yaml_parse import load, load_path, initialize
 from os import environ, close
 from decimal import Decimal
 from tempfile import mkstemp
+
+from pylearn2.compat import first_key, first_value
+from pylearn2.config.yaml_parse import load, load_path, initialize
 from pylearn2.utils import serial
 from pylearn2.utils.exc import reraise_as
+from pylearn2.config.yaml_parse import SCIENTIFIC_NOTATION_REGEXP
 import yaml
+import re
 
 
 def test_load_path():
     fd, fname = tempfile.mkstemp()
     with os.fdopen(fd, 'wb') as f:
-        f.write("a: 23")
+        f.write(six.b("a: 23"))
     loaded = load_path(fname)
     assert_(loaded['a'] == 23)
     os.remove(fname)
@@ -36,6 +43,43 @@ def test_floats():
     assert_(isinstance(loaded['a']['b'], float))
     assert_((loaded['a']['a'] + 1.23) < 1e-3)
     assert_((loaded['a']['b'] - 1.23e-1) < 1e-3)
+
+
+def test_notation_regexp():
+    """
+    Tests for regular expression aiming to filter scientific notations which
+    are not correctly parsed as floats by YAML.
+
+    Notes
+    -----
+    This regexp overmatches. E.g. 1.2e+3 matches the regexp,
+    but is already correctly parsed by YAML.
+    """
+    pattern = re.compile(SCIENTIFIC_NOTATION_REGEXP)
+    matches = ['1e3', '1.E4', '-1e-3', '2.3e+4', '.2e4']
+    fails = ['string', '4', '2.1', '1.2e3.2', '.e4', 'a3e4']
+
+    for match in matches:
+        assert pattern.match(match)
+
+    for fail in fails:
+        assert not pattern.match(fail)
+
+
+def test_scientific_notation():
+    """
+    Test if yaml parses scientific notation as floats.
+    """
+    loaded = load('a: {a: 1e3, b: 1.E4, c: -1e-3, d: 2.3e+4, e: .2e4, '
+                  'f: 23.53e1, g: 32284.2e+9, h: 2.333993939e-3}')
+    assert isinstance(loaded['a']['a'], float)
+    assert isinstance(loaded['a']['b'], float)
+    assert isinstance(loaded['a']['c'], float)
+    assert isinstance(loaded['a']['d'], float)
+    assert isinstance(loaded['a']['e'], float)
+    assert isinstance(loaded['a']['f'], float)
+    assert isinstance(loaded['a']['g'], float)
+    assert isinstance(loaded['a']['h'], float)
 
 
 def test_import():
@@ -56,7 +100,7 @@ def test_import_colon():
 def test_preproc_rhs():
     environ['TEST_VAR'] = '10'
     loaded = load('a: "${TEST_VAR}"')
-    print "loaded['a'] is %s" % loaded['a']
+    print("loaded['a'] is %s" % loaded['a'])
     assert_(loaded['a'] == "10")
     del environ['TEST_VAR']
 
@@ -101,8 +145,8 @@ def test_unpickle_key():
         d = ('a', 1)
         cPickle.dump(d, f)
     loaded = load("{!pkl: '%s': 50}" % fname)
-    assert_(loaded.keys()[0] == d)
-    assert_(loaded.values()[0] == 50)
+    assert_(first_key(loaded) == d)
+    assert_(first_value(loaded) == 50)
     os.remove(fname)
 
 
@@ -116,7 +160,7 @@ def test_multi_constructor_obj():
     except TypeError as e:
         assert str(e) == "Received non string object (1) as key in mapping."
         pass
-    except Exception, e:
+    except Exception as e:
         error_msg = "Got the unexpected error: %s" % (e)
         reraise_as(ValueError(error_msg))
 
@@ -141,11 +185,11 @@ def test_duplicate_keywords():
 
     try:
         load(yamlfile)
-    except yaml.constructor.ConstructorError, e:
+    except yaml.constructor.ConstructorError as e:
         message = str(e)
         assert message.endswith("found duplicate key (nvis)")
         pass
-    except Exception, e:
+    except Exception as e:
         error_msg = "Got the unexpected error: %s" % (e)
         raise TypeError(error_msg)
 

@@ -7,13 +7,13 @@ __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
 from collections import defaultdict
-from itertools import izip as izip_no_length_check
+from theano.compat.six.moves import zip as izip_no_length_check
 import numpy as np
-import warnings
 
-from theano.compat.python2x import OrderedDict
+from theano.compat import six
 from theano import tensor as T
 
+from pylearn2.compat import OrderedDict
 from pylearn2.model_extensions.model_extension import ModelExtension
 from pylearn2.space import NullSpace
 from pylearn2.utils import function
@@ -23,6 +23,7 @@ from pylearn2.utils.track_version import MetaLibVersion
 
 
 class Model(object):
+
     """
     A class representing a model with learnable parameters.
 
@@ -36,6 +37,7 @@ class Model(object):
     _test_batch_size = 2
 
     def __init__(self, extensions=None):
+        super(Model, self).__init__()
         if extensions is None:
             extensions = []
         else:
@@ -54,14 +56,11 @@ class Model(object):
         """
         Don't let subclasses use censor_updates.
         """
-        if hasattr(self, '_censor_updates_message_shown'):
-            return
         if self._overrides_censor_updates():
-            self._censor_updates_message_shown = True
-            warnings.warn(str(type(self)) + " overrides "
-                          "Model.censor_updates, which is deprecated. Change "
-                          "this to _modify_updates. censor_updates will no "
-                          "longer be called on or after 2014-11-01.")
+            raise TypeError(str(type(self)) + " overrides "
+                            "Model.censor_updates, which is no longer in use. "
+                            "Change this to _modify_updates. This check may "
+                            "quit being performed after 2015-05-13.")
 
     def _ensure_extensions(self):
         """
@@ -69,10 +68,9 @@ class Model(object):
         """
 
         if not hasattr(self, "extensions"):
-            warnings.warn("The " + str(type(self)) + " Model subclass "
-                          "seems not to call the Model constructor. This "
-                          "behavior may be considered an error on or after "
-                          "2014-11-01.")
+            raise TypeError("The " + str(type(self)) + " Model subclass "
+                            "is required to call the Model superclass "
+                            "constructor but does not.")
             self.extensions = []
 
     def __setstate__(self, d):
@@ -343,6 +341,7 @@ class Model(object):
         """
         Deprecated method. Callers should call modify_updates instead.
         Subclasses should override _modify_updates instead.
+        This method may be removed on or after 2015-05-25.
 
         Parameters
         ----------
@@ -351,11 +350,8 @@ class Model(object):
             will be updated to.
         """
 
-        warnings.warn("censor_updates is deprecated, call modify_updates "
-                      "instead. This will become an error on or after "
-                      "2014-11-01.", stacklevel=2)
-
-        self.modify_updates(updates)
+        raise TypeError("Model.censor_updates has been replaced by "
+                        "Model.modify_updates.")
 
     def modify_updates(self, updates):
         """"
@@ -390,7 +386,7 @@ class Model(object):
 
         self._ensure_extensions()
         for extension in self.extensions:
-            extension.post_modify_updates(updates)
+            extension.post_modify_updates(updates, self)
 
     def _modify_updates(self, updates):
         """
@@ -404,9 +400,9 @@ class Model(object):
             will be updated to.
         """
 
-        # Support subclasses that use the deprecated interface.
-        if self._overrides_censor_updates():
-            self.censor_updates(updates)
+        # Catch classes that try to override the old method.
+        # This check may be removed after 2015-05-13.
+        self._disallow_censor_updates()
 
     def get_input_space(self):
         """
@@ -450,9 +446,12 @@ class Model(object):
     def get_target_source(self):
         """
         Returns a string, stating the source for the output. By default the
-        output source (when is the only one) is called 'targets'.
+        model expects only one output source, which is called 'targets'.
         """
-        return 'targets'
+        if hasattr(self, 'target_source'):
+            return self.target_source
+        else:
+            return 'targets'
 
     def free_energy(self, V):
         """
@@ -567,7 +566,7 @@ class Model(object):
         pos = 0
         for param, value in safe_zip(params, cur_values):
             size = value.size
-            new_value = vector[pos:pos+size]
+            new_value = vector[pos:pos + size]
             param.set_value(new_value.reshape(*value.shape))
             pos += size
         assert pos == vector.size
@@ -594,6 +593,7 @@ class Model(object):
         Returns the number of visible units of the model.
         Deprecated; this assumes the model operates on a vector.
         Use get_input_space instead.
+        This method may be removed on or after 2015-05-25.
         """
         raise NotImplementedError()
 
@@ -602,6 +602,7 @@ class Model(object):
         Returns the number of visible units of the model.
         Deprecated; this assumes the model operates on a vector.
         Use get_input_space instead.
+        This method may be removed on or after 2015-05-25.
         """
         raise NotImplementedError()
 
@@ -681,10 +682,10 @@ class Model(object):
         by the model's `__getstate__` method (unless a particular model
         overrides this method).
         """
-        if isinstance(names, basestring):
+        if isinstance(names, six.string_types):
             names = [names]
         try:
-            assert all(isinstance(n, basestring) for n in iter(names))
+            assert all(isinstance(n, six.string_types) for n in iter(names))
         except (TypeError, AssertionError):
             reraise_as(ValueError('Invalid names argument'))
         # Quick check in case __init__ was never called, e.g. by a derived

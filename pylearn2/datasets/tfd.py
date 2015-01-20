@@ -34,7 +34,6 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
         from range [-127.5, 127.5] to [-1., 1.] if center is True
         False by default.
     shuffle : WRITEME
-    one_hot : WRITEME
     rng : WRITEME
     seed : WRITEME
     preprocessor : WRITEME
@@ -46,7 +45,7 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
 
     def __init__(self, which_set, fold=0, image_size=48,
                  example_range=None, center=False, scale=False,
-                 shuffle=False, one_hot=False, rng=None, seed=132987,
+                 shuffle=False, rng=None, seed=132987,
                  preprocessor=None, axes=('b', 0, 1, 'c')):
         if which_set not in self.mapper.keys():
             raise ValueError("Unrecognized which_set value: %s. Valid values" +
@@ -110,17 +109,12 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
             if shuffle:
                 data_y = data_y[rand_idx]
                 data_y_identity = data_y_identity[rand_idx]
+            y_labels = 7
 
-            self.one_hot = one_hot
-            if one_hot:
-                one_hot = np.zeros((data_y.shape[0], 7),
-                                   dtype='float32')
-                for i in xrange(data_y.shape[0]):
-                    one_hot[i, data_y[i]] = 1.
-                data_y = one_hot
         else:
             data_y = None
             data_y_identity = None
+            y_labels = None
 
         # create view converting for retrieving topological view
         view_converter = dense_design_matrix.DefaultViewConverter((image_size,
@@ -129,8 +123,7 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
                                                                   axes)
 
         # init the super class
-        super(TFD, self).__init__(X=data_x,
-                                  y=data_y,
+        super(TFD, self).__init__(X=data_x, y=data_y, y_labels=y_labels,
                                   view_converter=view_converter)
 
         assert not contains_nan(self.X)

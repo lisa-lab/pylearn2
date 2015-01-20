@@ -1,0 +1,28 @@
+!obj:pylearn2.train.Train {
+    dataset: &train !obj:pylearn2.testing.datasets.random_dense_design_matrix {
+        rng: !obj:numpy.random.RandomState { seed: 1},
+        num_examples: 50000,
+        dim: 784,
+        num_classes: 10
+    },
+    model: !obj:pylearn2.models.softmax_regression.SoftmaxRegression {
+        n_classes: 10,
+        nvis: 784,
+        irange: 0.01,
+        batch_size: 20
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        learning_rate: 0.01,
+        monitoring_batches: 10,
+        monitoring_dataset:
+        {
+                'train' : *train,
+        },
+        termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
+            max_epochs: 3
+        }
+    },
+    extensions: [
+                !obj:pylearn2.train_extensions.live_monitoring.LiveMonitoring {}
+    ]
+}

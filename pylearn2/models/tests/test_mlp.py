@@ -1,6 +1,10 @@
+from __future__ import print_function
+
 from itertools import product
 
 import numpy as np
+from theano.compat import six
+from theano.compat.six.moves import reduce, xrange
 import theano
 from theano import tensor, config
 from nose.tools import assert_raises
@@ -110,11 +114,11 @@ def test_dropout_input_mask_value():
 
 def test_sigmoid_layer_misclass_reporting():
     mlp = MLP(nvis=3, layers=[Sigmoid(layer_name='h0', dim=1, irange=0.005,
-                                      monitor_style='classification')])
+                                      monitor_style='bit_vector_class')])
     target = theano.tensor.matrix(dtype=theano.config.floatX)
     batch = theano.tensor.matrix(dtype=theano.config.floatX)
-    rval = mlp.layers[0].get_monitoring_channels_from_state(mlp.fprop(batch),
-                                                            target)
+    rval = mlp.layers[0].get_layer_monitoring_channels(state_below=batch, state=mlp.fprop(batch),
+                                                            targets=target)
 
     f = theano.function([batch, target], [tensor.gt(mlp.fprop(batch), 0.5),
                                           rval['misclass']],
@@ -143,7 +147,7 @@ def test_batchwise_dropout():
     f = theano.function([inp], mlp.dropout_fprop(inp, per_example=True),
                         allow_input_downcast=True)
     d = f([[3.0, 4.5]] * 3)
-    print d
+    print(d)
     np.testing.assert_(np.any(d[0] != d[1]) or np.any(d[0] != d[2]))
 
 def test_str():
@@ -156,7 +160,7 @@ def test_str():
 
     s = str(mlp)
 
-    assert isinstance(s, basestring)
+    assert isinstance(s, six.string_types)
 
 def test_sigmoid_detection_cost():
     # This is only a smoke test: verifies that it compiles and runs,
@@ -312,6 +316,36 @@ def test_multiple_inputs():
     train.algorithm.termination_criterion = EpochCounter(1)
     train.main_loop()
 
+def test_input_and_target_source():
+    """
+    Create a MLP and test input_source and target_source
+    for default and non-default options.
+    """
+    mlp = MLP(
+        layers=[CompositeLayer(
+                    'composite',
+                    [Linear(10, 'h0', 0.1),
+                     Linear(10, 'h1', 0.1)],
+                    {
+                        0: [1],
+                        1: [0]
+                    }
+                )
+        ],
+        input_space=CompositeSpace([VectorSpace(15), VectorSpace(20)]),
+        input_source=('features0', 'features1'),
+        target_source=('targets0', 'targets1')
+    )
+    np.testing.assert_equal(mlp.get_input_source(), ('features0', 'features1'))
+    np.testing.assert_equal(mlp.get_target_source(), ('targets0', 'targets1'))
+
+    mlp = MLP(
+        layers=[Linear(10, 'h0', 0.1)],
+        input_space=VectorSpace(15)
+    )
+    np.testing.assert_equal(mlp.get_input_source(), 'features')
+    np.testing.assert_equal(mlp.get_target_source(), 'targets')
+
 def test_get_layer_monitor_channels():
     """
     Create a MLP with multiple layer types
@@ -347,9 +381,33 @@ def test_get_layer_monitor_channels():
     )
     state_below = mlp.get_input_space().make_theano_batch()
     targets = mlp.get_target_space().make_theano_batch()
-    mlp.get_layer_monitoring_channels(state_below=state_below, 
+    mlp.get_layer_monitoring_channels(state_below=state_below,
             state=None, targets=targets)
 
+def test_flattener_layer_state_separation_for_softmax():
+    """
+    Creates a CompositeLayer wrapping two Softmax layers
+    and ensures that state gets correctly picked apart.
+    """
+    mlp = MLP(
+            layers=[
+                FlattenerLayer(
+                    CompositeLayer(
+                        'composite',
+                        [Softmax(5, 'sf1', 0.1),
+                         Softmax(5, 'sf2', 0.1)]
+                    )
+                )
+            ],
+            nvis=2
+            )
+
+    dataset = DenseDesignMatrix(X=np.random.rand(20, 2).astype(theano.config.floatX),
+            y=np.random.rand(20, 10).astype(theano.config.floatX))
+
+    train = Train(dataset, mlp, SGD(0.1, batch_size=5,monitoring_dataset = dataset))
+    train.algorithm.termination_criterion = EpochCounter(1)
+    train.main_loop()
 
 def test_nested_mlp():
     """
@@ -400,6 +458,57 @@ def test_softmax_binary_targets():
     np.testing.assert_allclose(cost_bin(X_data, y_bin_data),
                                cost_vec(X_data, y_vec_data))
 
+def test_softmax_weight_init():
+    """
+    Constructs softmax layers with different weight initialization
+    parameters.
+    """
+    nvis=5
+    num_classes = 10
+    MLP(layers=[Softmax(num_classes, 's', irange=0.1)], nvis=nvis)
+    MLP(layers=[Softmax(num_classes, 's', istdev=0.1)], nvis=nvis)
+    MLP(layers=[Softmax(num_classes, 's', sparse_init=2)], nvis=nvis)
+
+def test_softmax_bin_targets_channels(seed=0):
+    """
+    Constructs softmax layers with binary target and with vector targets
+    to check that they give the same 'misclass' channel value.
+    """
+    np.random.seed(seed)
+    num_classes = 2
+    batch_size = 5
+    mlp_bin = MLP(
+        layers=[Softmax(num_classes, 's1', irange=0.1,
+                        binary_target_dim=1)],
+        nvis=100
+    )
+    mlp_vec = MLP(
+        layers=[Softmax(num_classes, 's1', irange=0.1)],
+        nvis=100
+    )
+
+    X = mlp_bin.get_input_space().make_theano_batch()
+    y_bin = mlp_bin.get_target_space().make_theano_batch()
+    y_vec = mlp_vec.get_target_space().make_theano_batch()
+
+    X_data = np.random.random(size=(batch_size, 100))
+    X_data = X_data.astype(theano.config.floatX)
+    y_bin_data = np.random.randint(low=0, high=num_classes,
+                                   size=(batch_size, 1))
+    y_vec_data = np.zeros((batch_size, num_classes), dtype=theano.config.floatX)
+    y_vec_data[np.arange(batch_size),y_bin_data.flatten()] = 1
+
+    def channel_value(channel_name, model, y, y_data):
+        chans = model.get_monitoring_channels((X,y))
+        f_channel = theano.function([X,y], chans['s1_'+channel_name])
+        return f_channel(X_data, y_data)
+
+    for channel_name in ['misclass', 'nll']:
+        vec_val = channel_value(channel_name, mlp_vec, y_vec, y_vec_data)
+        bin_val = channel_value(channel_name, mlp_bin, y_bin, y_bin_data)
+        print(channel_name, vec_val, bin_val)
+        np.testing.assert_allclose(vec_val, bin_val)
+    
 def test_set_get_weights_Softmax():
     """
     Tests setting and getting weights for Softmax layer.

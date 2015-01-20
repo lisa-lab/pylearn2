@@ -18,6 +18,7 @@ import time
 import warnings
 import os
 import numpy
+from theano.compat.six.moves import xrange
 import scipy
 try:
     from scipy import linalg
@@ -1239,7 +1240,7 @@ class ZCA(Preprocessor):
             else:
                 matrix_c[...] = theano_func(matrix_a, matrix_b)
                 return matrix_c
-        except MemoryError, me:
+        except MemoryError:
             warnings.warn('Matrix multiplication too big to fit on GPU. '
                           'Re-doing with CPU. Consider using '
                           'THEANO_FLAGS="device=cpu" for your next '

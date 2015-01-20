@@ -1,5 +1,6 @@
 import numpy as np
 from pylearn2.models.s3c import reflection_clip
+from theano.compat.six.moves import xrange
 from theano import function
 from theano import shared
 from pylearn2.utils.rng import make_np_rng

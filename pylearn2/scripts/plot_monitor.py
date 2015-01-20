@@ -9,6 +9,8 @@ all of their monitoring channels and prompts the user to select
 a subset of them to be plotted.
 
 """
+from __future__ import print_function
+
 __authors__ = "Ian Goodfellow, Harm Aarts"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -20,6 +22,7 @@ import gc
 import numpy as np
 import sys
 
+from theano.compat.six.moves import input, xrange
 from pylearn2.utils import serial
 from theano.printing import _TagGenerator
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
@@ -75,21 +78,21 @@ def main():
       matplotlib.use('Agg')
     import matplotlib.pyplot as plt
 
-    print 'generating names...'
+    print('generating names...')
     model_names = [model_path.replace('.pkl', '!') for model_path in
             model_paths]
     model_names = unique_substrings(model_names, min_size=10)
     model_names = [model_name.replace('!','') for model_name in
             model_names]
-    print '...done'
+    print('...done')
 
     for i, arg in enumerate(model_paths):
         try:
             model = serial.load(arg)
         except Exception:
             if arg.endswith('.yaml'):
-                print >> sys.stderr, arg + " is a yaml config file," + \
-                "you need to load a trained model."
+                print(sys.stderr, arg + " is a yaml config file," + 
+                      "you need to load a trained model.", file=sys.stderr)
                 quit(-1)
             raise
         this_model_channels = model.monitor.channels
@@ -119,10 +122,10 @@ def main():
             sorted_codes.append(code)
 
         x_axis = 'example'
-        print 'set x_axis to example'
+        print('set x_axis to example')
 
         if len(channels.values()) == 0:
-            print "there are no channels to plot"
+            print("there are no channels to plot")
             break
 
         # If there is more than one channel in the monitor ask which ones to
@@ -133,20 +136,20 @@ def main():
 
             # Display the codebook
             for code in sorted_codes:
-                print code + '. ' + codebook[code]
+                print(code + '. ' + codebook[code])
 
-            print
+            print()
 
-            print "Put e, b, s or h in the list somewhere to plot " + \
-                    "epochs, batches, seconds, or hours, respectively."
-            response = raw_input('Enter a list of channels to plot ' + \
+            print("Put e, b, s or h in the list somewhere to plot " + 
+                    "epochs, batches, seconds, or hours, respectively.")
+            response = input('Enter a list of channels to plot ' + \
                     '(example: A, C,F-G, h, <test_err>) or q to quit' + \
                     ' or o for options: ')
 
             if response == 'o':
-                print '1: smooth all channels'
-                print 'any other response: do nothing, go back to plotting'
-                response = raw_input('Enter your choice: ')
+                print('1: smooth all channels')
+                print('any other response: do nothing, go back to plotting')
+                response = input('Enter your choice: ')
                 if response == '1':
                     for channel in channels.values():
                         k = 5
@@ -191,7 +194,7 @@ def main():
                     rng = code.split('-')
 
                     if len(rng) != 2:
-                        print "Input not understood: "+code
+                        print("Input not understood: "+code)
                         quit(-1)
 
                     found = False
@@ -201,7 +204,7 @@ def main():
                             break
 
                     if not found:
-                        print "Invalid code: "+rng[0]
+                        print("Invalid code: "+rng[0])
                         quit(-1)
 
                     found = False
@@ -211,7 +214,7 @@ def main():
                             break
 
                     if not found:
-                        print "Invalid code: "+rng[1]
+                        print("Invalid code: "+rng[1])
                         quit(-1)
 
                     final_codes = final_codes.union(set(sorted_codes[i:j+1]))
@@ -239,10 +242,10 @@ def main():
             y = np.asarray(channel.val_record)
 
             if contains_nan(y):
-                print channel_name + ' contains NaNs'
+                print(channel_name + ' contains NaNs')
 
             if contains_inf(y):
-                print channel_name + 'contains infinite values'
+                print(channel_name + 'contains infinite values')
 
             if x_axis == 'example':
                 x = np.asarray(channel.example_record)

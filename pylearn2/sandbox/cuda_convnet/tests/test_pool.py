@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import copy
 
 import numpy
@@ -75,8 +77,8 @@ def test_pool():
     #            for start in range(shp[2] + 1):
                 for start in [0]:
                     for stride in range(1, min(shp[2], ds, 4) + 1):
-                        print 'test_pool shape=%s, ds=%d, stride=%d start=%d' % (
-                            str(shp), ds, stride, start)
+                        print('test_pool shape=%s, ds=%d, stride=%d start=%d'
+                              % (str(shp), ds, stride, start))
 
                         a = tcn.shared_constructor(my_rand(*shp), 'a')
                         op = MaxPool(ds=ds, stride=stride)

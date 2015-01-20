@@ -1,5 +1,6 @@
 """Tools for estimating the partition function of an RBM"""
 import numpy
+from theano.compat.six.moves import xrange
 import theano
 from theano import tensor, config
 from theano.tensor import nnet

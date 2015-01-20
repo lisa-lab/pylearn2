@@ -9,10 +9,11 @@ import functools
 import logging
 import warnings
 
+from theano.compat.six.moves import reduce
 import theano.tensor as T
-from theano.compat.python2x import OrderedDict
 from theano.compat.six.moves import zip as izip
 
+from pylearn2.compat import OrderedDict
 from pylearn2.utils import safe_zip
 from pylearn2.utils import safe_union
 from pylearn2.space import CompositeSpace, NullSpace
@@ -21,6 +22,7 @@ from pylearn2.utils.exc import reraise_as
 
 
 logger = logging.getLogger(__name__)
+
 
 class Cost(object):
     """
@@ -220,6 +222,27 @@ class Cost(object):
         """
         raise NotImplementedError(str(type(self)) + " does not implement " +
                                   "get_data_specs.")
+
+    def is_stochastic(self):
+        """
+        Returns True if the cost is stochastic.
+
+        Stochastic costs are incompatible with some optimization algorithms
+        that make multiple updates per minibatch, such as algorithms that
+        use line searches. These optimizations should raise a TypeError if
+        given a stochastic Cost, or issue a warning if given a Cost whose
+        `is_stochastic` method raises NotImplementedError.
+
+        Returns
+        -------
+        is_stochastic : bool
+            Whether the cost is stochastic. For example, dropout is
+            stochastic.
+        """
+
+        raise NotImplementedError(str(type(self)) + " needs to implement "
+                                  "is_stochastic.")
+
 
 class SumOfCosts(Cost):
     """
@@ -451,24 +474,6 @@ class SumOfCosts(Cost):
 
         return reduce(merge, descrs)
 
-def scaled_cost(cost, scaling):
-    """
-    Deprecated. Switch to SumOfCosts([[scaling, cost]]), or just quit using it.
-
-    Parameters
-    ----------
-    cost : Cost
-        cost to be scaled
-    scaling : float
-        scaling of the cost
-    """
-
-    warnings.warn("""\
-scaled_cost is deprecated and may be removed on or after 2014-08-05.
-SumOfCosts allows you to scale individual terms, and if this is the only cost,
-you may as well just change the learning rate.""")
-
-    return SumOfCosts([[scaling, cost]])
 
 class NullDataSpecsMixin(object):
     """
@@ -490,7 +495,9 @@ class NullDataSpecsMixin(object):
         ----------
         model : pylearn2.models.Model
         """
+
         return (NullSpace(), '')
+
 
 class DefaultDataSpecsMixin(object):
     """
@@ -521,6 +528,7 @@ class DefaultDataSpecsMixin(object):
             return (space, sources)
         else:
             return (model.get_input_space(), model.get_input_source())
+
 
 class LpPenalty(NullDataSpecsMixin, Cost):
     """
@@ -567,34 +575,6 @@ class LpPenalty(NullDataSpecsMixin, Cost):
             # Absolute value handles odd-valued p cases
             penalty = penalty + abs(var ** self.p).sum()
         return penalty
-
-
-class CrossEntropy(DefaultDataSpecsMixin, Cost):
-    """
-    DEPRECATED
-    """
-
-    def __init__(self):
-        warnings.warn("CrossEntropy is deprecated. You should use a "
-                "model-specific cross entropy cost function. CrossEntropy"
-                "will be removed on or after August 3, 2014", stacklevel=2)
-        self.supervised = True
-
-    def expr(self, model, data, ** kwargs):
-        """
-        DEPRECATED
-
-        Parameters
-        ----------
-        model : DEPRECATED
-        data : DEPRECATED
-        """
-        self.get_data_specs(model)[0].validate(data)
-
-        # unpack data
-        (X, Y) = data
-        return (-Y * T.log(model(X)) -
-                (1 - Y) * T.log(1 - model(X))).sum(axis=1).mean()
 
 
 class MethodCost(Cost):
@@ -663,11 +643,13 @@ def _no_op(data):
     An on_load_batch callback that does nothing.
     """
 
+
 class FixedVarDescrDataSpecsError(TypeError):
     """
     An error raised when code attempts to use the unused
     data_specs field of FixedVarDescr
     """
+
 
 class FixedVarDescr(object):
     """
@@ -706,13 +688,15 @@ class FixedVarDescr(object):
         self.fixed_vars = {}
         self.on_load_batch = []
 
-    def _data_specs_err(self, x = None):
+    def _data_specs_err(self, x=None):
         raise FixedVarDescrDataSpecsError("The data_specs field of "
-                "FixedVarDescr has been "
-                "removed. While this field existed and was documented at "
-                "one time, no TrainingAlgorithm respected it. The "
-                "data_specs of all members of on_load_batch must match "
-                "those of the cost.")
+                                          "FixedVarDescr has been removed. "
+                                          "While this field existed and was "
+                                          "documented at one time, no "
+                                          "TrainingAlgorithm respected it. "
+                                          "The data_specs of all members of "
+                                          "on_load_batch must match those of "
+                                          "the cost.")
 
     data_specs = property(_data_specs_err, _data_specs_err)
 
@@ -748,6 +732,6 @@ def merge(left, right):
     merged.fixed_vars.update(right.fixed_vars)
 
     merged.on_load_batch = safe_union(left.on_load_batch,
-                                        right.on_load_batch)
+                                      right.on_load_batch)
 
     return merged

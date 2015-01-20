@@ -1,14 +1,29 @@
 """
 Tests for the pylearn2 autoencoder module.
 """
+import os.path
+
 import numpy as np
 import theano
 import theano.tensor as tensor
 from theano import config
-from pylearn2.models.autoencoder import Autoencoder, HigherOrderContractiveAutoencoder
+from pylearn2.models.autoencoder import Autoencoder, \
+    HigherOrderContractiveAutoencoder, DeepComposedAutoencoder, \
+    UntiedAutoencoder
 from pylearn2.corruption import BinomialCorruptor
 from pylearn2.config import yaml_parse
 from theano.tensor.basic import _allclose
+
+
+yaml_dir_path = os.path.join(
+    os.path.abspath(os.path.join(os.path.dirname(__file__))), 'config')
+
+
+def test_autoencoder_properly_initialized():
+    ae = Autoencoder(1, 1, 'sigmoid', 'linear')
+    assert hasattr(ae, 'fn'), "Autoencoder didn't call Block.__init__"
+    assert hasattr(ae, 'extensions'), "Autoencoder didn't call Model.__init__"
+
 
 def test_autoencoder_logistic_linear_tied():
     data = np.random.randn(10, 5).astype(config.floatX)
@@ -46,14 +61,14 @@ def test_high_order_autoencoder_init():
     Just test that model initialize and return
     the penalty without error.
     """
-    corruptor = BinomialCorruptor(corruption_level = 0.5)
+    corruptor = BinomialCorruptor(corruption_level=0.5)
     model = HigherOrderContractiveAutoencoder(
-            corruptor = corruptor,
-            num_corruptions = 2,
-            nvis = 5,
-            nhid = 7,
-            act_enc = 'sigmoid',
-            act_dec = 'sigmoid')
+        corruptor=corruptor,
+        num_corruptions=2,
+        nvis=5,
+        nhid=7,
+        act_enc='sigmoid',
+        act_dec='sigmoid')
 
     X = tensor.matrix()
     data = np.random.randn(10, 5).astype(config.floatX)
@@ -67,44 +82,11 @@ def test_cae_basic():
     and train it for a few epochs (without saving) on a dummy
     dataset-- tiny model and dataset
     """
+    with open(os.path.join(yaml_dir_path, 'cae.yaml')) as f:
+        yaml_string = f.read()
+        train = yaml_parse.load(yaml_string)
+        train.main_loop()
 
-    yaml_string = """
-    !obj:pylearn2.train.Train {
-        dataset: &train !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix {
-            rng: !obj:numpy.random.RandomState { seed: [2013, 3, 16] },
-            num_examples: 10,
-            dim: 5,
-            num_classes: 5
-        },
-        model: !obj:pylearn2.models.autoencoder.ContractiveAutoencoder {
-            nvis: 5,
-            nhid: 5,
-            irange: 0.05,
-            act_enc: "sigmoid",
-            act_dec: "sigmoid"
-        },
-        algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
-            batch_size: 10,
-            learning_rate: .1,
-            monitoring_dataset:
-                {
-                    'train' : *train
-                },
-            cost: !obj:pylearn2.costs.cost.SumOfCosts {
-            costs: [
-                !obj:pylearn2.costs.autoencoder.MeanBinaryCrossEntropy {},
-                [0.1, !obj:pylearn2.costs.cost.MethodCost { method: contraction_penalty }]
-            ]
-        },
-           termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
-                max_epochs: 1,
-            },
-        },
-    }
-    """
-
-    train = yaml_parse.load(yaml_string)
-    train.main_loop()
 
 def test_hcae_basic():
     """
@@ -112,45 +94,30 @@ def test_hcae_basic():
     and train it for a few epochs (without saving) on a dummy
     dataset-- tiny model and dataset
     """
+    with open(os.path.join(yaml_dir_path, 'hcae.yaml')) as f:
+        yaml_string = f.read()
+        train = yaml_parse.load(yaml_string)
+        train.main_loop()
 
-    yaml_string = """
-    !obj:pylearn2.train.Train {
-        dataset: &train !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix {
-            rng: !obj:numpy.random.RandomState { seed: [2013, 3, 16] },
-            num_examples: 10,
-            dim: 5,
-            num_classes: 5
-        },
-        model: !obj:pylearn2.models.autoencoder.HigherOrderContractiveAutoencoder {
-            nvis: 5,
-            nhid: 5,
-            irange: 0.05,
-            act_enc: "sigmoid",
-            act_dec: "sigmoid",
-            num_corruptions: 2,
-            corruptor: !obj:pylearn2.corruption.BinomialCorruptor {
-                corruption_level: 0.5
-            }
-        },
-        algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
-            batch_size: 10,
-            learning_rate: .1,
-            monitoring_dataset:
-                {
-                    'train' : *train
-                },
-            cost: !obj:pylearn2.costs.cost.SumOfCosts {
-            costs: [
-                !obj:pylearn2.costs.autoencoder.MeanBinaryCrossEntropy {},
-                [0.1, !obj:pylearn2.costs.cost.MethodCost { method: higher_order_penalty }]
-            ]
-        },
-            termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
-                max_epochs: 1,
-            },
-        },
-    }
+
+def test_untied_ae():
     """
+    Tests that UntiedAutoencoder calls the Model superclass constructor
+    """
+    ae = Autoencoder(5, 7, act_enc='tanh', act_dec='cos',
+                     tied_weights=True)
+    model = UntiedAutoencoder(ae)
+    model._ensure_extensions()
 
-    train = yaml_parse.load(yaml_string)
-    train.main_loop()
+
+def test_dcae():
+    """
+    Tests that DeepComposedAutoencoder works correctly
+    """
+    ae = Autoencoder(5, 7, act_enc='tanh', act_dec='cos',
+                     tied_weights=True)
+    model = DeepComposedAutoencoder([ae])
+    model._ensure_extensions()
+
+    data = np.random.randn(10, 5).astype(config.floatX)
+    model.perform(data)

@@ -29,16 +29,18 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 
-import numpy as np
+import operator
 
-from theano.compat.python2x import OrderedDict
+import numpy as np
 
 from theano import function
 from theano.gof.op import get_debug_values
+from theano.compat.six.moves import reduce
 from theano.compile.sharedvalue import SharedVariable
 import theano.tensor as T
 import warnings
 
+from pylearn2.compat import OrderedDict
 from pylearn2.expr.nnet import sigmoid_numpy
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.dbm import init_sigmoid_bias_from_array
@@ -684,7 +686,7 @@ class IsingHidden(HiddenLayer):
                         raise ValueError("self.dbm.batch_size is %d but got " +
                                          "shape of %d" % (self.dbm.batch_size,
                                                           sb.shape[0]))
-                    assert reduce(lambda x, y: x * y, sb.shape[1:]) == self.input_dim
+                    assert reduce(operator.mul, sb.shape[1:]) == self.input_dim
 
             state_below = self.input_space.format_as(state_below,
                                                      self.desired_space)
@@ -754,7 +756,7 @@ class IsingHidden(HiddenLayer):
                         raise ValueError("self.dbm.batch_size is %d but got " +
                                          "shape of %d" % (self.dbm.batch_size,
                                                           sb.shape[0]))
-                    assert reduce(lambda x, y: x * y, sb.shape[1:]) == self.input_dim
+                    assert reduce(operator.mul, sb.shape[1:]) == self.input_dim
 
             state_below = self.input_space.format_as(state_below,
                                                      self.desired_space)
@@ -1759,7 +1761,7 @@ class BoltzmannIsingHidden(HiddenLayer):
                         raise ValueError("self.dbm.batch_size is %d but got " +
                                          "shape of %d" % (self.dbm.batch_size,
                                                           sb.shape[0]))
-                    assert reduce(lambda x, y: x * y, sb.shape[1:]) == self.input_dim
+                    assert reduce(operator.mul, sb.shape[1:]) == self.input_dim
 
             state_below = self.input_space.format_as(state_below,
                                                      self.desired_space)
@@ -1825,7 +1827,7 @@ class BoltzmannIsingHidden(HiddenLayer):
                         raise ValueError("self.dbm.batch_size is %d but got " +
                                          "shape of %d" % (self.dbm.batch_size,
                                                           sb.shape[0]))
-                    assert reduce(lambda x, y: x * y, sb.shape[1:]) == self.input_dim
+                    assert reduce(operator.mul, sb.shape[1:]) == self.input_dim
 
             state_below = self.input_space.format_as(state_below,
                                                      self.desired_space)

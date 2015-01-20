@@ -86,9 +86,10 @@ esign_matrix {
             nvis: 2,
         },
         algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+            learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Mo\
+mentum { init_momentum: 0.5 },
             batch_size: 6,
             learning_rate: .1,
-            init_momentum: .5,
             monitoring_dataset:
                 {
                     'train' : *train
@@ -189,7 +190,8 @@ ical_dense_design_matrix {
         },
         algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
             learning_rate: .05,
-            init_momentum: .5,
+            learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Mo\
+mentum { init_momentum: 0.9 },
             monitoring_dataset:
                 {
                     'train': *train
@@ -223,7 +225,6 @@ yaml_string_maxout_conv_c01b_cifar10 = """
         dataset: &train !obj:pylearn2.datasets.cifar10.CIFAR10 {
             toronto_prepro: True,
             which_set: 'train',
-            one_hot: 1,
             axes: ['c', 0, 1, 'b'],
             start: 0,
             stop: 50000
@@ -262,16 +263,16 @@ yaml_string_maxout_conv_c01b_cifar10 = """
                     ],
         },
         algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+            learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Mo\
+mentum { init_momentum: 0.9 },
             batch_size: 100,
             learning_rate: .01,
-            init_momentum: .9,
             monitoring_dataset:
                 {
                     'valid' : !obj:pylearn2.datasets.cifar10.CIFAR10 {
                                   toronto_prepro: True,
                                   axes: ['c', 0, 1, 'b'],
                                   which_set: 'train',
-                                  one_hot: 1,
                                   start: 40000,
                                   stop:  50000
                               },
@@ -279,7 +280,6 @@ yaml_string_maxout_conv_c01b_cifar10 = """
                                   toronto_prepro: True,
                                   axes: ['c', 0, 1, 'b'],
                                   which_set: 'test',
-                                  one_hot: 1,
                               }
                 },
             termination_criterion: !obj:pylearn2.termination_criteria.EpochCo\
@@ -296,7 +296,6 @@ yaml_string_maxout_conv_c01b_cifar10_fast = """
         dataset: &train !obj:pylearn2.datasets.cifar10.CIFAR10 {
             toronto_prepro: True,
             which_set: 'train',
-            one_hot: 1,
             axes: ['c', 0, 1, 'b'],
             start: 0,
             stop: 100
@@ -335,16 +334,16 @@ yaml_string_maxout_conv_c01b_cifar10_fast = """
                     ],
         },
         algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+            learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Mo\
+momentum: { init_momentum: 0.9 },
             batch_size: 100,
             learning_rate: .01,
-            init_momentum: .9,
             monitoring_dataset:
                 {
                     'valid' : !obj:pylearn2.datasets.cifar10.CIFAR10 {
                                   toronto_prepro: True,
                                   axes: ['c', 0, 1, 'b'],
                                   which_set: 'train',
-                                  one_hot: 1,
                                   start: 40000,
                                   stop:  40100
                               },
@@ -352,7 +351,6 @@ yaml_string_maxout_conv_c01b_cifar10_fast = """
                                   toronto_prepro: True,
                                   axes: ['c', 0, 1, 'b'],
                                   which_set: 'test',
-                                  one_hot: 1,
                               }
                 },
             termination_criterion: !obj:pylearn2.termination_criteria.EpochCo\

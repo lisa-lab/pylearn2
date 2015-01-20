@@ -12,6 +12,7 @@ try:
 except ImportError:
     h5py = None
 import numpy as np
+from theano.compat.six.moves import xrange
 import warnings
 
 from pylearn2.datasets.dense_design_matrix import (DenseDesignMatrix,
@@ -39,16 +40,33 @@ class HDF5Dataset(DenseDesignMatrix):
     load_all : bool, optional (default False)
         If true, datasets are loaded into memory instead of being left
         on disk.
+    cache_size: int, optionally specify the size in bytes for the chunk
+        cache of the HDF5 library. Useful when the HDF5 files has large
+        chunks and when using a sequantial iterator. The chunk cache allows
+        to only access the disk for the chunks and then copy the batches to
+        the GPU from memory, which can result in a significant speed up.
+        Sensible default values depend on the size of your data and the
+        batch size you wish to use. A rule of thumb is to make a chunk
+        contain 100 - 1000 batches and make sure they encompass complete
+        samples.
     kwargs : dict, optional
         Keyword arguments passed to `DenseDesignMatrix`.
     """
 
     def __init__(self, filename, X=None, topo_view=None, y=None,
-                 load_all=False, **kwargs):
+                 load_all=False, cache_size=None, **kwargs):
         self.load_all = load_all
         if h5py is None:
             raise RuntimeError("Could not import h5py.")
-        self._file = h5py.File(filename)
+        if cache_size:
+            propfaid = h5py.h5p.create(h5py.h5p.FILE_ACCESS)
+            settings = list(propfaid.get_cache())
+            settings[2] = cache_size
+            propfaid.set_cache(*settings)
+            fid = h5py.h5f.open(filename, fapl=propfaid)
+            self._file = h5py.File(fid)
+        else:
+            self._file = h5py.File(filename)
         if X is not None:
             X = self.get_dataset(X, load_all)
         if topo_view is not None:

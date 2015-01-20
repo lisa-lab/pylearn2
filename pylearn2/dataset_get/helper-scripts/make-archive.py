@@ -9,7 +9,9 @@ __licence__   = "BSD 3-Clause http://www.opensource.org/licenses/BSD-3-Clause "
 
 
 import logging
-import os,re,sys,tarfile
+import os, sys, tarfile
+
+from theano.compat.six.moves import input
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +70,7 @@ def checks(path):
 def create_archive( source, archive_name ):
 
     if os.path.exists(archive_name):
-        r= raw_input("'%s' exists, overwrite? [yes/N] " % archive_name)
+        r = input("'%s' exists, overwrite? [yes/N] " % archive_name)
         if (r!="y") and (r!="yes"):
             logger.info("taking '{0}' for no, so there.".format(r))
             #bail out
@@ -76,7 +78,7 @@ def create_archive( source, archive_name ):
 
     try:
         tar=tarfile.open(archive_name,mode="w:bz2")
-    except Exception, e:
+    except Exception as e:
         logger.exception(e)
         return
     else:

@@ -1,10 +1,8 @@
-import sys
 import unittest
 
 import numpy
 
 import theano
-from theano.sandbox.cuda.var import float32_shared_constructor
 from theano.tests.unittest_tools import verify_grad
 
 from .unshared_conv import FilterActs
@@ -39,6 +37,8 @@ class TestFilterActs(unittest.TestCase):
     fshape = (2, 2, 1, 3, 3, 1, 5)
     module_stride = 1
     dtype = 'float64'
+    # step size for numeric gradient, None is the default
+    eps = None
     mode = theano.compile.get_default_mode()
 
     def function(self, inputs, outputs):
@@ -89,13 +89,9 @@ class TestFilterActs(unittest.TestCase):
         # instead.
         def left_op(imgs):
             return self.op(imgs, self.s_filters)
-        try:
-            verify_grad(left_op, [self.s_images.get_value()],
-                    mode=self.mode)
-        except verify_grad.E_grad, e:
-            print e.num_grad.gf
-            print e.analytic_grad
-            raise
+
+        verify_grad(left_op, [self.s_images.get_value()],
+                    mode=self.mode, eps=self.eps)
 
     def test_grad_right(self):
         # test only the right so that the left can be a shared variable,
@@ -107,13 +103,9 @@ class TestFilterActs(unittest.TestCase):
                     filters.name)
             assert rval.dtype == filters.dtype
             return rval
-        try:
-            verify_grad(right_op, [self.s_filters.get_value()],
-                    mode=self.mode)
-        except verify_grad.E_grad, e:
-            print e.num_grad.gf
-            print e.analytic_grad
-            raise
+
+        verify_grad(right_op, [self.s_filters.get_value()],
+                    mode=self.mode, eps=self.eps)
 
     def test_dtype_mismatch(self):
         self.assertRaises(TypeError,
@@ -134,6 +126,7 @@ class TestFilterActs(unittest.TestCase):
 
 class TestFilterActsF32(TestFilterActs):
     dtype = 'float32'
+    eps = 1e-3
 
 
 class TestWeightActs(unittest.TestCase):
@@ -143,6 +136,8 @@ class TestWeightActs(unittest.TestCase):
     fshape = (2, 2, 3, 2, 2, 6, 4)
     module_stride = 2
     dtype = 'float64'
+    # step size for numeric gradient, None is the default
+    eps = None
 
     frows = property(lambda s: s.fshape[3])
     fcols = property(lambda s: s.fshape[4])
@@ -174,14 +169,11 @@ class TestWeightActs(unittest.TestCase):
     def test_grad(self):
         def op2(imgs, hids):
             return self.op(imgs, hids, self.frows, self.fcols)
-        try:
-            verify_grad(op2,
+
+        verify_grad(op2,
                     [self.s_images.get_value(),
-                        self.s_hidacts.get_value()])
-        except verify_grad.E_grad, e:
-            print e.num_grad.gf
-            print e.analytic_grad
-            raise
+                     self.s_hidacts.get_value()],
+                    eps=self.eps)
 
     def test_dtype_mismatch(self):
         self.assertRaises(TypeError,
@@ -203,6 +195,8 @@ class TestImgActs(unittest.TestCase):
     fshape = (3, 3, 3, 2, 2, 6, 4)
     module_stride = 1
     dtype = 'float64'
+    # step size for numeric gradient, None is the default
+    eps = None
 
     #frows = property(lambda s: s.fshape[3])
     #fcols = property(lambda s: s.fshape[4])
@@ -236,14 +230,11 @@ class TestImgActs(unittest.TestCase):
     def test_grad(self):
         def op2(imgs, hids):
             return self.op(imgs, hids, self.irows, self.icols)
-        try:
-            verify_grad(op2,
+
+        verify_grad(op2,
                     [self.s_filters.get_value(),
-                        self.s_hidacts.get_value()])
-        except verify_grad.E_grad, e:
-            print e.num_grad.gf
-            print e.analytic_grad
-            raise
+                     self.s_hidacts.get_value()],
+                    eps=self.eps)
 
     def test_dtype_mismatch(self):
         self.assertRaises(TypeError,

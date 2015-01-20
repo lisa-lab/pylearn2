@@ -32,7 +32,7 @@ class OCR(dense_design_matrix.DenseDesignMatrix):
 
     data_split = {"train": 32152, "valid": 10000, "test": 10000}
 
-    def __init__(self, which_set, one_hot=False, axes=['b', 0, 1, 'c']):
+    def __init__(self, which_set, axes=['b', 0, 1, 'c']):
         """
         .. todo::
 
@@ -72,18 +72,10 @@ class OCR(dense_design_matrix.DenseDesignMatrix):
         assert data_x.shape[0] == data_y.shape[0]
         assert data_x.shape[0] == self.data_split[which_set]
 
-        self.one_hot = one_hot
-        if one_hot:
-            one_hot = numpy.zeros(
-                (data_y.shape[0], len(letters)), dtype='float32')
-            for i in xrange(data_y.shape[0]):
-                one_hot[i, data_y[i]] = 1.
-            data_y = one_hot
-
         view_converter = dense_design_matrix.DefaultViewConverter(
             (16, 8, 1), axes)
-        super(OCR, self).__init__(
-            X=data_x, y=data_y, view_converter=view_converter)
+        super(OCR, self).__init__(X=data_x, y=data_y, y_labels=len(letters),
+                                  view_converter=view_converter)
 
         assert not contains_nan(self.X)
         self.fold = data_fold
@@ -94,4 +86,4 @@ class OCR(dense_design_matrix.DenseDesignMatrix):
 
             WRITEME
         """
-        return OCR('test', one_hot=self.one_hot)
+        return OCR('test')

@@ -4,6 +4,8 @@ Functionality for training with dropout.
 __authors__ = 'Ian Goodfellow'
 __copyright__ = "Copyright 2013, Universite de Montreal"
 
+from functools import wraps
+
 from pylearn2.costs.cost import DefaultDataSpecsMixin, Cost
 
 
@@ -93,3 +95,7 @@ class Dropout(DefaultDataSpecsMixin, Cost):
             per_example=self.per_example
         )
         return model.cost(Y, Y_hat)
+
+    @wraps(Cost.is_stochastic)
+    def is_stochastic(self):
+        return True

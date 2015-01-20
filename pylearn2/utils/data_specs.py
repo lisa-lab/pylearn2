@@ -39,6 +39,8 @@ class DataSpecsMapping(object):
 
         # Builds the mapping
         space, source = data_specs
+        assert isinstance(space, Space), 'Given space: '+str(space)+\
+                                         ' was not a instance of Space.'
         self.spec_mapping = self._fill_mapping(space, source)
 
     def _fill_mapping(self, space, source):

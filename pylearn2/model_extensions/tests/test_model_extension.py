@@ -2,6 +2,7 @@
 Tests for model_extensions.
 """
 
+from theano.compat.six.moves import xrange
 from pylearn2.models import Model
 from pylearn2.model_extensions.model_extension import ModelExtension
 

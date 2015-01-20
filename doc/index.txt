@@ -151,6 +151,9 @@ Roughly in order of what you'll want to check out:
 * :ref:`yaml_tutorial` -- A tutorial on YAML tags employed by Pylearn2.
 * :ref:`notebook_tutorials` -- At this point, you might want to work through the ipython notebooks in the "scripts/tutorials"
   directory.
+* `A First Experiment with Pylearn2 <http://daemonmaker.blogspot.ca/2014/10/a-first-experiment-with-pylearn2.html>`_ -- A brief introduction to running experiments.
+* `Monitoring Experiments in Pylearn2 <http://daemonmaker.blogspot.ca/2014/12/monitoring-experiments-in-pylearn2.html>`_ -- An overview of monitoring experiments.  
+* :ref:`theano_to_pylearn2_tutorial` -- A tutorial on porting Theano code to Pylearn2
 * :ref:`features` -- A list of features available in the library.
 * :ref:`overview` -- A detailed but high-level overview of how Pylearn2 works. This is the
   place to start if you want to really learn the library.
@@ -221,6 +224,7 @@ Developer
    internal/api_coding_style
    overview
    large_data
+   theano_to_pylearn2_tutorial
    tutorial/index
    tutorial/with_jobman
    vision

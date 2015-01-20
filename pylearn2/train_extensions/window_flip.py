@@ -1,7 +1,6 @@
-"""
-TrainExtensions for doing random spatial windowing and flipping of an
-image dataset on every epoch.
-"""
+""" TrainExtensions for doing random spatial windowing and flipping of an
+    image dataset on every epoch. TODO: fill out properly."""
+
 import warnings
 import numpy
 from . import TrainExtension
@@ -99,7 +98,7 @@ class WindowAndFlip(TrainExtension):
                  randomize=None,
                  randomize_once=None,
                  center=None,
-                 rng=(2013, 02, 20),
+                 rng=(2013, 2, 20),
                  pad_randomized=0,
                  flip=True):
         self._window_shape = tuple(window_shape)
@@ -147,9 +146,9 @@ class WindowAndFlip(TrainExtension):
 
         # maps each dataset in randomize_now to a zero-padded topological view
         # of its data.
-        self._original = dict((data,
-                               _zero_pad(data.get_topological_view().astype('float32'),
-                                         self._pad_randomized))
+        self._original = dict((data, _zero_pad(
+                               data.get_topological_view().astype('float32'),
+                               self._pad_randomized))
                               for data in randomize_now)
 
         # For each dataset, for each image, extract a randomly positioned and
@@ -192,69 +191,3 @@ class WindowAndFlip(TrainExtension):
         algorithm = None
 
         self.randomize_datasets(self._randomize)
-
-
-class WindowAndFlipC01B(WindowAndFlip):
-    """
-    WindowAndFlipC01B is deprecated, use WindowAndFlip.
-    WindowAndFlipC01B will be removed on or after August 25, 2014.
-
-    A specialized version of WindowAndFlip accepting datasets with axes C01B.
-    It exists due to backward compatibility.
-
-    Parameters
-    ----------
-    window_shape : WRITEME
-    randomize : list, optional
-        If specified, a list of Datasets to randomly window and
-        flip at each epoch.
-    randomize_once : list, optional
-        If specified, a list of Datasets to randomly window and
-        flip once at the start of training.
-    center : list, optional
-        If specified, a list of Datasets to centrally window
-        once at the start of training.
-    rng : numpy.random.RandomState object or seed, optional
-        A random number generator or seed used to create one.
-        Seeded deterministically by default.
-    pad_randomized : int, optional
-        Amount of padding to add to each side of the images
-        in `randomize` and `randomize_once`. Useful if you
-        want to do zero-padded windowing with `window_shape`
-        the actual size of the dataset, and validate/test on
-        full-size images instead of central patches. Default
-        is 0.
-    flip : bool, optional
-        Reflect images on the horizontal axis with probability
-        0.5. `True` by default.
-    """
-
-    def __init__(self,
-                 window_shape,
-                 randomize=None,
-                 randomize_once=None,
-                 center=None,
-                 rng=(2013, 02, 20),
-                 pad_randomized=0,
-                 flip=True):
-
-        _randomize = randomize if randomize else []
-        _randomize_once = randomize_once if randomize_once else []
-
-        for data in _randomize + _randomize_once:
-            if tuple(data.view_converter.axes) != ('c', 0, 1, 'b'):
-                raise ValueError("Expected axes: ('c', 0, 1, 'b') "
-                                 "Actual axes: %s" %
-                                 str(tuple(data.view_converter.axes)))
-
-        warnings.warn("WindowAndFlipC01B is deprecated, use WindowAndFlip. " +
-                      "WindowAndFlipC01B will be removed on or " +
-                      "after August 25, 2014.", stacklevel=2)
-
-        super(WindowAndFlipC01B, self).__init__(window_shape,
-                                                randomize=randomize,
-                                                randomize_once=randomize_once,
-                                                center=center,
-                                                rng=rng,
-                                                pad_randomized=pad_randomized,
-                                                flip=flip)

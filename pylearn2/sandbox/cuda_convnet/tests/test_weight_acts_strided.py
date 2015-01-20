@@ -1,9 +1,12 @@
+from __future__ import print_function
+
 __authors__ = "Heng Luo"
 
 from pylearn2.testing.skip import skip_if_no_gpu
 skip_if_no_gpu()
 
 import numpy as np
+from theano.compat.six.moves import xrange
 from theano import shared
 from theano.tensor import grad, constant
 from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
@@ -91,12 +94,12 @@ def test_weight_acts_strided():
                   [(3, 21, 21, 3),   (3, 6, 6, 16)],
                   ]
     for partial_sum in [0, 1, 4]:
-        print "partial_sum: %d"%(partial_sum)
+        print("partial_sum: %d"%(partial_sum))
         for test_idx in xrange(len(shape_list)):
             images = rng.uniform(-1., 1., shape_list[test_idx][0]).astype('float32')
             filters = rng.uniform(-1., 1., shape_list[test_idx][1]).astype('float32')
             gpu_images = float32_shared_constructor(images,name='images')
-            print "test case %d..."%(test_idx+1) 
+            print("test case %d..."%(test_idx+1))
               
             for ii in xrange(filters.shape[1]):
                 stride = ii + 1                            
@@ -104,7 +107,7 @@ def test_weight_acts_strided():
                 _, h_rows, h_cols, _ = output_python.shape
                 if partial_sum == 4:
                     if (h_rows*h_cols)%partial_sum != 0:
-                        print "skip test case %d, stride %d when partial_sum is equal to %d"%(test_idx+1,stride,partial_sum)
+                        print("skip test case %d, stride %d when partial_sum is equal to %d"%(test_idx+1,stride,partial_sum))
                         break
                 hidacts = rng.uniform(-1., 1., output_python.shape).astype('float32')
                 gpu_hidacts = float32_shared_constructor(hidacts,name='hidacts')
@@ -126,15 +129,15 @@ def test_weight_acts_strided():
                     assert type(weights_grad_val) == type(weights_grad_python)
                     assert weights_grad_val.dtype == weights_grad_python.dtype
                     if weights_grad_val.shape != weights_grad_python.shape:
-                        print 'cuda-convnet shape: ',weights_grad_val.shape
-                        print 'python conv shape: ',weights_grad_python.shape
+                        print('cuda-convnet shape: ',weights_grad_val.shape)
+                        print('python conv shape: ',weights_grad_python.shape)
                         assert False
                     err = np.abs(weights_grad_val - weights_grad_python)
-                    print 'stride %d'%stride
-                    print 'absolute error range: ', (err.min(), err.max())
-                    print 'mean absolute error: ', err.mean()
-                    print 'cuda-convnet value range: ', (weights_grad_val.min(), weights_grad_val.max())
-                    print 'python conv value range: ', (weights_grad_python.min(), weights_grad_python.max())
+                    print('stride %d'%stride)
+                    print('absolute error range: ', (err.min(), err.max()))
+                    print('mean absolute error: ', err.mean())
+                    print('cuda-convnet value range: ', (weights_grad_val.min(), weights_grad_val.max()))
+                    print('python conv value range: ', (weights_grad_python.min(), weights_grad_python.max()))
                     #assert False
                 #print "stride %d"%stride     
                     

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import numpy
 import time
 import warnings
@@ -45,13 +47,13 @@ def ais_nodata(fname, do_exact=True, betas=None):
     t1 = time.time()
     (logz, log_var_dz), aisobj = \
         rbm_tools.rbm_ais(rbm_params, n_runs=100, seed=123, betas=betas)
-    print 'AIS logZ         : %f' % logz
-    print '    log_variance : %f' % log_var_dz
-    print 'Elapsed time: ', time.time() - t1
+    print('AIS logZ         : %f' % logz)
+    print('    log_variance : %f' % log_var_dz)
+    print('Elapsed time: ', time.time() - t1)
 
     if do_exact:
         exact_logz = compute_logz(rbm_params)
-        print 'Exact logZ = %f' % exact_logz
+        print('Exact logZ = %f' % exact_logz)
         # accept less than 1% error
         assert abs(exact_logz - logz) < 0.01*exact_logz
 
@@ -62,7 +64,7 @@ def ais_data(fname, do_exact=True, betas=None):
 
     # load data to set visible biases to ML solution
     from pylearn2.datasets.mnist import MNIST
-    dataset = MNIST(which_set='train', one_hot=True)
+    dataset = MNIST(which_set='train')
     data = numpy.asarray(dataset.X, dtype=config.floatX)
 
     # run ais using B=0 model with ML visible biases
@@ -70,13 +72,13 @@ def ais_data(fname, do_exact=True, betas=None):
     (logz, log_var_dz), aisobj = \
         rbm_tools.rbm_ais(rbm_params, n_runs=100, seed=123, data=data,
                           betas=betas)
-    print 'AIS logZ         : %f' % logz
-    print '    log_variance : %f' % log_var_dz
-    print 'Elapsed time: ', time.time() - t1
+    print('AIS logZ         : %f' % logz)
+    print('    log_variance : %f' % log_var_dz)
+    print('Elapsed time: ', time.time() - t1)
 
     if do_exact:
         exact_logz = compute_logz(rbm_params)
-        print 'Exact logZ = %f' % exact_logz
+        print('Exact logZ = %f' % exact_logz)
         numpy.testing.assert_almost_equal(exact_logz, logz, decimal=0)
 
 

@@ -12,8 +12,13 @@ website)
 
 """
 
-from jobman.tools import DD, flatten
-from jobman import api0, sql
+from nose.plugins.skip import SkipTest
+try:
+    from jobman.tools import DD, flatten
+    from jobman import api0, sql
+except ImportError:
+    raise SkipTest()
+
 
 from pylearn2.scripts.jobman import experiment
 

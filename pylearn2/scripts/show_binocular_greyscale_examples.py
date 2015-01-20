@@ -4,13 +4,17 @@
 
     WRITEME
 """
+from __future__ import print_function
+
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
+
 import numpy as N
+from theano.compat.six.moves import xrange
 from pylearn2.gui import patch_viewer
 from pylearn2.config import yaml_parse
 from optparse import OptionParser
@@ -45,9 +49,9 @@ def main(options, positional_args):
         from pylearn2.utils import serial
         obj = serial.load(path)
     elif path.endswith('.yaml'):
-        print 'Building dataset from yaml...'
+        print('Building dataset from yaml...')
         obj =yaml_parse.load_path(path)
-        print '...done'
+        print('...done')
     else:
         obj = yaml_parse.load(path)
 
@@ -66,11 +70,11 @@ def main(options, positional_args):
         theano_rng = RandomStreams(42)
         design_examples_var = model.random_design_matrix(batch_size = rows * cols, theano_rng = theano_rng)
         from theano import function
-        print 'compiling sampling function'
+        print('compiling sampling function')
         f = function([],design_examples_var)
-        print 'sampling'
+        print('sampling')
         design_examples = f()
-        print 'loading dataset'
+        print('loading dataset')
         dataset = yaml_parse.load(model.dataset_yaml_src)
         examples = dataset.get_topological_view(design_examples)
 
@@ -78,13 +82,13 @@ def main(options, positional_args):
             N.sqrt(N.sum(N.square(examples[i,:])))
                         for i in xrange(examples.shape[0])
                         ])
-    print 'norms of examples: '
-    print '\tmin: ',norms.min()
-    print '\tmean: ',norms.mean()
-    print '\tmax: ',norms.max()
+    print('norms of examples: ')
+    print('\tmin: ',norms.min())
+    print('\tmean: ',norms.mean())
+    print('\tmax: ',norms.max())
 
-    print 'range of elements of examples',(examples.min(),examples.max())
-    print 'dtype: ', examples.dtype
+    print('range of elements of examples',(examples.min(),examples.max()))
+    print('dtype: ', examples.dtype)
 
     examples = dataset.adjust_for_viewer(examples)
 
@@ -92,14 +96,14 @@ def main(options, positional_args):
         examples /= N.abs(examples).max()
 
     if len(examples.shape) != 4:
-        print 'sorry, view_examples.py only supports image examples for now.'
-        print 'this dataset has '+str(len(examples.shape)-2)+' topological dimensions'
+        print('sorry, view_examples.py only supports image examples for now.')
+        print('this dataset has '+str(len(examples.shape)-2)+' topological dimensions')
         quit(-1)
 
     is_color = False
     assert examples.shape[3] == 2
 
-    print examples.shape[1:3]
+    print(examples.shape[1:3])
 
     pv = patch_viewer.PatchViewer( (rows, cols * 2), examples.shape[1:3], is_color = is_color)
 

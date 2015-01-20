@@ -1,0 +1,8 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+from theano.compat.six import exec_
+
+from pylearn2.scripts import train
+filename = train.__file__
+f = open(filename[:-1 if filename.endswith('.pyc') else None])
+exec_(f.read())

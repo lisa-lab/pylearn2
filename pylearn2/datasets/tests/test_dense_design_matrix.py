@@ -3,6 +3,7 @@ import numpy as np
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrixPyTables
 from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
+from pylearn2.datasets.dense_design_matrix import from_dataset
 from pylearn2.utils import serial
 
 
@@ -75,3 +76,33 @@ def test_pytables():
 
     it = ds.iterator(mode='sequential', batch_size=1)
     it.next()
+
+
+def test_from_dataset():
+    """
+    Tests whether it supports integer labels.
+    """
+    rng = np.random.RandomState([1, 2, 3])
+    topo_view = rng.randn(12, 2, 3, 3)
+    y = rng.randint(0, 5, (12, 1))
+
+    # without y:
+    d1 = DenseDesignMatrix(topo_view=topo_view)
+    slice_d = from_dataset(d1, 5)
+    assert slice_d.X.shape[1] == d1.X.shape[1]
+    assert slice_d.X.shape[0] == 5
+
+    # with y:
+    d2 = DenseDesignMatrix(topo_view=topo_view, y=y)
+    slice_d = from_dataset(d2, 5)
+    assert slice_d.X.shape[1] == d2.X.shape[1]
+    assert slice_d.X.shape[0] == 5
+    assert slice_d.y.shape[0] == 5
+
+    # without topo_view:
+    x = topo_view.reshape(12, 18)
+    d3 = DenseDesignMatrix(X=x, y=y)
+    slice_d = from_dataset(d3, 5)
+    assert slice_d.X.shape[1] == d3.X.shape[1]
+    assert slice_d.X.shape[0] == 5
+    assert slice_d.y.shape[0] == 5

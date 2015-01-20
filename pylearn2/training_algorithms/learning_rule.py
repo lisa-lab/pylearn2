@@ -5,14 +5,16 @@ algorithm.
 import numpy as np
 import warnings
 
+from theano.compat import six
 from theano import config
 from theano import tensor as T
 
-from theano.compat.python2x import OrderedDict
+from pylearn2.compat import OrderedDict
 from pylearn2.space import NullSpace
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.utils import sharedX
 from pylearn2.utils import wraps
+from pylearn2.monitor import Monitor
 
 
 class LearningRule():
@@ -35,7 +37,7 @@ class LearningRule():
         monitoring_dataset : pylearn2.datasets.dataset.Dataset or dict
             Dataset instance or dictionary whose values are Dataset objects.
         """
-        raise NotImplementedError()
+        pass
 
     def get_updates(self, learning_rate, grads, lr_scalers=None):
         """
@@ -91,7 +93,7 @@ class Momentum(LearningRule):
     ----------
     init_momentum : float
         Initial value for the momentum coefficient. It remains fixed during
-        training unless used with a `training_algorithms.sgd.MomentumAdjustor`
+        training unless used with a `MomentumAdjustor`
         extension.
     nesterov_momentum: bool
         Use the accelerated momentum technique described in:
@@ -142,7 +144,7 @@ class Momentum(LearningRule):
 
         updates = OrderedDict()
 
-        for (param, grad) in grads.iteritems():
+        for (param, grad) in six.iteritems(grads):
             vel = sharedX(param.get_value() * 0.)
             assert param.dtype == vel.dtype
             assert grad.dtype == param.dtype
@@ -185,6 +187,23 @@ class MomentumAdjustor(TrainExtension):
         self._initialized = False
         self._count = 0
 
+    def setup(self, model, dataset, algorithm):
+        """
+        Initializes the momentum schedule based on epochs_seen.
+
+        Parameters
+        ----------
+        model : pylearn2.models.Model
+            The model to which the training algorithm is applied.
+        dataset : pylearn2.datasets.Dataset
+            The dataset to which the model is applied.
+        algorithm : pylearn2.training_algorithms.TrainingAlgorithm
+            Describes how gradients should be updated.
+        """
+        monitor = Monitor.get_monitor(model)
+        self._count = monitor.get_epochs_seen()
+        self._apply_momentum(algorithm)
+
     def on_monitor(self, model, dataset, algorithm):
         """
         Updates the momentum according to the linear schedule.
@@ -198,17 +217,23 @@ class MomentumAdjustor(TrainExtension):
         algorithm : pylearn2.training_algorithms.TrainingAlgorithm
             Describes how gradients should be updated.
         """
-        if hasattr(algorithm, 'learning_rule'):
-            momentum = algorithm.learning_rule.momentum
-        else:
-            # TODO: remove once training_algorithm.sgd.SGD(init_momentum)
-            # is officially deprecated.
-            momentum = algorithm.momentum
+        self._count += 1
+        self._apply_momentum(algorithm)
+
+    def _apply_momentum(self, algorithm):
+        """Updates the momentum on algorithm based on the epochs elapsed."""
+        if not hasattr(algorithm, 'learning_rule'):
+            raise ValueError('For MomentumAdjustor to work, you need to ' +
+                             'specify a learning_rule (for instance,' +
+                             ' Momentum) for your training algorithm' +
+                             '(for instance, SGD)')
+
+        momentum = algorithm.learning_rule.momentum
 
         if not self._initialized:
             self._init_momentum = momentum.get_value()
             self._initialized = True
-        self._count += 1
+
         momentum.set_value(np.cast[config.floatX](self.current_momentum()))
 
     def current_momentum(self):
@@ -246,28 +271,9 @@ class AdaDelta(LearningRule):
         assert decay < 1.
         self.decay = decay
 
-    def add_channels_to_monitor(self, monitor, monitoring_dataset):
-        """
-        .. todo::
-
-            WRITEME
-
-        Parameters
-        ----------
-        monitor : pylearn2.monitor.Monitor
-            Monitor object, to which the rule should register additional
-            monitoring channels.
-        monitoring_dataset : pylearn2.datasets.dataset.Dataset or dict
-            Dataset instance or dictionary whose values are Dataset objects.
-        """
-        # TODO: add channels worth monitoring
-        return
-
     def get_updates(self, learning_rate, grads, lr_scalers=None):
         """
-        .. todo::
-
-            WRITEME
+        Compute the AdaDelta updates
 
         Parameters
         ----------
@@ -313,6 +319,54 @@ class AdaDelta(LearningRule):
             # Apply update
             updates[mean_square_grad] = new_mean_squared_grad
             updates[mean_square_dx] = new_mean_square_dx
+            updates[param] = param + delta_x_t
+
+        return updates
+
+
+class AdaGrad(LearningRule):
+    """
+    Implements the AdaGrad learning rule as described in:
+    "Adaptive subgradient methods for online learning and
+    stochastic optimization", Duchi J, Hazan E, Singer Y.
+    """
+
+    def get_updates(self, learning_rate, grads, lr_scalers=None):
+        """
+        Compute the AdaGrad updates
+
+        Parameters
+        ----------
+        learning_rate : float
+            Learning rate coefficient.
+        grads : dict
+            A dictionary mapping from the model's parameters to their
+            gradients.
+        lr_scalers : dict
+            A dictionary mapping from the model's parameters to a learning
+            rate multiplier.
+        """
+        updates = OrderedDict()
+        for param in grads.keys():
+
+            # sum_square_grad := \sum g^2
+            sum_square_grad = sharedX(param.get_value() * 0.)
+
+            if param.name is not None:
+                sum_square_grad.name = 'sum_square_grad_' + param.name
+
+            # Accumulate gradient
+            new_sum_squared_grad = (
+                sum_square_grad + T.sqr(grads[param])
+            )
+
+            # Compute update
+            epsilon = lr_scalers.get(param, 1.) * learning_rate
+            delta_x_t = (- epsilon / T.sqrt(new_sum_squared_grad)
+                         * grads[param])
+
+            # Apply update
+            updates[sum_square_grad] = new_sum_squared_grad
             updates[param] = param + delta_x_t
 
         return updates

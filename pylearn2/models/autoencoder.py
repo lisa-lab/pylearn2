@@ -9,7 +9,7 @@ import operator
 import numpy
 import theano
 from theano import tensor
-from theano.compat.six.moves import zip as izip
+from theano.compat.six.moves import zip as izip, reduce
 
 # Local imports
 from pylearn2.blocks import Block, StackedBlocks
@@ -22,7 +22,87 @@ from pylearn2.space import VectorSpace
 theano.config.warn.sum_div_dimshuffle_bug = False
 
 
-class Autoencoder(Block, Model):
+class AbstractAutoencoder(Model, Block):
+    """
+    Abstract class for autoencoders.
+    """
+    def __init__(self):
+        super(AbstractAutoencoder, self).__init__()
+
+    def encode(self, inputs):
+        """
+        Map inputs through the encoder function.
+
+        Parameters
+        ----------
+        inputs : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the input
+            minibatch(es) to be encoded. Assumed to be 2-tensors, with the
+            first dimension indexing training examples and the second
+            indexing data dimensions.
+
+        Returns
+        -------
+        encoded : tensor_like or list of tensor_like
+            Theano symbolic (or list thereof) representing the corresponding
+            minibatch(es) after encoding.
+        """
+        raise NotImplementedError(
+            str(type(self)) + " does not implement encode.")
+
+    def decode(self, hiddens):
+        """
+        Map inputs through the encoder function.
+
+        Parameters
+        ----------
+        hiddens : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the input
+            minibatch(es) to be encoded. Assumed to be 2-tensors, with the
+            first dimension indexing training examples and the second
+            indexing data dimensions.
+
+        Returns
+        -------
+        decoded : tensor_like or list of tensor_like
+            Theano symbolic (or list thereof) representing the corresponding
+            minibatch(es) after decoding.
+        """
+        raise NotImplementedError(
+            str(type(self)) + " does not implement decode.")
+
+    def reconstruct(self, inputs):
+        """
+        Reconstruct (decode) the inputs after mapping through the encoder.
+
+        Parameters
+        ----------
+        inputs : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the input
+            minibatch(es) to be encoded and reconstructed. Assumed to be
+            2-tensors, with the first dimension indexing training examples
+            and the second indexing data dimensions.
+
+        Returns
+        -------
+        reconstructed : tensor_like or list of tensor_like
+            Theano symbolic (or list thereof) representing the corresponding
+            reconstructed minibatch(es) after encoding/decoding.
+        """
+        return self.decode(self.encode(inputs))
+
+    def __call__(self, inputs):
+        """
+        Forward propagate (symbolic) input through this module, obtaining
+        a representation to pass on to layers above.
+
+        This just aliases the `encode()` function for syntactic
+        sugar/convenience.
+        """
+        return self.encode(inputs)
+
+
+class Autoencoder(AbstractAutoencoder):
     """
     Base class implementing ordinary autoencoders.
 
@@ -64,6 +144,9 @@ class Autoencoder(Block, Model):
 
     def __init__(self, nvis, nhid, act_enc, act_dec,
                  tied_weights=False, irange=1e-3, rng=9001):
+        """
+        WRITEME
+        """
         super(Autoencoder, self).__init__()
         assert nvis > 0, "Number of visible units must be non-negative"
         assert nhid > 0, "Number of hidden units must be positive"
@@ -72,6 +155,7 @@ class Autoencoder(Block, Model):
         self.output_space = VectorSpace(nhid)
 
         # Save a few parameters needed for resizing
+        self.nvis = nvis
         self.nhid = nhid
         self.irange = irange
         self.tied_weights = tied_weights
@@ -114,7 +198,7 @@ class Autoencoder(Block, Model):
                 return getattr(tensor, conf[conf_attr])
             else:
                 raise ValueError("Couldn't interpret %s value: '%s'" %
-                                    (conf_attr, conf[conf_attr]))
+                                 (conf_attr, conf[conf_attr]))
 
         self.act_enc = _resolve_callable(locals(), 'act_enc')
         self.act_dec = _resolve_callable(locals(), 'act_dec')
@@ -316,44 +400,13 @@ class Autoencoder(Block, Model):
         else:
             return [self.decode(v) for v in hiddens]
 
-    def reconstruct(self, inputs):
-        """
-        Reconstruct (decode) the inputs after mapping through the encoder.
-
-        Parameters
-        ----------
-        inputs : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the input
-            minibatch(es) to be encoded and reconstructed. Assumed to be
-            2-tensors, with the first dimension indexing training examples
-            and the second indexing data dimensions.
-
-        Returns
-        -------
-        reconstructed : tensor_like or list of tensor_like
-            Theano symbolic (or list thereof) representing the corresponding
-            reconstructed minibatch(es) after encoding/decoding.
-        """
-        return self.decode(self.encode(inputs))
-
-    def __call__(self, inputs):
-        """
-        Forward propagate (symbolic) input through this module, obtaining
-        a representation to pass on to layers above.
-
-        This just aliases the `encode()` function for syntactic
-        sugar/convenience.
-        """
-        return self.encode(inputs)
-
     def get_weights(self, borrow=False):
         """
         .. todo::
 
             WRITEME
         """
-
-        return self.weights.get_value(borrow = borrow)
+        return self.weights.get_value(borrow=borrow)
 
     def get_weights_format(self):
         """
@@ -361,13 +414,7 @@ class Autoencoder(Block, Model):
 
             WRITEME
         """
-
         return ['v', 'h']
-
-    # Use version defined in Model, rather than Block (which raises
-    # NotImplementedError).
-    get_input_space = Model.get_input_space
-    get_output_space = Model.get_output_space
 
 
 class DenoisingAutoencoder(Autoencoder):
@@ -541,7 +588,8 @@ class ContractiveAutoencoder(Autoencoder):
         """
         X = data
         act_grad = self._activation_grad(X)
-        frob_norm = tensor.dot(tensor.sqr(act_grad), tensor.sqr(self.weights).sum(axis=0))
+        frob_norm = tensor.dot(tensor.sqr(act_grad),
+                               tensor.sqr(self.weights).sum(axis=0))
         contract_penalty = frob_norm.sum() / X.shape[0]
         return tensor.cast(contract_penalty, X .dtype)
 
@@ -581,7 +629,7 @@ class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
     docstring for details.
     """
     def __init__(self, corruptor, num_corruptions, nvis, nhid, act_enc,
-                    act_dec, tied_weights=False, irange=1e-3, rng=9001):
+                 act_dec, tied_weights=False, irange=1e-3, rng=9001):
         super(HigherOrderContractiveAutoencoder, self).__init__(
             nvis,
             nhid,
@@ -593,7 +641,6 @@ class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
         )
         self.corruptor = corruptor
         self.num_corruptions = num_corruptions
-
 
     def higher_order_penalty(self, data):
         """
@@ -609,12 +656,12 @@ class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
         """
         X = data
 
-        corrupted_inputs = [self.corruptor(X) for times in\
+        corrupted_inputs = [self.corruptor(X) for times in
                             range(self.num_corruptions)]
 
-        hessian = tensor.concatenate([self.jacobian_h_x(X) - \
-                                self.jacobian_h_x(corrupted) for\
-                                corrupted in corrupted_inputs])
+        hessian = tensor.concatenate(
+            [self.jacobian_h_x(X) - self.jacobian_h_x(corrupted)
+             for corrupted in corrupted_inputs])
 
         return (hessian ** 2).mean()
 
@@ -639,9 +686,15 @@ class UntiedAutoencoder(Autoencoder):
     """
 
     def __init__(self, base):
-        if not base.tied_weights:
+        if not (isinstance(base, Autoencoder) and base.tied_weights):
             raise ValueError("%s is not a tied-weights autoencoder" %
                              str(base))
+
+        super(UntiedAutoencoder, self).__init__(
+            nvis=base.nvis, nhid=base.nhid, act_enc=base.act_enc,
+            act_dec=base.act_dec, tied_weights=True, irange=base.irange,
+            rng=base.rng)
+
         self.weights = tensor.shared(base.weights.get_value(borrow=False),
                                      name='weights')
         self.visbias = tensor.shared(base.visbias.get_value(borrow=False),
@@ -653,7 +706,7 @@ class UntiedAutoencoder(Autoencoder):
         self._params = [self.visbias, self.hidbias, self.weights, self.w_prime]
 
 
-class DeepComposedAutoencoder(Autoencoder):
+class DeepComposedAutoencoder(AbstractAutoencoder):
     """
     A deep autoencoder composed of several single-layer
     autoencoders.
@@ -664,10 +717,13 @@ class DeepComposedAutoencoder(Autoencoder):
         A list of autoencoder objects.
     """
     def __init__(self, autoencoders):
+        super(DeepComposedAutoencoder, self).__init__()
         self.fn = None
         self.cpu_only = False
 
-        assert all([autoencoders[i].get_output_space().dim == autoencoders[i+1].get_input_space().dim for i in range(len(autoencoders)-1)])
+        assert all(pre.get_output_space().dim == post.get_input_space().dim
+                   for pre, post in izip(autoencoders[:-1], autoencoders[1:]))
+
         self.autoencoders = list(autoencoders)
         self.input_space = autoencoders[0].get_input_space()
         self.output_space = autoencoders[-1].get_output_space()
@@ -742,13 +798,12 @@ def build_stacked_ae(nvis, nhids, act_enc, act_dec,
     # size and the first k-1 hidden unit sizes.
     nviss = [nvis] + nhids[:-1]
     seq = izip(nhids, nviss,
-        final['act_enc'],
-        final['act_dec'],
-        final['corruptor'],
-        final['contracting'],
-        final['tied_weights'],
-        final['irange'],
-    )
+               final['act_enc'],
+               final['act_dec'],
+               final['corruptor'],
+               final['contracting'],
+               final['tied_weights'],
+               final['irange'],)
     # Create each layer.
     for (nhid, nvis, act_enc, act_dec, corr, cae, tied, ir) in seq:
         args = (nvis, nhid, act_enc, act_dec, tied, ir, rng)

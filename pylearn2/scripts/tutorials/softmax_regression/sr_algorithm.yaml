@@ -7,13 +7,11 @@
                 'train' : *train,
                 'valid' : !obj:pylearn2.datasets.mnist.MNIST {
                               which_set: 'train',
-                              one_hot: 1,
                               start: 50000,
                               stop:  %(valid_stop)i
                           },
                 'test'  : !obj:pylearn2.datasets.mnist.MNIST {
                               which_set: 'test',
-                              one_hot: 1,
                           }
             },
         termination_criterion: !obj:pylearn2.termination_criteria.MonitorBased {

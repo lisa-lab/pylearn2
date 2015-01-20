@@ -20,10 +20,11 @@ import functools
 import warnings
 
 import numpy as np
+from theano.compat.six.moves import xrange
 import theano
 T = theano.tensor
 
-from pylearn2.base import StackedBlocks
+from pylearn2.blocks import StackedBlocks
 from pylearn2.expr.activations import identity
 from pylearn2.models.autoencoder import Autoencoder
 from pylearn2.models.model import Model
@@ -901,7 +902,7 @@ class JointGSN(GSN):
 
             This method does not directly control whether or not
             corruption and sampling is applied during classification.
-            These are decided by self._corrupt_switch and 
+            These are decided by self._corrupt_switch and
             self._sample_switch.
         """
         mean = self._get_aggregate_classification(minibatch, trials=trials,

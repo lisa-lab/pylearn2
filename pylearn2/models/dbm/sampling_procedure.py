@@ -1,7 +1,5 @@
 """
-.. todo::
-
-    WRITEME
+Classes that implement different sampling algorithms for DBMs.
 """
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
@@ -9,7 +7,8 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 
-from theano.compat import OrderedDict
+from theano.compat.six.moves import xrange
+from pylearn2.compat import OrderedDict
 from pylearn2.utils import py_integer_types
 
 
@@ -20,9 +19,12 @@ class SamplingProcedure(object):
 
     def set_dbm(self, dbm):
         """
-        .. todo::
+        Associates the SamplingProcedure with a specific DBM.
 
-            WRITEME
+        Parameters
+        ----------
+        dbm : pylearn2.models.dbm.DBM instance
+            The model to perform sampling from.
         """
         self.dbm = dbm
 
@@ -37,14 +39,15 @@ class SamplingProcedure(object):
             Maps the DBM's Layer instances to theano variables representing
             batches of samples of them.
         theano_rng : theano.sandbox.rng_mrg.MRG_RandomStreams
-            WRITEME
+            Random number generator
         layer_to_clamp : dict, optional
             Maps Layers to bools. If a layer is not in the dictionary,
             defaults to False. True indicates that this layer should be
             clamped, so we are sampling from a conditional distribution
             rather than the joint distribution.
         num_steps : int, optional
-            WRITEME
+            Steps of the sampling procedure. It samples for `num_steps`
+            times and return the last sample.
 
         Returns
         -------

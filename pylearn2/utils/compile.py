@@ -58,11 +58,11 @@ def compiled_theano_function(fn):
     @functools.wraps(fn)
     def wrapped(self):
         try:
-            func = self._compiled_functions[fn.func_name]
+            func = self._compiled_functions[fn.__name__]
         except (AttributeError, KeyError):
             if not hasattr(self, '_compiled_functions'):
                 self._compiled_functions = {}
-            self._compiled_functions[fn.func_name] = func = fn(self)
+            self._compiled_functions[fn.__name__] = func = fn(self)
         return func
     return property(wrapped)
 

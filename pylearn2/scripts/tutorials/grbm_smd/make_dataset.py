@@ -24,9 +24,7 @@ from pylearn2.datasets import preprocessing
 
 if __name__ == "__main__":
     # Our raw training set is 32x32 color images
-    # TODO: the one_hot=True is only necessary because one_hot=False is
-    # broken, remove it after one_hot=False is fixed.
-    train = cifar10.CIFAR10(which_set="train", one_hot=True)
+    train = cifar10.CIFAR10(which_set="train")
 
     # We'd like to do several operations on them, so we'll set up a pipeline to
     # do so.
@@ -42,7 +40,8 @@ if __name__ == "__main__":
     # same "regularization" parameters as those used in Adam Coates, Honglak
     # Lee, and Andrew Ng's paper "An Analysis of Single-Layer Networks in
     # Unsupervised Feature Learning"
-    pipeline.items.append(preprocessing.GlobalContrastNormalization(sqrt_bias=10., use_std=True))
+    pipeline.items.append(preprocessing.GlobalContrastNormalization(
+        sqrt_bias=10., use_std=True))
 
     # Finally we whiten the data using ZCA. Again, the default parameters to
     # ZCA are set to the same values as those used in the previously mentioned
@@ -64,7 +63,9 @@ if __name__ == "__main__":
     # The dataset object itself is stored as a pickle file.
     path = pylearn2.__path__[0]
     train_example_path = os.path.join(path, 'scripts', 'tutorials', 'grbm_smd')
-    train.use_design_loc(os.path.join(train_example_path, 'cifar10_preprocessed_train_design.npy'))
+    train.use_design_loc(os.path.join(train_example_path,
+                                      'cifar10_preprocessed_train_design.npy'))
 
-    train_pkl_path = os.path.join(train_example_path, 'cifar10_preprocessed_train.pkl')
+    train_pkl_path = os.path.join(train_example_path,
+                                  'cifar10_preprocessed_train.pkl')
     serial.save(train_pkl_path, train)

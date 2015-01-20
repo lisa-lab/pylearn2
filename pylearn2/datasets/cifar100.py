@@ -3,6 +3,7 @@ The CIFAR-100 dataset.
 """
 import numpy as np
 N = np
+from theano.compat.six.moves import xrange
 from pylearn2.datasets.dense_design_matrix import (DenseDesignMatrix,
                                                    DefaultViewConverter)
 from pylearn2.utils import serial
@@ -21,7 +22,6 @@ class CIFAR100(DenseDesignMatrix):
     axes : WRITEME
     start : WRITEME
     stop : WRITEME
-    one_hot : WRITEME
     """
 
     def __init__(self,
@@ -31,8 +31,7 @@ class CIFAR100(DenseDesignMatrix):
                  toronto_prepro=False,
                  axes=('b', 0, 1, 'c'),
                  start=None,
-                 stop=None,
-                 one_hot=False):
+                 stop=None):
         assert which_set in ['train', 'test']
 
         path = "${PYLEARN2_DATA_PATH}/cifar100/cifar-100-python/" + which_set
@@ -47,13 +46,6 @@ class CIFAR100(DenseDesignMatrix):
         y = np.asarray(obj['fine_labels'])
 
         self.center = center
-
-        self.one_hot = one_hot
-        if one_hot:
-            one_hot = np.zeros((y.shape[0], 100), dtype='float32')
-            for i in xrange(y.shape[0]):
-                one_hot[i, y[i]] = 1.
-            y = one_hot
 
         if center:
             X -= 127.5
@@ -88,7 +80,7 @@ class CIFAR100(DenseDesignMatrix):
         self.axes = axes
         view_converter = DefaultViewConverter((32, 32, 3), axes)
 
-        super(CIFAR100, self).__init__(X=X, y=y, view_converter=view_converter)
+        super(CIFAR100, self).__init__(X=X, y=y, y_labels=100, view_converter=view_converter)
 
         assert not N.any(N.isnan(self.X))
 
@@ -181,6 +173,5 @@ class CIFAR100(DenseDesignMatrix):
                         center=self.center,
                         rescale=self.rescale,
                         gcn=self.gcn,
-                        one_hot=self.one_hot,
                         toronto_prepro=self.toronto_prepro,
                         axes=self.axes)

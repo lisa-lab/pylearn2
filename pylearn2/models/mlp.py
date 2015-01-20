@@ -9,22 +9,25 @@ __maintainer__ = "LISA Lab"
 
 import logging
 import math
+import operator
 import sys
 import warnings
 
 import numpy as np
+from theano.compat import six
+from theano.compat.six.moves import reduce, xrange
 from theano import config
-from theano.compat.python2x import OrderedDict
 from theano.gof.op import get_debug_values
-from theano.printing import Print
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 from theano.tensor.signal.downsample import max_pool_2d
 import theano.tensor as T
 
+from pylearn2.compat import OrderedDict
 from pylearn2.costs.mlp import Default
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels
 from pylearn2.linear import conv2d
 from pylearn2.linear.matrixmul import MatrixMul
+from pylearn2.model_extensions.norm_constraint import MaxL2FilterNorm
 from pylearn2.models.model import Model
 from pylearn2.monitor import get_monitor_doc
 from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
@@ -41,7 +44,6 @@ from pylearn2.utils import safe_zip
 from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
 from pylearn2.utils import wraps
-from pylearn2.utils import contains_nan
 from pylearn2.utils import contains_inf
 from pylearn2.utils import isfinite
 from pylearn2.utils.data_specs import DataSpecsMapping
@@ -52,6 +54,8 @@ from pylearn2.expr.nnet import (elemwise_kl, kl, compute_precision,
 # Only to be used by the deprecation warning wrapper functions
 from pylearn2.costs.mlp import L1WeightDecay as _L1WD
 from pylearn2.costs.mlp import WeightDecay as _WD
+
+from pylearn2.sandbox.rnn.models.mlp_hook import RNNWrapper
 
 
 logger = logging.getLogger(__name__)
@@ -72,8 +76,14 @@ logger.debug("MLP changing the recursion limit.")
 # precisely when you're going to exceed the stack segment.
 sys.setrecursionlimit(40000)
 
+if six.PY3:
+    LayerBase = six.with_metaclass(RNNWrapper, Model)
+else:
+    LayerBase = Model
 
-class Layer(Model):
+
+class Layer(LayerBase):
+
     """
     Abstract class. A Layer of an MLP.
 
@@ -92,6 +102,8 @@ class Layer(Model):
     Block interface were upgraded to be that flexible, then we could make this
     a block.
     """
+    # This enables RNN compatibility
+    __metaclass__ = RNNWrapper
 
     # When applying dropout to a layer's input, use this for masked values.
     # Usually this will be 0, but certain kinds of layers may want to override
@@ -126,37 +138,6 @@ class Layer(Model):
         """
         assert self.get_mlp() is None
         self.mlp = mlp
-
-    def get_monitoring_channels_from_state(self, state, target=None):
-        """
-        Returns monitoring channels based on the values computed by
-        `fprop`.
-
-        Parameters
-        ----------
-        state : member of self.output_space
-            A minibatch of states that this Layer took on during fprop.
-            Provided externally so that we don't need to make a second
-            expression for it. This helps keep the Theano graph smaller
-            so that function compilation runs faster.
-        target : member of self.output_space
-            Should be None unless this is the last layer.
-            If specified, it should be a minibatch of targets for the
-            last layer.
-
-        Returns
-        -------
-        channels : OrderedDict
-            A dictionary mapping channel names to monitoring channels of
-            interest for this layer.
-        """
-        warnings.warn("Layer.get_monitoring_channels_from_state is " +
-                      "deprecated. Use get_layer_monitoring_channels " +
-                      "instead. Layer.get_monitoring_channels_from_state " +
-                      "will be removed on or after september 24th 2014",
-                      stacklevel=2)
-
-        return OrderedDict()
 
     def get_layer_monitoring_channels(self, state_below=None,
                                       state=None, targets=None):
@@ -204,7 +185,7 @@ class Layer(Model):
         """
 
         raise NotImplementedError(
-            str(type(self))+" does not implement fprop.")
+            str(type(self)) + " does not implement fprop.")
 
     def cost(self, Y, Y_hat):
         """
@@ -396,6 +377,7 @@ class Layer(Model):
 
 
 class MLP(Layer):
+
     """
     A multilayer perceptron.
 
@@ -426,6 +408,11 @@ class MLP(Layer):
         MLP accepts. The structure should match that of input_space. The
         default is 'features'. Note that this argument is ignored when
         the MLP is nested.
+    target_source : string or (nested) tuple of strings, optional
+        A (nested) tuple of strings specifiying the target sources this
+        MLP accepts. The structure should match that of target_space. The
+        default is 'targets'. Note that this argument is ignored when
+        the MLP is nested.
     layer_name : name of the MLP layer. Should be None if the MLP is
         not part of another MLP.
     seed : WRITEME
@@ -439,8 +426,9 @@ class MLP(Layer):
     """
 
     def __init__(self, layers, batch_size=None, input_space=None,
-                 input_source='features', nvis=None, seed=None,
-                 layer_name=None, monitor_targets=True, **kwargs):
+                 input_source='features', target_source='targets',
+                 nvis=None, seed=None, layer_name=None, monitor_targets=True,
+                 **kwargs):
         super(MLP, self).__init__(**kwargs)
 
         self.seed = seed
@@ -468,6 +456,7 @@ class MLP(Layer):
         self.force_batch_size = batch_size
 
         self._input_source = input_source
+        self._target_source = target_source
 
         self.monitor_targets = monitor_targets
 
@@ -499,15 +488,15 @@ class MLP(Layer):
 
         self.freeze_set = set([])
 
-        def f(x):
-            if x is None:
-                return None
-            return 1. / x
-
     @property
     def input_source(self):
         assert not self._nested, "A nested MLP does not have an input source"
         return self._input_source
+
+    @property
+    def target_source(self):
+        assert not self._nested, "A nested MLP does not have a target source"
+        return self._target_source
 
     def setup_rng(self):
         """
@@ -559,7 +548,7 @@ class MLP(Layer):
         layers = self.layers
         try:
             layers[0].set_input_space(self.get_input_space())
-        except BadInputSpaceError, e:
+        except BadInputSpaceError as e:
             raise TypeError("Layer 0 (" + str(layers[0]) + " of type " +
                             str(type(layers[0])) +
                             ") does not support the MLP's "
@@ -568,7 +557,7 @@ class MLP(Layer):
                             " of type " + str(type(self.get_input_space())) +
                             "). Original exception: " + str(e))
         for i in xrange(1, len(layers)):
-            layers[i].set_input_space(layers[i-1].get_output_space())
+            layers[i].set_input_space(layers[i - 1].get_output_space())
 
     def add_layers(self, layers):
         """
@@ -622,50 +611,6 @@ class MLP(Layer):
 
         return rval
 
-    @wraps(Layer.get_monitoring_channels_from_state)
-    def get_monitoring_channels_from_state(self, state, target=None):
-        warnings.warn("Layer.get_monitoring_channels_from_state is " +
-                      "deprecated. Use get_layer_monitoring_channels " +
-                      "instead. Layer.get_monitoring_channels_from_state " +
-                      "will be removed on or after september 24th 2014",
-                      stacklevel=2)
-        rval = OrderedDict()
-
-        for layer in self.layers:
-            ch = layer.get_monitoring_channels()
-            for key in ch:
-                value = ch[key]
-                doc = get_monitor_doc(value)
-                if doc is None:
-                    doc = str(type(layer)) + ".get_monitoring_channels did" + \
-                        " not provide any further documentation for" + \
-                        " this channel."
-                doc = 'This channel came from a layer called "' + \
-                    layer.layer_name + '" of an MLP.\n' + doc
-                value.__doc__ = doc
-                rval[layer.layer_name+'_'+key] = value
-
-        args = [state]
-        if target is not None:
-            args.append(target)
-        ch = self.layers[-1].get_monitoring_channels_from_state(*args)
-        if not isinstance(ch, OrderedDict):
-            raise TypeError(str((type(ch), self.layers[-1].layer_name)))
-        for key in ch:
-            value = ch[key]
-            doc = get_monitor_doc(value)
-            if doc is None:
-                doc = str(type(self.layers[-1])) + \
-                    ".get_monitoring_channels_from_state did" + \
-                    " not provide any further documentation for" + \
-                    " this channel."
-            doc = 'This channel came from a layer called "' + \
-                self.layers[-1].layer_name + '" of an MLP.\n' + doc
-            value.__doc__ = doc
-            rval[self.layers[-1].layer_name+'_'+key] = value
-
-        return rval
-
     @wraps(Layer.get_layer_monitoring_channels)
     def get_layer_monitoring_channels(self, state_below=None,
                                       state=None, targets=None):
@@ -694,7 +639,7 @@ class MLP(Layer):
                 doc = 'This channel came from a layer called "' + \
                     layer.layer_name + '" of an MLP.\n' + doc
                 value.__doc__ = doc
-                rval[layer.layer_name+'_'+key] = value
+                rval[layer.layer_name + '_' + key] = value
 
         return rval
 
@@ -743,7 +688,7 @@ class MLP(Layer):
 
         # check the case where coeffs is a scalar
         if not hasattr(coeffs, '__iter__'):
-            coeffs = [coeffs]*len(self.layers)
+            coeffs = [coeffs] * len(self.layers)
 
         layer_costs = []
         for layer, coeff in safe_izip(self.layers, coeffs):
@@ -753,7 +698,7 @@ class MLP(Layer):
         if len(layer_costs) == 0:
             return T.constant(0, dtype=config.floatX)
 
-        total_cost = reduce(lambda x, y: x + y, layer_costs)
+        total_cost = reduce(operator.add, layer_costs)
 
         return total_cost
 
@@ -762,7 +707,7 @@ class MLP(Layer):
 
         # check the case where coeffs is a scalar
         if not hasattr(coeffs, '__iter__'):
-            coeffs = [coeffs]*len(self.layers)
+            coeffs = [coeffs] * len(self.layers)
 
         layer_costs = []
         for layer, coeff in safe_izip(self.layers, coeffs):
@@ -772,7 +717,7 @@ class MLP(Layer):
         if len(layer_costs) == 0:
             return T.constant(0, dtype=config.floatX)
 
-        total_cost = reduce(lambda x, y: x + y, layer_costs)
+        total_cost = reduce(operator.add, layer_costs)
 
         return total_cost
 
@@ -862,12 +807,6 @@ class MLP(Layer):
         each layer's input scale is determined by the same scheme as the input
         probabilities.
         """
-
-        warnings.warn("dropout doesn't use fixed_var_descr so it won't work "
-                      "with algorithms that make more than one theano "
-                      "function call per batch, such as BGD. Implementing "
-                      "fixed_var descr could increase the memory usage "
-                      "though.")
 
         if input_include_probs is None:
             input_include_probs = {}
@@ -1137,7 +1076,7 @@ class MLP(Layer):
         This is useful if cost_from_X is used in a MethodCost.
         """
         space = CompositeSpace((self.get_input_space(),
-                                self.get_output_space()))
+                                self.get_target_space()))
         source = (self.get_input_source(), self.get_target_source())
         return (space, source)
 
@@ -1158,6 +1097,7 @@ class MLP(Layer):
 
 
 class Softmax(Layer):
+
     """
     A layer that can apply an optional affine transformation
     to vectorial inputs followed by a softmax nonlinearity.
@@ -1211,6 +1151,9 @@ class Softmax(Layer):
 
         super(Softmax, self).__init__()
 
+        if max_col_norm is not None:
+            self.extensions.append(MaxL2FilterNorm(max_col_norm))
+
         if non_redundant:
             if init_bias_target_marginals:
                 msg = ("init_bias_target_marginals currently only works "
@@ -1250,7 +1193,7 @@ class Softmax(Layer):
                                              "`init_bias_target_marginals` "
                                              "requires that each example has "
                                              "a single label.")
-                    marginals = np.bincount(y.flat)/float(y.shape[0])
+                    marginals = np.bincount(y.flat) / float(y.shape[0])
 
                 assert marginals.ndim == 1
                 b = pseudoinverse_softmax_numpy(marginals).astype(self.b.dtype)
@@ -1321,7 +1264,8 @@ class Softmax(Layer):
 
             if targets is not None:
                 y_hat = T.argmax(state, axis=1)
-                y = T.argmax(targets, axis=1)
+                y = (targets.reshape(y_hat.shape) if self._has_binary_target
+                     else T.argmax(targets, axis=1))
                 misclass = T.neq(y, y_hat).mean()
                 misclass = T.cast(misclass, config.floatX)
                 rval['misclass'] = misclass
@@ -1336,7 +1280,7 @@ class Softmax(Layer):
 
         if not isinstance(space, Space):
             raise TypeError("Expected Space, got " +
-                            str(space)+" of type "+str(type(space)))
+                            str(space) + " of type " + str(type(space)))
 
         self.input_dim = space.get_total_dimension()
         self.needs_reformat = not isinstance(space, VectorSpace)
@@ -1365,11 +1309,11 @@ class Softmax(Layer):
                                 (self.input_dim, num_cols))
             elif self.istdev is not None:
                 assert self.sparse_init is None
-                W = rng.randn(self.input_dim, self.num_cols) * self.istdev
+                W = rng.randn(self.input_dim, num_cols) * self.istdev
             else:
                 assert self.sparse_init is not None
-                W = np.zeros((self.input_dim, self.num_cols))
-                for i in xrange(self.num_cols):
+                W = np.zeros((self.input_dim, num_cols))
+                for i in xrange(num_cols):
                     for j in xrange(self.sparse_init):
                         idx = rng.randint(0, self.input_dim)
                         while W[idx, i] != 0.:
@@ -1443,6 +1387,7 @@ class Softmax(Layer):
 
             Z = T.dot(state_below, self.W) + b
 
+        Z.tag.softmax_input = self.layer_name
         if self.non_redundant:
             zeros = T.alloc(0., Z.shape[0], 1)
             Z = T.concatenate((zeros, Z), axis=1)
@@ -1459,15 +1404,14 @@ class Softmax(Layer):
 
         assert hasattr(Y_hat, 'owner')
         owner = Y_hat.owner
-        assert owner is not None
-        op = owner.op
-        if isinstance(op, Print):
-            assert len(owner.inputs) == 1
-            Y_hat, = owner.inputs
-            owner = Y_hat.owner
-            op = owner.op
-        assert isinstance(op, T.nnet.Softmax)
-        z, = owner.inputs
+        z = None
+        while owner is not None:
+            if isinstance(owner.op, T.nnet.Softmax):
+                z, = owner.inputs
+                break
+            else:
+                owner = owner.inputs[0].owner
+        assert getattr(z.tag, 'softmax_input', None) == self.layer_name
         assert z.ndim == 2
 
         z = z - z.max(axis=1).dimshuffle(0, 'x')
@@ -1481,7 +1425,7 @@ class Softmax(Layer):
 
             flat_Y = Y.flatten()
             flat_log_prob = log_prob.flatten()
-            flat_indices = flat_Y + T.arange(Y.shape[0])*self.n_classes
+            flat_indices = flat_Y + T.arange(Y.shape[0]) * self.n_classes
             log_prob_of = flat_log_prob[flat_indices].dimshuffle(0, 'x')
 
         else:
@@ -1504,9 +1448,9 @@ class Softmax(Layer):
         log_prob_of = self._cost(Y, Y_hat)
         if self._has_binary_target:
             flat_Y = Y.flatten()
-            flat_matrix = T.alloc(0, (Y.shape[0]*log_prob_of.shape[1]))
+            flat_matrix = T.alloc(0, (Y.shape[0] * log_prob_of.shape[1]))
             flat_indices = flat_Y + T.extra_ops.repeat(
-                T.arange(Y.shape[0])*log_prob_of.shape[1], Y.shape[1]
+                T.arange(Y.shape[0]) * log_prob_of.shape[1], Y.shape[1]
             )
             log_prob_of = T.set_subtensor(flat_matrix[flat_indices], flat_Y)
 
@@ -1542,17 +1486,10 @@ class Softmax(Layer):
                 desired_norms = T.clip(row_norms, 0, self.max_row_norm)
                 scales = desired_norms / (1e-7 + row_norms)
                 updates[W] = updated_W * scales.dimshuffle(0, 'x')
-        if self.max_col_norm is not None:
-            assert self.max_row_norm is None
-            W = self.W
-            if W in updates:
-                updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
 
 class SoftmaxPool(Layer):
+
     """
     A hidden layer that uses the softmax function to do max pooling over groups
     of units. When the pooling size is 1, this reduces to a standard sigmoidal
@@ -1800,90 +1737,6 @@ class SoftmaxPool(Layer):
 
         return function([], W)()
 
-    @wraps(Layer.get_monitoring_channels)
-    def get_monitoring_channels(self):
-        warnings.warn("Layer.get_monitoring_channels is " +
-                      "deprecated. Use get_layer_monitoring_channels " +
-                      "instead. Layer.get_monitoring_channels " +
-                      "will be removed on or after september 24th 2014",
-                      stacklevel=2)
-
-        W, = self.transformer.get_params()
-
-        assert W.ndim == 2
-
-        sq_W = T.sqr(W)
-
-        row_norms = T.sqrt(sq_W.sum(axis=1))
-        col_norms = T.sqrt(sq_W.sum(axis=0))
-
-        return OrderedDict([('row_norms_min',  row_norms.min()),
-                            ('row_norms_mean', row_norms.mean()),
-                            ('row_norms_max',  row_norms.max()),
-                            ('col_norms_min',  col_norms.min()),
-                            ('col_norms_mean', col_norms.mean()),
-                            ('col_norms_max',  col_norms.max()), ])
-
-    @wraps(Layer.get_monitoring_channels_from_state)
-    def get_monitoring_channels_from_state(self, state):
-        warnings.warn("Layer.get_monitoring_channels_from_state is " +
-                      "deprecated. Use get_layer_monitoring_channels " +
-                      "instead. Layer.get_monitoring_channels_from_state " +
-                      "will be removed on or after september 24th 2014",
-                      stacklevel=2)
-
-        W, = self.transformer.get_params()
-
-        assert W.ndim == 2
-
-        sq_W = T.sqr(W)
-
-        row_norms = T.sqrt(sq_W.sum(axis=1))
-        col_norms = T.sqrt(sq_W.sum(axis=0))
-
-        rval = OrderedDict([('row_norms_min',  row_norms.min()),
-                            ('row_norms_mean', row_norms.mean()),
-                            ('row_norms_max',  row_norms.max()),
-                            ('col_norms_min',  col_norms.min()),
-                            ('col_norms_mean', col_norms.mean()),
-                            ('col_norms_max',  col_norms.max()), ])
-
-        P = state
-
-        if self.pool_size == 1:
-            vars_and_prefixes = [(P, '')]
-        else:
-            vars_and_prefixes = [(P, 'p_')]
-
-        for var, prefix in vars_and_prefixes:
-            v_max = var.max(axis=0)
-            v_min = var.min(axis=0)
-            v_mean = var.mean(axis=0)
-            v_range = v_max - v_min
-
-            # max_x.mean_u is "the mean over *u*nits of the max over
-            # e*x*amples" The x and u are included in the name because
-            # otherwise its hard to remember which axis is which when reading
-            # the monitor I use inner.outer rather than outer_of_inner or
-            # something like that because I want mean_x.* to appear next to
-            # each other in the alphabetical list, as these are commonly
-            # plotted together
-            for key, val in [('max_x.max_u', v_max.max()),
-                             ('max_x.mean_u', v_max.mean()),
-                             ('max_x.min_u', v_max.min()),
-                             ('min_x.max_u', v_min.max()),
-                             ('min_x.mean_u', v_min.mean()),
-                             ('min_x.min_u', v_min.min()),
-                             ('range_x.max_u', v_range.max()),
-                             ('range_x.mean_u', v_range.mean()),
-                             ('range_x.min_u', v_range.min()),
-                             ('mean_x.max_u', v_mean.max()),
-                             ('mean_x.mean_u', v_mean.mean()),
-                             ('mean_x.min_u', v_mean.min())]:
-                rval[prefix+key] = val
-
-        return rval
-
     @wraps(Layer.get_layer_monitoring_channels)
     def get_layer_monitoring_channels(self, state_below=None,
                                       state=None, **kwargs):
@@ -1940,7 +1793,7 @@ class SoftmaxPool(Layer):
                                  ('mean_x.max_u', v_mean.max()),
                                  ('mean_x.mean_u', v_mean.mean()),
                                  ('mean_x.min_u', v_mean.min())]:
-                    rval[prefix+key] = val
+                    rval[prefix + key] = val
 
         return rval
 
@@ -1964,6 +1817,7 @@ class SoftmaxPool(Layer):
 
 
 class Linear(Layer):
+
     """
     A "linear model" in machine learning terminology. This would be more
     accurately described as an affine model because it adds an offset to
@@ -2017,7 +1871,6 @@ class Linear(Layer):
     max_row_norm : WRITEME
     max_col_norm : WRITEME
     min_col_norm : WRITEME
-    softmax_columns : DEPRECATED
     copy_input : REMOVED
     use_abs_loss : bool, optional
         If True, the cost function will be mean absolute error rather
@@ -2047,7 +1900,6 @@ class Linear(Layer):
                  max_row_norm=None,
                  max_col_norm=None,
                  min_col_norm=None,
-                 softmax_columns=None,
                  copy_input=None,
                  use_abs_loss=False,
                  use_bias=True):
@@ -2058,13 +1910,6 @@ class Linear(Layer):
                 "been removed from the library.")
 
         super(Linear, self).__init__()
-
-        if softmax_columns is None:
-            softmax_columns = False
-        else:
-            warnings.warn(
-                "The softmax_columns argument is deprecated, and "
-                "will be removed on or after 2014-08-27.", stacklevel=2)
 
         if use_bias and init_bias is None:
             init_bias = 0.
@@ -2156,7 +2001,7 @@ class Linear(Layer):
             expected_shape = (self.input_dim, self.dim)
             if expected_shape != self.mask_weights.shape:
                 raise ValueError("Expected mask with shape " +
-                                 str(expected_shape)+" but got " +
+                                 str(expected_shape) + " but got " +
                                  str(self.mask_weights.shape))
             self.mask = sharedX(self.mask_weights)
 
@@ -2239,11 +2084,6 @@ class Linear(Layer):
 
         W = W.get_value()
 
-        if self.softmax_columns:
-            P = np.exp(W)
-            Z = np.exp(W).sum(axis=0)
-            rval = P / Z
-            return rval
         return W
 
     @wraps(Layer.set_weights)
@@ -2288,77 +2128,6 @@ class Linear(Layer):
         W = Conv2DSpace.convert(W, self.input_space.axes, ('b', 0, 1, 'c'))
 
         return function([], W)()
-
-    @wraps(Layer.get_monitoring_channels)
-    def get_monitoring_channels(self):
-        warnings.warn("Layer.get_monitoring_channels is " +
-                      "deprecated. Use get_layer_monitoring_channels " +
-                      "instead. Layer.get_monitoring_channels " +
-                      "will be removed on or after september 24th 2014",
-                      stacklevel=2)
-
-        W, = self.transformer.get_params()
-
-        assert W.ndim == 2
-
-        sq_W = T.sqr(W)
-
-        row_norms = T.sqrt(sq_W.sum(axis=1))
-        col_norms = T.sqrt(sq_W.sum(axis=0))
-
-        return OrderedDict([('row_norms_min',  row_norms.min()),
-                            ('row_norms_mean', row_norms.mean()),
-                            ('row_norms_max',  row_norms.max()),
-                            ('col_norms_min',  col_norms.min()),
-                            ('col_norms_mean', col_norms.mean()),
-                            ('col_norms_max',  col_norms.max()), ])
-
-    @wraps(Layer.get_monitoring_channels_from_state)
-    def get_monitoring_channels_from_state(self, state, target=None):
-        warnings.warn("Layer.get_monitoring_channels_from_state is " +
-                      "deprecated. Use get_layer_monitoring_channels " +
-                      "instead. Layer.get_monitoring_channels_from_state " +
-                      "will be removed on or after september 24th 2014",
-                      stacklevel=2)
-
-        W, = self.transformer.get_params()
-
-        assert W.ndim == 2
-
-        sq_W = T.sqr(W)
-
-        row_norms = T.sqrt(sq_W.sum(axis=1))
-        col_norms = T.sqrt(sq_W.sum(axis=0))
-
-        rval = OrderedDict([('row_norms_min',  row_norms.min()),
-                            ('row_norms_mean', row_norms.mean()),
-                            ('row_norms_max',  row_norms.max()),
-                            ('col_norms_min',  col_norms.min()),
-                            ('col_norms_mean', col_norms.mean()),
-                            ('col_norms_max',  col_norms.max()), ])
-
-        mx = state.max(axis=0)
-        mean = state.mean(axis=0)
-        mn = state.min(axis=0)
-        rg = mx - mn
-
-        rval['range_x_max_u'] = rg.max()
-        rval['range_x_mean_u'] = rg.mean()
-        rval['range_x_min_u'] = rg.min()
-
-        rval['max_x_max_u'] = mx.max()
-        rval['max_x_mean_u'] = mx.mean()
-        rval['max_x_min_u'] = mx.min()
-
-        rval['mean_x_max_u'] = mean.max()
-        rval['mean_x_mean_u'] = mean.mean()
-        rval['mean_x_min_u'] = mean.min()
-
-        rval['min_x_max_u'] = mn.max()
-        rval['min_x_mean_u'] = mn.mean()
-        rval['min_x_min_u'] = mn.min()
-
-        return rval
 
     @wraps(Layer.get_layer_monitoring_channels)
     def get_layer_monitoring_channels(self, state_below=None,
@@ -2423,22 +2192,9 @@ class Linear(Layer):
             state_below = self.input_space.format_as(state_below,
                                                      self.desired_space)
 
-        # Support old pickle files
-        if not hasattr(self, 'softmax_columns'):
-            self.softmax_columns = False
-
-        if self.softmax_columns:
-            W, = self.transformer.get_params()
-            W = W.T
-            W = T.nnet.softmax(W)
-            W = W.T
-            z = T.dot(state_below, W)
-            if self.use_bias:
-                z += self.b
-        else:
-            z = self.transformer.lmul(state_below)
-            if self.use_bias:
-                z += self.b
+        z = self.transformer.lmul(state_below)
+        if self.use_bias:
+            z += self.b
 
         if self.layer_name is not None:
             z.name = self.layer_name + '_z'
@@ -2470,6 +2226,7 @@ class Linear(Layer):
 
 
 class Tanh(Linear):
+
     """
     A layer that performs an affine transformation of its (vectorial)
     input followed by a hyperbolic tangent elementwise nonlinearity.
@@ -2494,18 +2251,16 @@ class Tanh(Linear):
 
 
 class Sigmoid(Linear):
+
     """
-    A layer that performs an affine transformation of its (vectorial)
+    A layer that performs an affine transformation of its
     input followed by a logistic sigmoid elementwise nonlinearity.
-
-    .. todo::
-
-        WRITEME properly
 
     Parameters
     ----------
     monitor_style : string
-        Values can be either 'detection' or 'classification'.
+        Values can be any of ['detection', 'one_hot_class',
+        'bit_vector_class']
         'detection' is the default.
 
           - 'detection' : get_monitor_from_state makes no assumptions about
@@ -2518,17 +2273,34 @@ class Sigmoid(Linear):
             dataset fits in one minibatch, this is not the same
             as the true F1 score, etc., and will usually
             seriously overestimate your performance.
-          - 'classification' : get_monitor_from_state assumes target is one-hot
-            class indicator, even though you're training the
-            model as k independent sigmoids. gives info on how
-            good the argmax is as a classifier
+          - 'one_hot_class' : get_monitor_from_state assumes target is
+            one-hot class indicator, even though you're training the
+            model as k independent sigmoids. Gives info on how
+            good the argmax over the sigmoids behaves as a classifier.
+          - 'bit_vector_class' : get_monitor_from_state treats each
+            sigmoid as predicting a 1 iff its value is > 0.5. Each
+            example is counted as correct iff all of the bits in its
+            target are predicted correctly.
+            This includes as a special case the situation where the
+            target is a single 0 or 1 label.
+          - 'classification' : deprecated; originally this string was
+            used for 'one_hot_class', then due to a miscommunication
+            it was changed to be used for 'bit_vector_class'.
     kwargs : dict
-        WRITEME
+        Passed through to the Layer class constructor
     """
 
     def __init__(self, monitor_style='detection', **kwargs):
         super(Sigmoid, self).__init__(**kwargs)
-        assert monitor_style in ['classification', 'detection']
+        if monitor_style == 'classification':
+            monitor_style = 'bit_vector_class'
+            warnings.warn("The 'classification' monitor style is deprecated."
+                          " Switch to 'bit_vector_class' (or possibly"
+                          " 'one_hot_class' if your code predates 8f4b62b3df)."
+                          " 'classification' may be removed on or after "
+                          "2015-04-21.")
+        assert monitor_style in ['one_hot_class', 'bit_vector_class',
+                                 'detection']
         self.monitor_style = monitor_style
 
     @wraps(Layer.fprop)
@@ -2645,7 +2417,7 @@ class Sigmoid(Linear):
         y = T.cast(y, state.dtype)
         y_hat = T.cast(y_hat, state.dtype)
         tp = (y * y_hat).sum()
-        fp = ((1-y) * y_hat).sum()
+        fp = ((1 - y) * y_hat).sum()
 
         precision = compute_precision(tp, fp)
         recall = compute_recall(y, tp)
@@ -2656,7 +2428,7 @@ class Sigmoid(Linear):
         rval['f1'] = f1
 
         tp = (y * y_hat).sum(axis=0)
-        fp = ((1-y) * y_hat).sum(axis=0)
+        fp = ((1 - y) * y_hat).sum(axis=0)
 
         precision = compute_precision(tp, fp)
 
@@ -2678,32 +2450,6 @@ class Sigmoid(Linear):
 
         return rval
 
-    @wraps(Layer.get_monitoring_channels_from_state)
-    def get_monitoring_channels_from_state(self, state, target=None):
-        warnings.warn("Layer.get_monitoring_channels_from_state is " +
-                      "deprecated. Use get_layer_monitoring_channels " +
-                      "instead. Layer.get_monitoring_channels_from_state " +
-                      "will be removed on or after september 24th 2014",
-                      stacklevel=2)
-
-        rval = super(Sigmoid, self).get_monitoring_channels_from_state(state,
-                                                                       target)
-
-        if target is not None:
-            if self.monitor_style == 'detection':
-                rval.update(self.get_detection_channels_from_state(state,
-                                                                   target))
-            else:
-                assert self.monitor_style == 'classification'
-                # Threshold Y_hat at 0.5.
-                prediction = T.gt(state, 0.5)
-                # If even one feature is wrong for a given training example,
-                # it's considered incorrect, so we max over columns.
-                incorrect = T.neq(target, prediction).max(axis=1)
-                rval['misclass'] = T.cast(incorrect, config.floatX).mean()
-
-        return rval
-
     @wraps(Layer.get_layer_monitoring_channels)
     def get_layer_monitoring_channels(self, state_below=None,
                                       state=None, targets=None):
@@ -2718,8 +2464,18 @@ class Sigmoid(Linear):
             if self.monitor_style == 'detection':
                 rval.update(self.get_detection_channels_from_state(state,
                                                                    targets))
+            elif self.monitor_style == 'one_hot_class':
+                # For this monitor style, we know (by assumption) that
+                # exactly one bit is always on, so we pick
+                # the single most likely bit under the model, regardless
+                # of whether its probability exceeds 0.5
+                prediction = state.argmax(axis=1)
+                labels = targets.argmax(axis=1)
+                incorrect = T.neq(prediction, labels)
+                misclass = T.cast(incorrect, config.floatX).mean()
+                rval['misclass'] = misclass
             else:
-                assert self.monitor_style == 'classification'
+                assert self.monitor_style == 'bit_vector_class'
                 # Threshold Y_hat at 0.5.
                 prediction = T.gt(state, 0.5)
                 # If even one feature is wrong for a given training example,
@@ -2730,6 +2486,7 @@ class Sigmoid(Linear):
 
 
 class RectifiedLinear(Linear):
+
     """
     Rectified linear MLP layer (Glorot and Bengio 2011).
 
@@ -2763,6 +2520,7 @@ class RectifiedLinear(Linear):
 
 
 class Softplus(Linear):
+
     """
     An MLP layer using the softplus nonlinearity
     h = log(1 + exp(Wx + b))
@@ -2790,6 +2548,7 @@ class Softplus(Linear):
 
 
 class SpaceConverter(Layer):
+
     """
     A Layer with no parameters that converts the input from
     one space to another.
@@ -2820,9 +2579,11 @@ class SpaceConverter(Layer):
 
 
 class ConvNonlinearity(object):
+
     """
     Abstract convolutional nonlinearity class.
     """
+
     def apply(self, linear_response):
         """
         Applies the nonlinearity over the convolutional layer.
@@ -2916,9 +2677,11 @@ class ConvNonlinearity(object):
 
 
 class IdentityConvNonlinearity(ConvNonlinearity):
+
     """
     Linear convolutional nonlinearity class.
     """
+
     def __init__(self):
         self.non_lin_name = "linear"
 
@@ -2942,6 +2705,7 @@ class IdentityConvNonlinearity(ConvNonlinearity):
 
 
 class RectifierConvNonlinearity(ConvNonlinearity):
+
     """
     A simple rectifier nonlinearity class for convolutional layers.
 
@@ -2950,6 +2714,7 @@ class RectifierConvNonlinearity(ConvNonlinearity):
     left_slope : float
         The slope of the left half of the activation function.
     """
+
     def __init__(self, left_slope=0.0):
         """
         Parameters
@@ -2972,6 +2737,7 @@ class RectifierConvNonlinearity(ConvNonlinearity):
 
 
 class SigmoidConvNonlinearity(ConvNonlinearity):
+
     """
     Sigmoid nonlinearity class for convolutional layers.
 
@@ -3017,7 +2783,7 @@ class SigmoidConvNonlinearity(ConvNonlinearity):
             y = T.cast(y, state.dtype)
             y_hat = T.cast(y_hat, state.dtype)
             tp = (y * y_hat).sum()
-            fp = ((1-y) * y_hat).sum()
+            fp = ((1 - y) * y_hat).sum()
 
             precision = compute_precision(tp, fp)
             recall = compute_recall(y, tp)
@@ -3028,7 +2794,7 @@ class SigmoidConvNonlinearity(ConvNonlinearity):
             rval['f1'] = f1
 
             tp = (y * y_hat).sum(axis=[0, 1])
-            fp = ((1-y) * y_hat).sum(axis=[0, 1])
+            fp = ((1 - y) * y_hat).sum(axis=[0, 1])
 
             precision = compute_precision(tp, fp)
 
@@ -3052,9 +2818,11 @@ class SigmoidConvNonlinearity(ConvNonlinearity):
 
 
 class TanhConvNonlinearity(ConvNonlinearity):
+
     """
     Tanh nonlinearity class for convolutional layers.
     """
+
     def __init__(self):
         self.non_lin_name = "tanh"
 
@@ -3068,6 +2836,7 @@ class TanhConvNonlinearity(ConvNonlinearity):
 
 
 class ConvElemwise(Layer):
+
     """
     Generic convolutional elemwise layer.
     Takes the ConvNonlinearity object as an argument and implements
@@ -3146,6 +2915,7 @@ class ConvElemwise(Layer):
     kernel_stride : 2-tuple of ints, optional
         The stride of the convolution kernel. Default is (1, 1).
     """
+
     def __init__(self,
                  output_channels,
                  kernel_shape,
@@ -3167,6 +2937,7 @@ class ConvElemwise(Layer):
                  output_normalization=None,
                  kernel_stride=(1, 1),
                  monitor_style="classification"):
+        super(ConvElemwise, self).__init__()
 
         if (irange is None) and (sparse_init is None):
             raise AssertionError("You should specify either irange or "
@@ -3279,15 +3050,19 @@ class ConvElemwise(Layer):
         rng = self.mlp.rng
 
         if self.border_mode == 'valid':
-            output_shape = [(self.input_space.shape[0] - self.kernel_shape[0])
-                            / self.kernel_stride[0] + 1,
-                            (self.input_space.shape[1] - self.kernel_shape[1])
-                            / self.kernel_stride[1] + 1]
+            output_shape = [int((self.input_space.shape[0]
+                                 - self.kernel_shape[0])
+                                / self.kernel_stride[0]) + 1,
+                            int((self.input_space.shape[1]
+                                 - self.kernel_shape[1])
+                                / self.kernel_stride[1]) + 1]
         elif self.border_mode == 'full':
-            output_shape = [(self.input_space.shape[0] + self.kernel_shape[0])
-                            / self.kernel_stride[0] - 1,
-                            (self.input_space.shape[1] + self.kernel_shape[1])
-                            / self.kernel_stride[1] - 1]
+            output_shape = [int((self.input_space.shape[0]
+                                 + self.kernel_shape[0])
+                                / self.kernel_stride[0]) - 1,
+                            int((self.input_space.shape[1]
+                                 + self.kernel_shape[1])
+                                / self.kernel_stride[1]) - 1]
 
         self.detector_space = Conv2DSpace(shape=output_shape,
                                           num_channels=self.output_channels,
@@ -3401,40 +3176,6 @@ class ConvElemwise(Layer):
 
         return np.transpose(raw, (outp, rows, cols, inp))
 
-    @wraps(Layer.get_monitoring_channels_from_state)
-    def get_monitoring_channels_from_state(self, state, target=None):
-
-        rval = super(ConvElemwise,
-                     self).get_monitoring_channels_from_state(state, target)
-
-        cst = self.cost
-        orval = self.nonlin.get_monitoring_channels_from_state(state,
-                                                               target,
-                                                               cost_fn=cst)
-
-        rval.update(orval)
-
-        return rval
-
-    @wraps(Layer.get_monitoring_channels)
-    def get_monitoring_channels(self):
-        warnings.warn("Layer.get_monitoring_channels is deprecated. " +
-                      "Use get_layer_monitoring_channels instead. " +
-                      "Layer.get_monitoring_channels will be removed " +
-                      "on or after september 24th 2014", stacklevel=2)
-
-        W, = self.transformer.get_params()
-
-        assert W.ndim == 4
-
-        sq_W = T.sqr(W)
-
-        row_norms = T.sqrt(sq_W.sum(axis=(1, 2, 3)))
-
-        return OrderedDict([('kernel_norms_min',  row_norms.min()),
-                            ('kernel_norms_mean', row_norms.mean()),
-                            ('kernel_norms_max',  row_norms.max()), ])
-
     @wraps(Layer.get_layer_monitoring_channels)
     def get_layer_monitoring_channels(self, state_below=None,
                                       state=None, targets=None):
@@ -3452,11 +3193,6 @@ class ConvElemwise(Layer):
                            ('kernel_norms_mean', row_norms.mean()),
                            ('kernel_norms_max', row_norms.max()),
                            ])
-
-        orval = super(ConvElemwise,
-                      self).get_monitoring_channels_from_state(state, targets)
-
-        rval.update(orval)
 
         cst = self.cost
         orval = self.nonlin.get_monitoring_channels_from_state(state,
@@ -3556,6 +3292,7 @@ class ConvElemwise(Layer):
 
 
 class ConvRectifiedLinear(ConvElemwise):
+
     """
     A convolutional rectified linear layer, based on theano's B01C
     formatted convolution.
@@ -3622,6 +3359,7 @@ class ConvRectifiedLinear(ConvElemwise):
     kernel_stride : tuple
         The stride of the convolution kernel. A two-tuple of ints.
     """
+
     def __init__(self,
                  output_channels,
                  kernel_shape,
@@ -3724,7 +3462,7 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
 
     if pool_shape == pool_stride:
         mx = max_pool_2d(bc01, pool_shape, False)
-        mx.name = 'max_pool('+name+')'
+        mx.name = 'max_pool(' + name + ')'
         return mx
 
     # Compute index in pooled space of last needed pool
@@ -3777,7 +3515,7 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
                 mx.name = ('max_pool_mx_' + bc01.name + '_' +
                            str(row_within_pool) + '_' + str(col_within_pool))
 
-    mx.name = 'max_pool('+name+')'
+    mx.name = 'max_pool(' + name + ')'
 
     for mxv in get_debug_values(mx):
         assert isfinite(mxv)
@@ -3872,9 +3610,9 @@ def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape):
             else:
                 mx = T.maximum(mx, cur)
                 mx.name = ('max_pool_mx_' + c01b.name + '_' +
-                           str(row_within_pool)+'_'+str(col_within_pool))
+                           str(row_within_pool) + '_' + str(col_within_pool))
 
-    mx.name = 'max_pool('+name+')'
+    mx.name = 'max_pool(' + name + ')'
 
     for mxv in get_debug_values(mx):
         assert isfinite(mxv)
@@ -4001,7 +3739,7 @@ def mean_pool(bc01, pool_shape, pool_stride, image_shape):
                            str(row_within_pool) + '_' + str(col_within_pool))
 
     mx /= count
-    mx.name = 'mean_pool('+name+')'
+    mx.name = 'mean_pool(' + name + ')'
 
     for mxv in get_debug_values(mx):
         assert isfinite(mxv)
@@ -4012,18 +3750,21 @@ def mean_pool(bc01, pool_shape, pool_stride, image_shape):
 @wraps(_WD)
 def WeightDecay(*args, **kwargs):
     warnings.warn("pylearn2.models.mlp.WeightDecay has moved to "
-                  "pylearn2.costs.mlp.WeightDecay")
+                  "pylearn2.costs.mlp.WeightDecay. This link"
+                  "may be removed after 2015-05-13.")
     return _WD(*args, **kwargs)
 
 
 @wraps(_L1WD)
 def L1WeightDecay(*args, **kwargs):
     warnings.warn("pylearn2.models.mlp.L1WeightDecay has moved to "
-                  "pylearn2.costs.mlp.WeightDecay")
+                  "pylearn2.costs.mlp.WeightDecay. This link"
+                  "may be removed after 2015-05-13.")
     return _L1WD(*args, **kwargs)
 
 
 class LinearGaussian(Linear):
+
     """
     A Linear layer augmented with a precision vector, for modeling
     conditionally Gaussian data.
@@ -4092,39 +3833,6 @@ class LinearGaussian(Linear):
         self.beta = sharedX(self.output_space.get_origin() + self.init_beta,
                             'beta')
 
-    @wraps(Linear.get_monitoring_channels)
-    def get_monitoring_channels(self):
-        warnings.warn("Layer.get_monitoring_channels is " +
-                      "deprecated. Use get_layer_monitoring_channels " +
-                      "instead. Layer.get_monitoring_channels " +
-                      "will be removed on or after september 24th 2014",
-                      stacklevel=2)
-
-        rval = super(LinearGaussian, self).get_monitoring_channels()
-        assert isinstance(rval, OrderedDict)
-        rval['beta_min'] = self.beta.min()
-        rval['beta_mean'] = self.beta.mean()
-        rval['beta_max'] = self.beta.max()
-        return rval
-
-    @wraps(Linear.get_monitoring_channels_from_state)
-    def get_monitoring_channels_from_state(self, state, target=None):
-        warnings.warn("Layer.get_monitoring_channels_from_state is " +
-                      "deprecated. Use get_layer_monitoring_channels " +
-                      "instead. Layer.get_monitoring_channels_from_state " +
-                      "will be removed on or after september 24th 2014",
-                      stacklevel=2)
-
-        rval = super(LinearGaussian, self).get_monitoring_channels()
-        assert isinstance(rval, OrderedDict)
-        rval['beta_min'] = self.beta.min()
-        rval['beta_mean'] = self.beta.mean()
-        rval['beta_max'] = self.beta.max()
-
-        if target:
-            rval['mse'] = T.sqr(state - target).mean()
-        return rval
-
     @wraps(Layer.get_layer_monitoring_channels)
     def get_layer_monitoring_channels(self, state_below=None,
                                       state=None, targets=None):
@@ -4144,7 +3852,7 @@ class LinearGaussian(Linear):
 
     @wraps(Linear.cost)
     def cost(self, Y, Y_hat):
-        return (0.5 * T.dot(T.sqr(Y-Y_hat), self.beta).mean() -
+        return (0.5 * T.dot(T.sqr(Y - Y_hat), self.beta).mean() -
                 0.5 * T.log(self.beta).sum())
 
     @wraps(Layer._modify_updates)
@@ -4249,6 +3957,7 @@ def mean_of_targets(dataset):
 
 
 class PretrainedLayer(Layer):
+
     """
     A layer whose weights are initialized, and optionally fixed,
     based on prior training.
@@ -4290,16 +3999,6 @@ class PretrainedLayer(Layer):
 
         return self.layer_content.get_output_space()
 
-    @wraps(Layer.get_monitoring_channels)
-    def get_monitoring_channels(self):
-        warnings.warn("Layer.get_monitoring_channels is " +
-                      "deprecated. Use get_layer_monitoring_channels " +
-                      "instead. Layer.get_monitoring_channels " +
-                      "will be removed on or after september 24th 2014",
-                      stacklevel=2)
-
-        return OrderedDict([])
-
     @wraps(Layer.get_layer_monitoring_channels)
     def get_layer_monitoring_channels(self, state_below=None,
                                       state=None, targets=None):
@@ -4312,6 +4011,7 @@ class PretrainedLayer(Layer):
 
 
 class CompositeLayer(Layer):
+
     """
     A Layer that runs several layers in parallel. Its default behavior
     is to pass the layer's input to each of the components.
@@ -4364,6 +4064,7 @@ class CompositeLayer(Layer):
     input is discarded. Note that the inner CompositeLayer wil receive
     the inputs with the same ordering i.e. [0, 1], and never [1, 0].
     """
+
     def __init__(self, layer_name, layers, inputs_to_layers=None):
         self.num_layers = len(layers)
         if inputs_to_layers is not None:
@@ -4574,6 +4275,7 @@ class CompositeLayer(Layer):
 
 
 class FlattenerLayer(Layer):
+
     """
     A wrapper around a different layer that flattens
     the original layer's output.
@@ -4593,8 +4295,8 @@ class FlattenerLayer(Layer):
 
     Parameters
     ----------
-    raw_layer : WRITEME
-        WRITEME
+    raw_layer : Layer
+        Layer that FlattenerLayer wraps.
     """
 
     def __init__(self, raw_layer):
@@ -4621,15 +4323,31 @@ class FlattenerLayer(Layer):
     @wraps(Layer.get_layer_monitoring_channels)
     def get_layer_monitoring_channels(self, state_below=None,
                                       state=None, targets=None):
+
+        raw_space = self.raw_layer.get_output_space()
+
+        if isinstance(raw_space, CompositeSpace):
+            # Pick apart the Join that fprop used to make state.
+            assert hasattr(state, 'owner')
+            owner = state.owner
+            assert owner is not None
+            assert str(owner.op) == 'Join'
+            # First input to join op in the axis.
+            raw_state = tuple(owner.inputs[1:])
+            raw_space.validate(raw_state)
+            state = raw_state
+        else:
+            # Format state as layer output space.
+            state = self.get_output_space().format_as(state, raw_space)
+
         if targets is not None:
             targets = self.get_target_space().format_as(
                 targets, self.raw_layer.get_target_space())
         return self.raw_layer.get_layer_monitoring_channels(
             state_below=state_below,
-            state=self.get_output_space().format_as(
-                state, self.raw_layer.get_output_space()),
+            state=state,
             targets=targets
-            )
+        )
 
     @wraps(Layer.get_monitoring_data_specs)
     def get_monitoring_data_specs(self):
@@ -4655,9 +4373,9 @@ class FlattenerLayer(Layer):
     def set_batch_size(self, batch_size):
         self.raw_layer.set_batch_size(batch_size)
 
-    @wraps(Layer.censor_updates)
-    def censor_updates(self, updates):
-        self.raw_layer.censor_updates(updates)
+    @wraps(Layer._modify_updates)
+    def _modify_updates(self, updates):
+        self.raw_layer.modify_updates(updates)
 
     @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
@@ -4709,6 +4427,7 @@ class FlattenerLayer(Layer):
 
 
 class WindowLayer(Layer):
+
     """
     Layer used to select a window of an image input.
     The input of the layer must be Conv2DSpace.
@@ -4828,7 +4547,7 @@ def sampled_dropout_average(mlp, inputs, num_masks,
                             input_include_probs=None,
                             default_input_scale=2.,
                             input_scales=None,
-                            rng=(2013, 05, 17),
+                            rng=(2013, 5, 17),
                             per_example=False):
     """
     Take the geometric mean over a number of randomly sampled
@@ -4986,11 +4705,12 @@ def geometric_mean_prediction(forward_props):
         assert isinstance(out.owner.op, T.nnet.Softmax)
         assert len(out.owner.inputs) == 1
         presoftmax.append(out.owner.inputs[0])
-    average = reduce(lambda x, y: x + y, presoftmax) / float(len(presoftmax))
+    average = reduce(operator.add, presoftmax) / float(len(presoftmax))
     return T.nnet.softmax(average)
 
 
 class BadInputSpaceError(TypeError):
+
     """
     An error raised by an MLP layer when set_input_space is given an
     object that is not one of the Spaces that layer supports.

@@ -2,6 +2,8 @@
 Unit tests for format checking
 """
 
+from __future__ import print_function
+
 from nose.plugins.skip import SkipTest
 
 import os
@@ -16,7 +18,6 @@ whitelist_pep8 = [
     "distributions/mnd.py",
     "models/sparse_autoencoder.py",
     "models/tests/test_dbm.py",
-    "models/tests/test_autoencoder.py",
     "models/tests/test_s3c_inference.py",
     "models/tests/test_mnd.py",
     "models/tests/test_s3c_misc.py",
@@ -28,7 +29,6 @@ whitelist_pep8 = [
     "models/local_coordinate_coding.py",
     "models/mnd.py",
     "models/s3c.py",
-    "models/autoencoder.py",
     "tests/test_monitor.py",
     "kmeans.py",
     "packaged_dependencies/theano_linear/conv2d.py",
@@ -87,13 +87,10 @@ whitelist_pep8 = [
     "dataset_get/dataset-get.py",
     "dataset_get/helper-scripts/make-archive.py",
     "dataset_get/dataset_resolver.py",
-    "monitor.py",
-    "optimization/batch_gradient_descent.py",
     "optimization/minres.py",
     "costs/ebm_estimation.py",
     "costs/gsn.py",
     "costs/mlp/missing_target_cost.py",
-    "costs/autoencoder.py",
     "linear/conv2d.py",
     "linear/local_c01b.py",
     "linear/linear_transform.py",
@@ -124,7 +121,6 @@ whitelist_pep8 = [
     "scripts/datasets/make_stl10_patches.py",
     "scripts/gsn_example.py",
     "scripts/tutorials/deep_trainer/run_deep_trainer.py",
-    "scripts/tutorials/grbm_smd/make_dataset.py",
     "scripts/tutorials/grbm_smd/test_grbm_smd.py",
     "scripts/icml_2013_wrepl/multimodal/"
     "extract_layer_2_kmeans_features.py",
@@ -142,10 +138,8 @@ whitelist_pep8 = [
     "utils/iteration.py",
     "utils/track_version.py",
     "scripts/get_version.py",
-    "blocks.py",
     "training_algorithms/tests/test_bgd.py",
     "training_algorithms/tests/test_default.py",
-    "training_algorithms/bgd.py",
     "training_algorithms/default.py",
     "training_algorithms/training_algorithm.py",
     "training_algorithms/sgd.py",
@@ -172,7 +166,6 @@ whitelist_pep8 = [
     "packaged_dependencies/theano_linear/__init__.py",
     "packaged_dependencies/theano_linear/test_linear.py",
     "expr/tests/test_nnet.py",
-    "expr/nnet.py",
     "expr/image.py",
     "expr/coding.py",
     "expr/normalize.py",
@@ -198,7 +191,6 @@ whitelist_pep8 = [
     "datasets/avicenna.py",
     "datasets/iris.py",
     "datasets/adult.py",
-    "datasets/zca_dataset.py",
     "datasets/npy_npz.py",
     "datasets/control.py",
     "datasets/cifar100.py",
@@ -211,9 +203,7 @@ whitelist_pep8 = [
     "utils/tests/test_data_specs.py",
     "utils/tests/test_bit_strings.py",
     "utils/tests/test_iteration.py",
-    "utils/tests/test_string_utils.py",
     "utils/image.py",
-    "utils/string_utils.py",
     "utils/theano_graph.py",
     "utils/__init__.py",
     "utils/datasets.py",
@@ -235,8 +225,6 @@ whitelist_pep8 = [
     "optimization/feature_sign.py",
     "optimization/test_linear_cg.py",
     "optimization/linesearch.py",
-    "costs/mlp/__init__.py",
-    "costs/cost.py",
     "costs/dbm.py",
     "linear/tests/test_conv2d.py",
     "linear/tests/test_conv2d_c01b.py",
@@ -271,8 +259,6 @@ whitelist_pep8 = [
     "devtools/record.py",
     "train_extensions/tests/test_window_flip.py",
     "train_extensions/__init__.py",
-    "train_extensions/window_flip.py",
-    "train_extensions/best_params.py"
 ]
 
 whitelist_docstrings = [
@@ -429,7 +415,6 @@ whitelist_docstrings = [
     'datasets/adult.py',
     'datasets/tfd.py',
     'datasets/icml07.py',
-    'datasets/zca_dataset.py',
     'datasets/filetensor.py',
     'datasets/npy_npz.py',
     'datasets/hepatitis.py',
@@ -460,17 +445,14 @@ whitelist_docstrings = [
     'utils/compile.py',
     'utils/logger.py',
     'utils/general.py',
-    'utils/one_hot.py',
     'utils/testing.py',
     'utils/tests/test_mnist_ubyte.py',
     'utils/tests/test_data_specs.py',
     'utils/tests/test_video.py',
     'utils/tests/test_bit_strings.py',
-    'utils/tests/test_one_hot.py',
     'utils/tests/test_rng.py',
     'utils/tests/test_pooling.py',
     'utils/tests/test_iteration.py',
-    'utils/tests/test_string_utils.py',
     'utils/tests/test_insert_along_axis.py',
     'utils/tests/test_utlc.py',
     'utils/tests/test_compile.py',
@@ -478,7 +460,6 @@ whitelist_docstrings = [
     'utils/key_aware.py',
     'utils/image.py',
     'utils/video.py',
-    'utils/string_utils.py',
     'utils/bit_strings.py',
     'utils/iteration.py',
     'utils/pooling.py',
@@ -520,7 +501,6 @@ whitelist_docstrings = [
     'costs/tests/test_lp_penalty_cost.py',
     'costs/gsn.py',
     'costs/__init__.py',
-    'costs/mlp/__init__.py',
     'costs/mlp/missing_target_cost.py',
     'costs/dbm.py',
     'costs/autoencoder.py',
@@ -600,7 +580,6 @@ whitelist_docstrings = [
     'devtools/nan_guard.py',
     'devtools/__init__.py',
     'devtools/record.py',
-    'train_extensions/best_params.py',
     'corruption.py',
     'datasets/tests/test_tl_challenge.py',
     'datasets/tests/test_tfd.py',
@@ -626,6 +605,7 @@ whitelist_docstrings.extend([
 
 # add files which fail to run to whitelist_docstrings
 whitelist_docstrings.extend([
+    'sandbox/rnn/models/mlp_hook.py',
     'training_algorithms/tests/test_learning_rule.py',
     'models/pca.py',
     'datasets/tests/test_hdf5.py',
@@ -712,12 +692,12 @@ def print_files_information_pep8():
         else:
             if rel_path in whitelist_pep8:
                 non_infracting_files.append(path)
-    print "Files that must be corrected or added to whitelist:"
+    print("Files that must be corrected or added to whitelist:")
     for file in infracting_files:
-        print file
-    print "Files that can be removed from whitelist:"
+        print(file)
+    print("Files that can be removed from whitelist:")
     for file in non_infracting_files:
-        print file
+        print(file)
 
 
 def test_format_docstrings():
@@ -727,7 +707,7 @@ def test_format_docstrings():
 
     try:
         verify_format_docstrings()
-    except SkipTest, e:
+    except SkipTest as e:
         import traceback
         traceback.print_exc(e)
         raise AssertionError(
@@ -749,7 +729,7 @@ def verify_format_docstrings():
             continue
         try:
             format_infractions.extend(docstring_errors(path))
-        except StandardError as e:
+        except Exception as e:
             format_infractions.append(["%s failed to run so format cannot "
                                        "be checked. Error message:\n %s" %
                                        (rel_path, e)])

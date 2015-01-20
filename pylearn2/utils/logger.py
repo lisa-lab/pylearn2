@@ -27,6 +27,8 @@ __maintainer__ = "David Warde-Farley"
 import logging
 import sys
 from logging import Handler, Formatter
+from theano.compat import six
+from theano.compat.six.moves import xrange
 
 
 class CustomFormatter(Formatter):
@@ -177,7 +179,7 @@ class CustomStreamHandler(Handler):
                 stream = self.stderr
             else:
                 stream = self.stdout
-            fs = "%s\n"
+            fs = u"%s\n"
             #if no unicode support...
             #Python 2.6 don't have logging._unicode, so use the no unicode path
             # as stream.encoding also don't exist.
@@ -185,11 +187,10 @@ class CustomStreamHandler(Handler):
                 stream.write(fs % msg)
             else:
                 try:
-                    if (isinstance(msg, unicode) and
-                        getattr(stream, 'encoding', None)):
-                        ufs = fs.decode(stream.encoding)
+                    if (isinstance(msg, six.text_type) and
+                            getattr(stream, 'encoding', None)):
                         try:
-                            stream.write(ufs % msg)
+                            stream.write(fs % msg)
                         except UnicodeEncodeError:
                             # Printing to terminals sometimes fails. For
                             # example, with an encoding of 'cp1251', the above
@@ -198,11 +199,11 @@ class CustomStreamHandler(Handler):
                             # writing to a terminal even when the codepage is
                             # set to cp1251.  An extra encoding step seems to
                             # be needed.
-                            stream.write((ufs % msg).encode(stream.encoding))
+                            stream.write((fs % msg).encode(stream.encoding))
                     else:
                         stream.write(fs % msg)
-                except UnicodeError:
-                    stream.write(fs % msg.encode("UTF-8"))
+                except (UnicodeError, TypeError):
+                    stream.write((fs % msg).encode("UTF-8"))
             self.flush()
         except (KeyboardInterrupt, SystemExit):
             raise

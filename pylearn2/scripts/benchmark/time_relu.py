@@ -15,7 +15,10 @@ d) T.switch(x<0., 0., x): (2.32, 1.41)    (1.41, 2.84)    (8.39)
 Conlusion:
 In terms of efficiency, d) > a) > c) > b)
 '''
+from __future__ import print_function
+
 __authors__ = "Li Yao and Frederic Bastien"
+
 import theano
 import theano.tensor as T
 
@@ -122,10 +125,10 @@ def benchmark_relu():
         t1 = time.time()
         benchmark = t1-t0
         times.append(benchmark)
-        print name
+        print(name)
         theano.printing.debugprint(f, print_type=True)
-    print names
-    print times
+    print(names)
+    print(times)
 
 
 if __name__ == '__main__':

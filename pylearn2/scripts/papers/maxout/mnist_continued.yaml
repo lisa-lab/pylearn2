@@ -1,7 +1,6 @@
 !obj:pylearn2.train.Train {
     dataset: &train !obj:pylearn2.datasets.mnist.MNIST {
         which_set: 'train',
-        one_hot: 1,
         axes: ['c', 0, 1, 'b'],
     },
     model: &model !obj:pylearn2.monitor.push_monitor {
@@ -26,7 +25,6 @@
                 'valid' : !obj:pylearn2.datasets.mnist.MNIST {
                               axes: ['c', 0, 1, 'b'],
                               which_set: 'train',
-                              one_hot: 1,
                               start: 50000,
                               stop:  60000
                           },
@@ -43,7 +41,6 @@
                     axes: ['c', 0, 1, 'b'],
                     start: 0,
                     stop: 50000,
-                    one_hot: 1
                 },
                 model: *model,
                 channel: 'y_nll'

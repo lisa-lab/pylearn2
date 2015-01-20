@@ -35,6 +35,7 @@ __email__ = "pylearn-dev@googlegroups"
 import functools
 import warnings
 import numpy as np
+from theano.compat.six.moves import xrange
 import theano
 import theano.sparse
 from theano import tensor
@@ -871,6 +872,9 @@ class IndexSpace(SimplyTypedSpace):
                                            dim=self.dim,
                                            max_labels=self.max_labels,
                                            dtype=self.dtype)
+
+    def __hash__(self):
+        return hash((type(self), self.dim, self.max_labels, self.dtype))
 
     def __eq__(self, other):
         """

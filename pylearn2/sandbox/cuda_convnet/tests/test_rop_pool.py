@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import copy
 
 import numpy
@@ -64,7 +66,7 @@ def test_pool():
                     rval = theano.tensor.Rop(v, a, b)
                     f = theano.function([], rval,
                                         mode=mode_with_gpu)
-                    print f.maker.fgraph.toposort()
+                    print(f.maker.fgraph.toposort())
                     #ssert any([isinstance(node.op, MaxPool)
                     #   for node in f.maker.fgraph.toposort()])
                     out = numpy.asarray(f())

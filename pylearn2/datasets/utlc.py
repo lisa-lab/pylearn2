@@ -6,7 +6,7 @@ The user should use the load_ndarray_dataset or load_sparse_dataset function
 See the file ${PYLEARN2_DATA_PATH}/UTLC/README for details on the datasets.
 """
 
-import cPickle
+from theano.compat.six.moves import cPickle
 import gzip
 import os
 

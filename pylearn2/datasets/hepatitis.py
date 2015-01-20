@@ -9,6 +9,7 @@ __author__ = "Ian Goodfellow"
 # http://archive.ics.uci.edu/ml/datasets/Hepatitis
 
 import numpy as np
+from theano.compat.six.moves import xrange
 
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 
@@ -74,12 +75,8 @@ class Hepatitis(DenseDesignMatrix):
         assert min(y) == 0
         assert max(y) == NUM_CLASSES - 1
 
-        one_hot = np.zeros((NUM_EXAMPLES, NUM_CLASSES))
-        for i in xrange(len(y)):
-            one_hot[i, y[i] - 1] = 1
-
         super(Hepatitis, self).__init__(
-            X=X, y=one_hot, preprocessor=preprocessor)
+            X=X, y=y, y_labels=NUM_CLASSES, preprocessor=preprocessor)
 
         self.restrict(start, stop)
 

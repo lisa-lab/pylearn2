@@ -25,6 +25,7 @@ __email__ = "pylearn-dev@googlegroups"
 import logging
 import theano.tensor as T
 import numpy as np
+from theano.compat.six.moves import xrange
 from theano import config
 from theano import function
 import time
@@ -623,7 +624,7 @@ def max_pool_channels_python(z, pool_size, top_down=None):
     if top_down is None:
         top_down = p.copy()
 
-    for i in xrange(0, n / pool_size):
+    for i in xrange(0, n // pool_size):
         pt = np.exp(z[:, i*pool_size:(i+1)*pool_size])
         off_pt = np.exp(-top_down[:, i])
         denom = pt.sum(axis=1) + off_pt

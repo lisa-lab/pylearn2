@@ -2,6 +2,7 @@ import theano
 theano.config.compute_test_value = 'off'
 from pylearn2.energy_functions.rbm_energy import GRBM_Type_1
 import numpy as N
+from theano.compat.six.moves import xrange
 import theano.tensor as T
 from theano import function
 from pylearn2.utils import as_floatX

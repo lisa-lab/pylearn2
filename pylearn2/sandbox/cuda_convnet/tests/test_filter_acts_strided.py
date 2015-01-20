@@ -1,9 +1,12 @@
+from __future__ import print_function
+
 __authors__ = "Heng Luo"
 
 from pylearn2.testing.skip import skip_if_no_gpu
 skip_if_no_gpu()
 
 import numpy as np
+from theano.compat.six.moves import xrange
 from theano import shared
 from theano.tensor import grad, constant
 from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
@@ -102,7 +105,7 @@ def test_filter_acts_strided():
         filters = rng.uniform(-1., 1., shape_list[test_idx][1]).astype('float32')
         gpu_images = float32_shared_constructor(images,name='images')
         gpu_filters = float32_shared_constructor(filters,name='filters')
-        print "test case %d..."%(test_idx+1) 
+        print("test case %d..."%(test_idx+1))
         
         for ii in xrange(filters.shape[1]):
             stride = ii + 1
@@ -118,15 +121,15 @@ def test_filter_acts_strided():
                 assert type(output_val) == type(output_python)
                 assert output_val.dtype == output_python.dtype
                 if output_val.shape != output_python.shape:
-                    print 'cuda-convnet shape: ',output_val.shape
-                    print 'python conv shape: ',output_python.shape
+                    print('cuda-convnet shape: ',output_val.shape)
+                    print('python conv shape: ',output_python.shape)
                     assert False
                 err = np.abs(output_val - output_python)
-                print 'stride %d'%stride
-                print 'absolute error range: ', (err.min(), err.max())
-                print 'mean absolute error: ', err.mean()
-                print 'cuda-convnet value range: ', (output_val.min(), output_val.max())
-                print 'python conv value range: ', (output_python.min(), output_python.max())
+                print('stride %d'%stride)
+                print('absolute error range: ', (err.min(), err.max()))
+                print('mean absolute error: ', err.mean())
+                print('cuda-convnet value range: ', (output_val.min(), output_val.max()))
+                print('python conv value range: ', (output_python.min(), output_python.max()))
                 #assert False 
         #print "pass"         
                

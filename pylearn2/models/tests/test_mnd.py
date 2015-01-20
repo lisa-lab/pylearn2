@@ -1,4 +1,7 @@
+from __future__ import print_function
+
 import numpy as np
+from theano.compat.six.moves import xrange
 from pylearn2.models.mnd import DiagonalMND
 from pylearn2.models.mnd import kl_divergence
 from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
@@ -139,8 +142,8 @@ class Test_DiagonalMND:
 
         tol = 6e-5
         if kl > tol:
-            print 'kl:',kl
-            print 'tol:',tol
+            print('kl:',kl)
+            print('tol:',tol)
         assert kl <= tol
         assert not (kl > tol )
 
@@ -158,8 +161,8 @@ def test_log_partition_function():
 
     ground = np.log( sigma * np.sqrt(2.*np.pi))
 
-    print ground
-    print log_Z
+    print(ground)
+    print(log_Z)
 
     assert np.allclose(ground, log_Z)
 

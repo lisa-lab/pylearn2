@@ -2,6 +2,7 @@ __author__ = "Ian Goodfellow"
 
 from matplotlib import pyplot
 import sys
+from theano.compat.six.moves import xrange
 pyplot.hold(True)
 
 from pylearn2.utils import serial

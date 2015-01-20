@@ -1,5 +1,6 @@
 """Tests for compilation utilities."""
 import theano.tensor as TT
+from nose.tools import assert_raises
 from pylearn2.utils.data_specs import DataSpecsMapping
 from pylearn2.space import VectorSpace, \
         CompositeSpace
@@ -86,3 +87,15 @@ def test_nest_specs():
         assert_equal(renested_space, nested_space)
         assert_equal(renested_source, nested_source)
         assert_equal(renested_data, nested_data)
+
+def test_input_validation():
+    """
+    DataSpecsMapping should raise errors if inputs
+    are not formatted as data specs.
+    """
+    assert_raises(ValueError,
+                  DataSpecsMapping,
+                  (VectorSpace(dim=10), ('features', 'targets')))
+    assert_raises(AssertionError,
+                  DataSpecsMapping,
+                  (('features', 'targets'), VectorSpace(dim=10)))

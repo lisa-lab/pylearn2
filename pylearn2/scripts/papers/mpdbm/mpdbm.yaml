@@ -9,7 +9,6 @@
       raw: &raw_train !obj:pylearn2.datasets.mnist.MNIST {
         which_set: "train",
         shuffle: 0,
-        one_hot: 1,
         start: 0,
         stop: 50000
     }},
@@ -55,13 +54,13 @@
             raw_valid: !obj:pylearn2.datasets.mnist.MNIST {
                                 which_set: "train",
                                 shuffle: 0,
-                                one_hot: 1,
                                 start: 50000,
                                 stop: 60000
                             },
                },
          learning_rate: 15.146493,
-        init_momentum: .5,
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: .5},
                cost: !obj:pylearn2.costs.cost.SumOfCosts {
                    costs :[
                       !obj:pylearn2.costs.dbm.MultiPrediction {
@@ -89,7 +88,7 @@
                         channel_name: "raw_valid_err",
                         save_path: "mpdbm.pkl"
                 },
-                !obj:pylearn2.training_algorithms.sgd.MomentumAdjustor {
+                !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
                     start: 1,
                     saturate: 2,
                     final_momentum: 0.732716

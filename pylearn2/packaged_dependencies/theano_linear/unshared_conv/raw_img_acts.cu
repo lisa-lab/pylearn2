@@ -26,6 +26,12 @@
 
 //#include <cudaconv2.cuh>
 
+// For Windows compatibility
+// It is also defined in nvmatrix_kernels.cuh, that is included
+// indirectly by cudaconv2.cuh, but it seem that it was commented.
+// As I don't know why, I just add this typedef here.
+typedef unsigned int uint;
+
 #define LO16(x)     ((x) & 0x0000FFFF)
 #define HI16(x)     ((x) >> 16)
 #define DIVUP(x, y) (((x) + (y) - 1) / (y))

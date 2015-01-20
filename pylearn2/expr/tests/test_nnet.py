@@ -14,12 +14,13 @@ from theano.gof.op import get_debug_values
 from theano import tensor as T
 
 from pylearn2.models.mlp import MLP, Sigmoid
+from pylearn2.expr.nnet import arg_of_sigmoid
 from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
 from pylearn2.expr.nnet import softmax_numpy
 from pylearn2.expr.nnet import softmax_ratio
 from pylearn2.expr.nnet import compute_recall
 from pylearn2.expr.nnet import kl
-from pylearn2.expr.nnet import elemwise_kl 
+from pylearn2.expr.nnet import elemwise_kl
 from pylearn2.utils import sharedX
 
 
@@ -83,7 +84,7 @@ def test_kl():
     """
     init_mode = theano.config.compute_test_value
     theano.config.compute_test_value = 'raise'
-    
+
     try:
         mlp = MLP(layers=[Sigmoid(dim=10, layer_name='Y', irange=0.1)],
                   nvis=10)
@@ -101,7 +102,7 @@ def test_kl():
         np.testing.assert_raises(ValueError, kl, Y, Y_hat, 1)
         Y.tag.test_value[2][3] = -0.1
         np.testing.assert_raises(ValueError, kl, Y, Y_hat, 1)
-    
+
     finally:
         theano.config.compute_test_value = init_mode
 
@@ -112,10 +113,10 @@ def test_elemwise_kl():
     input.
     """
     init_mode = theano.config.compute_test_value
-    theano.config.compute_test_value = 'raise' 
-    
+    theano.config.compute_test_value = 'raise'
+
     try:
-        mlp = MLP(layers=[Sigmoid(dim=10, layer_name='Y', irange=0.1)], 
+        mlp = MLP(layers=[Sigmoid(dim=10, layer_name='Y', irange=0.1)],
                   nvis=10)
         X = mlp.get_input_space().make_theano_batch()
         Y = mlp.get_output_space().make_theano_batch()
@@ -131,8 +132,29 @@ def test_elemwise_kl():
         np.testing.assert_raises(ValueError, elemwise_kl, Y, Y_hat)
         Y.tag.test_value[2][3] = -0.1
         np.testing.assert_raises(ValueError, elemwise_kl, Y, Y_hat)
-    
+
     finally:
         theano.config.compute_test_value = init_mode
 
-   
+def test_arg_of_sigmoid_good():
+    """
+    Tests that arg_of_sigmoid works when given a good input.
+    """
+
+    X = T.matrix()
+    Y = T.nnet.sigmoid(X)
+    Z = arg_of_sigmoid(Y)
+    assert X is Z
+
+def test_arg_of_sigmoid_bad():
+    """
+    Tests that arg_of_sigmoid raises an error when given a bad input.
+    """
+
+    X = T.matrix()
+    Y = T.nnet.softmax(X)
+    try:
+        Z = arg_of_sigmoid(Y)
+    except TypeError:
+        return
+    assert False # Should have failed

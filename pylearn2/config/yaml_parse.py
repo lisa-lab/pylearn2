@@ -8,7 +8,11 @@ from pylearn2.utils.string_utils import match
 from collections import namedtuple
 import logging
 import warnings
+import re
 
+from theano.compat import six
+
+SCIENTIFIC_NOTATION_REGEXP = r'^[\-\+]?(\d+\.?\d*|\d*\.?\d+)?[eE][\-\+]?\d+$'
 
 is_initialized = False
 additional_environ = None
@@ -226,7 +230,7 @@ def _instantiate_proxy_tuple(proxy, bindings=None):
                 raise NotImplementedError('positional arguments not yet '
                                           'supported in proxy instantiation')
             kwargs = dict((k, _instantiate(v, bindings))
-                          for k, v in proxy.keywords.iteritems())
+                          for k, v in six.iteritems(proxy.keywords))
             obj = checked_call(proxy.callable, kwargs)
         try:
             obj.yaml_src = proxy.yaml_src
@@ -282,12 +286,12 @@ def _instantiate(proxy, bindings=None):
         # Recurse on the keys too, for backward compatibility.
         # Is the key instantiation feature ever actually used, by anyone?
         return dict((_instantiate(k, bindings), _instantiate(v, bindings))
-                    for k, v in proxy.iteritems())
+                    for k, v in six.iteritems(proxy))
     elif isinstance(proxy, list):
         return [_instantiate(v, bindings) for v in proxy]
     # In the future it might be good to consider a dict argument that provides
     # a type->callable mapping for arbitrary transformations like this.
-    elif isinstance(proxy, basestring):
+    elif isinstance(proxy, six.string_types):
         return preprocess(proxy)
     else:
         return proxy
@@ -327,7 +331,7 @@ def load(stream, environ=None, instantiate=True, **kwargs):
         initialize()
     additional_environ = environ
 
-    if isinstance(stream, basestring):
+    if isinstance(stream, six.string_types):
         string = stream
     else:
         string = stream.read()
@@ -389,7 +393,7 @@ def try_to_import(tag_suffix):
     modulename = '.'.join(components[:-1])
     try:
         exec('import %s' % modulename)
-    except ImportError, e:
+    except ImportError as e:
         # We know it's an ImportError, but is it an ImportError related to
         # this path,
         # or did the module we're importing have an unrelated ImportError?
@@ -424,7 +428,7 @@ def try_to_import(tag_suffix):
                 j += 1
     try:
         obj = eval(tag_suffix)
-    except AttributeError, e:
+    except AttributeError as e:
         try:
             # Try to figure out what the wrong field name was
             # If we fail to do it, just fall back to giving the usual
@@ -461,6 +465,9 @@ def initialize():
     yaml.add_constructor('!import', constructor_import)
     yaml.add_constructor("!float", constructor_float)
 
+    pattern = re.compile(SCIENTIFIC_NOTATION_REGEXP)
+    yaml.add_implicit_resolver('!float', pattern)
+
     is_initialized = True
 
 
@@ -482,7 +489,7 @@ def multi_constructor_obj(loader, tag_suffix, node):
     assert hasattr(mapping, 'values')
 
     for key in mapping.keys():
-        if not isinstance(key, basestring):
+        if not isinstance(key, six.string_types):
             message = "Received non string object (%s) as " \
                       "key in mapping." % str(key)
             raise TypeError(message)
@@ -557,7 +564,7 @@ def construct_mapping(node, deep=False):
         key = constructor.construct_object(key_node, deep=False)
         try:
             hash(key)
-        except TypeError, exc:
+        except TypeError as exc:
             const = yaml.constructor
             reraise_as(const.ConstructorError("while constructing a mapping",
                                               node.start_mark,
