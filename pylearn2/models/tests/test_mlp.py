@@ -2,6 +2,7 @@ from __future__ import print_function
 
 from itertools import product
 from nose.tools import assert_raises
+from nose.plugins.skip import SkipTest
 import numpy as np
 
 from theano.compat import six
@@ -9,6 +10,9 @@ from theano.compat.six.moves import reduce, xrange
 import theano
 from theano import tensor, config
 T = tensor
+from theano.sandbox import cuda
+from theano.sandbox.cuda.dnn import dnn_available
+from nose.tools import assert_raises
 
 from pylearn2.datasets.vector_spaces_dataset import VectorSpacesDataset
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
@@ -18,8 +22,8 @@ from pylearn2.train import Train
 from pylearn2.models.mlp import (FlattenerLayer, MLP, Linear, Softmax, Sigmoid,
                                  exhaustive_dropout_average,
                                  sampled_dropout_average, CompositeLayer,
-                                 mean_pool, SigmoidConvNonlinearity,
-                                 ConvElemwise)
+                                 max_pool, mean_pool, pool_dnn,
+                                 SigmoidConvNonlinearity, ConvElemwise)
 from pylearn2.space import VectorSpace, CompositeSpace, Conv2DSpace
 from pylearn2.utils import is_iterable, sharedX
 from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
@@ -861,3 +865,219 @@ def test_mean_pool():
                          [9, 11]], dtype=theano.config.floatX)
     actual = f(X)
     assert np.allclose(expected, actual)
+
+    # With different values in pools
+    t = np.array([[0, 1, 3, 2],
+                  [1, 2, 4, 3],
+                  [4, 6, 7, 7],
+                  [5, 5, 6, 8],
+                  [8, 10, 11, 11],
+                  [9, 9, 10, 12]], dtype=theano.config.floatX)
+
+    X = np.zeros((3, t.shape[0], t.shape[1]), dtype=theano.config.floatX)
+    X[:] = t
+    X = X[np.newaxis]
+    expected = np.array([[1, 3],
+                         [5, 7],
+                         [9, 11]], dtype=theano.config.floatX)
+    actual = f(X)
+    assert np.allclose(expected, actual)
+
+
+def test_max_pool():
+    """
+    Test max pooling for known result.
+    """
+    X_sym = tensor.tensor4('X')
+    pool_it = max_pool(X_sym, pool_shape=(2, 2), pool_stride=(2, 2),
+                       image_shape=(6, 4))
+
+    f = theano.function(inputs=[X_sym], outputs=pool_it)
+
+    X = np.array([[2, 1, 3, 4],
+                  [1, 1, 3, 3],
+                  [5, 5, 7, 7],
+                  [5, 6, 8, 7],
+                  [9, 10, 11, 12],
+                  [9, 10, 12, 12]],
+                 dtype=theano.config.floatX)[np.newaxis, np.newaxis, ...]
+
+    expected = np.array([[2, 4],
+                         [6, 8],
+                         [10, 12]],
+                        dtype=theano.config.floatX)[np.newaxis,
+                                                    np.newaxis,
+                                                    ...]
+
+    actual = f(X)
+    assert np.allclose(expected, actual)
+
+
+def test_max_pool_options():
+    """
+    Compare gpu max pooling methods with various shapes
+    and strides.
+    """
+    if not cuda.cuda_available:
+        raise SkipTest('Optional package cuda disabled.')
+    if not dnn_available():
+        raise SkipTest('Optional package cuDNN disabled.')
+
+    X_sym = tensor.tensor4('X')
+    # Case 1: shape > stride
+    shp = (3, 3)
+    strd = (2, 2)
+    im_shp = (6, 4)
+    pool_it = max_pool(X_sym, pool_shape=shp, pool_stride=strd,
+                       image_shape=im_shp, try_dnn=False)
+    pool_dnn = max_pool(X_sym, pool_shape=shp, pool_stride=strd,
+                        image_shape=im_shp)
+    # Make sure that different ops were used.
+    assert pool_it.owner.op != pool_dnn.owner.op
+
+    f = theano.function(inputs=[X_sym], outputs=[pool_it, pool_dnn])
+
+    X = np.array([[2, 1, 3, 4],
+                  [1, 1, 3, 3],
+                  [5, 5, 7, 8],
+                  [5, 6, 8, 7],
+                  [9, 10, 11, 12],
+                  [9, 10, 14, 15]],
+                 dtype=theano.config.floatX)[np.newaxis, np.newaxis, ...]
+
+    expected = np.array([[7, 8],
+                         [11, 12],
+                         [14, 15]],
+                        dtype=theano.config.floatX)[np.newaxis,
+                                                    np.newaxis,
+                                                    ...]
+    actual, actual_dnn = f(X)
+    actual_dnn = np.array(actual_dnn)
+    assert np.allclose(expected, actual)
+    assert np.allclose(actual, actual_dnn)
+
+    # Case 2: shape < stride
+    shp = (2, 2)
+    strd = (3, 3)
+    im_shp = (6, 4)
+    pool_it = max_pool(X_sym, pool_shape=shp, pool_stride=strd,
+                       image_shape=im_shp, try_dnn=False)
+    pool_dnn = max_pool(X_sym, pool_shape=shp, pool_stride=strd,
+                        image_shape=im_shp)
+    # Make sure that different ops were used.
+    assert pool_it.owner.op != pool_dnn.owner.op
+
+    f = theano.function(inputs=[X_sym], outputs=[pool_it, pool_dnn])
+
+    X = np.array([[2, 1, 3, 4],
+                  [1, 1, 3, 3],
+                  [5, 5, 7, 8],
+                  [5, 6, 8, 7],
+                  [9, 10, 11, 12],
+                  [9, 10, 14, 15]],
+                 dtype=theano.config.floatX)[np.newaxis, np.newaxis, ...]
+
+    expected = np.array([[2, 4],
+                         [10, 12]],
+                        dtype=theano.config.floatX)[np.newaxis,
+                                                    np.newaxis,
+                                                    ...]
+    actual, actual_dnn = f(X)
+    actual_dnn = np.array(actual_dnn)
+    assert np.allclose(expected, actual)
+    assert np.allclose(actual, actual_dnn)
+
+    # Case 3: shape == stride
+    shp = (2, 2)
+    strd = (2, 2)
+    im_shp = (6, 4)
+    pool_it = max_pool(X_sym, pool_shape=shp, pool_stride=strd,
+                       image_shape=im_shp, try_dnn=False)
+    pool_dnn = max_pool(X_sym, pool_shape=shp, pool_stride=strd,
+                        image_shape=im_shp)
+    # Make sure that different ops were used.
+    assert pool_it.owner.op != pool_dnn.owner.op
+
+    f = theano.function(inputs=[X_sym], outputs=[pool_it, pool_dnn])
+
+    X = np.array([[2, 1, 3, 4],
+                  [1, 1, 3, 3],
+                  [5, 5, 7, 8],
+                  [5, 6, 8, 7],
+                  [9, 10, 11, 12],
+                  [9, 10, 14, 15]],
+                 dtype=theano.config.floatX)[np.newaxis, np.newaxis, ...]
+
+    expected = np.array([[2, 4],
+                         [6, 8],
+                         [10, 15]],
+                        dtype=theano.config.floatX)[np.newaxis,
+                                                    np.newaxis,
+                                                    ...]
+    actual, actual_dnn = f(X)
+    actual_dnn = np.array(actual_dnn)
+    assert np.allclose(expected, actual)
+    assert np.allclose(actual, actual_dnn)
+
+    # Case 4: row shape < row stride
+    shp = (2, 2)
+    strd = (3, 2)
+    im_shp = (6, 4)
+    pool_it = max_pool(X_sym, pool_shape=shp, pool_stride=strd,
+                       image_shape=im_shp, try_dnn=False)
+    pool_dnn = max_pool(X_sym, pool_shape=shp, pool_stride=strd,
+                        image_shape=im_shp)
+    # Make sure that different ops were used.
+    assert pool_it.owner.op != pool_dnn.owner.op
+
+    f = theano.function(inputs=[X_sym], outputs=[pool_it, pool_dnn])
+
+    X = np.array([[2, 1, 3, 4],
+                  [1, 1, 3, 3],
+                  [5, 5, 7, 8],
+                  [5, 6, 8, 7],
+                  [9, 10, 11, 12],
+                  [9, 10, 14, 15]],
+                 dtype=theano.config.floatX)[np.newaxis, np.newaxis, ...]
+
+    expected = np.array([[2, 4],
+                         [10, 12]],
+                        dtype=theano.config.floatX)[np.newaxis,
+                                                    np.newaxis,
+                                                    ...]
+    actual, actual_dnn = f(X)
+    actual_dnn = np.array(actual_dnn)
+    assert np.allclose(expected, actual)
+    assert np.allclose(actual, actual_dnn)
+
+    # Case 5: col shape < col stride
+    shp = (2, 2)
+    strd = (2, 3)
+    im_shp = (6, 4)
+    pool_it = max_pool(X_sym, pool_shape=shp, pool_stride=strd,
+                       image_shape=im_shp, try_dnn=False)
+    pool_dnn = max_pool(X_sym, pool_shape=shp, pool_stride=strd,
+                        image_shape=im_shp)
+    # Make sure that different ops were used.
+    assert pool_it.owner.op != pool_dnn.owner.op
+
+    f = theano.function(inputs=[X_sym], outputs=[pool_it, pool_dnn])
+
+    X = np.array([[2, 1, 3, 4],
+                  [1, 1, 3, 3],
+                  [5, 5, 7, 8],
+                  [5, 6, 8, 7],
+                  [9, 10, 11, 12],
+                  [9, 10, 14, 15]],
+                 dtype=theano.config.floatX)[np.newaxis, np.newaxis, ...]
+
+    expected = np.array([[2, 4],
+                         [6, 8],
+                         [10, 15]],
+                        dtype=theano.config.floatX)[np.newaxis,
+                                                    np.newaxis,
+                                                    ...]
+    actual, actual_dnn = f(X)
+    actual_dnn = np.array(actual_dnn)
+    assert np.allclose(expected, actual)
+    assert np.allclose(actual, actual_dnn)
