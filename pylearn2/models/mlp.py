@@ -302,7 +302,8 @@ class Layer(LayerBase):
         -------
         format: tuple
             Either ('v', 'h') or  ('h', 'v').
-            ('v', 'h') means a weight matrix of shape(num visible units, num hidden units),
+            ('v', 'h') means a weight matrix of shape
+            (num visible units, num hidden units),
             while ('h', 'v') means the transpose of it.
 
         """
