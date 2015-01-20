@@ -296,9 +296,16 @@ class Layer(LayerBase):
 
     def get_weights_format(self):
         """
-        .. todo::
+        Returns a description of how to interpret the weights of the layer.
 
-            WRITEME
+        Returns
+        -------
+        format: tuple
+            Either ('v', 'h') or  ('h', 'v').
+            ('v', 'h') means a weight matrix of shape
+            (num visible units, num hidden units),
+            while ('h', 'v') means the transpose of it.
+
         """
         raise NotImplementedError
 
