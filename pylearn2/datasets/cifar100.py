@@ -122,6 +122,14 @@ class CIFAR100(DenseDesignMatrix):
 
         return rval
 
+    def __setstate__(self, state):
+        super(CIFAR100, self).__setstate__(state)
+        # Patch old pkls
+        if self.y is not None and self.y.ndim == 1:
+            self.y = self.y.reshape((self.y.shape[0], 1))
+        if 'y_labels' not in state:
+            self.y_labels = 100
+
     def adjust_to_be_viewed_with(self, X, orig, per_example=False):
         """
         .. todo::
