@@ -800,7 +800,12 @@ class FiniteDatasetIterator(object):
             self._convert = convert
 
         for i, (so, sp) in enumerate(safe_izip(source, sub_spaces)):
-            idx = dataset_source.index(so)
+            try:
+                idx = dataset_source.index(so)
+            except ValueError as e:
+                msg = str(e) + '\nThe dataset does not provide '\
+                               'a source with name: ' + so + '.'
+                reraise_as(ValueError(msg))
             dspace = dataset_sub_spaces[idx]
 
             init_fn = self._convert[i]
