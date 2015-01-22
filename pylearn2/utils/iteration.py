@@ -788,8 +788,16 @@ class FiniteDatasetIterator(object):
             all_data = self._dataset.get_data()
             if not isinstance(all_data, tuple):
                 all_data = (all_data,)
-            self._raw_data = tuple(all_data[dataset_source.index(s)]
-                                   for s in source)
+            raw_data = []
+            for s in source:
+                try:
+                    raw_data.append(all_data[dataset_source.index(s)])
+                except ValueError as e:
+                    msg = str(e) + '\nThe dataset does not provide '\
+                                   'a source with name: ' + s + '.'
+                reraise_as(ValueError(msg))
+            self._raw_data = tuple(raw_data)
+
         self._source = source
         self._space = sub_spaces
 
