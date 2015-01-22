@@ -125,7 +125,7 @@ class CIFAR100(DenseDesignMatrix):
     def __setstate__(self, state):
         super(CIFAR100, self).__setstate__(state)
         # Patch old pkls
-        if self.y.ndim == 1:
+        if self.y is not None and self.y.ndim == 1:
             self.y = self.y.reshape((self.y.shape[0], 1))
         if 'y_labels' not in state:
             self.y_labels = 100
