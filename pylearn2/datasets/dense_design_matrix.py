@@ -1433,7 +1433,9 @@ class DefaultViewConverter(object):
                     "  self.shape:       %s (uses standard axis order: 0, 1, "
                     "'c')\n"
                     "  self.axes:        %s\n"
-                    "  topo_array.shape: %s (should be in self.axes' order)")
+                    "  topo_array.shape: %s (should be in self.axes' order)" %
+                    (axis, topo_array.shape[self.axes.index(axis)], shape_elem,
+                     self.shape, self.axes, topo_array.shape))
 
         topo_array_bc01 = topo_array.transpose([self.axes.index(ax)
                                                 for ax in ('b', 'c', 0, 1)])
