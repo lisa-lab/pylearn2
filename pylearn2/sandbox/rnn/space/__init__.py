@@ -266,7 +266,6 @@ class SequenceMaskSpace(space.SimplyTypedSpace):
                 n = 4
             rval.tag.test_value = self.get_origin_batch(batch_size=n,
                                                         dtype=dtype)
-        
         return rval
 
     @wraps(space.Space._validate_impl)
@@ -278,8 +277,9 @@ class SequenceMaskSpace(space.SimplyTypedSpace):
         dtype = self._clean_dtype_arg(dtype)
         # Set a number which is not equal to batch_size for comfort debugging
         time_step = 5
-        # creating masks that have different zero values. Non-zeros is 15 out of 20
+        # creating masks that have different zero values.
+        # Non-zeros is 15 out of 20
         rval = np.zeros((time_step, batch_size), dtype=dtype)
-        rval[:3,:1] = 1
-        rval[:4,1:] = 1
+        rval[:3, :1] = 1
+        rval[:4, 1:] = 1
         return rval
