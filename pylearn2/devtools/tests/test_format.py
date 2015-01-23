@@ -586,10 +586,18 @@ whitelist_docstrings = [
     'datasets/tests/test_npy_npz.py',
     'linear/tests/test_conv2d.py',
     'devtools/tests/pep8/pep8.py',
-    'devtools/tests/pep8/__init__.py']
-
-# add files which have long execution time to whitelist_docstrings
-whitelist_docstrings.extend([])
+    'devtools/tests/pep8/__init__.py'
+    'scripts/lcc_tangents/make_dataset.py',
+    'scripts/icml_2013_wrepl/multimodal/make_wordlist.py',
+    'scripts/datasets/make_stl10_whitened.py',
+    'scripts/datasets/make_stl10_patches_8x8.py',
+    'pylearn2/scripts/datasets/make_stl10_patches.py',
+    'scripts/datasets/make_cifar10_whitened.py',
+    'scripts/datasets/make_cifar100_patches.py',
+    'scripts/datasets/make_cifar100_gcn_whitened.py',
+    'energy_functions/tests/test_rbm_energy.py',
+    'pylearn2/costs/ebm_estimation.py',
+    ]
 
 # add files which fail to run to whitelist_docstrings
 whitelist_docstrings.extend([
@@ -642,7 +650,8 @@ whitelist_docstrings.extend([
     'scripts/icml_2013_wrepl/black_box/learn_zca.py',
     'train_extensions/tests/test_window_flip.py',
     'train_extensions/window_flip.py',
-    'linear/tests/test_local_c01b.py'])
+    'linear/tests/test_local_c01b.py',
+    'sandbox/cuda_convnet/debug.py',])
 
 
 def test_format_pep8():
