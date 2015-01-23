@@ -104,7 +104,7 @@ class SequenceDatasetIterator(FiniteDatasetIterator):
         mask = np.zeros((max_sequence_length, len(data)), dtype=config.floatX)
         for i, sequence_length in enumerate(sequence_lengths):
             mask[:sequence_length, i] = 1
-        return mask.T
+        return mask
 
     @wraps(FiniteDatasetIterator.next)
     def next(self):
@@ -122,14 +122,16 @@ class SequenceDatasetIterator(FiniteDatasetIterator):
                                  data[0].shape[1:], dtype=data[0].dtype)
                 for i, sample in enumerate(rval):
                     batch[i, :len(sample)] = sample
+
+                # Create mask
+                if source in self.mask_needed:
+                    mask = self._create_mask(rval)
                 rval = np.transpose(batch, (1, 0, 2))
                 if fn:
                     rval = fn(rval)
                 rvals.append(rval)
-
-                # Create mask
                 if source in self.mask_needed:
-                    rvals.append(self._create_mask(rval))
+                    rvals.append(mask)
             else:
                 if fn:
                     rval = fn(rval)
