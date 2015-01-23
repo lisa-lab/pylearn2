@@ -17,7 +17,7 @@ import warnings
 
 from pylearn2.datasets.dense_design_matrix import (DenseDesignMatrix,
                                                    DefaultViewConverter)
-from pylearn2.space import CompositeSpace, VectorSpace
+from pylearn2.space import CompositeSpace, VectorSpace, IndexSpace
 from pylearn2.utils.iteration import FiniteDatasetIterator, safe_izip
 from pylearn2.utils import contains_nan
 
@@ -147,7 +147,6 @@ class HDF5Dataset(DenseDesignMatrix):
         * HDF5ViewConverter is used instead of DefaultViewConverter
         * Data specs are derived from topo_view, not X
         * NaN checks have been moved to HDF5DatasetIterator.next
-        * Support for "old pickled models" is dropped.
 
         Note that y may be loaded into memory for reshaping if y.ndim != 2.
 
@@ -180,7 +179,14 @@ class HDF5Dataset(DenseDesignMatrix):
                 dim = 1
             else:
                 dim = self.y.shape[-1]
-            y_space = VectorSpace(dim=dim)
+
+            # check if y_labels has been specified
+            if getattr(self, 'y_labels', None) is not None:
+                y_space = IndexSpace(dim=dim, max_labels=self.y_labels)
+            elif getattr(self, 'max_labels', None) is not None:
+                y_space = IndexSpace(dim=dim, max_labels=self.max_labels)
+            else:
+                y_space = VectorSpace(dim=dim)
             y_source = 'targets'
             space = CompositeSpace((X_space, y_space))
             source = (X_source, y_source)
@@ -233,7 +239,24 @@ class HDF5DatasetIterator(FiniteDatasetIterator):
             try:
                 this_data = data[next_index]
             except TypeError:
-                this_data = data[next_index, :]
+                # FB: Why this try..except is there? I think this is useless.
+                # Do not hide the original if we can't fall back.
+                # FV: This is triggered if the shape of next_index is
+                # incompatible with the shape of the dataset. See for an
+                # example test_hdf5_topo_view(), where where i
+                # next.index.shape = (10,) and data is 'data': <HDF5
+                # dataset "y": shape (10, 3), type "<f8">
+                # I think it would be better to explicitly check if
+                # next_index.shape is incompatible with data.shape, for
+                # instance checking if next_index.ndim == data.ndim
+                if data.ndim > 1:
+                    this_data = data[next_index, :]
+                else:
+                    raise
+            # Check if the dataset data is a vector and transform it into a
+            # one-column matrix. This is needed to automatically convert the
+            # shape of the data later (in the format_as method of the
+            # Space.)
             if fn:
                 this_data = fn(this_data)
             assert not contains_nan(this_data)

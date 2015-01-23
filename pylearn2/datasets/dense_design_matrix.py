@@ -129,7 +129,8 @@ class DenseDesignMatrix(Dataset):
         If y contains labels then y_labels must be passed to indicate the
         total number of possible labels e.g. 10 for the MNIST dataset
         where the targets are numbers. This will make the set use
-        IndexSpace.
+        IndexSpace that will convert the label data in a one-hot matrix if
+        needed.
 
     See Also
     --------
@@ -786,7 +787,10 @@ class DenseDesignMatrix(Dataset):
                 dim = 1
             else:
                 dim = self.y.shape[-1]
-            # This is to support old pickled models
+
+            # This is to support old pickled models as well to trigger the
+            # conversion of the labels vector into a 2D one-hot matrix if
+            # y_labels is specified and the cost requires it
             if getattr(self, 'y_labels', None) is not None:
                 y_space = IndexSpace(dim=dim, max_labels=self.y_labels)
             elif getattr(self, 'max_labels', None) is not None:

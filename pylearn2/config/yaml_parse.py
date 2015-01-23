@@ -231,6 +231,9 @@ def _instantiate_proxy_tuple(proxy, bindings=None):
                                           'supported in proxy instantiation')
             kwargs = dict((k, _instantiate(v, bindings))
                           for k, v in six.iteritems(proxy.keywords))
+
+            # Call a function or instantiate an object, depending on current
+            # proxy
             obj = checked_call(proxy.callable, kwargs)
         try:
             obj.yaml_src = proxy.yaml_src
