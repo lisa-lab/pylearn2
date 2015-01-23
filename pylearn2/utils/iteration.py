@@ -795,7 +795,7 @@ class FiniteDatasetIterator(object):
                 except ValueError as e:
                     msg = str(e) + '\nThe dataset does not provide '\
                                    'a source with name: ' + s + '.'
-                reraise_as(ValueError(msg))
+                    reraise_as(ValueError(msg))
             self._raw_data = tuple(raw_data)
 
         self._source = source
