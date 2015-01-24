@@ -52,6 +52,21 @@ class test_retina():
         """
         Helper function
 
+        Parameters
+        ----------
+        image :
+            numpy matrix in format (batch, rows, cols, chans)
+        rings :
+            list of ring_sizes used to generate compressed image
+        encoded_size :
+            number of pixels in encoded images, output of get_encoded
+            _size
+        bs :
+            batch size
+
+        Notes
+        -----
+
         Here we foveate the image, which reduces the quality of the rings
         Defoveate it back into the original image, and see if we
         once again refoveate whether it returns to the original image
