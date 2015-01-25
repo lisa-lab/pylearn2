@@ -24,6 +24,7 @@ from pylearn2.datasets.dense_design_matrix import (DenseDesignMatrix,
 from pylearn2.space import CompositeSpace, VectorSpace
 from pylearn2.utils.iteration import FiniteDatasetIterator, safe_izip
 from pylearn2.utils import contains_nan
+from pylearn2.utils import safe_zip
 
 
 class HDF5Dataset(DenseDesignMatrix):
@@ -308,22 +309,32 @@ class HDF5ViewConverter(DefaultViewConverter):
             rows according to the default axis order ('b', 'c', 0, 1).
 
         """
-        v_shape = (V.shape[self.axes.index('b')],
-                   V.shape[self.axes.index(0)],
-                   V.shape[self.axes.index(1)],
-                   V.shape[self.axes.index('c')])
+        for shape_elem, axis in safe_zip(self.shape, (0, 1, 'c')):
+            if topo_array.shape[self.axes.index(axis)] != shape_elem:
+                raise ValueError(
+                    "topo_array's %s axis has a different size "
+                    "(%d) from the corresponding size (%d) in "
+                    "self.shape.\n"
+                    "  self.shape:       %s (uses standard axis order: 0, 1, "
+                    "'c')\n"
+                    "  self.axes:        %s\n"
+                    "  topo_array.shape: %s (should be in self.axes' order)" %
+                    (axis, topo_array.shape[self.axes.index(axis)], shape_elem,
+                     self.shape, self.axes, topo_array.shape))
+
+        return HDF5VirtualDesignMat(topo_array, self.axes)
+
 
         if np.any(np.asarray(self.shape) != np.asarray(v_shape[1:])):
             raise ValueError('View converter for views of shape [batch_size, '
                              + str(self.shape) + '. Instead was given '
                              'a tensor of shape' + str(v_shape))
 
-        rval = HDF5TopoViewConverter(V, self.axes)
         return rval
 
 
-class HDF5TopoViewConverter(object):
 
+class HDF5VirtualDesignMat(object):
     """
     Class to simulate a dense design matrix. Reads data stored in the disk as a
     topological view and transforms the batches in a dense design matrix.
@@ -351,15 +362,12 @@ class HDF5TopoViewConverter(object):
         """
         self.topo_view = topo_view
         self.axes = axes
-        self.topo_view_shape = (topo_view.shape[axes.index('b')],
-                                topo_view.shape[axes.index(0)],
-                                topo_view.shape[axes.index(1)],
-                                topo_view.shape[axes.index('c')])
-        self.pixels_per_channel = (self.topo_view_shape[1] *
-                                   self.topo_view_shape[2])
-        self.n_channels = self.topo_view_shape[3]
-        self.shape = (self.topo_view_shape[0],
-                      np.product(self.topo_view_shape[1:]))
+
+        self.shape = (
+            topo_view.shape[self.axes.index('b')],
+            np.product([topo_view.shape[self.axes.index(0)],
+                        topo_view.shape[self.axes.index(1)],
+                        topo_view.shape[self.axes.index('c')]]))
         self.ndim = len(self.shape)
 
     def __getitem__(self, item):
@@ -374,18 +382,66 @@ class HDF5TopoViewConverter(object):
             Batch selection.        Either a slice or a boolean mask (ndarray).
             Design matrix index.    Tuple
         """
-        sel = [slice(None)] * len(self.topo_view_shape)
-        sel[self.axes.index('b')] = item
-        sel = tuple(sel)
-        V = self.topo_view[sel]
-        batch_size = V.shape[self.axes.index('b')]
-        rval = np.zeros((batch_size,
-                         self.pixels_per_channel * self.n_channels),
-                        dtype=V.dtype)
-        for i in xrange(self.n_channels):
-            ppc = self.pixels_per_channel
-            sel = [slice(None)] * len(V.shape)
-            sel[self.axes.index('c')] = i
+        if isinstance(item, tuple):
+            # item's element can be either an int or a slice. Convert all of
+            # them to slices
+            # item = [i if isinstance(i, slice) else slice(i, i+1) for i in item]
+
+            def num_el(it):
+                """
+                Compute the number of elements in a slice
+
+                Parameters
+
+                it: slice
+                """
+                b = it.start
+                e = it.stop
+                s = it.step
+                return (e-b)/s if (e-b) % s == 0 else (e-b)/s + 1
+
+            rval_shape = tuple([num_el(it) if isinstance(it, slice) else 1
+                               for it in item])
+
+            # Convert the indexes from the (b, c01) format of the design matrix
+            # to the (b,c,0,1) format of the topological view
+            topo_bc01_slices = self.design_mat2topo_view_idx(
+                self.topo_view.shape, item)
+
+            # Transpose the axes of the indices, according to the shape of the
+            # topological view, and get the data from the dataset
+            rval = np.array([])
+            axes_order = [('b', 'c', 0, 1).index(ax) for ax in self.axes]
+
+            for el in topo_bc01_slices:
+                data = self.topo_view[tuple([el[i] for i in axes_order])]
+                rval = np.append(rval, data.flatten())
+
+            rval = rval.reshape(rval_shape)
+        else:
+            # FV: this code should be probably checked and modified. It
+            # bases on assumptions that are not verified, s.a. the shape of the
+            # input. It is working though, so I am keeping it as is for now.
+            # The boolean mask is given as argument at least in one case: in
+            # HDF5DatasetIterator.next() by 'is_data = data[next_index]'.
+            # I couldn't find a call with an ndarray argument.
+            pixels_per_channel = (self.topo_view.shape[self.axes.index(0)] *
+                                  self.topo_view.shape[self.axes.index(1)])
+            n_channels = self.topo_view.shape[self.axes.index('c')]
+
+            sel = [slice(None)] * len(self.topo_view.shape)
+            sel[self.axes.index('b')] = item
             sel = tuple(sel)
-            rval[:, i * ppc:(i + 1) * ppc] = V[sel].reshape(batch_size, ppc)
+            V = self.topo_view[sel]
+            batch_size = V.shape[self.axes.index('b')]
+            rval = np.zeros(
+                (batch_size, pixels_per_channel * n_channels),
+                dtype=V.dtype)
+            for i in xrange(n_channels):
+                ppc = pixels_per_channel
+                sel = [slice(None)] * len(V.shape)
+                sel[self.axes.index('c')] = i
+                sel = tuple(sel)
+                rval[:, i * ppc:(i + 1) * ppc] = V[sel].reshape(batch_size,
+                                                                ppc)
         return rval
