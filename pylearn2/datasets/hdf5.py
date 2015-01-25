@@ -59,7 +59,7 @@ class HDF5Dataset(DenseDesignMatrix):
     """
 
     def __init__(self, filename, X=None, topo_view=None, y=None,
-                 load_all=False, cache_size=None, use_h5py=False, **kwargs):
+                 load_all=False, cache_size=None, use_h5py=True, **kwargs):
         self.load_all = load_all
         if use_h5py:
             if h5py is None:
@@ -287,7 +287,52 @@ class HDF5ViewConverter(DefaultViewConverter):
     weights_view_shape
     """
 
-    def topo_view_to_design_mat(self, V):
+    def design_mat_to_topo_view(self, design_matrix):
+        """
+        Returns a topological view/copy of design matrix.
+
+        Parameters
+        ----------
+        design_matrix: numpy.ndarray
+            A design matrix with data in rows. Data is assumed to be laid out
+            in memory according to the axis order ('b', 'c', 0, 1)
+
+        Returns
+        -------
+        rval: HDF5DesignMatConverter
+            This override of DefaultViewConverter.design_mat_to_topo_view does
+            not attempt to transpose the design matrix, since transposition
+            is not supported by HDF5 datasets. Instead an instance of
+            HDF5DesignMatConverter is returned, which transforms the data from
+            the design matrix view into the topological view for each batch.
+            The axis order is given by self.axes and the batch shape by
+            self.shape (in case you reordered self.shape to match self.axes,
+            as self.shape is always in 'c', 0, 1 order).
+        """
+        if len(design_matrix.shape) != 2:
+            raise ValueError("design_matrix must have 2 dimensions, but shape "
+                             "was %s." % str(design_matrix.shape))
+
+        expected_row_size = np.prod(self.shape)
+        if design_matrix.shape[1] != expected_row_size:
+            raise ValueError("This HDF5ViewConverter's self.shape is %s, "
+                             "for a total size of %d, but the design_matrix's "
+                             "row size was different (%d)." %
+                             (str(self.shape),
+                              expected_row_size,
+                              design_matrix.shape[1]))
+
+        bc01_shape = tuple([design_matrix.shape[0], ] +  # num. batches
+                           # Maps the (0, 1, 'c') of self.shape to ('c', 0, 1)
+                           [self.shape[i] for i in (2, 0, 1)])
+        axes_order = [('b', 'c', 0, 1).index(axis) for axis in self.axes]
+
+        return HDF5VirtualTopoView(design_matrix, bc01_shape, axes_order)
+
+    def design_mat_to_weights_view(self, X):
+        raise NotImplemented
+
+    def topo_view_to_design_mat(self, topo_array):
         """
         Generate a design matrix from the topological view.
 
@@ -325,13 +370,131 @@ class HDF5ViewConverter(DefaultViewConverter):
         return HDF5VirtualDesignMat(topo_array, self.axes)
 
 
-        if np.any(np.asarray(self.shape) != np.asarray(v_shape[1:])):
-            raise ValueError('View converter for views of shape [batch_size, '
-                             + str(self.shape) + '. Instead was given '
-                             'a tensor of shape' + str(v_shape))
+class HDF5VirtualTopoView(object):
+
+    """
+    Class to simulate a topological view. Reads data stored in the disk as a
+    dense design matrix and transforms the batches in a topological view.
+
+    Attributes
+    ----------
+    design_matrix: HDF5 dataset
+        The hdf5 dataset object
+    bc01_shape: list
+        The shape in the 'bc01' order
+    shape: list
+        The shape in the 'axes_order' order (can change after 'virtual'
+        transpositions and reshapes)
+    axes_order: list of ints
+        The order of the axes
+
+    """
+    @property
+    def shape(self):
+        return [self.bc01_shape[idx] for idx in self.axes_order]
+
+    def __init__(self, design_matrix, bc01_shape, axes_order=[0, 1, 2, 3]):
+        """
+        Parameters
+        ----------
+        design_matrix: HDF5 dataset
+            On-disk design matrix.
+        bc01_shape: list
+            The batch shape, in 'bc01' order
+        axes_order: list, optional (default [0, 1, 2, 3])
+            Order of axes in topological view.
+        """
+        self.design_matrix = design_matrix
+        self.bc01_shape = bc01_shape
+        self.axes_order = axes_order
+
+    def __getitem__(self, item):
+        """
+        Receives indexes in topological view format, transforms them in design
+        matrix format, retrieves the requested data on disk and returns them
+        in topological view format.
+
+        Parameters
+        ----------
+        item : tuple
+            Slice selection for each axis of the topological view. Each element
+            of item is either a slice or an int.
+        """
+        assert isinstance(item, tuple), 'The argument should be a tuple'
+        assert len(item) == 4, (
+            'Expecting a 4D tuple, but item is ' + str(len(item)) + 'D')
+        assert np.all([isinstance(el, (int, slice)) for el in item]), (
+            'The elements of item should be either int or slice')
+
+        def slice_to_range(this_slice, end):
+            start = this_slice.start
+            stop = this_slice.stop
+            step = this_slice.step
+
+            if start is None:
+                start = 1
+            if stop is None:
+                stop = end
+            if step is None:
+                step = 1
+            return [start, stop, step]
+
+        # Convert all of the elements of item to slices
+        item = [i if isinstance(i, slice) else slice(i, i+1) for i in item]
+
+        # Get the start, stop and step value of each slice
+        range_b = slice_to_range(item[0],
+                                 self.bc01_shape[0])
+        range_c = slice_to_range(item[self.axes_order.index(1)],
+                                 self.bc01_shape[1])
+        range_0 = slice_to_range(item[self.axes_order.index(2)],
+                                 self.bc01_shape[2])
+        range_1 = slice_to_range(item[self.axes_order.index(3)],
+                                 self.bc01_shape[3])
+
+        # Populate rval iterating through the bc01 intervals
+        # TODO refactor to aggregate indexes and reduce the access to the disk
+        # to a minimum
+        rval = []
+
+        for b in range(*range_b):
+            for c in range(*range_c):
+                for x in range(*range_0):
+                    # self.design_matrix is indexed as [b, c01]
+                    # Let's compute the 'base' index (based on c, x and the
+                    # 'start' value of range_1) and the offset (based on the
+                    # 'start' and 'stop' values of range_1.
+                    base = np.ravel_multi_index([c, x, range_1[0]],
+                                                self.bc01_shape[1:])
+                    offset = range_1[1] - range_1[0]
+                    rval.append(
+                        self.design_matrix[b, base:base+offset:range_1[2]])
+
+        raise NotImplementedError(
+            'Reshape of rdata is missing: rdata should have the shape it '
+            'would have if it were a topoview selection.')
 
         return rval
 
+    def transpose(self, axes=None):
+        """
+        Permute the dimensions of an array.
+
+        Parameters
+        ----------
+        axes : list of ints, optional
+            By default, reverse the dimensions, otherwise permute the axes
+            according to the values given.
+
+        Returns
+        -------
+        rval: HDF5DesignMatConverter
+            'self' with its axes permuted
+        """
+        if axes is None:
+            axes = self.axes_order
+            axes.reverse()
+        return HDF5DesignMat2TopoViewConverter(self.design_matrix, self.bc01_shape, axes)
 
 
 class HDF5VirtualDesignMat(object):
@@ -445,3 +608,110 @@ class HDF5VirtualDesignMat(object):
                 rval[:, i * ppc:(i + 1) * ppc] = V[sel].reshape(batch_size,
                                                                 ppc)
         return rval
+
+    def design_mat2topo_view_idx(topo_view_shape, idx):
+        """
+        Converts a design matrix index into a topo view index.
+        Note that this method is "axes agnostic" as far as you provide it with
+        the shape of the topo_view.
+
+        Parameters
+        ----------
+        topo_view_shape: tuple
+            The shape of the topological view.
+        idx: 2D tuple
+            A 2D tuple representing the matrix design index to be converted.
+            Each element of idx can be either an int or a slice.
+
+        Returns
+        -------
+        A list of elements. Each element being a list of slices, one for each
+        axis of the topological view.
+        """
+        import itertools
+
+        assert len(idx) == 2, ('A design matrix index should be 2D, but a '
+                               + len(idx) + 'D index has been received')
+        assert all(isinstance(i, (slice, int)) for i in idx), (
+            'idx should contain either int or slices. %s is not a valid '
+            'type.' % str(type(idx[0])))
+
+        # Convert slices to lists of indexes
+        b_list = range(idx[0].start, idx[0].stop, idx[0].step) if (
+            isinstance(idx[0], slice)) else [idx[0]]
+        c01_list = range(idx[1].start, idx[1].stop, idx[1].step) if (
+            isinstance(idx[1], slice)) else [idx[1]]
+
+        # Convert to a list of 4D indices
+        # TODO: can be probably replaced by a single line code with np.unravel
+        # but I don't have time to dig into it. Something similar to
+        # np.unravel_index(el[1:], tvs[1:]) but on the whole lists
+        topo_idx_list = []
+        for el in itertools.product(b_list, c01_list):
+            topo_idx = []
+            tvs = topo_view_shape
+            topo_idx.append(el[0])
+            topo_idx.append(el[1] / (tvs[2] * tvs[3]))
+            topo_idx.append(el[1] % (tvs[2] * tvs[3]) / tvs[2])
+            topo_idx.append(el[1] % (tvs[2] * tvs[3]) % tvs[2])
+            # FIXME: convert this into a proper test
+            assert (topo_idx[1]*tvs[2]*tvs[3] + topo_idx[2]*tvs[2] +
+                    topo_idx[3] == el[1]), 'Something went terribly wrong!'
+            topo_idx_list.append(tuple(topo_idx))
+
+        def isConsecutive(curr, prev):
+            """
+            Returns true if two slices index consecutive elements
+            """
+            assert None not in (curr.start, curr.stop, prev.start, prev.stop)
+            return prev.stop == curr.start
+
+        # Compact the list where possible using slices
+        for dim in range(3, -1, -1):
+            it = iter(topo_idx_list)
+            slices = []
+            start = next(it)
+            last = topo_idx_list[-1]
+            if not all(isinstance(el, slice) for el in start):
+                start = [slice(j, j+1) for j in start]
+            if not all(isinstance(el, slice) for el in last):
+                last = [slice(j, j+1) for j in last]
+
+            for i, x in enumerate(it):
+                # Get current and previous element as 4D slice
+                prev = topo_idx_list[i]
+                curr = x
+                if not all(isinstance(el, slice) for el in prev):
+                    prev = [slice(j, j+1) for j in topo_idx_list[i]]
+                else:
+                    prev = topo_idx_list[i]
+                if not all(isinstance(el, slice) for el in x):
+                    curr = [slice(j, j+1) for j in x]
+
+                # if the 'dim' axis is not consecutive or at least
+                # one of the other axes' value varied, append a new element
+                bool_diff = np.equal(prev, curr)
+                if (sum(bool_diff) != 3 or
+                        dim != np.where(bool_diff == 0)[0][0] or
+                        not isConsecutive(curr[dim], prev[dim])):
+                    end = prev
+                    if start == end:
+                        slices.append(start)
+                    else:
+                        slices.append(
+                            start[:dim] +
+                            [slice(start[dim].start, end[dim].stop)] +
+                            end[dim+1:])
+                    start = curr
+
+            # Manage the end of the for loop
+            if last == start:
+                slices.append(start)
+            else:
+                slices.append(start[:dim] +
+                              [slice(start[dim].start, last[dim].stop)] +
+                              last[dim+1:])
+            topo_idx_list = slices
+        return slices
+
+
