@@ -44,9 +44,18 @@ class test_retina():
         rec_rings = [7, 4, 2]
         rec_encoded_size = get_encoded_size(rec_image.shape[1],
                                             rec_image.shape[2], rec_rings)
-        assert encoded_size == 64, "Different from  previously computed value"
+        assert rec_encoded_size == 834, "Not previously computed value"
         self.foveate_defoveate_channel(rec_image, rec_rings,
                                        rec_encoded_size)
+
+        # bs > 1
+        rec_image = np.random.randn(3, 70, 42)
+        rec_rings = [7, 4, 2]
+        rec_encoded_size = get_encoded_size(rec_image.shape[1],
+                                            rec_image.shape[2], rec_rings)
+        assert rec_encoded_size == 834, "Not previously computed value"
+        self.foveate_defoveate_channel(rec_image, rec_rings,
+                                       rec_encoded_size, bs=rec_image.shape[0])
 
     def foveate_defoveate_channel(self, image, rings, encoded_size, bs=1):
         """
@@ -85,7 +94,7 @@ class test_retina():
         topo_X = np.random.randn(1, 20, 25, 5)
         rings = [5]
         output = encode(topo_X, rings)
-        reconstruct = decode(output, (20, 25, 5), [5])
+        reconstruct = decode(output, (20, 25, 5), rings)
         np.testing.assert_allclose(encode(reconstruct, rings), output)
 
     def test_RetinaCodingViewConverter(self):
@@ -94,3 +103,8 @@ class test_retina():
         typically shape in ../norb_small.py
         """
         view_converter = RetinaCodingViewConverter((96, 96, 2), (8, 4, 2, 2))
+        image = np.random.rand(1, 96, 96, 2)
+        design_mat = view_converter.topo_view_to_design_mat(image)
+        reconstruct = view_converter.design_mat_to_topo_view(design_mat)
+        np.testing.assert_allclose(view_converter.topo_view_to_design_mat(
+                                   reconstruct), design_mat)
