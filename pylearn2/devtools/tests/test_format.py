@@ -591,12 +591,12 @@ whitelist_docstrings = [
     'scripts/icml_2013_wrepl/multimodal/make_wordlist.py',
     'scripts/datasets/make_stl10_whitened.py',
     'scripts/datasets/make_stl10_patches_8x8.py',
-    'pylearn2/scripts/datasets/make_stl10_patches.py',
-    'scripts/datasets/make_cifar10_whitened.py',
+    'scripts/datasets/make_stl10_patches.py',
+    'scripts/datasets/make_cifar10_gcn_whitened.py',
     'scripts/datasets/make_cifar100_patches.py',
     'scripts/datasets/make_cifar100_gcn_whitened.py',
     'energy_functions/tests/test_rbm_energy.py',
-    'pylearn2/costs/ebm_estimation.py',
+    'costs/ebm_estimation.py',
     ]
 
 # add files which fail to run to whitelist_docstrings
