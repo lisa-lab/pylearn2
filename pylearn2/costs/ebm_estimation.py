@@ -37,10 +37,11 @@ sys.setrecursionlimit(40000)
 
 
 class NCE(DefaultDataSpecsMixin, Cost):
+
     """
     Noise-Contrastive Estimation
 
-    See "Noise-Contrastive Estimation:
+    See "Noise-Contrastive Estimation: \
          A new estimation principle for unnormalized models"
     by Gutmann and Hyvarinen
 
