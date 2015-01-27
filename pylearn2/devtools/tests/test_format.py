@@ -556,6 +556,7 @@ whitelist_docstrings = [
     'scripts/datasets/make_cifar10_gcn_whitened.py',
     'scripts/datasets/make_cifar100_patches.py',
     'scripts/datasets/make_cifar100_gcn_whitened.py',
+    'scripts/datasets/make_svhn_pytables.py',
     'energy_functions/tests/test_rbm_energy.py',
 ]
 
