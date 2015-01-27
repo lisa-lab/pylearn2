@@ -35,11 +35,14 @@ logger.debug("Cost changing the recursion limit.")
 # precisely when you're going to exceed the stack segment.
 sys.setrecursionlimit(40000)
 
+
 class NCE(DefaultDataSpecsMixin, Cost):
+
     """
     Noise-Contrastive Estimation
 
-    See "Noise-Contrastive Estimation: A new estimation principle for unnormalized models "
+    See "Noise-Contrastive Estimation: \
+         A new estimation principle for unnormalized models"
     by Gutmann and Hyvarinen
 
     Parameters
@@ -72,10 +75,10 @@ class NCE(DefaultDataSpecsMixin, Cost):
             WRITEME
         """
         # noisy_data is not considered part of the data.
-        #If you don't pass it in, it will be generated internally
-        #Passing it in lets you keep it constant while doing
-        #a learn search across several theano function calls
-        #and stuff like that
+        # If you don't pass it in, it will be generated internally
+        # Passing it in lets you keep it constant while doing
+        # a learn search across several theano function calls
+        # and stuff like that
         space, source = self.get_data_specs(model)
         space.validate(data)
         X = data
@@ -93,19 +96,18 @@ class NCE(DefaultDataSpecsMixin, Cost):
         else:
             Y = self.noise.random_design_matrix(m_noise)
 
-        #Y = Print('Y',attrs=['min','max'])(Y)
+        # Y = Print('Y',attrs=['min','max'])(Y)
 
-        #hx = self.h(X, model)
-        #hy = self.h(Y, model)
+        # hx = self.h(X, model)
+        # hy = self.h(Y, model)
 
-        log_hx = -T.nnet.softplus(-self.G(X,model))
-        log_one_minus_hy = -T.nnet.softplus(self.G(Y,model))
+        log_hx = -T.nnet.softplus(-self.G(X, model))
+        log_one_minus_hy = -T.nnet.softplus(self.G(Y, model))
 
-
-        #based on equation 3 of the paper
-        #ours is the negative of theirs because they maximize it and we minimize it
+        # based on equation 3 of the paper
+        # ours is the negative of theirs because
+        # they maximize it and we minimize it
         rval = -T.mean(log_hx)-T.mean(log_one_minus_hy)
-
         rval.name = 'NCE('+X_name+')'
 
         return rval
@@ -135,7 +137,7 @@ class SM(DefaultDataSpecsMixin, Cost):
     ----------
     lambd : WRITEME
     """
-    def __init__(self, lambd = 0):
+    def __init__(self, lambd=0):
         assert lambd >= 0
         self.lambd = lambd
 
@@ -150,10 +152,11 @@ class SM(DefaultDataSpecsMixin, Cost):
         X_name = 'X' if X.name is None else X.name
 
         def f(i, _X, _dx):
-            return T.grad(_dx[:,i].sum(), _X)[:,i]
+            return T.grad(_dx[:, i].sum(), _X)[:, i]
 
         dx = model.score(X)
-        ddx, _ = scan(f, sequences = [T.arange(X.shape[1])], non_sequences = [X, dx])
+        ddx, _ = scan(f, sequences=[T.arange(X.shape[1])],
+                      non_sequences=[X, dx])
         ddx = ddx.T
 
         assert len(ddx.type.broadcastable) == 2
@@ -167,11 +170,13 @@ class SM(DefaultDataSpecsMixin, Cost):
 class SMD(DefaultDataSpecsMixin, Cost):
     """
     Denoising Score Matching
-    See eqn. 4.3 of "A Connection Between Score Matching and Denoising Autoencoders"
+    See eqn. 4.3 of
+    "A Connection Between Score Matching and Denoising Autoencoders"
     by Pascal Vincent for details
 
-    Note that instead of using half the squared norm we use the mean squared error,
-    so that hyperparameters don't depend as much on the # of visible units
+    Note that instead of using half the squared norm we use the mean
+    squared error, so that hyperparameters don't depend as much on
+    the # of visible units
 
     Parameters
     ----------
@@ -196,20 +201,22 @@ class SMD(DefaultDataSpecsMixin, Cost):
 
         model_score = model.score(corrupted_X)
         assert len(model_score.type.broadcastable) == len(X.type.broadcastable)
-        parzen_score = T.grad( - T.sum(self.corruptor.corruption_free_energy(corrupted_X,X)), corrupted_X)
-        assert len(parzen_score.type.broadcastable) == len(X.type.broadcastable)
+        parzen_score = T.grad(
+            - T.sum(self.corruptor.corruption_free_energy(corrupted_X, X)),
+            corrupted_X)
+        assert \
+            len(parzen_score.type.broadcastable) == len(X.type.broadcastable)
 
         score_diff = model_score - parzen_score
         score_diff.name = 'smd_score_diff('+X_name+')'
 
-
         assert len(score_diff.type.broadcastable) == len(X.type.broadcastable)
 
-
-        #TODO: this could probably be faster as a tensordot, but we don't have tensordot for gpu yet
+        # TODO: this could probably be faster as a tensordot,
+        # but we don't have tensordot for gpu yet
         sq_score_diff = T.sqr(score_diff)
 
-        #sq_score_diff = Print('sq_score_diff',attrs=['mean'])(sq_score_diff)
+        # sq_score_diff = Print('sq_score_diff',attrs=['mean'])(sq_score_diff)
 
         smd = T.mean(sq_score_diff)
         smd.name = 'SMD('+X_name+')'
@@ -218,6 +225,7 @@ class SMD(DefaultDataSpecsMixin, Cost):
 
     def get_data_specs(self, model):
         return (model.get_input_space(), model.get_input_source())
+
 
 class SML(Cost):
     """
@@ -239,18 +247,18 @@ class SML(Cost):
     nsteps: int
         Number of steps made by the block Gibbs sampler between each epoch
     """
-    def __init__(self, batch_size, nsteps ):
+    def __init__(self, batch_size, nsteps):
         super(SML, self).__init__()
         self.nchains = batch_size
-        self.nsteps  = nsteps
+        self.nsteps = nsteps
 
     def get_gradients(self, model, data, **kwargs):
-        cost = self._cost(model,data,**kwargs)
+        cost = self._cost(model, data, **kwargs)
 
         params = list(model.get_params())
 
-        grads = T.grad(cost, params, disconnected_inputs = 'ignore',
-                       consider_constant = [self.sampler.particles])
+        grads = T.grad(cost, params, disconnected_inputs='ignore',
+                       consider_constant=[self.sampler.particles])
 
         gradients = OrderedDict(izip(params, grads))
 
@@ -262,10 +270,10 @@ class SML(Cost):
 
     def _cost(self, model, data):
 
-        if not hasattr(self,'sampler'):
+        if not hasattr(self, 'sampler'):
             self.sampler = BlockGibbsSampler(
                 rbm=model,
-                particles=0.5+np.zeros((self.nchains,model.get_input_dim())),
+                particles=0.5+np.zeros((self.nchains, model.get_input_dim())),
                 rng=model.rng,
                 steps=self.nsteps)
 
@@ -276,7 +284,7 @@ class SML(Cost):
         pos_v = data
         neg_v = self.sampler.particles
 
-        ml_cost = (model.free_energy(pos_v).mean()-
+        ml_cost = (model.free_energy(pos_v).mean() -
                    model.free_energy(neg_v).mean())
 
         return ml_cost
@@ -286,6 +294,7 @@ class SML(Cost):
 
     def get_data_specs(self, model):
         return (model.get_input_space(), model.get_input_source())
+
 
 class CDk(Cost):
     """
@@ -303,7 +312,7 @@ class CDk(Cost):
     """
     def __init__(self, nsteps, seed=42):
         super(CDk, self).__init__()
-        self.nsteps  = nsteps
+        self.nsteps = nsteps
         self.rng = make_theano_rng(seed, which_method='binomial')
 
     def _cost(self, model, data):
@@ -311,21 +320,21 @@ class CDk(Cost):
         neg_v = data
 
         for k in range(self.nsteps):
-            [neg_v, _locals] = model.gibbs_step_for_v(neg_v,self.rng)
+            [neg_v, _locals] = model.gibbs_step_for_v(neg_v, self.rng)
 
         # Compute CD cost
-        ml_cost = (model.free_energy(pos_v).mean()-
+        ml_cost = (model.free_energy(pos_v).mean() -
                    model.free_energy(neg_v).mean())
 
         return ml_cost, neg_v
 
     def get_gradients(self, model, data, **kwargs):
-        cost, neg_v = self._cost(model,data,**kwargs)
+        cost, neg_v = self._cost(model, data, **kwargs)
 
         params = list(model.get_params())
 
-        grads = T.grad(cost, params, disconnected_inputs = 'ignore',
-                       consider_constant = [neg_v])
+        grads = T.grad(cost, params, disconnected_inputs='ignore',
+                       consider_constant=[neg_v])
 
         gradients = OrderedDict(izip(params, grads))
 

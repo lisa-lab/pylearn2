@@ -88,7 +88,6 @@ whitelist_pep8 = [
     "dataset_get/helper-scripts/make-archive.py",
     "dataset_get/dataset_resolver.py",
     "optimization/minres.py",
-    "costs/ebm_estimation.py",
     "costs/gsn.py",
     "costs/mlp/missing_target_cost.py",
     "linear/conv2d.py",
@@ -96,7 +95,6 @@ whitelist_pep8 = [
     "linear/linear_transform.py",
     "linear/conv2d_c01b.py",
     "energy_functions/rbm_energy.py",
-    "scripts/lcc_tangents/make_dataset.py",
     "scripts/pkl_inspector.py",
     "scripts/show_binocular_greyscale_examples.py",
     "scripts/jobman/tester.py",
@@ -110,15 +108,6 @@ whitelist_pep8 = [
     "scripts/papers/jia_huang_wkshp_11/extract_features.py",
     "scripts/papers/jia_huang_wkshp_11/assemble.py",
     "scripts/gpu_pkl_to_cpu_pkl.py",
-    "scripts/datasets/make_cifar10_whitened.py",
-    "scripts/datasets/make_cifar100_patches_8x8.py",
-    "scripts/datasets/make_cifar100_patches.py",
-    "scripts/datasets/make_cifar10_gcn_whitened.py",
-    "scripts/datasets/make_cifar100_whitened.py",
-    "scripts/datasets/make_stl10_patches_8x8.py",
-    "scripts/datasets/make_cifar100_gcn_whitened.py",
-    "scripts/datasets/make_stl10_whitened.py",
-    "scripts/datasets/make_stl10_patches.py",
     "scripts/gsn_example.py",
     "scripts/tutorials/deep_trainer/run_deep_trainer.py",
     "scripts/tutorials/grbm_smd/test_grbm_smd.py",
@@ -183,7 +172,6 @@ whitelist_pep8 = [
     "sandbox/cuda_convnet/tests/test_common.py",
     "sandbox/cuda_convnet/shared_code.py",
     "sandbox/cuda_convnet/code_templates.py",
-    "sandbox/cuda_convnet/debug.py",
     "sandbox/lisa_rl/bandit/agent.py",
     "sandbox/lisa_rl/bandit/algorithm.py",
     "sandbox/lisa_rl/bandit/environment.py",
@@ -586,22 +574,19 @@ whitelist_docstrings = [
     'datasets/tests/test_npy_npz.py',
     'linear/tests/test_conv2d.py',
     'devtools/tests/pep8/pep8.py',
-    'devtools/tests/pep8/__init__.py']
-
-# add files which have long execution time to whitelist_docstrings
-whitelist_docstrings.extend([
-    'sandbox/cuda_convnet/debug.py',
-    'energy_functions/tests/test_rbm_energy.py',
+    'devtools/tests/pep8/__init__.py',
+    'scripts/lcc_tangents/make_dataset.py',
     'scripts/icml_2013_wrepl/multimodal/make_wordlist.py',
-    'scripts/make_weights_image.py', 'costs/ebm_estimation.py',
-    'classifier.py', 'scripts/lcc_tangents/make_dataset.py',
-    'scripts/datasets/make_cifar10_whitened.py',
-    'scripts/datasets/make_cifar100_patches.py',
-    'scripts/datasets/make_cifar10_gcn_whitened.py',
-    'scripts/datasets/make_stl10_patches_8x8.py',
-    'scripts/datasets/make_cifar100_gcn_whitened.py',
     'scripts/datasets/make_stl10_whitened.py',
-    'scripts/datasets/make_stl10_patches.py'])
+    'scripts/datasets/make_stl10_patches_8x8.py',
+    'scripts/datasets/make_stl10_patches.py',
+    'scripts/datasets/make_cifar10_whitened.py',
+    'scripts/datasets/make_cifar10_gcn_whitened.py',
+    'scripts/datasets/make_cifar100_patches.py',
+    'scripts/datasets/make_cifar100_gcn_whitened.py',
+    'energy_functions/tests/test_rbm_energy.py',
+    'costs/ebm_estimation.py',
+    ]
 
 # add files which fail to run to whitelist_docstrings
 whitelist_docstrings.extend([
@@ -654,7 +639,8 @@ whitelist_docstrings.extend([
     'scripts/icml_2013_wrepl/black_box/learn_zca.py',
     'train_extensions/tests/test_window_flip.py',
     'train_extensions/window_flip.py',
-    'linear/tests/test_local_c01b.py'])
+    'linear/tests/test_local_c01b.py',
+    'sandbox/cuda_convnet/debug.py', ])
 
 
 def test_format_pep8():

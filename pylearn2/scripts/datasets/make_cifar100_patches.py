@@ -1,9 +1,10 @@
 """
-This script makes a dataset of two million approximately whitened patches, extracted at random uniformly
-from the CIFAR-100 train dataset.
+This script makes a dataset of two million approximately whitened patches,
+extracted at random uniformly from the CIFAR-100 train dataset.
 
-This script is intended to reproduce the preprocessing used by Adam Coates et. al. in their work from
-the first half of 2011 on the CIFAR-10 and STL-10 datasets.
+This script is intended to reproduce the preprocessing used by Adam Coates
+et. al. in their work from the first half of 2011 on the CIFAR-10 and
+STL-10 datasets.
 """
 from __future__ import print_function
 
@@ -11,50 +12,58 @@ from pylearn2.utils import serial
 from pylearn2.datasets import preprocessing
 from pylearn2.datasets.cifar100 import CIFAR100
 from pylearn2.utils import string_utils
+import textwrap
 
-data_dir = string_utils.preprocess('${PYLEARN2_DATA_PATH}')
 
-print('Loading CIFAR-100 train dataset...')
-data = CIFAR100(which_set = 'train')
+def main():
+    data_dir = string_utils.preprocess('${PYLEARN2_DATA_PATH}')
 
-print("Preparing output directory...")
-patch_dir = data_dir + '/cifar100/cifar100_patches'
-serial.mkdir( patch_dir )
-README = open(patch_dir + '/README','w')
+    print('Loading CIFAR-100 train dataset...')
+    data = CIFAR100(which_set='train')
 
-README.write("""
-The .pkl files in this directory may be opened in python using
-cPickle, pickle, or pylearn2.serial.load.
+    print("Preparing output directory...")
+    patch_dir = data_dir + '/cifar100/cifar100_patches'
+    serial.mkdir(patch_dir)
+    README = open(patch_dir + '/README', 'w')
 
-data.pkl contains a pylearn2 Dataset object defining an unlabeled
-dataset of 2 million 6x6 approximately whitened, contrast-normalized
-patches drawn uniformly at random from the CIFAR-100 train set.
+    README.write(textwrap.dedent("""
+    The .pkl files in this directory may be opened in python using
+    cPickle, pickle, or pylearn2.serial.load.
 
-preprocessor.pkl contains a pylearn2 Pipeline object that was used
-to extract the patches and approximately whiten / contrast normalize
-them. This object is necessary when extracting features for
-supervised learning or test set classification, because the
-extracted features must be computed using inputs that have been
-whitened with the ZCA matrix learned and stored by this Pipeline.
+    data.pkl contains a pylearn2 Dataset object defining an unlabeled
+    dataset of 2 million 6x6 approximately whitened, contrast-normalized
+    patches drawn uniformly at random from the CIFAR-100 train set.
 
-They were created with the pylearn2 script make_cifar100_patches.py.
+    preprocessor.pkl contains a pylearn2 Pipeline object that was used
+    to extract the patches and approximately whiten / contrast normalize
+    them. This object is necessary when extracting features for
+    supervised learning or test set classification, because the
+    extracted features must be computed using inputs that have been
+    whitened with the ZCA matrix learned and stored by this Pipeline.
 
-All other files in this directory, including this README, were
-created by the same script and are necessary for the other files
-to function correctly.
-""")
+    They were created with the pylearn2 script make_cifar100_patches.py.
 
-README.close()
+    All other files in this directory, including this README, were
+    created by the same script and are necessary for the other files
+    to function correctly.
+    """))
 
-print("Preprocessing the data...")
-pipeline = preprocessing.Pipeline()
-pipeline.items.append(preprocessing.ExtractPatches(patch_shape=(6,6),num_patches=2*1000*1000))
-pipeline.items.append(preprocessing.GlobalContrastNormalization(sqrt_bias=10., use_std=True))
-pipeline.items.append(preprocessing.ZCA())
-data.apply_preprocessor(preprocessor = pipeline, can_fit = True)
+    README.close()
 
-data.use_design_loc(patch_dir + '/data.npy')
+    print("Preprocessing the data...")
+    pipeline = preprocessing.Pipeline()
+    pipeline.items.append(preprocessing.ExtractPatches(patch_shape=(6, 6),
+                          num_patches=2*1000*1000))
+    pipeline.items.append(
+        preprocessing.GlobalContrastNormalization(sqrt_bias=10., use_std=True))
+    pipeline.items.append(preprocessing.ZCA())
+    data.apply_preprocessor(preprocessor=pipeline, can_fit=True)
 
-serial.save(patch_dir + '/data.pkl',data)
+    data.use_design_loc(patch_dir + '/data.npy')
 
-serial.save(patch_dir + '/preprocessor.pkl',pipeline)
+    serial.save(patch_dir + '/data.pkl', data)
+
+    serial.save(patch_dir + '/preprocessor.pkl', pipeline)
+
+if __name__ == "__main__":
+    main()
