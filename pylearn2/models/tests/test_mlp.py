@@ -117,8 +117,9 @@ def test_sigmoid_layer_misclass_reporting():
                                       monitor_style='bit_vector_class')])
     target = theano.tensor.matrix(dtype=theano.config.floatX)
     batch = theano.tensor.matrix(dtype=theano.config.floatX)
-    rval = mlp.layers[0].get_layer_monitoring_channels(state_below=batch, state=mlp.fprop(batch),
-                                                            targets=target)
+    rval = mlp.layers[0].get_layer_monitoring_channels(state_below=batch,
+                                                       state=mlp.fprop(batch),
+                                                       targets=target)
 
     f = theano.function([batch, target], [tensor.gt(mlp.fprop(batch), 0.5),
                                           rval['misclass']],
@@ -150,6 +151,7 @@ def test_batchwise_dropout():
     print(d)
     np.testing.assert_(np.any(d[0] != d[1]) or np.any(d[0] != d[2]))
 
+
 def test_str():
     """
     Make sure the __str__ method returns a string
@@ -162,6 +164,7 @@ def test_str():
 
     assert isinstance(s, six.string_types)
 
+
 def test_sigmoid_detection_cost():
     # This is only a smoke test: verifies that it compiles and runs,
     # not any particular value.
@@ -173,8 +176,10 @@ def test_sigmoid_detection_cost():
     y_hat = model.fprop(X)
     model.cost(y, y_hat).eval()
 
+
 def test_weight_decay_0():
-    nested_mlp = MLP(layer_name='nested_mlp', layers=[IdentityLayer(2, 'h0', irange=0)])
+    nested_mlp = MLP(layer_name='nested_mlp',
+                     layers=[IdentityLayer(2, 'h0', irange=0)])
     mlp = MLP(nvis=2, layers=[nested_mlp])
     weight_decay = mlp.get_weight_decay([0])
     assert isinstance(weight_decay, theano.tensor.TensorConstant)
@@ -187,6 +192,7 @@ def test_weight_decay_0():
     nested_mlp.add_layers([IdentityLayer(2, 'h1', irange=0)])
     weight_decay = mlp.get_weight_decay([[0, 0.1]])
     assert weight_decay.dtype == theano.config.floatX
+
 
 if __name__ == "__main__":
     test_masked_fprop()
@@ -310,11 +316,11 @@ def test_multiple_inputs():
             VectorSpace(20),
             VectorSpace(15),
             VectorSpace(5)]),
-        ('features1', 'features0', 'targets'))
-    )
+         ('features1', 'features0', 'targets')))
     train = Train(dataset, mlp, SGD(0.1, batch_size=5))
     train.algorithm.termination_criterion = EpochCounter(1)
     train.main_loop()
+
 
 def test_input_and_target_source():
     """
@@ -323,14 +329,14 @@ def test_input_and_target_source():
     """
     mlp = MLP(
         layers=[CompositeLayer(
-                    'composite',
-                    [Linear(10, 'h0', 0.1),
-                     Linear(10, 'h1', 0.1)],
-                    {
-                        0: [1],
-                        1: [0]
-                    }
-                )
+            'composite',
+            [Linear(10, 'h0', 0.1),
+                Linear(10, 'h1', 0.1)],
+            {
+                0: [1],
+                1: [0]
+            }
+            )
         ],
         input_space=CompositeSpace([VectorSpace(15), VectorSpace(20)]),
         input_source=('features0', 'features1'),
@@ -345,6 +351,7 @@ def test_input_and_target_source():
     )
     np.testing.assert_equal(mlp.get_input_source(), 'features')
     np.testing.assert_equal(mlp.get_target_source(), 'targets')
+
 
 def test_get_layer_monitor_channels():
     """
@@ -377,12 +384,166 @@ def test_get_layer_monitor_channels():
             VectorSpace(20),
             VectorSpace(15),
             VectorSpace(5)]),
-        ('features1', 'features0', 'targets'))
+         ('features1', 'features0', 'targets'))
     )
     state_below = mlp.get_input_space().make_theano_batch()
     targets = mlp.get_target_space().make_theano_batch()
     mlp.get_layer_monitoring_channels(state_below=state_below,
-            state=None, targets=targets)
+                                      state=None, targets=targets)
+
+
+def test_flattener_layer():
+    # To test the FlattenerLayer we create a very simple feed-forward neural
+    # network with two parallel linear layers. We then create two separate
+    # feed-forward neural networks with single linear layers. In principle,
+    # these two models should be identical if we start from the same
+    # parameters. This makes it easy to test that the composite layer works
+    # as expected.
+
+    # Create network with composite layers.
+    mlp_composite = MLP(
+        layers=[
+            FlattenerLayer(
+                CompositeLayer(
+                    'composite',
+                    [Linear(2, 'h0', 0.1),
+                     Linear(2, 'h1', 0.1)],
+                    {
+                        0: [0],
+                        1: [1]
+                    }
+                )
+            )
+        ],
+        input_space=CompositeSpace([VectorSpace(5), VectorSpace(10)]),
+        input_source=('features0', 'features1')
+    )
+
+    # Create network with single linear layer, corresponding to first
+    # layer in the composite network.
+    mlp_first_part = MLP(
+        layers=[
+            Linear(2, 'h0', 0.1)
+        ],
+        input_space=VectorSpace(5),
+        input_source=('features0')
+    )
+
+    # Create network with single linear layer, corresponding to second
+    # layer in the composite network.
+    mlp_second_part = MLP(
+        layers=[
+            Linear(2, 'h1', 0.1)
+        ],
+        input_space=VectorSpace(10),
+        input_source=('features1')
+    )
+
+    # Create dataset which we will test our networks against.
+    shared_dataset = np.random.rand(20, 19).astype(theano.config.floatX)
+
+    # Make dataset for composite network.
+    dataset_composite = VectorSpacesDataset(
+        (shared_dataset[:, 0:5],
+         shared_dataset[:, 5:15],
+         shared_dataset[:, 15:19]),
+        (CompositeSpace([
+            VectorSpace(5),
+            VectorSpace(10),
+            VectorSpace(4)]),
+         ('features0', 'features1', 'targets'))
+    )
+
+    # Make dataset for first single linear layer network.
+    dataset_first_part = VectorSpacesDataset(
+        (shared_dataset[:, 0:5],
+         shared_dataset[:, 15:17]),
+        (CompositeSpace([
+            VectorSpace(5),
+            VectorSpace(2)]),
+         ('features0', 'targets'))
+    )
+
+    # Make dataset for second single linear layer network.
+    dataset_second_part = VectorSpacesDataset(
+        (shared_dataset[:, 5:15],
+         shared_dataset[:, 17:19]),
+        (CompositeSpace([
+            VectorSpace(10),
+            VectorSpace(2)]),
+         ('features1', 'targets'))
+    )
+
+    # Initialize all MLPs to start from zero weights.
+    mlp_composite.layers[0].raw_layer.layers[0].set_weights(
+        mlp_composite.layers[0].raw_layer.layers[0].get_weights() * 0.0)
+    mlp_composite.layers[0].raw_layer.layers[1].set_weights(
+        mlp_composite.layers[0].raw_layer.layers[1].get_weights() * 0.0)
+    mlp_first_part.layers[0].set_weights(
+        mlp_first_part.layers[0].get_weights() * 0.0)
+    mlp_second_part.layers[0].set_weights(
+        mlp_second_part.layers[0].get_weights() * 0.0)
+
+    # Train all models with their respective datasets.
+    train_composite = Train(dataset_composite, mlp_composite,
+                            SGD(0.0001, batch_size=20))
+    train_composite.algorithm.termination_criterion = EpochCounter(1)
+    train_composite.main_loop()
+
+    train_first_part = Train(dataset_first_part, mlp_first_part,
+                             SGD(0.0001, batch_size=20))
+    train_first_part.algorithm.termination_criterion = EpochCounter(1)
+    train_first_part.main_loop()
+
+    train_second_part = Train(dataset_second_part, mlp_second_part,
+                              SGD(0.0001, batch_size=20))
+    train_second_part.algorithm.termination_criterion = EpochCounter(1)
+    train_second_part.main_loop()
+
+    # Check that the composite feed-forward neural network has learned
+    # same parameters as each individual feed-forward neural network.
+    np.testing.assert_allclose(
+        mlp_composite.layers[0].raw_layer.layers[0].get_weights(),
+        mlp_first_part.layers[0].get_weights())
+    np.testing.assert_allclose(
+        mlp_composite.layers[0].raw_layer.layers[1].get_weights(),
+        mlp_second_part.layers[0].get_weights())
+
+    # Check that we get same output given the same input on a randomly
+    # generated dataset.
+    X_composite = mlp_composite.get_input_space().make_theano_batch()
+    X_first_part = mlp_first_part.get_input_space().make_theano_batch()
+    X_second_part = mlp_second_part.get_input_space().make_theano_batch()
+
+    fprop_composite = theano.function(X_composite,
+                                      mlp_composite.fprop(X_composite))
+    fprop_first_part = theano.function([X_first_part],
+                                       mlp_first_part.fprop(X_first_part))
+    fprop_second_part = theano.function([X_second_part],
+                                        mlp_second_part.fprop(X_second_part))
+
+    X_data = np.random.random(size=(10, 15)).astype(theano.config.floatX)
+    y_data = np.random.randint(low=0, high=10, size=(10, 4))
+
+    np.testing.assert_allclose(fprop_composite(X_data[:, 0:5],
+                               X_data[:, 5:15])[:, 0:2],
+                               fprop_first_part(X_data[:, 0:5]))
+    np.testing.assert_allclose(fprop_composite(X_data[:, 0:5],
+                               X_data[:, 5:15])[:, 2:4],
+                               fprop_second_part(X_data[:, 5:15]))
+
+    # Finally check that calling the internal FlattenerLayer behaves
+    # as we would expect. First, retrieve the FlattenerLayer.
+    fl = mlp_composite.layers[0]
+
+    # Check that it agrees on the input space.
+    assert mlp_composite.get_input_space() == fl.get_input_space()
+
+    # Check that it agrees on the parameters.
+    for i in range(0, 4):
+        np.testing.assert_allclose(fl.get_params()[i].eval(),
+                                   mlp_composite.get_params()[i].eval())
+
 
 def test_flattener_layer_state_separation_for_softmax():
     """
@@ -390,24 +551,27 @@ def test_flattener_layer_state_separation_for_softmax():
     and ensures that state gets correctly picked apart.
     """
     mlp = MLP(
-            layers=[
-                FlattenerLayer(
-                    CompositeLayer(
-                        'composite',
-                        [Softmax(5, 'sf1', 0.1),
-                         Softmax(5, 'sf2', 0.1)]
-                    )
+        layers=[
+            FlattenerLayer(
+                CompositeLayer(
+                    'composite',
+                    [Softmax(5, 'sf1', 0.1),
+                     Softmax(5, 'sf2', 0.1)]
                 )
-            ],
-            nvis=2
             )
+        ],
+        nvis=2
+        )
 
-    dataset = DenseDesignMatrix(X=np.random.rand(20, 2).astype(theano.config.floatX),
-            y=np.random.rand(20, 10).astype(theano.config.floatX))
+    dataset = DenseDesignMatrix(
+        X=np.random.rand(20, 2).astype(theano.config.floatX),
+        y=np.random.rand(20, 10).astype(theano.config.floatX))
 
-    train = Train(dataset, mlp, SGD(0.1, batch_size=5,monitoring_dataset = dataset))
+    train = Train(dataset, mlp,
+                  SGD(0.1, batch_size=5, monitoring_dataset=dataset))
     train.algorithm.termination_criterion = EpochCounter(1)
     train.main_loop()
+
 
 def test_nested_mlp():
     """
@@ -454,20 +618,22 @@ def test_softmax_binary_targets():
     X_data = np.random.random(size=(batch_size, 100))
     y_bin_data = np.random.randint(low=0, high=10, size=(batch_size, 1))
     y_vec_data = np.zeros((batch_size, num_classes))
-    y_vec_data[np.arange(batch_size),y_bin_data.flatten()] = 1
+    y_vec_data[np.arange(batch_size), y_bin_data.flatten()] = 1
     np.testing.assert_allclose(cost_bin(X_data, y_bin_data),
                                cost_vec(X_data, y_vec_data))
+
 
 def test_softmax_weight_init():
     """
     Constructs softmax layers with different weight initialization
     parameters.
     """
-    nvis=5
+    nvis = 5
     num_classes = 10
     MLP(layers=[Softmax(num_classes, 's', irange=0.1)], nvis=nvis)
     MLP(layers=[Softmax(num_classes, 's', istdev=0.1)], nvis=nvis)
     MLP(layers=[Softmax(num_classes, 's', sparse_init=2)], nvis=nvis)
+
 
 def test_softmax_bin_targets_channels(seed=0):
     """
@@ -495,12 +661,13 @@ def test_softmax_bin_targets_channels(seed=0):
     X_data = X_data.astype(theano.config.floatX)
     y_bin_data = np.random.randint(low=0, high=num_classes,
                                    size=(batch_size, 1))
-    y_vec_data = np.zeros((batch_size, num_classes), dtype=theano.config.floatX)
-    y_vec_data[np.arange(batch_size),y_bin_data.flatten()] = 1
+    y_vec_data = np.zeros((batch_size, num_classes),
+                          dtype=theano.config.floatX)
+    y_vec_data[np.arange(batch_size), y_bin_data.flatten()] = 1
 
     def channel_value(channel_name, model, y, y_data):
-        chans = model.get_monitoring_channels((X,y))
-        f_channel = theano.function([X,y], chans['s1_'+channel_name])
+        chans = model.get_monitoring_channels((X, y))
+        f_channel = theano.function([X, y], chans['s1_' + channel_name])
         return f_channel(X_data, y_data)
 
     for channel_name in ['misclass', 'nll']:
@@ -508,7 +675,8 @@ def test_softmax_bin_targets_channels(seed=0):
         bin_val = channel_value(channel_name, mlp_bin, y_bin, y_bin_data)
         print(channel_name, vec_val, bin_val)
         np.testing.assert_allclose(vec_val, bin_val)
-    
+
+
 def test_set_get_weights_Softmax():
     """
     Tests setting and getting weights for Softmax layer.
@@ -529,8 +697,8 @@ def test_set_get_weights_Softmax():
     # Conv2DSpace input space
     layer = Softmax(num_classes, 's', irange=.1)
     softmax_mlp = MLP(layers=[layer],
-            input_space=Conv2DSpace(shape=(conv_dim[0], conv_dim[1]),
-                                    num_channels=conv_dim[2]))
+                      input_space=Conv2DSpace(shape=(conv_dim[0], conv_dim[1]),
+                      num_channels=conv_dim[2]))
     conv_weights = np.random.randn(conv_dim[0], conv_dim[1], conv_dim[2],
                                    num_classes).astype(config.floatX)
     layer.set_weights(conv_weights.reshape(np.prod(conv_dim), num_classes))
@@ -539,6 +707,7 @@ def test_set_get_weights_Softmax():
     layer.W.set_value(conv_weights.reshape(np.prod(conv_dim), num_classes))
     assert np.allclose(layer.get_weights_topo(),
                        np.transpose(conv_weights, axes=(3, 0, 1, 2)))
+
 
 def test_init_bias_target_marginals():
     """
@@ -553,7 +722,7 @@ def test_init_bias_target_marginals():
 
     X_data = np.random.random(size=(batch_size, n_features))
 
-    Y_categorical = np.asarray([[0],[1],[1],[2],[2]])
+    Y_categorical = np.asarray([[0], [1], [1], [2], [2]])
     class_frequencies = np.asarray([.2, .4, .4])
     categorical_dataset = DenseDesignMatrix(X_data,
                                             y=Y_categorical,
