@@ -316,8 +316,7 @@ def test_multiple_inputs():
             VectorSpace(20),
             VectorSpace(15),
             VectorSpace(5)]),
-        ('features1', 'features0', 'targets'))
-    )
+         ('features1', 'features0', 'targets')))
     train = Train(dataset, mlp, SGD(0.1, batch_size=5))
     train.algorithm.termination_criterion = EpochCounter(1)
     train.main_loop()
@@ -330,14 +329,14 @@ def test_input_and_target_source():
     """
     mlp = MLP(
         layers=[CompositeLayer(
-                    'composite',
-                    [Linear(10, 'h0', 0.1),
-                     Linear(10, 'h1', 0.1)],
-                    {
-                        0: [1],
-                        1: [0]
-                    }
-                )
+            'composite',
+            [Linear(10, 'h0', 0.1),
+                Linear(10, 'h1', 0.1)],
+            {
+                0: [1],
+                1: [0]
+            }
+            )
         ],
         input_space=CompositeSpace([VectorSpace(15), VectorSpace(20)]),
         input_source=('features0', 'features1'),
@@ -385,12 +384,12 @@ def test_get_layer_monitor_channels():
             VectorSpace(20),
             VectorSpace(15),
             VectorSpace(5)]),
-        ('features1', 'features0', 'targets'))
+         ('features1', 'features0', 'targets'))
     )
     state_below = mlp.get_input_space().make_theano_batch()
     targets = mlp.get_target_space().make_theano_batch()
     mlp.get_layer_monitoring_channels(state_below=state_below,
-            state=None, targets=targets)
+                                      state=None, targets=targets)
 
 
 def test_flattener_layer():
@@ -452,7 +451,7 @@ def test_flattener_layer():
             VectorSpace(5),
             VectorSpace(10),
             VectorSpace(4)]),
-        ('features0', 'features1', 'targets'))
+         ('features0', 'features1', 'targets'))
     )
 
     # Make dataset for first single linear layer network.
@@ -462,7 +461,7 @@ def test_flattener_layer():
         (CompositeSpace([
             VectorSpace(5),
             VectorSpace(2)]),
-        ('features0', 'targets'))
+         ('features0', 'targets'))
     )
 
     # Make dataset for second single linear layer network.
@@ -472,18 +471,18 @@ def test_flattener_layer():
         (CompositeSpace([
             VectorSpace(10),
             VectorSpace(2)]),
-        ('features1', 'targets'))
+         ('features1', 'targets'))
     )
 
     # Initialize all MLPs to start from zero weights.
-    mlp_composite.layers[0].raw_layer.layers[0].set_weights( \
-         mlp_composite.layers[0].raw_layer.layers[0].get_weights() * 0.0)
-    mlp_composite.layers[0].raw_layer.layers[1].set_weights( \
-         mlp_composite.layers[0].raw_layer.layers[1].get_weights() * 0.0)
-    mlp_first_part.layers[0].set_weights( \
-         mlp_first_part.layers[0].get_weights() * 0.0)
-    mlp_second_part.layers[0].set_weights( \
-         mlp_second_part.layers[0].get_weights() * 0.0)
+    mlp_composite.layers[0].raw_layer.layers[0].set_weights(
+        mlp_composite.layers[0].raw_layer.layers[0].get_weights() * 0.0)
+    mlp_composite.layers[0].raw_layer.layers[1].set_weights(
+        mlp_composite.layers[0].raw_layer.layers[1].get_weights() * 0.0)
+    mlp_first_part.layers[0].set_weights(
+        mlp_first_part.layers[0].get_weights() * 0.0)
+    mlp_second_part.layers[0].set_weights(
+        mlp_second_part.layers[0].get_weights() * 0.0)
 
     # Train all models with their respective datasets.
     train_composite = Train(dataset_composite, mlp_composite,
@@ -503,12 +502,12 @@ def test_flattener_layer():
 
     # Check that the composite feed-forward neural network has learned
     # same parameters as each individual feed-forward neural network.
-    np.testing.assert_allclose( \
-       mlp_composite.layers[0].raw_layer.layers[0].get_weights(),
-       mlp_first_part.layers[0].get_weights())
-    np.testing.assert_allclose( \
-       mlp_composite.layers[0].raw_layer.layers[1].get_weights(),
-       mlp_second_part.layers[0].get_weights())
+    np.testing.assert_allclose(
+        mlp_composite.layers[0].raw_layer.layers[0].get_weights(),
+        mlp_first_part.layers[0].get_weights())
+    np.testing.assert_allclose(
+        mlp_composite.layers[0].raw_layer.layers[1].get_weights(),
+        mlp_second_part.layers[0].get_weights())
 
     # Check that we get same output given the same input on a randomly
     # generated dataset.
@@ -552,21 +551,21 @@ def test_flattener_layer_state_separation_for_softmax():
     and ensures that state gets correctly picked apart.
     """
     mlp = MLP(
-            layers=[
-                FlattenerLayer(
-                    CompositeLayer(
-                        'composite',
-                        [Softmax(5, 'sf1', 0.1),
-                         Softmax(5, 'sf2', 0.1)]
-                    )
+        layers=[
+            FlattenerLayer(
+                CompositeLayer(
+                    'composite',
+                    [Softmax(5, 'sf1', 0.1),
+                     Softmax(5, 'sf2', 0.1)]
                 )
-            ],
-            nvis=2
             )
+        ],
+        nvis=2
+        )
 
-    dataset = DenseDesignMatrix( \
-               X=np.random.rand(20, 2).astype(theano.config.floatX),
-               y=np.random.rand(20, 10).astype(theano.config.floatX))
+    dataset = DenseDesignMatrix(
+        X=np.random.rand(20, 2).astype(theano.config.floatX),
+        y=np.random.rand(20, 10).astype(theano.config.floatX))
 
     train = Train(dataset, mlp,
                   SGD(0.1, batch_size=5, monitoring_dataset=dataset))
@@ -698,8 +697,8 @@ def test_set_get_weights_Softmax():
     # Conv2DSpace input space
     layer = Softmax(num_classes, 's', irange=.1)
     softmax_mlp = MLP(layers=[layer],
-            input_space=Conv2DSpace(shape=(conv_dim[0], conv_dim[1]),
-                                    num_channels=conv_dim[2]))
+                      input_space=Conv2DSpace(shape=(conv_dim[0], conv_dim[1]),
+                      num_channels=conv_dim[2]))
     conv_weights = np.random.randn(conv_dim[0], conv_dim[1], conv_dim[2],
                                    num_classes).astype(config.floatX)
     layer.set_weights(conv_weights.reshape(np.prod(conv_dim), num_classes))
