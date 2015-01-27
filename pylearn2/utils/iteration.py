@@ -816,25 +816,19 @@ class FiniteDatasetIterator(object):
                 reraise_as(ValueError(msg))
             dspace = dataset_sub_spaces[idx]
 
-            init_fn = self._convert[i]
-            fn = init_fn
+            fn = self._convert[i]
 
-            # If there is an init_fn, it is supposed to take
-            # care of the formatting, and it should be an error
-            # if it does not. If there was no init_fn, then
-            # the iterator will try to format using the generic
+            # If there is a fn, it is supposed to take care of the formatting,
+            # and it should be an error if it does not. If there was no fn,
+            # then the iterator will try to format using the generic
             # space-formatting functions.
-            if init_fn is None:
+            if fn is None:
                 # "dspace" and "sp" have to be passed as parameters
                 # to lambda, in order to capture their current value,
                 # otherwise they would change in the next iteration
                 # of the loop.
-                if fn is None:
-                    fn = (lambda batch, dspace=dspace, sp=sp:
-                          dspace.np_format_as(batch, sp))
-                else:
-                    fn = (lambda batch, dspace=dspace, sp=sp, fn_=fn:
-                          dspace.np_format_as(fn_(batch), sp))
+                fn = (lambda batch, dspace=dspace, sp=sp:
+                      dspace.np_format_as(batch, sp))
 
             self._convert[i] = fn
 
