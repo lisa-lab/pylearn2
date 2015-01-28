@@ -61,6 +61,8 @@ class VectorSpacesDataset(Dataset):
         if isinstance(data_specs[1], tuple):
             assert sorted(set(data_specs[1])) == sorted(data_specs[1])
         space, source = data_specs
+        if isinstance(data, list):
+            data = tuple(data)
         space.np_validate(data)
         assert len(set(elem.shape[0] for elem in list(data))) <= 1
         self.data = data

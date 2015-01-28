@@ -1,0 +1,76 @@
+!obj:pylearn2.train.Train {
+    dataset: &train !obj:pylearn2.datasets.vector_spaces_dataset.VectorSpacesDataset {
+        data: [
+                  !obj:numpy.random.randint { 
+                          'low': 0, 
+                          'high': &max_labels 10, 
+                          'size':[5, 16] 
+                        },
+                  !obj:numpy.random.randint { 
+                          'low': 0, 
+                          'high': *max_labels, 
+                          'size':[5, 1] 
+                        },
+                  !obj:numpy.random.normal { 'size':[5,3] },
+                  !obj:numpy.random.normal { 'size':[5,5] },
+              ],
+        data_specs: [
+                !obj:pylearn2.space.CompositeSpace { components: [
+                        &feature1 !obj:pylearn2.space.IndexSpace { 
+                            dim: 16,
+                            max_labels: *max_labels,
+                        },
+                        &feature2 !obj:pylearn2.space.IndexSpace {
+                            dim: 1,
+                            max_labels: *max_labels,
+                        },
+                        &target1 !obj:pylearn2.space.VectorSpace {
+                            dim: 3
+                        },
+                        &target2 !obj:pylearn2.space.VectorSpace {
+                            dim: 5
+                        },
+                    ] },
+                [ 'feature1', 'feature2', 'target1', 'target2' ],
+              ]
+    },
+    model: !obj:pylearn2.models.mlp.MLP {
+        layers: [
+            !obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
+                layer_name: 'projection',
+                dim: 4,
+                irange: 0.05,
+            },
+            !obj:pylearn2.models.mlp.CompositeLayer {
+                layer_name: 'layer_comp', 
+                inputs_to_layers: { 0: [0], 1: [1] }, 
+                layers: [
+                    !obj:pylearn2.models.mlp.Linear {
+                        layer_name: 'h1',
+                        dim: 3,
+                        irange: 0.01
+                    },
+                    !obj:pylearn2.models.mlp.Linear {
+                        layer_name: 'h2',
+                        dim: 5,
+                        irange: 0.01
+                    },
+                ]
+            }
+        ],
+        input_space: !obj:pylearn2.space.CompositeSpace { components: [
+                *feature1, *feature2
+            ] },
+        input_source: ['feature1', 'feature2'],
+        target_source: ['target1', 'target2']
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        train_iteration_mode: 'random_uniform',
+        batch_size: 5,
+        batches_per_iter: 1,
+        learning_rate: 0.01,
+        termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
+            max_epochs: 10,
+        },
+    },
+}

@@ -39,7 +39,7 @@ class DataSpecsMapping(object):
 
         # Builds the mapping
         space, source = data_specs
-        assert isinstance(space, Space), 'Given space: '+str(space)+\
+        assert isinstance(space, Space), 'Given space: ' + str(space) + \
                                          ' was not a instance of Space.'
         self.spec_mapping = self._fill_mapping(space, source)
 
@@ -308,12 +308,12 @@ def is_flat_source(source):
     -------
     WRITEME
     """
-    if isinstance(source, tuple):
+    if isinstance(source, (tuple, list)):
         for sub_source in source:
-            if isinstance(sub_source, tuple):
+            if isinstance(sub_source, (tuple, list)):
                 return False
     elif not isinstance(source, str):
-        raise TypeError("source should be a string or a non-nested tuple "
+        raise TypeError("source should be a string or a non-nested tuple/list "
                 "of strings: %s" % source)
     return True
 
