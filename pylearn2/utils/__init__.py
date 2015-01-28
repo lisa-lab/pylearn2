@@ -27,6 +27,7 @@ WRAPPER_UPDATES = ('__dict__',)
 
 logger = logging.getLogger(__name__)
 
+from pylearn2.utils import serial
 
 def make_name(variable, anon="anonymous_variable"):
     """
