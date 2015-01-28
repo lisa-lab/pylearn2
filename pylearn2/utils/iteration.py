@@ -759,7 +759,7 @@ class FiniteDatasetIterator(object):
         # or a pair of (non-nested CompositeSpace, non-nested tuple).
         # We could build a mapping and call flatten(..., return_tuple=True)
         # but simply putting spaces, sources and data in tuples is simpler.
-        if not isinstance(dataset_source, tuple):
+        if not isinstance(dataset_source, (tuple, list)):
             dataset_source = (dataset_source,)
 
         if not isinstance(dataset_space, CompositeSpace):

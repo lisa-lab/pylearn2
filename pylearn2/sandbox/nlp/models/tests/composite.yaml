@@ -1,6 +1,6 @@
 !obj:pylearn2.train.Train {
     dataset: &train !obj:pylearn2.datasets.vector_spaces_dataset.VectorSpacesDataset {
-        data: !obj:pylearn2.sandbox.nlp.models.as_tuple { list_: [
+        data: [
                   !obj:numpy.random.randint { 
                           'low': 0, 
                           'high': &max_labels 10, 
@@ -13,7 +13,7 @@
                         },
                   !obj:numpy.random.normal { 'size':[5,3] },
                   !obj:numpy.random.normal { 'size':[5,5] },
-              ] },
+              ],
         data_specs: [
                 !obj:pylearn2.space.CompositeSpace { components: [
                         &feature1 !obj:pylearn2.space.IndexSpace { 
@@ -31,9 +31,7 @@
                             dim: 5
                         },
                     ] },
-                !obj:pylearn2.sandbox.nlp.models.as_tuple { list_: [ 
-                        'feature1', 'feature2', 'target1', 'target2'
-                    ] }
+                [ 'feature1', 'feature2', 'target1', 'target2' ],
               ]
     },
     model: !obj:pylearn2.models.mlp.MLP {
