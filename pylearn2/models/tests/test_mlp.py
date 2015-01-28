@@ -623,6 +623,45 @@ def test_softmax_binary_targets():
                                cost_vec(X_data, y_vec_data))
 
 
+def test_softmax_two_binary_targets():
+    """
+    Constructs softmax layers with two binary targets and with vector targets
+    to check that they give the same cost.
+    """
+    num_classes = 10
+    batch_size = 20
+    mlp_bin = MLP(
+        layers=[Softmax(num_classes, 's1', irange=0.1, binary_target_dim=2)],
+        nvis=100
+    )
+    mlp_vec = MLP(
+        layers=[Softmax(num_classes, 's1', irange=0.1)],
+        nvis=100
+    )
+
+    X = mlp_bin.get_input_space().make_theano_batch()
+    y_bin = mlp_bin.get_target_space().make_theano_batch()
+    y_vec = mlp_vec.get_target_space().make_theano_batch()
+
+    y_hat_bin = mlp_bin.fprop(X)
+    y_hat_vec = mlp_vec.fprop(X)
+    cost_bin = theano.function([X, y_bin], mlp_bin.cost(y_bin, y_hat_bin),
+                               allow_input_downcast=True)
+    cost_vec = theano.function([X, y_vec], mlp_vec.cost(y_vec, y_hat_vec),
+                               allow_input_downcast=True)
+
+    X_data = np.random.random(size=(batch_size, 100))
+    # binary and vector costs can only match
+    # if binary targets are mutually exclusive
+    y_bin_data = np.concatenate([np.random.permutation(10)[:2].reshape((1, 2))
+                                 for _ in range(batch_size)])
+    y_vec_data = np.zeros((batch_size, num_classes))
+    y_vec_data[np.arange(batch_size), y_bin_data[:, 0].flatten()] = 1
+    y_vec_data[np.arange(batch_size), y_bin_data[:, 1].flatten()] = 1
+    np.testing.assert_allclose(cost_bin(X_data, y_bin_data),
+                               cost_vec(X_data, y_vec_data))
+
+
 def test_softmax_weight_init():
     """
     Constructs softmax layers with different weight initialization

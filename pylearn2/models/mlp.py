@@ -1137,7 +1137,9 @@ class Softmax(Layer):
         number of targets here so that an IndexSpace of the proper dimension
         can be used as the target space. This allows the softmax to compute
         the cost much more quickly than if it needs to convert the targets
-        into a VectorSpace.
+        into a VectorSpace. With binary_target_dim>1, you can use one layer
+        to simultaneously predict a bag of words (i.e. order is not important,
+        the same element can be included more than once).
     non_redundant : bool
         If True, learns only n_classes - 1 biases and weight vectors
     """
@@ -1263,13 +1265,17 @@ class Softmax(Layer):
                                      ('max_max_class', mx.max()),
                                      ('min_max_class', mx.min())]))
 
-            if targets is not None:
-                y_hat = T.argmax(state, axis=1)
-                y = (targets.reshape(y_hat.shape) if self._has_binary_target
-                     else T.argmax(targets, axis=1))
-                misclass = T.neq(y, y_hat).mean()
-                misclass = T.cast(misclass, config.floatX)
-                rval['misclass'] = misclass
+            if (targets is not None):
+                if ((not self._has_binary_target) or
+                        self.binary_target_dim == 1):
+                    # if binary_target_dim>1, the misclass rate is ill-defined
+                    y_hat = T.argmax(state, axis=1)
+                    y = (targets.reshape(y_hat.shape)
+                         if self._has_binary_target
+                         else T.argmax(targets, axis=1))
+                    misclass = T.neq(y, y_hat).mean()
+                    misclass = T.cast(misclass, config.floatX)
+                    rval['misclass'] = misclass
                 rval['nll'] = self.cost(Y_hat=state, Y=targets)
 
         return rval
@@ -1425,9 +1431,19 @@ class Softmax(Layer):
             # happen on the GPU rather than CPU.
 
             flat_Y = Y.flatten()
+            flat_Y.name = 'flat_Y'
             flat_log_prob = log_prob.flatten()
-            flat_indices = flat_Y + T.arange(Y.shape[0]) * self.n_classes
-            log_prob_of = flat_log_prob[flat_indices].dimshuffle(0, 'x')
+            flat_log_prob.name = 'flat_log_prob'
+            range_ = T.arange(Y.shape[0])
+            if self.binary_target_dim > 1:
+                # because of an error in optimization (local_useless_tile)
+                # when tiling with (1, 1)
+                range_ = T.tile(range_.dimshuffle(0, 'x'),
+                                (1, self.binary_target_dim)).flatten()
+            flat_indices = flat_Y + range_ * self.n_classes
+            flat_indices.name = 'flat_indices'
+            log_prob_of = flat_log_prob[flat_indices].reshape(Y.shape, ndim=2)
+            log_prob_of.name = 'log_prob_of'
 
         else:
             log_prob_of = (Y * log_prob)
