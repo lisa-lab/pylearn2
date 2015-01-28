@@ -46,7 +46,7 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
     def __init__(self, which_set, path=None, center=False, scale=False,
                  start=None, stop=None, axes=('b', 0, 1, 'c'),
-                 preprocessor = None):
+                 preprocessor=None):
 
         assert which_set in self.mapper.keys()
 
@@ -54,7 +54,7 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
         del self.self
 
         if path is None:
-            path = '${PYLEARN2_DATA_PATH}/SVHN/format2/'
+            path = self.data_path
             mode = 'r'
         else:
             mode = 'r+'
@@ -137,8 +137,8 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
         image_size = 32 * 32 * 3
         h_file_n = "{0}_32x32.h5".format(os.path.join(path, "h5", which_set))
         # The table size for y is being set to [sizes[which_set], 1] since y
-        # contains the labels. If you are using the old one-hot scheme then this
-        # needs to be set to 10.
+        # contains the labels. If you are using the old one-hot scheme then
+        # this needs to be set to 10.
         h5file, node = self.init_hdf5(h_file_n,
                                       ([sizes[which_set], image_size],
                                        [sizes[which_set], 1]),
@@ -180,7 +180,7 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
             """
 
             # load difficult train
-            data = load("{0}train_32x32.mat".format(SVHN.data_path))
+            data = load("{0}train_32x32.mat".format(path))
             valid_index = []
             for i in xrange(1, 11):
                 index = numpy.nonzero(data['y'] == i)[0]
@@ -207,7 +207,7 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
             gc.collect()
 
             # load extra train
-            data = load("{0}extra_32x32.mat".format(SVHN.data_path))
+            data = load("{0}extra_32x32.mat".format(path))
             valid_index = []
             for i in xrange(1, 11):
                 index = numpy.nonzero(data['y'] == i)[0]
@@ -307,7 +307,7 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
 
     def __init__(self, which_set, center=False, scale=False,
                  start=None, stop=None, axes=('b', 0, 1, 'c'),
-                 preprocessor = None):
+                 preprocessor=None):
 
         assert which_set in self.mapper.keys()
 
