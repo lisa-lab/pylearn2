@@ -1,5 +1,8 @@
 """
 Test code for adult.py
+=======
+Testing class that simply checks to see if the adult dataset
+is loadable
 """
 import numpy
 from pylearn2.datasets.adult import adult
