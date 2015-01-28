@@ -308,9 +308,9 @@ def is_flat_source(source):
     -------
     WRITEME
     """
-    if isinstance(source, tuple) or isinstance(source, list):
+    if isinstance(source, (tuple, list)):
         for sub_source in source:
-            if isinstance(sub_source, tuple) or isinstance(sub_source, list):
+            if isinstance(sub_source, (tuple, list)):
                 return False
     elif not isinstance(source, str):
         raise TypeError("source should be a string or a non-nested tuple/list "
