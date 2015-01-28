@@ -1137,7 +1137,9 @@ class Softmax(Layer):
         number of targets here so that an IndexSpace of the proper dimension
         can be used as the target space. This allows the softmax to compute
         the cost much more quickly than if it needs to convert the targets
-        into a VectorSpace.
+        into a VectorSpace. With binary_target_dim>1, you can use one layer
+        to simultaneously predict a bag of words (i.e. order is not important,
+        the same element can be included more than once).
     non_redundant : bool
         If True, learns only n_classes - 1 biases and weight vectors
     """
