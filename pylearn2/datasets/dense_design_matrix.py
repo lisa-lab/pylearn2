@@ -1208,6 +1208,9 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
             Either 'float' or 'int'. Decides the type of pytables atom
             used to store the y data. By default 'float' type is used.
         """
+        assert y_dtype in ['float', 'int'], (
+            "y_dtype can be 'float' or 'int' only"
+        )
 
         x_shape, y_shape = shapes
         # make pytables
