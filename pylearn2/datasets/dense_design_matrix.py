@@ -832,21 +832,6 @@ class DenseDesignMatrix(Dataset):
         """
         return self.y
 
-    @property
-    def num_examples(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
-
-        warnings.warn("num_examples() is being deprecated, and will be "
-                      "removed around November 7th, 2014. `get_num_examples` "
-                      "should be used instead.",
-                      stacklevel=2)
-
-        return self.get_num_examples()
-
     def get_batch_design(self, batch_size, include_labels=False):
         """
         .. todo::
