@@ -2,6 +2,9 @@
 A module defining the Dataset class.
 """
 
+import warnings
+from pylearn2.utils.iteration import resolve_iterator_class
+
 
 class Dataset(object):
 
@@ -11,9 +14,7 @@ class Dataset(object):
 
     def __iter__(self):
         """
-        .. todo::
-
-            WRITEME
+        Return an iterator for this dataset
         """
         return self.iterator()
 
@@ -110,6 +111,73 @@ class Dataset(object):
         # can be handled here.
         raise NotImplementedError()
 
+    def _init_iterator(self, mode=None, batch_size=None, num_batches=None,
+                       rng=None, data_specs=None):
+        """
+        Fill-in unspecified attributes trying to set them to their default
+        values or raising an error.
+
+        Parameters
+        ----------
+        mode : str or object, optional
+        batch_size : int, optional
+        num_batches : int, optional
+        rng : int, object or array_like, optional
+        data_specs : (space, source) pair, optional
+
+        Refer to `dataset.iterator` for a detailed description of the
+        parameters.
+
+        Returns
+        -------
+        A tuple [mode, batch_size, num_batches, rng, data_specs]. All the
+        element of the tuple are set to either the value provided as input or
+        their default value. Specifically:
+
+        mode : str or object
+            If None, return self._iter_subset_class. If self._iter_subset_class
+            is not defined raise an error.
+        batch_size : int
+            If None, return self._iter_batch_size. If self._iter_batch_size
+            is not defined return None.
+        num_batches : int
+            If None, return self._iter_num_batches. If self._iter_num_batches
+            is not defined return None.
+        rng : int, object or array_like
+            If None and mode.stochastic, return self.rng.
+        data_specs : (space, source) pair
+            If None, return self._iter_data_specs. If self._iter_data_specs is
+            not defined raises an error.
+        """
+        # TODO How much of this is possible to put in the Dataset.iterator or
+        # in FiniteDatasetIterator?
+
+        if data_specs is None:
+            if hasattr(self, '_iter_data_specs'):
+                data_specs = self._iter_data_specs
+            else:
+                raise ValueError('data_specs not provided and no default data '
+                                 'spec set for %s' % str(self))
+
+        # TODO: Refactor
+        if mode is None:
+            if hasattr(self, '_iter_subset_class'):
+                mode = self._iter_subset_class
+            else:
+                raise ValueError('iteration mode not provided and no default '
+                                 'mode set for %s' % str(self))
+        else:
+            mode = resolve_iterator_class(mode)
+
+        if batch_size is None:
+            batch_size = getattr(self, '_iter_batch_size', None)
+        if num_batches is None:
+            num_batches = getattr(self, '_iter_num_batches', None)
+        if rng is None and mode.stochastic:
+            rng = self.rng
+
+        return [mode, batch_size, num_batches, rng, data_specs]
+
     def adjust_for_viewer(self, X):
         """
         Shift and scale a tensor, mapping its data range to [-1, 1].
@@ -138,14 +206,20 @@ class Dataset(object):
 
     def has_targets(self):
         """ Returns true if the dataset includes targets """
-
         raise NotImplementedError()
 
     def get_topo_batch_axis(self):
         """
         Returns the index of the axis that corresponds to different examples
         in a batch when using topological_view.
+
+        WARNING: This method is deprecated and will be unsupported after 27
+                 July 27, 2015. Some classes, e.g. DenseDesignMatrix, might
+                 still implement it, but it will not be part of the interface
+                 anymore.
         """
+        warnings.warn('This method is deprecated and will be unsupported '
+                      'after 27 July 27, 2015')
 
         # Subclasses that support topological view must implement this to
         # specify how their data is formatted.
@@ -162,6 +236,10 @@ class Dataset(object):
         visualization. Using this method for serious learning code is
         strongly discouraged. All code that depends on any particular
         example sampling properties should use Dataset.iterator.
+
+        WARNING: This method is deprecated and will be unsupported after 27
+        July 27, 2015. Some classes, e.g. DenseDesignMatrix, might still
+        implement it, but it will not be part of the interface anymore.
 
         .. todo::
 
@@ -183,6 +261,8 @@ class Dataset(object):
             Either numpy value of the features, or a (features, targets) tuple
             of numpy values, depending on the value of `include_labels`.
         """
+        warnings.warn('This method is deprecated and will be unsupported '
+                      'after 27 July 27, 2015')
         raise NotImplementedError(str(type(self)) + " does not implement "
                                   "get_batch_design.")
 
@@ -203,6 +283,10 @@ class Dataset(object):
             to make the terminology more consistent with the rest of the
             library.
 
+         WARNING: This method is deprecated and will be unsupported after 27
+         July 27, 2015. Some classes, e.g. DenseDesignMatrix, might still
+         implement it, but it will not be part of the interface anymore.
+
         Parameters
         ----------
         batch_size : int
@@ -217,6 +301,8 @@ class Dataset(object):
             Either numpy value of the features, or a (features, targets) tuple
             of numpy values, depending on the value of `include_labels`.
         """
+        warnings.warn('This method is deprecated and will be unsupported '
+                      'after 27 July 27, 2015')
         raise NotImplementedError()
 
     def get_num_examples(self):
