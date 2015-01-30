@@ -17,7 +17,7 @@ try:
 except ImportError:
     tables = None
 import warnings
-from collections import OrderedDict
+from pylearn2.compat import OrderedDict
 from pylearn2.datasets import cache
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.datasets.hdf5_deprecated import HDF5DatasetDeprecated
@@ -31,6 +31,39 @@ class HDF5Dataset(Dataset):
 
     """
     Dataset loaded from an HDF5 file.
+
+    Parameters
+    ----------
+    filename : str
+        HDF5 file name.
+    sources : list of str
+        A list of key(s) of dataset data in the HDF5 file.
+    spaces : list of Space objects
+        A list of spaces, one for each source in sources.
+    aliases : list of str, optional
+        A list of aliases, one for each source. They work as an alias for
+        the original name of the sources and once set can be used to access
+        the data. If you use this parameter, for each element in sources
+        you have to either specify an alias or None.
+    load_all : bool, optional (default False)
+        If true, datasets are loaded into memory instead of being left
+        on disk.
+    cache_size: int, optional
+        This value is used when use_h5py is True.
+        The size in bytes for the chunk cache of the HDF5 library. Useful
+        when the HDF5 files has large chunks and when using a sequential
+        iterator. The chunk cache allows only access the disk for the
+        chunks and then copy the batches to GPU from memory, which can
+        result in a significant speed up. Sensible default values depend
+        on the size of your data and the batch size you wish to use. A
+        rule of thumb is to make a chunk contain 100 - 1000 batches and
+        make sure they encompass complete samples.
+    use_h5py: bool or 'auto', optional
+        Specifies if h5py or pytables should be used. If set to auto
+        pylearn2 will try to use pytables and will switch to h5py if
+        pytables cannot be loaded (e.g. is not installed).
+    kwargs : dict, optional
+        Keyword arguments passed to `DenseDesignMatrix`.
     """
     def __new__(cls, filename, X=None, topo_view=None, y=None, load_all=False,
                 cache_size=None, sources=None, spaces=None, aliases=None,
@@ -57,38 +90,7 @@ class HDF5Dataset(Dataset):
     def __init__(self, filename, sources, spaces, aliases=None, load_all=False,
                  cache_size=None, use_h5py='auto', **kwargs):
         """
-        Parameters
-        ----------
-        filename : str
-            HDF5 file name.
-        sources : list of str
-            A list of key(s) of dataset data in the HDF5 file.
-        spaces : list of Space objects
-            A list of spaces, one for each source in sources.
-        aliases : list of str, optional
-            A list of aliases, one for each source. They work as an alias for
-            the original name of the sources and once set can be used to access
-            the data. If you use this parameter, for each element in sources
-            you have to either specify an alias or None.
-        load_all : bool, optional (default False)
-            If true, datasets are loaded into memory instead of being left
-            on disk.
-        cache_size: int, optional
-            This value is used when use_h5py is True.
-            The size in bytes for the chunk cache of the HDF5 library. Useful
-            when the HDF5 files has large chunks and when using a sequential
-            iterator. The chunk cache allows only access the disk for the
-            chunks and then copy the batches to GPU from memory, which can
-            result in a significant speed up. Sensible default values depend
-            on the size of your data and the batch size you wish to use. A
-            rule of thumb is to make a chunk contain 100 - 1000 batches and
-            make sure they encompass complete samples.
-        use_h5py: bool or 'auto', optional
-            Specifies if h5py or pytables should be used. If set to auto
-            pylearn2 will try to use pytables and will switch to h5py if
-            pytables cannot be loaded (e.g. is not installed).
-        kwargs : dict, optional
-            Keyword arguments passed to `DenseDesignMatrix`.
+        Class constructor
         """
         assert isinstance(filename, basestring)
         assert isinstance(sources, list)
@@ -286,7 +288,7 @@ class HDF5Dataset(Dataset):
             pass
         return data
 
-    #@wraps(Dataset.get_data_specs, assigned=(), updated=())
+    # @wraps(Dataset.get_data_specs, assigned=(), updated=())
     # not in dataset, but required by iteration.755
     def get_data_specs(self, source_or_alias=None):
         """
@@ -303,7 +305,7 @@ class HDF5Dataset(Dataset):
             space = self.spaces[source_or_alias]
         return (space, source_or_alias)
 
-    #@wraps(Dataset.get, assigned=(), updated=())
+    # @wraps(Dataset.get, assigned=(), updated=())
     # missing in dataset!
     def get(self, sources, indexes):
         """
