@@ -74,8 +74,8 @@ class HDF5DatasetDeprecated(DenseDesignMatrix):
         if y is not None:
             y = self.get_dataset(y, load_all)
 
-        super(HDF5DatasetDeprecated, self).__init__(X=X, topo_view=topo_view, y=y,
-                                          **kwargs)
+        super(HDF5DatasetDeprecated, self).__init__(X=X, topo_view=topo_view,
+                                                    y=y, **kwargs)
 
     def _check_labels(self):
         """
@@ -292,6 +292,10 @@ class HDF5ViewConverter(DefaultViewConverter):
         This override of DefaultViewConverter.topo_view_to_design_mat does
         not attempt to transpose the topological view, since transposition
         is not supported by HDF5 datasets.
+
+        Parameters
+        ----------
+        WRITEME
         """
         v_shape = (V.shape[self.axes.index('b')],
                    V.shape[self.axes.index(0)],

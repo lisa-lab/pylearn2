@@ -25,6 +25,7 @@ from pylearn2.utils import safe_zip, wraps, py_integer_types
 from pylearn2.utils.iteration import FiniteDatasetIterator
 from pylearn2.utils.exc import reraise_as
 from pylearn2.space import Space, CompositeSpace
+from theano.compat.six import string_types
 
 
 class HDF5Dataset(Dataset):
@@ -92,15 +93,15 @@ class HDF5Dataset(Dataset):
         """
         Class constructor
         """
-        assert isinstance(filename, basestring)
+        assert isinstance(filename, string_types)
         assert isinstance(sources, list)
-        assert all([isinstance(el, basestring) for el in sources])
+        assert all([isinstance(el, string_types) for el in sources])
         assert isinstance(spaces, list)
         assert all([isinstance(el, Space) for el in spaces])
         assert len(sources) == len(spaces)
         if aliases is not None:
             assert isinstance(aliases, list)
-            assert all([isinstance(el, basestring) for el in aliases
+            assert all([isinstance(el, string_types) for el in aliases
                        if el is not None])
             assert len(aliases) == len(sources)
         assert isinstance(load_all, bool)
@@ -199,9 +200,8 @@ class HDF5Dataset(Dataset):
         return data
 
     @wraps(Dataset.iterator, assigned=(), updated=())
-    def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 rng=None, data_specs=None, return_tuple=False,
-                 **kwargs):
+    def iterator(self, data_specs, mode=None, batch_size=None,
+                 num_batches=None, rng=None, return_tuple=False, **kwargs):
         """
         data_specs : tuple
             A `(space, source)` tuple. See :ref:`data_specs` for a full
@@ -214,17 +214,8 @@ class HDF5Dataset(Dataset):
             mode, batch_size, num_batches, rng, data_specs)
         convert = None
 
-        if data_specs is None:
-            sources = self._get_canonical_sources()
-            spaces = self._get_canonical_spaces()
-            data_specs = (spaces, sources)
-            data = self._get_canonical_data()
-        else:
-            sources = data_specs[1]
-            data = [self.data[s] for s in sources]
-
         return FiniteDatasetIterator(self,
-                                     mode(data[0].shape[0],
+                                     mode(self.get_num_examples(),
                                           batch_size,
                                           num_batches,
                                           rng),
@@ -326,7 +317,7 @@ class HDF5Dataset(Dataset):
         """
         assert isinstance(sources, tuple) and len(sources) > 0, (
             'sources should be an instance of tuple and not empty')
-        assert all([isinstance(el, basestring) for el in sources]), (
+        assert all([isinstance(el, string_types) for el in sources]), (
             'sources elements should be strings')
         assert isinstance(indexes, (tuple, slice)), (
             'indexes should be either a slice or a tuple of ints elements '
