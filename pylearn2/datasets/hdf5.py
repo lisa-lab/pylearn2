@@ -296,7 +296,8 @@ class HDF5Dataset(Dataset):
             source_or_alias key, if any, or to the canonical source otherwise.
         """
         if source_or_alias is None:
-            source_or_alias = self.aliases
+            source_or_alias = self.aliases if self.aliases is not None else  \
+                self.sources
 
         if isinstance(source_or_alias, tuple):
             space = tuple([self.spaces[s] for s in source_or_alias])
@@ -365,8 +366,12 @@ class HDF5Dataset(Dataset):
             The source you want the number of examples of
         """
         if source_or_alias is None:
-            alias = self.aliases[0] if isinstance(self.aliases, tuple) else \
-                self.aliases
+            if self.aliases is None:
+                alias = self.sources[0] if isinstance(self.sources, tuple) else \
+                    self.sources
+            else:
+                alias = self.aliases[0] if isinstance(self.aliases, tuple) else \
+                    self.aliases
             data = self.data[alias]
         else:
             data = self.data[source_or_alias]
@@ -447,6 +452,8 @@ class alias_dict(OrderedDict):
         alias: any input accepted as key by a dictionary
             The alias.
         """
+        if alias is None:
+            return
         # workaround to avoid using the deprecated method has_key()
         if key not in super(alias_dict, self).keys():
             raise NameError('The key is not in the dictionary')
