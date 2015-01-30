@@ -420,12 +420,14 @@ class alias_dict(OrderedDict):
         """
         if isinstance(keys, tuple):
             if keys[1] is not None:
-                if keys[0] in self.__a2k__ or super(alias_dict,
-                                                    self).has_key(keys[0]):
+                # workaround to avoid using the deprecated method has_key()
+                if keys[0] in self.__a2k__ or keys[0] in super(alias_dict,
+                                                               self).keys():
                     raise Exception('The key is already used in the '
                                     'dictionary either as key or alias')
-                if keys[1] in self.__a2k__ or super(alias_dict,
-                                                    self).has_key(keys[1]):
+                # workaround to avoid using the deprecated method has_key()
+                if keys[1] in self.__a2k__ or keys[1] in super(alias_dict,
+                                                               self).keys():
                     raise Exception('The alias is already used in the '
                                     'dictionary either as key or alias')
                 self.__k2a__[keys[0]] = keys[1]
@@ -445,13 +447,15 @@ class alias_dict(OrderedDict):
         alias: any input accepted as key by a dictionary
             The alias.
         """
-        if not super(alias_dict, self).has_key(key):
+        # workaround to avoid using the deprecated method has_key()
+        if key not in super(alias_dict, self).keys():
             raise NameError('The key is not in the dictionary')
         if key in self.__k2a__ and alias != self.__k2a__[key]:
             raise NameError('The key is already associated to a different '
                             'alias')
+        # workaround to avoid using the deprecated method has_key()
         if (alias in self.__a2k__ and key != self.__a2k__[alias] or
-                super(alias_dict, self).has_key(alias)):
+                alias in super(alias_dict, self).keys()):
             raise Exception('The alias is already used in the dictionary '
                             'either as key or alias')
         self.__k2a__[key] = alias
