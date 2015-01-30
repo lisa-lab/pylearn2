@@ -214,9 +214,8 @@ class Dataset(object):
         in a batch when using topological_view.
 
         WARNING: This method is deprecated and will be unsupported after 27
-                 July 27, 2015. Some classes, e.g. DenseDesignMatrix, might
-                 still implement it, but it will not be part of the interface
-                 anymore.
+        July 27, 2015. Some classes, e.g. DenseDesignMatrix, might still
+        implement it, but it will not be part of the interface anymore.
         """
         warnings.warn('This method is deprecated and will be unsupported '
                       'after 27 July 27, 2015')
