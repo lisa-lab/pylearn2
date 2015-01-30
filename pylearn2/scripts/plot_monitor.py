@@ -70,6 +70,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--out")
     parser.add_argument("model_paths", nargs='+')
+    parser.add_argument("--yrange", help='The y-range to be used for plotting, e.g.  0:1')
+    
     options = parser.parse_args()
     model_paths = options.model_paths
 
@@ -280,6 +282,10 @@ def main():
         # 0.046 is the size of 1 legend box
         fig.subplots_adjust(bottom=0.11 + 0.046 * len(final_codes))
 
+        if(options.yrange is not None):
+            ymin, ymax = map(float, options.yrange.split(':'))
+            plt.ylim(ymin, ymax)
+        
         if options.out is None:
           plt.show()
         else:
