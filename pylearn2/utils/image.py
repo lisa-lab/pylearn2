@@ -1,7 +1,5 @@
 """
-.. todo::
-
-    WRITEME
+Utility functions for working with images.
 """
 import logging
 import numpy as np
@@ -14,7 +12,7 @@ try:
     import matplotlib.axes
 except (RuntimeError, ImportError) as matplotlib_exception:
     warnings.warn("Unable to import matplotlib. Some features unavailable. "
-            "Original exception: " + str(matplotlib_exception))
+                  "Original exception: " + str(matplotlib_exception))
 import os
 
 try:
@@ -42,9 +40,18 @@ def ensure_Image():
 
 def imview(*args, **kwargs):
     """
-    A more sensible matplotlib-based image viewer command,
-    a wrapper around `matplotlib.pyplot.imshow`.
+    A matplotlib-based image viewer command,
+    wrapping `matplotlib.pyplot.imshow` but behaving more
+    sensibly.
 
+    Parameters
+    ----------
+    figure : TODO
+        TODO: write parameters section using decorators to inherit
+        the matplotlib docstring
+
+    Notes
+    -----
     Parameters are identical to `matplotlib.pyplot.imshow`
     but this behaves somewhat differently:
 
@@ -81,6 +88,14 @@ def imview_async(*args, **kwargs):
     A version of `imview` that forks a separate process and
     immediately shows the image.
 
+    Parameters
+    ----------
+    window_title : str
+        TODO: writeme with decorators to inherit the other imviews'
+        docstrings
+
+    Notes
+    -----
     Supports the `window_title` keyword argument to cope with
     the title always being 'Figure 1'.
 
@@ -120,22 +135,46 @@ def show(image):
         return imview(image)
 
     if hasattr(image, '__array__'):
-        #do some shape checking because PIL just raises a tuple indexing error
-        #that doesn't make it very clear what the problem is
+        # do some shape checking because PIL just raises a tuple indexing error
+        # that doesn't make it very clear what the problem is
         if len(image.shape) < 2 or len(image.shape) > 3:
             raise ValueError('image must have either 2 or 3 dimensions but its'
                              ' shape is ' + str(image.shape))
 
+        # The below is a temporary workaround that prevents us from crashing
+        # 3rd party image viewers such as eog by writing out overly large
+        # images.
+        # In the long run we should determine if this is a bug in PIL when
+        # producing
+        # such images or a bug in eog and determine a proper fix.
+        # Since this is hopefully just a short term workaround the
+        # constants below are not included in the interface to the
+        # function, so that 3rd party code won't start passing them.
+        max_height = 4096
+        max_width = 4096
+
+        # Display separate warnings for each direction, since it's
+        # common to crop only one.
+        if image.shape[0] > max_height:
+            image = image[0:max_height, :, :]
+            warnings.warn("Cropping image to smaller height to avoid crashing "
+                          "the viewer program.")
+        if image.shape[0] > max_width:
+            image = image[:, 0:max_width, :]
+            warnings.warn("Cropping the image to a smaller width to avoid "
+                          "crashing the viewer program.")
+        # This ends the workaround
+
         if image.dtype == 'int8':
             image = np.cast['uint8'](image)
         elif str(image.dtype).startswith('float'):
-            #don't use *=, we don't want to modify the input array
+            # don't use *=, we don't want to modify the input array
             image = image * 255.
             image = np.cast['uint8'](image)
 
-        #PIL is too stupid to handle single-channel arrays
+        # PIL is too stupid to handle single-channel arrays
         if len(image.shape) == 3 and image.shape[2] == 1:
-            image = image[:,:,0]
+            image = image[:, :, 0]
 
         try:
             ensure_Image()
@@ -168,17 +207,26 @@ def show(image):
 
     image.save(name)
     if os.name == 'nt':
-        subprocess.Popen(viewer_command + ' ' + name +' && del ' + name,
+        subprocess.Popen(viewer_command + ' ' + name + ' && del ' + name,
                          shell=True)
     else:
-        subprocess.Popen(viewer_command + ' ' + name +' ; rm ' + name,
+        subprocess.Popen(viewer_command + ' ' + name + ' ; rm ' + name,
                          shell=True)
+
 
 def pil_from_ndarray(ndarray):
     """
-    .. todo::
+    Converts an ndarray to a PIL image.
 
-        WRITEME
+    Parameters
+    ----------
+    ndarray : ndarray
+        An ndarray containing an image.
+
+    Returns
+    -------
+    pil : PIL Image
+        A PIL Image containing the image.
     """
     try:
         if ndarray.dtype == 'float32' or ndarray.dtype == 'float64':
@@ -205,9 +253,19 @@ def pil_from_ndarray(ndarray):
 
 def ndarray_from_pil(pil, dtype='uint8'):
     """
-    .. todo::
+    Converts a PIL Image to an ndarray.
 
-        WRITEME
+    Parameters
+    ----------
+    pil : PIL Image
+        An image represented as a PIL Image object
+    dtype : str
+        The dtype of ndarray to create
+
+    Returns
+    -------
+    ndarray : ndarray
+        The image as an ndarray.
     """
     rval = np.asarray(pil)
 
@@ -348,16 +406,29 @@ def make_letterboxed_thumbnail(image, shape):
 
 def load(filepath, rescale_image=True, dtype='float64'):
     """
-    .. todo::
+    Load an image from a file.
 
-        WRITEME
+    Parameters
+    ----------
+    filepath : str
+        Path to the image file to load
+    rescale_image : bool
+        Default value: True
+        If True, returned images have pixel values in [0, 1]. Otherwise,
+        values are in [0, 255].
+    dtype: str
+        The dtype to use for the returned value
+
+    Returns
+    -------
+    img : numpy ndarray
+        An array containing the image that was in the file.
     """
     assert type(filepath) == str
 
-    if rescale_image == False and dtype == 'uint8':
+    if not rescale_image and dtype == 'uint8':
         ensure_Image()
         rval = np.asarray(Image.open(filepath))
-        # print 'image.load: ' + str((rval.min(), rval.max()))
         assert rval.dtype == 'uint8'
         return rval
 
@@ -372,19 +443,19 @@ def load(filepath, rescale_image=True, dtype='float64'):
 
     numpy_rval = np.array(rval)
 
-    if numpy_rval.ndim not in [2,3]:
+    msg = ("Tried to load an image, got an array with %d"
+           " dimensions. Expected 2 or 3."
+           "This may indicate a mildly corrupted image file. Try "
+           "converting it to a different image format with a different "
+           "editor like gimp or imagemagic. Sometimes these programs are "
+           "more robust to minor corruption than PIL and will emit a "
+           "correctly formatted image in the new format.")
+    if numpy_rval.ndim not in [2, 3]:
         logger.error(dir(rval))
         logger.error(rval)
         logger.error(rval.size)
         rval.show()
-        raise AssertionError("Tried to load an image, got an array with " +
-                str(numpy_rval.ndim)+" dimensions. Expected 2 or 3."
-                "This may indicate a mildly corrupted image file. Try "
-                "converting it to a different image format with a different "
-                "editor like gimp or imagemagic. Sometimes these programs are "
-                "more robust to minor corruption than PIL and will emit a "
-                "correctly formatted image in the new format."
-                )
+        raise AssertionError(msg % numpy_rval.ndim)
     rval = numpy_rval
 
     rval = np.cast[dtype](rval) / s
@@ -403,9 +474,14 @@ def load(filepath, rescale_image=True, dtype='float64'):
 
 def save(filepath, ndarray):
     """
-    .. todo::
+    Saves an image to a file.
 
-        WRITEME
+    Parameters
+    ----------
+    filepath : str
+        The path to write the file to.
+    ndarray : ndarray
+        An array containing the image to be saved.
     """
     pil_from_ndarray(ndarray).save(filepath)
 
@@ -491,7 +567,7 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
             out_array = np.zeros((out_shape[0], out_shape[1], 4),
                                  dtype=X.dtype)
 
-        #colors default to 0, alpha defaults to 1 (opaque)
+        # colors default to 0, alpha defaults to 1 (opaque)
         if output_pixel_vals:
             channel_defaults = [0, 0, 0, 255]
         else:
@@ -505,7 +581,7 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
                 if output_pixel_vals:
                     dt = 'uint8'
                 out_array[:, :, i] = np.zeros(out_shape, dtype=dt) + \
-                                     channel_defaults[i]
+                    channel_defaults[i]
             else:
                 # use a recurrent call to compute the channel and store it
                 # in the output

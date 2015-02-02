@@ -9,11 +9,19 @@ import multiprocessing as mp
 try:
     import zmq
 except:
-    raise unittest.SkipTest
+    zmq = None
 
 import pylearn2
 from pylearn2.scripts.train import train
 import pylearn2.train_extensions.live_monitoring as lm
+
+
+def verify_zmq():
+    """
+    Verifies that the zmq module is present. If not, raises SkipTest.
+    """
+    if zmq is None:
+        raise unittest.SkipTest
 
 
 def train_mlp():
@@ -32,6 +40,7 @@ def test_live_monitoring():
     LiveMonitoring train extension and then uses a LiveMonitor to query for
     data.
     """
+    verify_zmq()
     # Start training an MLP with the LiveMonitoring train extension
     p = mp.Process(target=train_mlp)
     p.start()
