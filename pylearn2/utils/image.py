@@ -141,9 +141,18 @@ def show(image):
             raise ValueError('image must have either 2 or 3 dimensions but its'
                              ' shape is ' + str(image.shape))
 
+        # The below is a temporary workaround that prevents us from crashing 3rd
+        # party image viewers such as eog by writing out overly large images.
+        # In the long run we should determine if this is a bug in PIL when producing
+        # such images or a bug in eog and determine a proper fix.
+        # Since this is hopefully just a short term workaround the constants below are
+        # not included in the interface to the function, so that 3rd party code won't
+        # start passing them.
         max_height = 4096
         max_width = 4096
 
+        # Display separate warnings for each direction, since it's common to crop
+        # only one.
         if image.shape[0] > max_height:
             image = image[0:max_height, :, :]
             warnings.warn("Cropping image to smaller height to avoid crashing "
@@ -152,6 +161,7 @@ def show(image):
             image = image[:, 0:max_width, :]
             warnings.warn("Cropping the image to a smaller width to avoid "
                           "crashing the viewer program.")
+        # This ends the workaround
 
         if image.dtype == 'int8':
             image = np.cast['uint8'](image)
