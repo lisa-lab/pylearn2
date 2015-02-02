@@ -1,7 +1,5 @@
 """
-.. todo::
-
-    WRITEME
+Utility functions for working with images.
 """
 import logging
 import numpy as np
@@ -42,9 +40,18 @@ def ensure_Image():
 
 def imview(*args, **kwargs):
     """
-    A more sensible matplotlib-based image viewer command,
-    a wrapper around `matplotlib.pyplot.imshow`.
+    A matplotlib-based image viewer command,
+    wrapping `matplotlib.pyplot.imshow` but behaving more
+    sensibly.
 
+    Parameters
+    ----------
+    figure : TODO
+        TODO: write parameters section using decorators to inherit
+        the matplotlib docstring
+
+    Notes
+    -----
     Parameters are identical to `matplotlib.pyplot.imshow`
     but this behaves somewhat differently:
 
@@ -81,6 +88,14 @@ def imview_async(*args, **kwargs):
     A version of `imview` that forks a separate process and
     immediately shows the image.
 
+    Parameters
+    ----------
+    window_title : str
+        TODO: writeme with decorators to inherit the other imviews'
+        docstrings
+
+    Notes
+    -----
     Supports the `window_title` keyword argument to cope with
     the title always being 'Figure 1'.
 
@@ -188,9 +203,17 @@ def show(image):
 
 def pil_from_ndarray(ndarray):
     """
-    .. todo::
+    Converts an ndarray to a PIL image.
 
-        WRITEME
+    Parameters
+    ----------
+    ndarray : ndarray
+        An ndarray containing an image.
+
+    Returns
+    -------
+    pil : PIL Image
+        A PIL Image containing the image.
     """
     try:
         if ndarray.dtype == 'float32' or ndarray.dtype == 'float64':
@@ -217,9 +240,19 @@ def pil_from_ndarray(ndarray):
 
 def ndarray_from_pil(pil, dtype='uint8'):
     """
-    .. todo::
+    Converts a PIL Image to an ndarray.
 
-        WRITEME
+    Parameters
+    ----------
+    pil : PIL Image
+        An image represented as a PIL Image object
+    dtype : str
+        The dtype of ndarray to create
+
+    Returns
+    -------
+    ndarray : ndarray
+        The image as an ndarray.
     """
     rval = np.asarray(pil)
 
@@ -360,16 +393,29 @@ def make_letterboxed_thumbnail(image, shape):
 
 def load(filepath, rescale_image=True, dtype='float64'):
     """
-    .. todo::
+    Load an image from a file.
 
-        WRITEME
+    Parameters
+    ----------
+    filepath : str
+        Path to the image file to load
+    rescale_image : bool
+        Default value: True
+        If True, returned images have pixel values in [0, 1]. Otherwise,
+        values are in [0, 255].
+    dtype: str
+        The dtype to use for the returned value
+
+    Returns
+    -------
+    img : numpy ndarray
+        An array containing the image that was in the file.
     """
     assert type(filepath) == str
 
     if rescale_image == False and dtype == 'uint8':
         ensure_Image()
         rval = np.asarray(Image.open(filepath))
-        # print 'image.load: ' + str((rval.min(), rval.max()))
         assert rval.dtype == 'uint8'
         return rval
 
@@ -415,9 +461,14 @@ def load(filepath, rescale_image=True, dtype='float64'):
 
 def save(filepath, ndarray):
     """
-    .. todo::
+    Saves an image to a file.
 
-        WRITEME
+    Parameters
+    ----------
+    filepath : str
+        The path to write the file to.
+    ndarray : ndarray
+        An array containing the image to be saved.
     """
     pil_from_ndarray(ndarray).save(filepath)
 
