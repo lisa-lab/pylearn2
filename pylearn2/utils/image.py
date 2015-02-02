@@ -135,8 +135,8 @@ def show(image):
         return imview(image)
 
     if hasattr(image, '__array__'):
-        #do some shape checking because PIL just raises a tuple indexing error
-        #that doesn't make it very clear what the problem is
+        # do some shape checking because PIL just raises a tuple indexing error
+        # that doesn't make it very clear what the problem is
         if len(image.shape) < 2 or len(image.shape) > 3:
             raise ValueError('image must have either 2 or 3 dimensions but its'
                              ' shape is ' + str(image.shape))
@@ -145,24 +145,24 @@ def show(image):
         max_width = 4096
 
         if image.shape[0] > max_height:
-            image = image[0:max_height, :, :]
+            image = image[0:max_height,:,:]
             warnings.warn("Cropping image to smaller height to avoid crashing "
                     "the viewer program.")
         if image.shape[0] > max_width:
-            image = image[:, 0:max_width, :]
+            image = image[:, 0:max_width,:]
             warnings.warn("Cropping the image to a smaller width to avoid "
                     "crashing the viewer program.")
 
         if image.dtype == 'int8':
             image = np.cast['uint8'](image)
         elif str(image.dtype).startswith('float'):
-            #don't use *=, we don't want to modify the input array
+            # don't use *=, we don't want to modify the input array
             image = image * 255.
             image = np.cast['uint8'](image)
 
-        #PIL is too stupid to handle single-channel arrays
+        # PIL is too stupid to handle single-channel arrays
         if len(image.shape) == 3 and image.shape[2] == 1:
-            image = image[:,:,0]
+            image = image[:,:, 0]
 
         try:
             ensure_Image()
@@ -195,10 +195,10 @@ def show(image):
 
     image.save(name)
     if os.name == 'nt':
-        subprocess.Popen(viewer_command + ' ' + name +' && del ' + name,
+        subprocess.Popen(viewer_command + ' ' + name + ' && del ' + name,
                          shell=True)
     else:
-        subprocess.Popen(viewer_command + ' ' + name +' ; rm ' + name,
+        subprocess.Popen(viewer_command + ' ' + name + ' ; rm ' + name,
                          shell=True)
 
 def pil_from_ndarray(ndarray):
@@ -223,7 +223,7 @@ def pil_from_ndarray(ndarray):
             ndarray = np.cast['uint8'](ndarray * 255)
 
             if len(ndarray.shape) == 3 and ndarray.shape[2] == 1:
-                ndarray = ndarray[:, :, 0]
+                ndarray = ndarray[:,:, 0]
 
         ensure_Image()
         rval = Image.fromarray(ndarray)
@@ -430,7 +430,7 @@ def load(filepath, rescale_image=True, dtype='float64'):
 
     numpy_rval = np.array(rval)
 
-    if numpy_rval.ndim not in [2,3]:
+    if numpy_rval.ndim not in [2, 3]:
         logger.error(dir(rval))
         logger.error(rval)
         logger.error(rval.size)
@@ -554,7 +554,7 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
             out_array = np.zeros((out_shape[0], out_shape[1], 4),
                                  dtype=X.dtype)
 
-        #colors default to 0, alpha defaults to 1 (opaque)
+        # colors default to 0, alpha defaults to 1 (opaque)
         if output_pixel_vals:
             channel_defaults = [0, 0, 0, 255]
         else:
@@ -567,12 +567,12 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
                 dt = out_array.dtype
                 if output_pixel_vals:
                     dt = 'uint8'
-                out_array[:, :, i] = np.zeros(out_shape, dtype=dt) + \
+                out_array[:,:, i] = np.zeros(out_shape, dtype=dt) + \
                                      channel_defaults[i]
             else:
                 # use a recurrent call to compute the channel and store it
                 # in the output
-                out_array[:, :, i] = tile_raster_images(
+                out_array[:,:, i] = tile_raster_images(
                     X[i], img_shape, tile_shape, tile_spacing,
                     scale_rows_to_unit_interval, output_pixel_vals)
         return out_array
@@ -616,10 +616,10 @@ if __name__ == '__main__':
     black = np.zeros((50, 50, 3), dtype='uint8')
 
     red = black.copy()
-    red[:, :, 0] = 255
+    red[:,:, 0] = 255
 
     green = black.copy()
-    green[:, :, 1] = 255
+    green[:,:, 1] = 255
 
     show(black)
     show(green)

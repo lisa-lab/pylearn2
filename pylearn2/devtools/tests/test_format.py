@@ -583,7 +583,7 @@ whitelist_docstrings = [
     'scripts/datasets/make_cifar100_gcn_whitened.py',
     'energy_functions/tests/test_rbm_energy.py',
     'costs/ebm_estimation.py',
-    ]
+]
 
 # add files which fail to run to whitelist_docstrings
 whitelist_docstrings.extend([
