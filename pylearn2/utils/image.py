@@ -126,6 +126,18 @@ def show(image):
             raise ValueError('image must have either 2 or 3 dimensions but its'
                              ' shape is ' + str(image.shape))
 
+        max_height = 4096
+        max_width = 4096
+
+        if image.shape[0] > max_height:
+            image = image[0:max_height, :, :]
+            warnings.warn("Cropping image to smaller height to avoid crashing "
+                    "the viewer program.")
+        if image.shape[0] > max_width:
+            image = image[:, 0:max_width, :]
+            warnings.warn("Cropping the image to a smaller width to avoid "
+                    "crashing the viewer program.")
+
         if image.dtype == 'int8':
             image = np.cast['uint8'](image)
         elif str(image.dtype).startswith('float'):
