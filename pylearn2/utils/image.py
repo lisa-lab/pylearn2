@@ -12,7 +12,7 @@ try:
     import matplotlib.axes
 except (RuntimeError, ImportError) as matplotlib_exception:
     warnings.warn("Unable to import matplotlib. Some features unavailable. "
-            "Original exception: " + str(matplotlib_exception))
+                  "Original exception: " + str(matplotlib_exception))
 import os
 
 try:
@@ -145,13 +145,13 @@ def show(image):
         max_width = 4096
 
         if image.shape[0] > max_height:
-            image = image[0:max_height,:,:]
+            image = image[0:max_height, :, :]
             warnings.warn("Cropping image to smaller height to avoid crashing "
-                    "the viewer program.")
+                          "the viewer program.")
         if image.shape[0] > max_width:
-            image = image[:, 0:max_width,:]
+            image = image[:, 0:max_width, :]
             warnings.warn("Cropping the image to a smaller width to avoid "
-                    "crashing the viewer program.")
+                          "crashing the viewer program.")
 
         if image.dtype == 'int8':
             image = np.cast['uint8'](image)
@@ -162,7 +162,7 @@ def show(image):
 
         # PIL is too stupid to handle single-channel arrays
         if len(image.shape) == 3 and image.shape[2] == 1:
-            image = image[:,:, 0]
+            image = image[:, :, 0]
 
         try:
             ensure_Image()
@@ -201,6 +201,7 @@ def show(image):
         subprocess.Popen(viewer_command + ' ' + name + ' ; rm ' + name,
                          shell=True)
 
+
 def pil_from_ndarray(ndarray):
     """
     Converts an ndarray to a PIL image.
@@ -223,7 +224,7 @@ def pil_from_ndarray(ndarray):
             ndarray = np.cast['uint8'](ndarray * 255)
 
             if len(ndarray.shape) == 3 and ndarray.shape[2] == 1:
-                ndarray = ndarray[:,:, 0]
+                ndarray = ndarray[:, :, 0]
 
         ensure_Image()
         rval = Image.fromarray(ndarray)
@@ -413,7 +414,7 @@ def load(filepath, rescale_image=True, dtype='float64'):
     """
     assert type(filepath) == str
 
-    if rescale_image == False and dtype == 'uint8':
+    if not rescale_image and dtype == 'uint8':
         ensure_Image()
         rval = np.asarray(Image.open(filepath))
         assert rval.dtype == 'uint8'
@@ -430,19 +431,19 @@ def load(filepath, rescale_image=True, dtype='float64'):
 
     numpy_rval = np.array(rval)
 
+    msg = ("Tried to load an image, got an array with %d"
+           " dimensions. Expected 2 or 3."
+           "This may indicate a mildly corrupted image file. Try "
+           "converting it to a different image format with a different "
+           "editor like gimp or imagemagic. Sometimes these programs are "
+           "more robust to minor corruption than PIL and will emit a "
+           "correctly formatted image in the new format.")
     if numpy_rval.ndim not in [2, 3]:
         logger.error(dir(rval))
         logger.error(rval)
         logger.error(rval.size)
         rval.show()
-        raise AssertionError("Tried to load an image, got an array with " +
-                str(numpy_rval.ndim)+" dimensions. Expected 2 or 3."
-                "This may indicate a mildly corrupted image file. Try "
-                "converting it to a different image format with a different "
-                "editor like gimp or imagemagic. Sometimes these programs are "
-                "more robust to minor corruption than PIL and will emit a "
-                "correctly formatted image in the new format."
-                )
+        raise AssertionError(msg % numpy_rval.ndim)
     rval = numpy_rval
 
     rval = np.cast[dtype](rval) / s
@@ -567,12 +568,12 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
                 dt = out_array.dtype
                 if output_pixel_vals:
                     dt = 'uint8'
-                out_array[:,:, i] = np.zeros(out_shape, dtype=dt) + \
-                                     channel_defaults[i]
+                out_array[:, :, i] = np.zeros(out_shape, dtype=dt) + \
+                    channel_defaults[i]
             else:
                 # use a recurrent call to compute the channel and store it
                 # in the output
-                out_array[:,:, i] = tile_raster_images(
+                out_array[:, :, i] = tile_raster_images(
                     X[i], img_shape, tile_shape, tile_spacing,
                     scale_rows_to_unit_interval, output_pixel_vals)
         return out_array
@@ -616,10 +617,10 @@ if __name__ == '__main__':
     black = np.zeros((50, 50, 3), dtype='uint8')
 
     red = black.copy()
-    red[:,:, 0] = 255
+    red[:, :, 0] = 255
 
     green = black.copy()
-    green[:,:, 1] = 255
+    green[:, :, 1] = 255
 
     show(black)
     show(green)
