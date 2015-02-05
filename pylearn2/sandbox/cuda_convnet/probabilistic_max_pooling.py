@@ -115,11 +115,6 @@ class ProbMaxPool(GpuOp):
                     "pool shape hasn't been tested and disabled")
 
     def __eq__(self, other):
-        """
-        .. todo::
-
-            WRITEME
-        """
         #Dont put copy_non_contigous as this doesn't change the output
         return (type(self) == type(other) and
                 self.ds == other.ds and
@@ -127,53 +122,23 @@ class ProbMaxPool(GpuOp):
                 self.start == other.start)
 
     def __hash__(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         #Dont put copy_non_contigous as this doesn't change the output
         return (hash(type(self)) ^ hash(self.ds) ^
                 hash(self.stride) ^ hash(self.start))
 
     def c_header_dirs(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return [this_dir, config.pthreads.inc_dir] if config.pthreads.inc_dir else [this_dir]
 
     def c_headers(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return ['nvmatrix.cuh', 'conv_util.cuh']
 
     def c_lib_dirs(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return [cuda_convnet_loc, config.pthreads.lib_dir] if config.pthreads.lib_dir else [cuda_convnet_loc]
 
     def c_libraries(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return ['cuda_convnet', config.pthreads.lib] if config.pthreads.lib else ['cuda_convnet']
 
     def c_code_cache_version(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return (1,)
 
     def _argument_contiguity_check(self, arg_name):
@@ -198,11 +163,6 @@ class ProbMaxPool(GpuOp):
         }
 
     def make_node(self, images, top_down):
-        """
-        .. todo::
-
-            WRITEME
-        """
         images = as_cuda_ndarray_variable(images)
         top_down = as_cuda_ndarray_variable(top_down)
 
@@ -228,11 +188,6 @@ class ProbMaxPool(GpuOp):
         return Apply(self, [images, top_down], [houtput, poutput])
 
     def c_code(self, node, name, inputs, outputs, sub):
-        """
-        .. todo::
-
-            WRITEME
-        """
         images, top_down = inputs
         ptargets, htargets = outputs
         fail = sub['fail']
@@ -371,11 +326,6 @@ class ProbMaxPool(GpuOp):
         return rval
 
     def grad(self, inp, grads):
-        """
-        .. todo::
-
-            WRITEME
-        """
         x, top_down = inp
         p, h = self(x, top_down)
         gp, gh = grads
@@ -395,11 +345,6 @@ class ProbMaxPool(GpuOp):
 
     # Make sure the cuda_convnet library is compiled and up-to-date
     def make_thunk(self, node, storage_map, compute_map, no_recycling):
-        """
-        .. todo::
-
-            WRITEME
-        """
         if not convnet_available():
             raise RuntimeError('Could not compile cuda_convnet')
 
@@ -422,11 +367,6 @@ class ProbMaxPoolGrad(GpuOp):
         assert ds > 0, ds #We check in the code if ds <= imgSizeX
 
     def __eq__(self, other):
-        """
-        .. todo::
-
-            WRITEME
-        """
         #Dont put copy_non_contigous as this doesn't change the output
         return (type(self) == type(other) and
                 self.ds == other.ds and
@@ -434,53 +374,23 @@ class ProbMaxPoolGrad(GpuOp):
                 self.start == other.start)
 
     def __hash__(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         #Dont put copy_non_contigous as this doesn't change the output
         return (hash(type(self)) ^ hash(self.ds) ^
                 hash(self.stride) ^ hash(self.start))
 
     def c_header_dirs(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return [this_dir, config.pthreads.inc_dir] if config.pthreads.inc_dir else [this_dir]
 
     def c_headers(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return ['nvmatrix.cuh', 'conv_util.cuh']
 
     def c_lib_dirs(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return [cuda_convnet_loc, config.pthreads.lib_dir] if config.pthreads.lib_dir else [cuda_convnet_loc]
 
     def c_libraries(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return ['cuda_convnet', config.pthreads.lib] if config.pthreads.lib else ['cuda_convnet']
 
     def c_code_cache_version(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return (1,)
 
     def _argument_contiguity_check(self, arg_name):
@@ -505,11 +415,6 @@ class ProbMaxPoolGrad(GpuOp):
         }
 
     def make_node(self, p, h, gp, gh, gp_iszero, gh_iszero):
-        """
-        .. todo::
-
-            WRITEME
-        """
         p = as_cuda_ndarray_variable(p)
         h = as_cuda_ndarray_variable(h)
         gp = as_cuda_ndarray_variable(gp)
@@ -528,11 +433,6 @@ class ProbMaxPoolGrad(GpuOp):
         return Apply(self, [p, h, gp, gh, gp_iszero, gh_iszero], [p.type(), h.type()])
 
     def c_code(self, node, name, inputs, outputs, sub):
-        """
-        .. todo::
-
-            WRITEME
-        """
         p, h, gp, gh, gp_iszero, gh_iszero = inputs
         targets_z, targets_t, = outputs
         fail = sub['fail']
@@ -728,11 +628,6 @@ class ProbMaxPoolGrad(GpuOp):
 
     # Make sure the cuda_convnet library is compiled and up-to-date
     def make_thunk(self, node, storage_map, compute_map, no_recycling):
-        """
-        .. todo::
-
-            WRITEME
-        """
         if not convnet_available():
             raise RuntimeError('Could not compile cuda_convnet')
 

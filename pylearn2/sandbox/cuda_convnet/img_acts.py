@@ -147,19 +147,9 @@ class ImageActs(BaseActs):
         return flops
 
     def connection_pattern(self, node):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return [[1], [1], [0]]
 
     def grad(self, inputs, g_outputs):
-        """
-        .. todo::
-
-            WRITEME
-        """
         hid_acts, filters, output_shape = inputs
         g_images, = g_outputs
         g_images = as_cuda_ndarray_variable(g_images)
@@ -181,11 +171,6 @@ class ImageActs(BaseActs):
         return [g_hid_acts, g_filters, DisconnectedType()()]
 
     def c_code(self, node, name, inputs, outputs, sub):
-        """
-        .. todo::
-
-            WRITEME
-        """
         hid_acts, filters, output_shape = inputs
         targets, = outputs
         fail = sub['fail']
@@ -392,9 +377,4 @@ class ImageActs(BaseActs):
         return rval
 
     def c_code_cache_version(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return (9,)
