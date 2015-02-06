@@ -18,7 +18,7 @@ class Dataset(object):
         return self.iterator()
 
     def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 rng=None):
+                 rng=None, data_specs=None, return_tuple=False):
         """
         Return an iterator for this dataset with the specified
         behaviour. Unspecified values are filled-in by the default.
@@ -48,6 +48,28 @@ class Dataset(object):
             through the dataset and may potentially be shared by
             multiple iterator objects simultaneously (see "Notes"
             below).
+        data_specs : (space, source) pair, optional
+            `space` is an instance of `Space` (possibly a
+            `CompositeSpace`), and `source` is a string (or tuple of
+            strings if `space` is a `CompositeSpace`). `source` defines
+            which data should be returned by the iterator (for instance
+            'features', 'targets'), and `space` specifies in which
+            format it will be returned. These specifications should be
+            flat: if `space` is a `CompositeSpace`, the sub-spaces should
+            not be `CompositeSpace`s, and `source` should not be a nested
+            tuple, and the same sub-source should not be mentioned more
+            than once with the same sub-space. If `data_specs` is not
+            provided, the behaviour (which sources will be present, in
+            which order and space, or whether an Exception will be raised)
+            is not defined and may depend on the implementation of each
+            `Dataset`.
+        return_tuple : bool, optional
+            In case `data_specs` consists of a single space and source,
+            if `return_tuple` is True, the returned iterator will return
+            a tuple of length 1 containing the minibatch of the data
+            at each iteration. If False, it will return the minibatch
+            itself. This flag has no effect if data_specs is composite.
+            Default: False.
 
         Returns
         -------
@@ -56,6 +78,9 @@ class Dataset(object):
             iterator protocol (i.e. it has an `__iter__` method that
             return the object itself, and a `next()` method that
             returns results until it raises `StopIteration`).
+            The `next()` method returns a batch containing data for
+            each of the sources required in `data_specs`, in the requested
+            `Space`.
 
         Notes
         -----
