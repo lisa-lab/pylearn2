@@ -294,13 +294,13 @@ class HDF5Dataset(Dataset):
         rval : tuple
             A tuple of batches, one for each source
         """
-        assert isinstance(sources, tuple) and len(sources) > 0, (
+        assert isinstance(sources, (tuple, list)) and len(sources) > 0, (
             'sources should be an instance of tuple and not empty')
         assert all([isinstance(el, string_types) for el in sources]), (
             'sources elements should be strings')
-        assert isinstance(indexes, (tuple, slice)), (
-            'indexes should be either a slice or a tuple of ints elements')
-        if isinstance(indexes, tuple):
+        assert isinstance(indexes, (tuple, list, slice, py_integer_types)), (
+            'indexes should be either an int, a slice or a tuple/list of ints')
+        if isinstance(indexes, (tuple, list)):
             assert len(indexes) > 0 and all([isinstance(i, py_integer_types)
                                             for i in indexes]), (
                 'indexes elements should be ints')
@@ -313,7 +313,8 @@ class HDF5Dataset(Dataset):
                 reraise_as(ValueError(
                     'The requested source %s is not part of the dataset' %
                     sources[s], *e.args))
-            if isinstance(indexes, slice) or len(indexes) == 1:
+            if (isinstance(indexes, (slice, py_integer_types)) or
+                    len(indexes) == 1):
                 rval.append(sdata[indexes])
             else:
                 warnings.warn('Accessing non sequential elements of an '
