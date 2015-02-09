@@ -1172,7 +1172,7 @@ class Softmax(Layer):
 
         if not isinstance(n_classes, py_integer_types):
             raise TypeError("n_classes is of type %s, but must be integer" %
-                    type(n_classes))
+                            type(n_classes))
 
         if binary_target_dim is not None:
             assert isinstance(binary_target_dim, py_integer_types)
