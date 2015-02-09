@@ -317,7 +317,6 @@ whitelist_docstrings = [
     'expr/tests/test_normalize.py',
     'expr/tests/test_stochastic_pool.py',
     'expr/preprocessing.py',
-    'expr/nnet.py',
     'expr/image.py',
     'expr/coding.py',
     'expr/__init__.py',
