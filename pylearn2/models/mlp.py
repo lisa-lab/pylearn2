@@ -30,6 +30,7 @@ from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.model_extensions.norm_constraint import MaxL2FilterNorm
 from pylearn2.models.model import Model
 from pylearn2.monitor import get_monitor_doc
+from pylearn2.expr.nnet import arg_of_softmax
 from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
 from pylearn2.space import CompositeSpace
 from pylearn2.space import Conv2DSpace
@@ -1396,7 +1397,6 @@ class Softmax(Layer):
 
             Z = T.dot(state_below, self.W) + b
 
-        Z.tag.softmax_input = self.layer_name
         if self.non_redundant:
             zeros = T.alloc(0., Z.shape[0], 1)
             Z = T.concatenate((zeros, Z), axis=1)
@@ -1411,16 +1411,7 @@ class Softmax(Layer):
 
     def _cost(self, Y, Y_hat):
 
-        assert hasattr(Y_hat, 'owner')
-        owner = Y_hat.owner
-        z = None
-        while owner is not None:
-            if isinstance(owner.op, T.nnet.Softmax):
-                z, = owner.inputs
-                break
-            else:
-                owner = owner.inputs[0].owner
-        assert getattr(z.tag, 'softmax_input', None) == self.layer_name
+        z = arg_of_softmax(Y_hat)
         assert z.ndim == 2
 
         z = z - z.max(axis=1).dimshuffle(0, 'x')
