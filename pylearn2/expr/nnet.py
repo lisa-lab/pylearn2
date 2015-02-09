@@ -17,18 +17,17 @@ from theano.gof.op import get_debug_values
 
 def softmax_numpy(x):
     """
-    .. todo::
-
-        WRITEME properly
+    NumpPy implementation of the softmax function.
 
     Parameters
     ----------
-    x : matrix
+    x : ndarray
+        Should have two dimensions
 
     Returns
     -------
-    rval : vector
-        rval[i] is the softmax of row i of x
+    rval : ndarray
+        rval[i,:] is the softmax of x[i,:]
     """
     stable_x = (x.T - x.max(axis=1)).T
     numer = np.exp(stable_x)
@@ -37,9 +36,7 @@ def softmax_numpy(x):
 
 def pseudoinverse_softmax_numpy(x):
     """
-    .. todo::
-
-        WRITEME properly
+    NumPy implementation of a pseudo-inverse of the softmax function.
 
     Parameters
     ----------
@@ -61,9 +58,18 @@ def pseudoinverse_softmax_numpy(x):
 
 def sigmoid_numpy(x):
     """
-    .. todo::
+    NumPy implementation of the logistic sigmoid function.
 
-        WRITEME
+    Parameters
+    ----------
+    x : ndarray
+        Arguments to the logistic sigmoid function
+
+    Returns
+    -------
+    y : ndarray
+        The output of the logistic sigmoid function applied
+        element-wise to x
     """
     assert not isinstance(x, theano.gof.Variable)
     return 1. / (1. + np.exp(-x))
@@ -71,9 +77,17 @@ def sigmoid_numpy(x):
 
 def inverse_sigmoid_numpy(x):
     """
-    .. todo::
+    NumPy implementation of the inverse of the logistic sigmoid function.
 
-        WRITEME
+    Parameters
+    ----------
+    x : ndarray
+        An array of values in the interval (0, 1)
+
+    Returns
+    -------
+    y: ndarray
+        An array of values such that sigmoid_numpy(y) ~=~ x
     """
     return np.log(x / (1. - x))
 
