@@ -1,13 +1,14 @@
 from __future__ import print_function
 
 from itertools import product
-
+from nose.tools import assert_raises
 import numpy as np
+
 from theano.compat import six
 from theano.compat.six.moves import reduce, xrange
 import theano
 from theano import tensor, config
-from nose.tools import assert_raises
+T = tensor
 
 from pylearn2.datasets.vector_spaces_dataset import VectorSpacesDataset
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
@@ -672,6 +673,19 @@ def test_softmax_weight_init():
     MLP(layers=[Softmax(num_classes, 's', irange=0.1)], nvis=nvis)
     MLP(layers=[Softmax(num_classes, 's', istdev=0.1)], nvis=nvis)
     MLP(layers=[Softmax(num_classes, 's', sparse_init=2)], nvis=nvis)
+
+
+def test_softmax_generality():
+    "tests that the Softmax layer can score outputs it did not create"
+    nvis = 1
+    num_classes = 2
+    model = MLP(layers=[Softmax(num_classes, 's', irange=0.1)], nvis=nvis)
+    Z = T.matrix()
+    Y_hat = T.nnet.softmax(Z)
+    Y = T.matrix()
+    model.layers[-1].cost(Y=Y, Y_hat=Y_hat)
+    # The test is just to make sure that the above line does not raise
+    # an exception complaining that Y_hat was not made by model.layers[-1]
 
 
 def test_softmax_bin_targets_channels(seed=0):
