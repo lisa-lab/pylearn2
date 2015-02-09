@@ -255,8 +255,12 @@ def log_sum_exp(A=None, axis=None, log_A=None):
     axis : int, optional
         Axis along which to sum
     log_A : deprecated
-        This function used to be specified in terms of log(A),
-        which was unnecessary and confusing. Just use A.
+        `A` used to be named `log_A`. We are removing the `log_A`
+        interface because there is no need for the input to be
+        the output of theano.tensor.log. The only change in the
+        renaming, i.e. the value of log_sum_exp(log_A=foo) has
+        not changed, and log_sum_exp(A=foo) is equivalent to
+        log_sum_exp(log_A=foo).
 
     Returns
     -------
