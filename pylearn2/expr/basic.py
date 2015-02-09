@@ -10,6 +10,7 @@ __email__ = "pylearn-dev@googlegroups"
 
 import numpy as np
 import theano.tensor as T
+import warnings
 
 from pylearn2.blocks import Block
 from pylearn2.utils import as_floatX, constantX
