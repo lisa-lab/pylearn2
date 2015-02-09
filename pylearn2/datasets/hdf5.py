@@ -109,16 +109,7 @@ class HDF5Dataset(Dataset):
         assert isinstance(use_h5py, bool) or use_h5py == 'auto'
 
         self.load_all = load_all
-        if aliases is None:
-            aliases = ()
-            # set aliases to canonical name or to source name
-            for s in sources:
-                if s in ['X', 'topo_view']:
-                    aliases += ('features',)
-                elif s == 'y':
-                    aliases += ('targets',)
-                else:
-                    aliases += (s,)
+        self.is_warned = False
         self.aliases = aliases[0] if len(aliases) == 1 else aliases
 
         # Create a dictionary indexed with both keys and aliases
@@ -200,16 +191,20 @@ class HDF5Dataset(Dataset):
         return data
 
     @wraps(Dataset.iterator, assigned=(), updated=())
-    def iterator(self, data_specs, mode=None, batch_size=None,
+    def iterator(self, mode=None, data_specs=None, batch_size=None,
                  num_batches=None, rng=None, return_tuple=False, **kwargs):
         """
-        data_specs : tuple
+        data_specs : tuple, optional
             A `(space, source)` tuple. See :ref:`data_specs` for a full
-            description.
+            description. If set to None, the aliases (or sources) and spaces
+            provided when the dataset object has been created will be used.
         return_tuple : bool, optional
             Always return a tuple, even if there is exactly one source
             of data being returned. Defaults to `False`.
         """
+        if data_specs is None:
+            data_specs = (self._get_sources, self._get_spaces)
+
         [mode, batch_size, num_batches, rng, data_specs] = self._init_iterator(
             mode, batch_size, num_batches, rng, data_specs)
         convert = None
@@ -223,43 +218,28 @@ class HDF5Dataset(Dataset):
                                      return_tuple=return_tuple,
                                      convert=convert)
 
-    def _get_canonical_sources(self):
+    def _get_sources(self):
         """
-        Returns a list. The first element will be the source of `X` if present,
-        or of `topo_view` otherwise. The second element will be the source of
-        `y` if present. This is needed for compatibility with legacy code but
-        you should not rely on it.
-        """
-        source = []
-        if 'X' in self.sources:
-            source.append('features')
-            self.spaces.set_alias('X', 'features')
-            self.data.set_alias('X', 'features')
-        if 'topo_view' in self.sources:
-            source.append('features')
-            self.spaces.set_alias('topo_view', 'features')
-            self.data.set_alias('topo_view', 'features')
-        if 'y' in self.sources:
-            source.append('targets')
-        return source
+        Returns the aliases (if any, sources otherwise) provided when the HDF5
+        object was created
 
-    def _get_canonical_spaces(self):
+        Returns
+        -------
+        A string or a list of strings.
         """
-        Returns a list. The first element will be the space of `X` if present,
-        or of `topo_view` otherwise. The second element will be the space of
-        `y` if present. This is needed for compatibility with legacy code but
-        you should not rely on it.
+        return self.aliases if self.aliases else self.sources
+
+    def _get_spaces(self):
         """
-        space = []
-        try:
-            space.append(self.spaces['X'])
-        except KeyError:
-            space.append(self.spaces['topo_view'])
-        try:
-            space.append(self.spaces['y'])
-        except KeyError:
-            pass
-        return space
+        Returns the Space(s) associated with the aliases (or sources) specified
+        when the HDF5 object has been created.
+
+        Returns
+        -------
+        A Space or a list of Spaces.
+        """
+        space = [self.spaces[s] for s in self._get_sources]
+        return space[0] if len(space) == 1 else space
 
     def _get_canonical_data(self):
         """
@@ -280,11 +260,11 @@ class HDF5Dataset(Dataset):
         return data
 
     # @wraps(Dataset.get_data_specs, assigned=(), updated=())
-    # not in dataset, but required by iteration.755
     def get_data_specs(self, source_or_alias=None):
         """
-            Returns a tuple `(space, source)` related to the provided
-            source_or_alias key, if any, or to the canonical source otherwise.
+            Returns a tuple `(space, source)` for each one of the provided
+            source_or_alias keys, if any. If no key is provided, it will
+            use self.aliases, if not None, or self.sources.
         """
         if source_or_alias is None:
             source_or_alias = self.aliases if self.aliases is not None else  \
@@ -298,7 +278,6 @@ class HDF5Dataset(Dataset):
         return (space, source_or_alias)
 
     # @wraps(Dataset.get, assigned=(), updated=())
-    # missing in dataset!
     def get(self, sources, indexes):
         """
         Retrieves the requested elements from the dataset.
@@ -320,8 +299,7 @@ class HDF5Dataset(Dataset):
         assert all([isinstance(el, string_types) for el in sources]), (
             'sources elements should be strings')
         assert isinstance(indexes, (tuple, slice)), (
-            'indexes should be either a slice or a tuple of ints elements '
-            'should be strings')
+            'indexes should be either a slice or a tuple of ints elements')
         if isinstance(indexes, tuple):
             assert len(indexes) > 0 and all([isinstance(i, py_integer_types)
                                             for i in indexes]), (
