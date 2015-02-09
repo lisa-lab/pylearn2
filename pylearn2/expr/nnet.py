@@ -17,18 +17,17 @@ from theano.gof.op import get_debug_values
 
 def softmax_numpy(x):
     """
-    .. todo::
-
-        WRITEME properly
+    NumpPy implementation of the softmax function.
 
     Parameters
     ----------
-    x : matrix
+    x : ndarray
+        Should have two dimensions
 
     Returns
     -------
-    rval : vector
-        rval[i] is the softmax of row i of x
+    rval : ndarray
+        rval[i,:] is the softmax of x[i,:]
     """
     stable_x = (x.T - x.max(axis=1)).T
     numer = np.exp(stable_x)
@@ -37,9 +36,7 @@ def softmax_numpy(x):
 
 def pseudoinverse_softmax_numpy(x):
     """
-    .. todo::
-
-        WRITEME properly
+    NumPy implementation of a pseudo-inverse of the softmax function.
 
     Parameters
     ----------
