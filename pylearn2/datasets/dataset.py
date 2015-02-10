@@ -49,20 +49,26 @@ class Dataset(object):
             multiple iterator objects simultaneously (see "Notes"
             below).
         data_specs : (space, source) pair, optional
-            `space` is an instance of `Space` (possibly a
-            `CompositeSpace`), and `source` is a string (or tuple of
-            strings if `space` is a `CompositeSpace`). `source` defines
-            which data should be returned by the iterator (for instance
-            'features', 'targets'), and `space` specifies in which
-            format it will be returned. These specifications should be
-            flat: if `space` is a `CompositeSpace`, the sub-spaces should
-            not be `CompositeSpace`s, and `source` should not be a nested
-            tuple, and the same sub-source should not be mentioned more
-            than once with the same sub-space. If `data_specs` is not
-            provided, the behaviour (which sources will be present, in
-            which order and space, or whether an Exception will be raised)
-            is not defined and may depend on the implementation of each
-            `Dataset`.
+            `space` must be an instance of `Space` and `source` must be
+            a string or tuple of string names such as 'features' or
+            'targets'. The source names specify where the data will come
+            from and the Space specifies its format.
+            When source is a tuple, there are some additional requirements:
+
+            * `space` must be a `CompositeSpace`, with one sub-space
+              corresponding to each source name. i.e., the specification
+              must be flat.
+            * None of the components of `space` may be a `CompositeSpace`.
+            * Each corresponding (sub-space, source name) pair must be
+              unique, but the same source name may be mapped to many
+              sub-spaces (for example if one part of the model is fully
+              connected and expects a `VectorSpace`, while another part is
+              convolutional and expects a `Conv2DSpace`).
+
+            If `data_specs` is not provided, the behaviour (which
+            sources will be present, in which order and space, or
+            whether an Exception will be raised) is not defined and may
+            depend on the implementation of each `Dataset`.
         return_tuple : bool, optional
             In case `data_specs` consists of a single space and source,
             if `return_tuple` is True, the returned iterator will return
@@ -93,7 +99,7 @@ class Dataset(object):
         therefore *strongly recommended* that each iterator be given
         its own random number generator with the `rng` parameter
         in such situations.
-        
+
         When it is valid to call the `iterator` method with the default
         value for all arguments, it makes it possible to use the `Dataset`
         itself as an Python iterator, with the default implementation of
