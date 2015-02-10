@@ -605,10 +605,9 @@ class Space(object):
             callbacks_name = "validate_callbacks"
 
         if not hasattr(self, callbacks_name):
-            warnings.warn("It looks like the " + str(type(self)) +
-                          "subclass of Space does not call the superclass "
-                          "__init__ method. Currently this is a warning. It "
-                          "will become an error on or after 2014-06-17.")
+            raise TypeError("The " + str(type(self)) + " Space subclass "
+                            "is required to call the Space superclass "
+                            "constructor but does not.")
         else:
             callbacks = getattr(self, callbacks_name)
             for callback in callbacks:
