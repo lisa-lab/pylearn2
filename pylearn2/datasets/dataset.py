@@ -93,6 +93,12 @@ class Dataset(object):
         therefore *strongly recommended* that each iterator be given
         its own random number generator with the `rng` parameter
         in such situations.
+        
+        When it is valid to call the `iterator` method with the default
+        value for all arguments, it makes it possible to use the `Dataset`
+        itself as an Python iterator, with the default implementation of
+        `Dataset.__iter__`. For instance, `DenseDesignMatrix` supports a
+        value of `None` for `data_specs`.
         """
         # TODO: See how much of the logic from DenseDesignMatrix.iterator
         # can be handled here.
