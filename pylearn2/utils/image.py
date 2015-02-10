@@ -10,7 +10,7 @@ import warnings
 try:
     import matplotlib.pyplot as plt
     import matplotlib.axes
-except (RuntimeError, ImportError) as matplotlib_exception:
+except (RuntimeError, ImportError, TypeError) as matplotlib_exception:
     warnings.warn("Unable to import matplotlib. Some features unavailable. "
                   "Original exception: " + str(matplotlib_exception))
 import os
