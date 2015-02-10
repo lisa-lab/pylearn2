@@ -371,13 +371,6 @@ def safe_union(a, b):
             c.append(x)
     return c
 
-# This was moved to theano, but I include a link to avoid breaking
-# old imports
-from theano.printing import hex_digest as _hex_digest
-def hex_digest(*args, **kwargs):
-    warnings.warn("hex_digest has been moved into Theano. "
-            "pylearn2.utils.hex_digest will be removed on or after "
-            "2014-08-26")
 
 def function(*args, **kwargs):
     """
