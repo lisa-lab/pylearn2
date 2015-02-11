@@ -88,6 +88,9 @@ class WeightActs(BaseActs):
 
             WRITEME
         """
+        if not self.conv and self.partial_sum != 1:
+            raise Exception(
+                "WeightActs, when conv=False(locally connected weights), partial_sum must be 1")
         if not isinstance(images.type, CudaNdarrayType):
             raise TypeError("WeightActs: expected images.type "
                             "to be CudaNdarrayType, "
@@ -174,7 +177,8 @@ class WeightActs(BaseActs):
         basic_setup = """
         #define scaleTargets 0
         #define scaleOutput 1
-        """
+        int conv = %d;
+        """ % self.conv
 
         if self.dense_connectivity:
             basic_setup += """
@@ -370,16 +374,20 @@ class WeightActs(BaseActs):
                         imgSizeY, hidGradsSizeY, hidGradsSizeX, filterSize,
                         paddingStart, moduleStride, img_channels, numGroups,
                         partialSum, 0, 1);
-            nv_partialsum.reshape((numModules / partialSum), filters_dims[0] * filterSize * filterSize * numFilters);
+            if(conv){
+                nv_partialsum.reshape(
+                    (numModules / partialSum),
+                    filters_dims[0] * filterSize * filterSize * numFilters);
 
-            // sum out axis 0 of nv_partialsum
-            #define AXIS 0
-            // scale the contents of nv_weights_grads by 0
-            // i.e., clear out its pre-existing content
-            #define SCALE_THIS 0
-            // scale the new sum by 1, i.e., don't do any scaling
-            #define SCALE_SUM 1
-            nv_weights_grads.addSum(nv_partialsum, AXIS, SCALE_THIS, SCALE_SUM);
+                // sum out axis 0 of nv_partialsum
+                #define AXIS 0
+                // scale the contents of nv_weights_grads by 0
+                // i.e., clear out its pre-existing content
+                #define SCALE_THIS 0
+                // scale the new sum by 1, i.e., don't do any scaling
+                #define SCALE_SUM 1
+                nv_weights_grads.addSum(nv_partialsum, AXIS, SCALE_THIS, SCALE_SUM);
+            }
         }
         """
 
@@ -396,10 +404,10 @@ class WeightActs(BaseActs):
 
         return rval
 
-    def c_code_cache_version(self):
+#    def c_code_cache_version(self):
         """
         .. todo::
 
             WRITEME
         """
-        return (7,)
+#        return (7,)

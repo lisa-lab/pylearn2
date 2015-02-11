@@ -171,12 +171,15 @@ class ImageActs(BaseActs):
             from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
             from pylearn2.sandbox.cuda_convnet.weight_acts import WeightActs
 
-        g_filters = WeightActs(stride=self.stride,
-                partial_sum=self.partial_sum, pad=self.pad)(
-                        g_images, hid_acts, filters.shape[1:3])[0]
+        g_filters = WeightActs(
+            stride=self.stride, partial_sum=self.partial_sum,
+            pad=self.pad, conv=self.conv)(
+                g_images, hid_acts, filters.shape[1:3])[0]
         assert not isinstance(g_filters, list)
-        g_hid_acts = FilterActs(stride=self.stride, pad=self.pad,
-                partial_sum=self.partial_sum)(g_images, filters)
+        g_hid_acts = FilterActs(
+            stride=self.stride, pad=self.pad,
+            partial_sum=self.partial_sum, conv=self.conv)(
+                g_images, filters)
 
         return [g_hid_acts, g_filters, DisconnectedType()()]
 
@@ -202,7 +205,8 @@ class ImageActs(BaseActs):
         basic_setup = """
         #define scaleTargets 0
         #define scaleOutput 1
-        """
+        int conv = %d;
+        """ % self.conv
 
         if self.dense_connectivity:
             basic_setup += """
@@ -332,6 +336,7 @@ class ImageActs(BaseActs):
                                                            intp_dtype, 0);
         target_rows = *((npy_intp *)PyArray_GETPTR1(casted_shape, 0));
         target_cols = *((npy_intp *)PyArray_GETPTR1(casted_shape, 1));
+        int filterModuleMult = conv ? 1 : target_rows * target_cols;
         {
         int target_dims [] = {
             filter_channels,
@@ -372,10 +377,16 @@ class ImageActs(BaseActs):
         # nv_filters.getNumRows() by numFilterColors
         #
         do_convolution = """
-        convImgActs(nv_hid_acts, nv_filters, nv_targets,
+        if (conv)
+            convImgActs(nv_hid_acts, nv_filters, nv_targets,
                     imgSizeY, imgSizeX, numModulesY,
                     paddingStart, moduleStride, filter_channels,
-                    numGroups);
+                    numGroups, scaleTargets, scaleOutput);
+        else
+            localImgActs(nv_hid_acts, nv_filters, nv_targets,
+                    imgSizeY, imgSizeX, numModulesY,
+                    paddingStart, moduleStride, filter_channels,
+                    numGroups, scaleTargets, scaleOutput);
         """
 
         braces = '}' * num_braces
@@ -391,10 +402,10 @@ class ImageActs(BaseActs):
 
         return rval
 
-    def c_code_cache_version(self):
+#    def c_code_cache_version(self):
         """
         .. todo::
 
             WRITEME
         """
-        return (9,)
+#        return (9,)

@@ -58,10 +58,16 @@ import pylearn2.sandbox.cuda_convnet.pthreads
 
 
 class BaseActs(GpuOp):
+    """Shared code for wrapping various convnet operations.
+
+    :param conv: if conv is True, we do "normal"
+        cross-correlation. Otherwise, we do a Locally-connected layer
+        with unshared weights.
     """
-    Shared code for wrapping various convnet operations.
-    """
-    def __init__(self, pad=0, partial_sum=None, stride=1):
+    __props__ = ('pad', 'partial_sum', 'stride', 'conv',
+                 'dense_connectivity', 'copy_non_contiguous')
+
+    def __init__(self, pad=0, partial_sum=None, stride=1, conv=True):
 
         if not isinstance(pad, py_integer_types):
             raise TypeError("pad must be an int")
@@ -75,6 +81,8 @@ class BaseActs(GpuOp):
         self.copy_non_contiguous = 0
         # TODO: support sparse connectivity pattern
         self.dense_connectivity = True
+        assert conv in [False, True]
+        self.conv = conv
 
     def c_header_dirs(self):
         if config.pthreads.inc_dir:
@@ -128,23 +136,6 @@ class BaseActs(GpuOp):
             %%(fail)s;
         }
         """ % locals()
-
-    def __eq__(self, other):
-        return (type(self) == type(other) and
-                self.partial_sum == other.partial_sum and
-                self.pad == other.pad and
-                self.dense_connectivity == other.dense_connectivity and
-                self.stride == other.stride and
-                self.copy_non_contiguous == other.copy_non_contiguous)
-
-    def __hash__(self):
-        msg = []
-        msg.append(self.__class__.__name__)
-        for val in (self.partial_sum, self.pad, self.dense_connectivity,
-                    self.stride, self.copy_non_contiguous):
-            msg.append(str(val))
-
-        return hash(tuple(msg))
 
     # Make sure the cuda_convnet library is compiled and up-to-date
     def make_thunk(self, node, storage_map, compute_map, no_recycling):
