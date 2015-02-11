@@ -43,7 +43,7 @@ class CSVDataset(DenseDesignMatrix):
     expect_headers : bool
       Whether the CSV file contains column headers.
 
-    delimiter : bool
+    delimiter : str
       The CSV file's delimiter.
 
     start : int
