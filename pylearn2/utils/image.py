@@ -6,6 +6,7 @@ import numpy as np
 plt = None
 axes = None
 from theano.compat.six.moves import xrange
+from theano.compat.six import string_types
 import warnings
 try:
     import matplotlib.pyplot as plt
@@ -424,7 +425,7 @@ def load(filepath, rescale_image=True, dtype='float64'):
     img : numpy ndarray
         An array containing the image that was in the file.
     """
-    assert type(filepath) == str
+    assert isinstance(filepath, string_types)
 
     if not rescale_image and dtype == 'uint8':
         ensure_Image()
