@@ -112,21 +112,28 @@ class Dataset(object):
 
     def adjust_for_viewer(self, X):
         """
-        .. todo::
+        Shift and scale a tensor, mapping its data range to [-1, 1].
 
-            WRITEME properly
+        It makes it possible for the transformed tensor to be displayed
+        with `pylearn2.gui.patch_viewer` tools.
+        Default is to do nothing.
 
-        X: a tensor in the same space as the data
-        returns the same tensor shifted and scaled by a transformation
-        that maps the data range to [-1, 1] so that it can be displayed
-        with pylearn2.gui.patch_viewer tools
+        Parameters
+        ----------
+        X: `numpy.ndarray`
+            a tensor in the same space as the data
 
-        for example, for MNIST X will lie in [0,1] and the return value
-            should be X*2-1
+        Returns
+        -------
+        `numpy.ndarray`
+            X shifted and scaled by a transformation that maps the data
+            range to [-1, 1].
 
-        Default is to do nothing
+        Notes
+        -----
+        For example, for MNIST X will lie in [0,1] and the return value
+        should be X*2-1
         """
-
         return X
 
     def has_targets(self):
@@ -179,14 +186,36 @@ class Dataset(object):
         raise NotImplementedError(str(type(self)) + " does not implement "
                                   "get_batch_design.")
 
-    def get_batch_topo(self, batch_size):
+    def get_batch_topo(self, batch_size, include_labels=False):
         """
         Returns a topology-preserving batch of data.
 
-        The first index is over different examples, and has length
-        batch_size. The next indices are the topologically significant
-        dimensions of the data, i.e. for images, image rows followed by
-        image columns.  The last index is over separate channels.
+        This method is not guaranteed to have any particular properties
+        like not repeating examples, etc. It is mostly useful for getting
+        a single batch of data for a unit test or a quick-and-dirty
+        visualization. Using this method for serious learning code is
+        strongly discouraged. All code that depends on any particular
+        example sampling properties should use Dataset.iterator.
+
+        .. todo::
+
+            Refactor to use `include_targets` rather than `include_labels`,
+            to make the terminology more consistent with the rest of the
+            library.
+
+        Parameters
+        ----------
+        batch_size : int
+            The number of examples to include in the batch.
+        include_labels : bool
+            If True, returns the targets for the batch, as well as the
+            features.
+
+        Returns
+        -------
+        batch : member of feature space, or member of (feature, target) space.
+            Either numpy value of the features, or a (features, targets) tuple
+            of numpy values, depending on the value of `include_labels`.
         """
         raise NotImplementedError()
 
