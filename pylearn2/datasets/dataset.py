@@ -18,7 +18,7 @@ class Dataset(object):
         return self.iterator()
 
     def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 rng=None):
+                 rng=None, data_specs=None, return_tuple=False):
         """
         Return an iterator for this dataset with the specified
         behaviour. Unspecified values are filled-in by the default.
@@ -48,6 +48,34 @@ class Dataset(object):
             through the dataset and may potentially be shared by
             multiple iterator objects simultaneously (see "Notes"
             below).
+        data_specs : (space, source) pair, optional
+            `space` must be an instance of `Space` and `source` must be
+            a string or tuple of string names such as 'features' or
+            'targets'. The source names specify where the data will come
+            from and the Space specifies its format.
+            When source is a tuple, there are some additional requirements:
+
+            * `space` must be a `CompositeSpace`, with one sub-space
+              corresponding to each source name. i.e., the specification
+              must be flat.
+            * None of the components of `space` may be a `CompositeSpace`.
+            * Each corresponding (sub-space, source name) pair must be
+              unique, but the same source name may be mapped to many
+              sub-spaces (for example if one part of the model is fully
+              connected and expects a `VectorSpace`, while another part is
+              convolutional and expects a `Conv2DSpace`).
+
+            If `data_specs` is not provided, the behaviour (which
+            sources will be present, in which order and space, or
+            whether an Exception will be raised) is not defined and may
+            depend on the implementation of each `Dataset`.
+        return_tuple : bool, optional
+            In case `data_specs` consists of a single space and source,
+            if `return_tuple` is True, the returned iterator will return
+            a tuple of length 1 containing the minibatch of the data
+            at each iteration. If False, it will return the minibatch
+            itself. This flag has no effect if data_specs is composite.
+            Default: False.
 
         Returns
         -------
@@ -56,6 +84,9 @@ class Dataset(object):
             iterator protocol (i.e. it has an `__iter__` method that
             return the object itself, and a `next()` method that
             returns results until it raises `StopIteration`).
+            The `next()` method returns a batch containing data for
+            each of the sources required in `data_specs`, in the requested
+            `Space`.
 
         Notes
         -----
@@ -68,6 +99,12 @@ class Dataset(object):
         therefore *strongly recommended* that each iterator be given
         its own random number generator with the `rng` parameter
         in such situations.
+
+        When it is valid to call the `iterator` method with the default
+        value for all arguments, it makes it possible to use the `Dataset`
+        itself as an Python iterator, with the default implementation of
+        `Dataset.__iter__`. For instance, `DenseDesignMatrix` supports a
+        value of `None` for `data_specs`.
         """
         # TODO: See how much of the logic from DenseDesignMatrix.iterator
         # can be handled here.
@@ -75,21 +112,28 @@ class Dataset(object):
 
     def adjust_for_viewer(self, X):
         """
-        .. todo::
+        Shift and scale a tensor, mapping its data range to [-1, 1].
 
-            WRITEME properly
+        It makes it possible for the transformed tensor to be displayed
+        with `pylearn2.gui.patch_viewer` tools.
+        Default is to do nothing.
 
-        X: a tensor in the same space as the data
-        returns the same tensor shifted and scaled by a transformation
-        that maps the data range to [-1, 1] so that it can be displayed
-        with pylearn2.gui.patch_viewer tools
+        Parameters
+        ----------
+        X: `numpy.ndarray`
+            a tensor in the same space as the data
 
-        for example, for MNIST X will lie in [0,1] and the return value
-            should be X*2-1
+        Returns
+        -------
+        `numpy.ndarray`
+            X shifted and scaled by a transformation that maps the data
+            range to [-1, 1].
 
-        Default is to do nothing
+        Notes
+        -----
+        For example, for MNIST X will lie in [0,1] and the return value
+        should be X*2-1
         """
-
         return X
 
     def has_targets(self):
@@ -142,14 +186,36 @@ class Dataset(object):
         raise NotImplementedError(str(type(self)) + " does not implement "
                                   "get_batch_design.")
 
-    def get_batch_topo(self, batch_size):
+    def get_batch_topo(self, batch_size, include_labels=False):
         """
         Returns a topology-preserving batch of data.
 
-        The first index is over different examples, and has length
-        batch_size. The next indices are the topologically significant
-        dimensions of the data, i.e. for images, image rows followed by
-        image columns.  The last index is over separate channels.
+        This method is not guaranteed to have any particular properties
+        like not repeating examples, etc. It is mostly useful for getting
+        a single batch of data for a unit test or a quick-and-dirty
+        visualization. Using this method for serious learning code is
+        strongly discouraged. All code that depends on any particular
+        example sampling properties should use Dataset.iterator.
+
+        .. todo::
+
+            Refactor to use `include_targets` rather than `include_labels`,
+            to make the terminology more consistent with the rest of the
+            library.
+
+        Parameters
+        ----------
+        batch_size : int
+            The number of examples to include in the batch.
+        include_labels : bool
+            If True, returns the targets for the batch, as well as the
+            features.
+
+        Returns
+        -------
+        batch : member of feature space, or member of (feature, target) space.
+            Either numpy value of the features, or a (features, targets) tuple
+            of numpy values, depending on the value of `include_labels`.
         """
         raise NotImplementedError()
 
