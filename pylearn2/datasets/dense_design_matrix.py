@@ -264,6 +264,9 @@ class DenseDesignMatrix(Dataset):
             assert self.y.ndim <= 2
             assert np.all(self.y < self.y_labels)
 
+    def get_topo_batch_transform_fn(self, fn):
+        return fn
+
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  rng=None, data_specs=None,
@@ -287,9 +290,9 @@ class DenseDesignMatrix(Dataset):
         for sp, src in safe_zip(sub_spaces, sub_sources):
             if src == 'features' and \
                getattr(self, 'view_converter', None) is not None:
-                conv_fn = (lambda batch, self=self, space=sp:
-                           self.view_converter.get_formatted_batch(batch,
-                                                                   space))
+                conv_fn = self.get_topo_batch_transform_fn(
+                    lambda batch, self=self, space=sp:
+                        self.view_converter.get_formatted_batch(batch, space))
             else:
                 conv_fn = None
 
