@@ -10,7 +10,7 @@ the bug doesn't come back!
 
 
 Pylearn2 is a machine learning library. Most of its functionality is built on top of
-`Theano <http://deeplearning.net/software/theano/>`_. 
+`Theano <http://deeplearning.net/software/theano/>`_.
 This means you can write Pylearn2 plugins (new models, algorithms, etc) using
 mathematical expressions, and Theano will optimize and stabilize those expressions for
 you, and compile them to a backend of your choice (CPU or GPU).
@@ -114,6 +114,7 @@ Dependencies
   Pylearn2. Since pylearn2 is under rapid development some of its features might depend on the `bleeding-edge version of Theano <http://deeplearning.net/software/theano/install.html#bleeding-edge-install-instructions>`_.
 * PyYAML is required for most functionality.
 * PIL is required for some image-related functionality.
+* `matplotlib <http://matplotlib.org/>`_ is required for some plotting functionality.
 * Some dependencies are optional:
     * Pylearn2 includes code for accessing several standard datasets, such as MNIST and CIFAR-10.
       However, if you wish to use one of these datasets, you must download the dataset itself
@@ -121,6 +122,8 @@ Dependencies
     * The original `Pylearn <http://deeplearning.net/software/pylearn/>`_ project is required
       for loading some datasets, such as the Unsupervised and Transfer Learning Challenge datasets
     * Some features (SVMs) depend on scikit-learn.
+    * k-means depends on `milk <https://pythonhosted.org/milk/>`_.
+    * Reading SVHN dataset depends on `pytables <http://www.pytables.org/>`_.
 
 License and Citations
 =====================
@@ -152,7 +155,7 @@ Roughly in order of what you'll want to check out:
 * :ref:`notebook_tutorials` -- At this point, you might want to work through the ipython notebooks in the "scripts/tutorials"
   directory.
 * `A First Experiment with Pylearn2 <http://daemonmaker.blogspot.ca/2014/10/a-first-experiment-with-pylearn2.html>`_ -- A brief introduction to running experiments.
-* `Monitoring Experiments in Pylearn2 <http://daemonmaker.blogspot.ca/2014/12/monitoring-experiments-in-pylearn2.html>`_ -- An overview of monitoring experiments.  
+* `Monitoring Experiments in Pylearn2 <http://daemonmaker.blogspot.ca/2014/12/monitoring-experiments-in-pylearn2.html>`_ -- An overview of monitoring experiments.
 * :ref:`theano_to_pylearn2_tutorial` -- A tutorial on porting Theano code to Pylearn2
 * :ref:`features` -- A list of features available in the library.
 * :ref:`overview` -- A detailed but high-level overview of how Pylearn2 works. This is the
