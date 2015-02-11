@@ -83,11 +83,6 @@ class WeightActs(BaseActs):
     # in WeightActs, that considers these parameters.
 
     def make_node(self, images, hid_grads, output_shape):
-        """
-        .. todo::
-
-            WRITEME
-        """
         if not isinstance(images.type, CudaNdarrayType):
             raise TypeError("WeightActs: expected images.type "
                             "to be CudaNdarrayType, "
@@ -139,11 +134,6 @@ class WeightActs(BaseActs):
         return flops
 
     def c_headers(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         # For some reason, the function called in the C code (_weightActs)
         # is not defined in cudaconv2.cuh, so I defined it in weight_acts.cuh
         headers = super(WeightActs, self).c_headers()
@@ -151,11 +141,6 @@ class WeightActs(BaseActs):
         return headers
 
     def c_code(self, node, name, inputs, outputs, sub):
-        """
-        .. todo::
-
-            WRITEME
-        """
         partial_sum = self.partial_sum if self.partial_sum is not None else 0
         images, hid_grads, output_shape = inputs
         weights_grads, partialsum_storage = outputs
@@ -397,9 +382,4 @@ class WeightActs(BaseActs):
         return rval
 
     def c_code_cache_version(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return (7,)

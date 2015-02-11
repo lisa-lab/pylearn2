@@ -88,11 +88,6 @@ class FilterActs(BaseActs):
     # in FilterActs, that considers these parameters.
 
     def make_node(self, images, filters):
-        """
-        .. todo::
-
-            WRITEME
-        """
         if not isinstance(images.type, CudaNdarrayType):
             raise TypeError("FilterActs: expected images.type to be CudaNdarrayType, "
                     "got "+str(images.type))
@@ -133,11 +128,6 @@ class FilterActs(BaseActs):
         return flops
 
     def c_code(self, node, name, inputs, outputs, sub):
-        """
-        .. todo::
-
-            WRITEME
-        """
         images, filters = inputs
         targets, = outputs
         fail = sub['fail']
@@ -323,19 +313,9 @@ class FilterActs(BaseActs):
         return rval
 
     def c_code_cache_version(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return (10,)
 
     def R_op(self, inputs, evals):
-        """
-        .. todo::
-
-            WRITEME
-        """
         images, filters = inputs
         images_ev, filters_ev = evals
         if 'Cuda' not in str(type(images)):
@@ -355,11 +335,6 @@ class FilterActs(BaseActs):
         return [sol]
 
     def grad(self, inputs, dout):
-        """
-        .. todo::
-
-            WRITEME
-        """
         images, filters = inputs
 
         if 'Cuda' not in str(type(images)):
