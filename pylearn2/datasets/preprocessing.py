@@ -551,8 +551,8 @@ class ExamplewiseAddScaleTransform(Block):
 
     def __init__(self, add=None, multiply=None, multiply_first=False,
                  input_space=None):
-        self._add = numpy.asarray(add)
-        self._multiply = numpy.asarray(multiply)
+        self.add = numpy.asarray(add)
+        self.multiply = numpy.asarray(multiply)
         # TODO: put the constant somewhere sensible.
         if multiply is not None:
             self._has_zeros = numpy.any(abs(multiply) < 1e-14)
@@ -567,8 +567,8 @@ class ExamplewiseAddScaleTransform(Block):
 
             WRITEME
         """
-        if self._multiply is not None:
-            batch *= self._multiply
+        if self.multiply is not None:
+            batch *= self.multiply
         return batch
 
     def _add(self, batch):
@@ -577,8 +577,8 @@ class ExamplewiseAddScaleTransform(Block):
 
             WRITEME
         """
-        if self._add is not None:
-            batch += self._add
+        if self.add is not None:
+            batch += self.add
         return batch
 
     def __call__(self, batch):
