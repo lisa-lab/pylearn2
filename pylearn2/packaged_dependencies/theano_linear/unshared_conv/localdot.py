@@ -11,11 +11,13 @@ if cuda.cuda_available:
     import gpu_unshared_conv # register optimizations
 
 import numpy as np
+import warnings
 
 try:
     import matplotlib.pyplot as plt
-except ImportError:
-    pass
+except (RuntimeError, ImportError, TypeError) as matplotlib_exception:
+    warnings.warn("Unable to import matplotlib. Some features unavailable. "
+                  "Original exception: " + str(matplotlib_exception))
 
 logger = logging.getLogger(__name__)
 
