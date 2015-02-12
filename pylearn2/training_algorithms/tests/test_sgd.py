@@ -22,7 +22,8 @@ from pylearn2.training_algorithms.sgd import (ExponentialDecay,
                                               LinearDecayOverEpoch,
                                               MonitorBasedLRAdjuster,
                                               SGD,
-                                              AnnealedLearningRate)
+                                              AnnealedLearningRate,
+                                              EpochMonitor)
 from pylearn2.training_algorithms.learning_rule import (Momentum,
                                                         MomentumAdjustor)
 from pylearn2.utils.iteration import _iteration_schemes
@@ -1931,6 +1932,45 @@ def test_uneven_batch_size():
         model_force_batch_size=batch_size,
         train_iteration_mode='sequential',
         monitor_iteration_mode='even_sequential')
+
+
+def test_epoch_monitor():
+    """
+    Checks that monitored channels contain expected number of values
+    when using EpochMonitor for updates within epochs.
+    """
+    dim = 1
+    batch_size = 3
+    n_batches = 10
+    m = n_batches * batch_size
+
+    dataset = ArangeDataset(m)
+    model = SoftmaxModel(dim)
+    monitor = Monitor.get_monitor(model)
+    learning_rate = 1e-3
+    data_specs = (model.get_input_space(), model.get_input_source())
+    cost = DummyCost()
+    termination_criterion = EpochCounter(1)
+
+    monitor_rate = 3
+    em = EpochMonitor(model=model,
+                      tick_rate=None,
+                      monitor_rate=monitor_rate)
+
+    algorithm = SGD(learning_rate,
+                    cost,
+                    batch_size=batch_size,
+                    train_iteration_mode='sequential',
+                    monitoring_dataset=dataset,
+                    termination_criterion=termination_criterion,
+                    update_callbacks=[em],
+                    set_batch_size=False)
+
+    algorithm.setup(dataset=dataset, model=model)
+    algorithm.train(dataset)
+
+    for key, val in monitor.channels.items():
+        assert len(val.val_record) == n_batches//monitor_rate
 
 
 if __name__ == '__main__':
