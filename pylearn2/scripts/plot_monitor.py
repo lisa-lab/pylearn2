@@ -69,6 +69,7 @@ def main():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--out")
+    parser.add_argument("--channels")
     parser.add_argument("model_paths", nargs='+')
     parser.add_argument("--yrange", help='The y-range to be used for plotting, e.g.  0:1')
     
@@ -144,9 +145,13 @@ def main():
 
             print("Put e, b, s or h in the list somewhere to plot " + 
                     "epochs, batches, seconds, or hours, respectively.")
-            response = input('Enter a list of channels to plot ' + \
+            if options.channels is None:
+                response = input('Enter a list of channels to plot ' + \
                     '(example: A, C,F-G, h, <test_err>) or q to quit' + \
                     ' or o for options: ')
+            else:
+                response = options.channels
+                prompt = None
 
             if response == 'o':
                 print('1: smooth all channels')
