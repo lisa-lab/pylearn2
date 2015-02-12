@@ -1,0 +1,49 @@
+pylearn2 tutorial example: "gae_demo" by Raul Peralta Lozada
+
+This directory contains an example of how to train a gated autoencoder
+with a symmetric cost function. For imformation about gating models
+check "Learning to relate images" by Roland Memisevic. 
+
+Step 1: Create the dataset
+----------------------------
+From this directory, run
+
+python make_random_dataset.py
+
+This will create a preprocessed dataset of random patches related
+by the specified transformation class, which can be shifts or
+rotations (for the rotations you need to have installed PIL or 
+OpenCV). The files train_design.npy and train_preprocessed.pkl
+will be created.
+
+Step 2: Train the model
+-----------------------
+
+A python notebook is provided to show how to train a gated
+autoencoder and the parameters you can modify.
+
+After training the model will be saved as:
+gae_(number of factors)_(number of mappings).pkl
+
+
+Step 3: Inspect the model
+-------------------------
+
+From this directory, run
+
+plot_monitor.py gae_(number of factors)_(number of mappings).pkl
+
+This will display a plot of the objective function and the average 
+percentage of reconstruction during training.
+
+show_weights.py gae_(number of factors)_(number of mappings).pkl
+
+A window containing the filters learned by the GAE will appear.
+The first half of the image (left part) contains the filters 
+related to the first (input) image, and the second half corresponds
+to the the filters applied to the second (output) image. If the the
+model was trained with shifts you should see the Fourier components
+learned, and in case of rotations you should see their log-polar version.
+At the moment, the model can only display the correct arrangement
+of filters when the number of factors have an exact square root.
+The model also supports color images.
