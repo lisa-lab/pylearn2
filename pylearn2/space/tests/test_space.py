@@ -1128,3 +1128,237 @@ def test_dtypes():
         for to_space in all_spaces:
             for is_numeric in (True, False):
                 test_format(from_space, to_space, is_numeric)
+
+
+def test_symbolic_undo_format_as():
+    """
+    Test functionality of undo_format_as on symbolic batches.
+    After format_as and undo_format_as, the theano variable
+    should be the same object, not just an equivalent
+    variable.
+    """
+
+    # Compare identity of Composite batches
+    def assert_components(batch1, batch2):
+        for e1, e2 in zip(batch1, batch2):
+            if isinstance(e1, tuple) and isinstance(e2, tuple):
+                assert_components(e1, e2)
+            elif isinstance(e1, tuple) or isinstance(e2, tuple):
+                raise ValueError('Composite batches do not match.')
+            else:
+                assert e1 is e2
+
+    # VectorSpace and Conv2DSpace
+    VS = VectorSpace(dim=27)
+    VS_sparse = VectorSpace(dim=27, sparse=True)
+
+    # VectorSpace to Sparse VectorSpace
+    VS_batch = VS.make_theano_batch()
+    new_SVS_batch = VS.format_as(VS_batch, VS_sparse)
+    new_VS_batch = VS.undo_format_as(new_SVS_batch, VS_sparse)
+    assert new_VS_batch is VS_batch
+    assert new_SVS_batch is not VS_batch
+
+    # ConvSpace to ConvSpace
+    CS = Conv2DSpace(shape=[3, 3],
+                     num_channels=3,
+                     axes=('b', 0, 1, 'c'),
+                     dtype='float32')
+    CS_non_default = Conv2DSpace(shape=[3, 3],
+                                 num_channels=3,
+                                 axes=('c', 'b', 0, 1),
+                                 dtype='float64')
+    CS_batch = CS.make_theano_batch()
+    new_ndCS_batch = CS.format_as(CS_batch, CS_non_default)
+    new_CS_batch = CS.undo_format_as(new_ndCS_batch, CS_non_default)
+    assert new_CS_batch is CS_batch
+    assert new_ndCS_batch is not CS_batch
+    assert new_ndCS_batch.dtype == 'float64'
+    assert new_CS_batch.dtype == 'float32'
+
+    ndCS_batch = CS_non_default.make_theano_batch()
+    new_CS_batch = CS_non_default.format_as(ndCS_batch, CS)
+    new_ndCS_batch = CS_non_default.undo_format_as(new_CS_batch, CS)
+    assert new_ndCS_batch is ndCS_batch
+    assert new_CS_batch is not ndCS_batch
+    assert new_ndCS_batch.dtype == 'float64'
+    assert new_CS_batch.dtype == 'float32'
+
+    # Start in VectorSpace
+    VS_batch = VS.make_theano_batch()
+    new_CS_batch = VS.format_as(VS_batch, CS)
+    new_VS_batch = VS.undo_format_as(new_CS_batch, CS)
+    assert new_VS_batch is VS_batch
+
+    new_CS_batch = VS.format_as(VS_batch, CS_non_default)
+    new_VS_batch = VS.undo_format_as(new_CS_batch, CS_non_default)
+    assert new_VS_batch is VS_batch
+
+    # Start in Conv2D with default axes
+    CS_batch = CS.make_theano_batch()
+    new_VS_batch = CS.format_as(CS_batch, VS)
+    new_CS_batch = CS.undo_format_as(new_VS_batch, VS)
+    assert new_CS_batch is CS_batch
+    # Non-default axes
+    CS_batch = CS_non_default.make_theano_batch()
+    new_VS_batch = CS_non_default.format_as(CS_batch, VS)
+    new_CS_batch = CS_non_default.undo_format_as(new_VS_batch, VS)
+    assert new_CS_batch is CS_batch
+
+    # Composite Space to VectorSpace
+    VS = VectorSpace(dim=27)
+    CS = Conv2DSpace(shape=[2, 2], num_channels=3, axes=('b', 0, 1, 'c'))
+    CompS = CompositeSpace((CompositeSpace((VS, VS)), CS))
+    VS_large = VectorSpace(dim=(2*27+12))
+    CompS_batch = CompS.make_theano_batch()
+    new_VS_batch = CompS.format_as(CompS_batch, VS_large)
+    new_CompS_batch = CompS.undo_format_as(new_VS_batch, VS_large)
+    assert_components(CompS_batch, new_CompS_batch)
+
+    # VectorSpace to Composite Space
+    CompS = CompositeSpace((CompositeSpace((VS, VS)), CS))
+    VS_batch = VS_large.make_theano_batch()
+    new_CompS_batch = VS_large.format_as(VS_batch, CompS)
+    new_VS_batch = VS_large.undo_format_as(new_CompS_batch, CompS)
+    assert VS_batch is new_VS_batch
+    # Reorder CompositeSpace
+    CompS = CompositeSpace((VS, CompositeSpace((VS, CS))))
+    VS_batch = VS_large.make_theano_batch()
+    new_CompS_batch = VS_large.format_as(VS_batch, CompS)
+    new_VS_batch = VS_large.undo_format_as(new_CompS_batch, CompS)
+    assert VS_batch is new_VS_batch
+    # Reorder CompositeSpace
+    CompS = CompositeSpace((CompositeSpace((CompositeSpace((VS,)), CS)), VS))
+    VS_batch = VS_large.make_theano_batch()
+    new_CompS_batch = VS_large.format_as(VS_batch, CompS)
+    new_VS_batch = VS_large.undo_format_as(new_CompS_batch, CompS)
+    assert VS_batch is new_VS_batch
+
+    # CompositeSpace to CompositeSpace
+    VS = VectorSpace(dim=27)
+    CS = Conv2DSpace(shape=[3, 3], num_channels=3, axes=('b', 0, 1, 'c'))
+    CompS_VS = CompositeSpace((CompositeSpace((VS, VS)), VS))
+    CompS_CS = CompositeSpace((CompositeSpace((CS, CS)), CS))
+    CompS_VS_batch = CompS_VS.make_theano_batch()
+    new_CompS_CS_batch = CompS_VS.format_as(CompS_VS_batch, CompS_CS)
+    new_CompS_VS_batch = CompS_VS.undo_format_as(new_CompS_CS_batch, CompS_CS)
+    assert_components(CompS_VS_batch, new_CompS_VS_batch)
+
+
+def test_numeric_undo_format_as():
+    """
+    Test functionality of undo_np_format_as on numeric batches.
+    This calls np_format_as with spaces reversed.
+    """
+
+    # Compare identity of Composite batches
+    def assert_components(batch1, batch2):
+        for e1, e2 in zip(batch1, batch2):
+            if isinstance(e1, tuple) and isinstance(e2, tuple):
+                assert_components(e1, e2)
+            elif isinstance(e1, tuple) or isinstance(e2, tuple):
+                raise ValueError('Composite batches do not match.')
+            else:
+                assert np.allclose(e1, e2)
+
+    # VectorSpace and Conv2DSpace
+    VS = VectorSpace(dim=27)
+    VS_sparse = VectorSpace(dim=27, sparse=True)
+
+    # VectorSpace to Sparse VectorSpace
+    VS_batch = np.arange(270).reshape(10, 27)
+    new_SVS_batch = VS.np_format_as(VS_batch, VS_sparse)
+    new_VS_batch = VS.undo_np_format_as(new_SVS_batch, VS_sparse)
+    assert np.allclose(new_VS_batch, VS_batch)
+
+    # ConvSpace to ConvSpace
+    CS = Conv2DSpace(shape=[3, 3],
+                     num_channels=3,
+                     axes=('b', 0, 1, 'c'),
+                     dtype='float32')
+    CS_non_default = Conv2DSpace(shape=[3, 3],
+                                 num_channels=3,
+                                 axes=('c', 'b', 0, 1),
+                                 dtype='float64')
+    CS_batch = np.arange(270).reshape(10, 3, 3, 3).astype('float32')
+    new_ndCS_batch = CS.np_format_as(CS_batch, CS_non_default)
+    new_CS_batch = CS.undo_np_format_as(new_ndCS_batch, CS_non_default)
+    assert np.allclose(new_CS_batch, CS_batch)
+    assert new_ndCS_batch.shape != CS_batch.shape
+    assert new_ndCS_batch.dtype == 'float64'
+    assert new_CS_batch.dtype == 'float32'
+
+    ndCS_batch = np.arange(270).reshape(3, 10, 3, 3)
+    new_CS_batch = CS_non_default.np_format_as(ndCS_batch, CS)
+    new_ndCS_batch = CS_non_default.undo_np_format_as(new_CS_batch, CS)
+    assert np.allclose(new_ndCS_batch, ndCS_batch)
+    assert new_CS_batch.shape != ndCS_batch.shape
+    assert new_ndCS_batch.dtype == 'float64'
+    assert new_CS_batch.dtype == 'float32'
+
+    # Start in VectorSpace
+    VS_batch = np.arange(270).reshape(10, 27)
+    new_CS_batch = VS.np_format_as(VS_batch, CS)
+    new_VS_batch = VS.undo_np_format_as(new_CS_batch, CS)
+    assert np.allclose(new_VS_batch, VS_batch)
+    # Non-default axes
+    new_CS_batch = VS.np_format_as(VS_batch, CS_non_default)
+    new_VS_batch = VS.undo_np_format_as(new_CS_batch, CS_non_default)
+    assert np.allclose(new_VS_batch, VS_batch)
+
+    # Start in Conv2D with default axes
+    CS_batch = np.arange(270).reshape(10, 3, 3, 3)
+    new_VS_batch = CS.np_format_as(CS_batch, VS)
+    new_CS_batch = CS.undo_np_format_as(new_VS_batch, VS)
+    assert np.allclose(new_CS_batch, CS_batch)
+    # Non-default axes
+    CS_batch = np.arange(270).reshape(3, 10, 3, 3)
+    new_VS_batch = CS_non_default.np_format_as(CS_batch, VS)
+    new_CS_batch = CS_non_default.undo_np_format_as(new_VS_batch, VS)
+    assert np.allclose(new_CS_batch, CS_batch)
+
+    # Composite Space to VectorSpace
+    VS = VectorSpace(dim=27)
+    CS = Conv2DSpace(shape=[2, 2], num_channels=3, axes=('b', 0, 1, 'c'))
+    CompS = CompositeSpace((CompositeSpace((VS, VS)), CS))
+    VS_large = VectorSpace(dim=(2*27+12))
+    VS_batch = np.arange(270).reshape(10, 27)
+    VS_batch2 = 2*np.arange(270).reshape(10, 27)
+    CS_batch = 3*np.arange(120).reshape(10, 2, 2, 3)
+    CompS_batch = ((VS_batch, VS_batch2), CS_batch)
+    new_VS_batch = CompS.np_format_as(CompS_batch, VS_large)
+    new_CompS_batch = CompS.undo_np_format_as(new_VS_batch, VS_large)
+    assert_components(CompS_batch, new_CompS_batch)
+
+    # VectorSpace to Composite Space
+    CompS = CompositeSpace((CompositeSpace((VS, VS)), CS))
+    VS_batch = np.arange((2*27+12)*10).reshape(10, 2*27+12)
+    new_CompS_batch = VS_large.np_format_as(VS_batch, CompS)
+    new_VS_batch = VS_large.undo_np_format_as(new_CompS_batch, CompS)
+    assert np.allclose(VS_batch, new_VS_batch)
+    # Reorder CompositeSpace
+    CompS = CompositeSpace((VS, CompositeSpace((VS, CS))))
+    VS_batch = np.arange((2*27+12)*10).reshape(10, 2*27+12)
+    new_CompS_batch = VS_large.np_format_as(VS_batch, CompS)
+    new_VS_batch = VS_large.undo_np_format_as(new_CompS_batch, CompS)
+    assert np.allclose(VS_batch, new_VS_batch)
+    # Reorder CompositeSpace
+    CompS = CompositeSpace((CompositeSpace((CompositeSpace((VS,)), CS)), VS))
+    VS_batch = np.arange((2*27+12)*10).reshape(10, 2*27+12)
+    new_CompS_batch = VS_large.np_format_as(VS_batch, CompS)
+    new_VS_batch = VS_large.undo_np_format_as(new_CompS_batch, CompS)
+    assert np.allclose(VS_batch, new_VS_batch)
+
+    # CompositeSpace to CompositeSpace
+    VS = VectorSpace(dim=27)
+    CS = Conv2DSpace(shape=[3, 3], num_channels=3, axes=('b', 0, 1, 'c'))
+    VS_batch = np.arange(270).reshape(10, 27)
+    VS_batch2 = 2*np.arange(270).reshape(10, 27)
+    VS_batch3 = 3*np.arange(270).reshape(10, 27)
+    CompS_VS = CompositeSpace((CompositeSpace((VS, VS)), VS))
+    CompS_CS = CompositeSpace((CompositeSpace((CS, CS)), CS))
+    CompS_VS_batch = ((VS_batch, VS_batch2), VS_batch3)
+    new_CompS_CS_batch = CompS_VS.np_format_as(CompS_VS_batch, CompS_CS)
+    new_CompS_VS_batch = CompS_VS.undo_np_format_as(new_CompS_CS_batch,
+                                                    CompS_CS)
+    assert_components(CompS_VS_batch, new_CompS_VS_batch)

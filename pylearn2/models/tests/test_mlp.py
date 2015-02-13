@@ -18,7 +18,8 @@ from pylearn2.train import Train
 from pylearn2.models.mlp import (FlattenerLayer, MLP, Linear, Softmax, Sigmoid,
                                  exhaustive_dropout_average,
                                  sampled_dropout_average, CompositeLayer,
-                                 mean_pool)
+                                 mean_pool, SigmoidConvNonlinearity,
+                                 ConvElemwise)
 from pylearn2.space import VectorSpace, CompositeSpace, Conv2DSpace
 from pylearn2.utils import is_iterable, sharedX
 from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
@@ -551,25 +552,41 @@ def test_flattener_layer_state_separation_for_softmax():
     Creates a CompositeLayer wrapping two Softmax layers
     and ensures that state gets correctly picked apart.
     """
-    mlp = MLP(
-        layers=[
-            FlattenerLayer(
-                CompositeLayer(
-                    'composite',
-                    [Softmax(5, 'sf1', 0.1),
-                     Softmax(5, 'sf2', 0.1)]
-                )
-            )
-        ],
-        nvis=2
-        )
+    soft1 = Softmax(5, 'sf1', .1)
+    soft2 = Softmax(5, 'sf2', .1)
+    mlp = MLP(layers=[FlattenerLayer(CompositeLayer('comp',
+                                                    [soft1, soft2]))],
+              nvis=2)
 
-    dataset = DenseDesignMatrix(
-        X=np.random.rand(20, 2).astype(theano.config.floatX),
-        y=np.random.rand(20, 10).astype(theano.config.floatX))
+    X = np.random.rand(20, 2).astype(theano.config.floatX)
+    y = np.random.rand(20, 10).astype(theano.config.floatX)
+    dataset = DenseDesignMatrix(X=X, y=y)
 
-    train = Train(dataset, mlp,
-                  SGD(0.1, batch_size=5, monitoring_dataset=dataset))
+    train = Train(dataset, mlp, SGD(0.1,
+                                    batch_size=5,
+                                    monitoring_dataset=dataset))
+    train.algorithm.termination_criterion = EpochCounter(1)
+    train.main_loop()
+
+
+def test_flattener_layer_state_separation_for_conv():
+    """
+    Creates a CompositeLayer wrapping two Conv layers
+    and ensures that state gets correctly picked apart.
+    """
+    conv1 = ConvElemwise(8, [2, 2], 'sf1', SigmoidConvNonlinearity(), .1)
+    conv2 = ConvElemwise(8, [2, 2], 'sf2', SigmoidConvNonlinearity(), .1)
+    mlp = MLP(layers=[FlattenerLayer(CompositeLayer('comp',
+                                                    [conv1, conv2]))],
+              input_space=Conv2DSpace(shape=[5, 5], num_channels=2))
+
+    topo_view = np.random.rand(10, 5, 5, 2).astype(theano.config.floatX)
+    y = np.random.rand(10, 256).astype(theano.config.floatX)
+    dataset = DenseDesignMatrix(topo_view=topo_view, y=y)
+
+    train = Train(dataset, mlp, SGD(0.1,
+                                    batch_size=5,
+                                    monitoring_dataset=dataset))
     train.algorithm.termination_criterion = EpochCounter(1)
     train.main_loop()
 
