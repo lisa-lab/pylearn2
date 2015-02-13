@@ -23,9 +23,6 @@ from pylearn2.config import yaml_parse
 from pylearn2.datasets import control
 
 
-logger = logging.getLogger(__name__)
-
-
 class ZCA_Dataset(DenseDesignMatrix):
     """
     A Dataset that was created by ZCA whitening a DenseDesignMatrix.
@@ -104,16 +101,6 @@ class ZCA_Dataset(DenseDesignMatrix):
         if self.X is not None:
             if self.y is not None:
                 assert self.y.shape[0] == self.X.shape[0]
-
-        if getattr(preprocessor, "inv_P_", None) is None:
-            warnings.warn("ZCA preprocessor.inv_P_ was none. Computing "
-                          "inverse of preprocessor.P_ now. This will take "
-                          "some time. For efficiency, it is recommended that "
-                          "in the future you compute the inverse in ZCA.fit() "
-                          "instead, by passing it compute_inverse=True.")
-            logger.info('inverting...')
-            preprocessor.inv_P_ = np.linalg.inv(preprocessor.P_)
-            logger.info('...done inverting')
 
     @wraps(DenseDesignMatrix.has_targets)
     def has_targets(self):
