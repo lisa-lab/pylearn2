@@ -2,10 +2,12 @@
 Unit tests for ./preprocessing.py
 """
 
+import copy
 import numpy as np
 
 from theano import config
 import theano
+from theano.tests.unittest_tools import assert_allclose
 
 from pylearn2.utils import as_floatX
 from pylearn2.utils import isfinite
@@ -211,6 +213,29 @@ def test_zca():
     assert preprocessor.P_.shape == (X.shape[1], X.shape[1])
     assert not is_identity(preprocessor.P_)
     assert is_identity(np.dot(preprocessor.P_, preprocessor.inv_P_))
+
+
+def test_zca_inverse():
+    """
+    Calculates the inverse of X with numpy.linalg.inv if inv_P_ is not stored
+    """
+
+    def test(store_inverse):
+        rng = np.random.RandomState([1, 2, 3])
+        X = as_floatX(rng.randn(15, 10))
+        preprocessed_X = copy.copy(X)
+        preprocessor = ZCA(store_inverse=store_inverse)
+
+        dataset = DenseDesignMatrix(X=preprocessed_X,
+                                    preprocessor=preprocessor,
+                                    fit_preprocessor=True)
+
+        preprocessed_X = dataset.get_design_matrix()
+
+        assert_allclose(X, preprocessor.inverse(preprocessed_X))
+
+    test(store_inverse=True)
+    test(store_inverse=False)
 
 
 def test_zca_dtypes():
