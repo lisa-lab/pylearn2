@@ -7,9 +7,8 @@ ${PYLEARN2_DATA_PATH}/SVHN/format2/
 import os
 from pylearn2.datasets.svhn import SVHN
 from pylearn2.utils.string_utils import preprocess
-from pylearn2.testing.skip import skip_if_no_data
 
-skip_if_no_data() # Checking if PYLEARN2_DATA_PATH exists
+assert 'PYLEARN2_DATA_PATH' in os.environ, "PYLEARN2_DATA_PATH not defined"
 
 orig_path = preprocess('${PYLEARN2_DATA_PATH}/SVHN/format2/')
 
