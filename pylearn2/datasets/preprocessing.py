@@ -40,6 +40,7 @@ from pylearn2.utils import contains_nan
 
 log = logging.getLogger(__name__)
 
+
 convert_axes = Conv2DSpace.convert_numpy
 
 
@@ -1378,6 +1379,9 @@ class ZCA(Preprocessor):
 
         self.__dict__.update(state)
 
+        if not hasattr(self, "inv_P_"):
+            self.inv_P_ = None
+
     def fit(self, X):
         """
         Fits this `ZCA` instance to a design matrix `X`.
@@ -1481,6 +1485,17 @@ class ZCA(Preprocessor):
             WRITEME
         """
         assert X.ndim == 2
+
+        if self.inv_P_ is None:
+            warnings.warn("inv_P_ was None. Computing "
+                          "inverse of P_ now. This will take "
+                          "some time. For efficiency, it is recommended that "
+                          "in the future you compute the inverse in ZCA.fit() "
+                          "instead, by passing it store_inverse=True.")
+            log.info('inverting...')
+            self.inv_P_ = numpy.linalg.inv(self.P_)
+            log.info('...done inverting')
+
         return self._gpu_matrix_dot(X, self.inv_P_) + self.mean_
 
 
