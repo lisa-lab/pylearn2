@@ -15,10 +15,12 @@ from pylearn2.utils import wraps
 from pylearn2.expr.nnet import arg_of_sigmoid
 from pylearn2.space import Conv2DSpace
 from pylearn2.utils import py_integer_types
+
+import theano
 from theano import tensor as T
+from theano import config
 
 import numpy as np
-import theano
 
 
 class Softmax(mlp.Softmax):
