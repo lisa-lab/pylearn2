@@ -235,7 +235,7 @@ class ContrastiveProbabilityLayer(Layer):
         can be used as the target space. This allows the layer to compute
         the cost much more quickly than if it needs to convert the targets
         into a VectorSpace. With binary_target_dim>1, you can use one layer
-        to simultaneously predict a bag of targets (i.e. order is not 
+        to simultaneously predict a bag of targets (i.e. order is not
         important, the same element can be included more than once).
     no_affine : boolean
         If True, sigmoid nonlinearity is applied directly to inputs.
@@ -375,10 +375,10 @@ class ContrastiveProbabilityLayer(Layer):
                                     (1, self.binary_target_dim)).flatten()
                 flat_indices_pos = flat_Y_pos + range_ * self.n_classes
                 flat_indices_neg = flat_Y_neg + range_ * self.n_classes
-                nll_pos = nll_pos.flatten()[flat_indices_pos] \
-                        .reshape(Y.shape, ndim=2)
-                nll_neg = nll_neg.flatten()[flat_indices_neg] \
-                        .reshape(Y.shape, ndim=2)
+                nll_pos = (nll_pos.flatten()[flat_indices_pos]
+                           .reshape(Y.shape, ndim=2))
+                nll_neg = (nll_neg.flatten()[flat_indices_neg]
+                           .reshape(Y.shape, ndim=2))
                 nll_of = (nll_pos, nll_neg)
 
             else:
