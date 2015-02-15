@@ -19,6 +19,7 @@ from pylearn2.utils import py_integer_types
 import theano
 from theano import tensor as T
 from theano import config
+from theano.compat.six.moves import xrange
 
 import numpy as np
 
