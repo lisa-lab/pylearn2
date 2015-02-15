@@ -213,6 +213,32 @@ class ContrastiveProbabilityLayer(Layer):
     binary targets in which case the spaces should be index spaces.
 
     It can be used to perform negative sampling.
+
+    Parameters
+    ----------
+    n_classes : int
+        Number of classes.
+    layer_name : string
+        Name of the layer.
+    irange : float
+        If specified, initialized each weight randomly in
+        U(-irange, irange).
+    istdev : float
+        If specified, initialize each weight randomly from
+        N(0,istdev).
+    sparse_init : int
+        If specified, initial sparse_init number of weights
+        for each unit from N(0,1).
+    binary_target_dim : int, optional
+        If your targets are class labels (i.e. a binary vector) then set the
+        number of targets here so that an IndexSpace of the proper dimension
+        can be used as the target space. This allows the layer to compute
+        the cost much more quickly than if it needs to convert the targets
+        into a VectorSpace. With binary_target_dim>1, you can use one layer
+        to simultaneously predict a bag of targets (i.e. order is not 
+        important, the same element can be included more than once).
+    no_affine : boolean
+        If True, sigmoid nonlinearity is applied directly to inputs.
     """
 
     def __init__(self, n_classes, layer_name, irange=None, sparse_init=None,
@@ -350,9 +376,9 @@ class ContrastiveProbabilityLayer(Layer):
                 flat_indices_pos = flat_Y_pos + range_ * self.n_classes
                 flat_indices_neg = flat_Y_neg + range_ * self.n_classes
                 nll_pos = nll_pos.flatten()[flat_indices_pos] \
-                                .reshape(Y.shape, ndim=2)
+                        .reshape(Y.shape, ndim=2)
                 nll_neg = nll_neg.flatten()[flat_indices_neg] \
-                                .reshape(Y.shape, ndim=2)
+                        .reshape(Y.shape, ndim=2)
                 nll_of = (nll_pos, nll_neg)
 
             else:
