@@ -943,14 +943,14 @@ def test_max_pool_options():
                   [5, 6, 8, 7],
                   [9, 10, 11, 12],
                   [9, 10, 14, 15]],
-                 dtype=theano.config.floatX)[np.newaxis, np.newaxis, ...]
+                 dtype="float32")[np.newaxis, np.newaxis, ...]
 
     expected = np.array([[7, 8],
                          [11, 12],
                          [14, 15]],
-                        dtype=theano.config.floatX)[np.newaxis,
-                                                    np.newaxis,
-                                                    ...]
+                        dtype="float32")[np.newaxis,
+                                         np.newaxis,
+                                         ...]
     actual, actual_dnn = f(X)
     actual_dnn = np.array(actual_dnn)
     assert np.allclose(expected, actual)
@@ -975,13 +975,13 @@ def test_max_pool_options():
                   [5, 6, 8, 7],
                   [9, 10, 11, 12],
                   [9, 10, 14, 15]],
-                 dtype=theano.config.floatX)[np.newaxis, np.newaxis, ...]
+                 dtype="float32")[np.newaxis, np.newaxis, ...]
 
     expected = np.array([[2, 4],
                          [10, 12]],
-                        dtype=theano.config.floatX)[np.newaxis,
-                                                    np.newaxis,
-                                                    ...]
+                        dtype="float32")[np.newaxis,
+                                         np.newaxis,
+                                         ...]
     actual, actual_dnn = f(X)
     actual_dnn = np.array(actual_dnn)
     assert np.allclose(expected, actual)
@@ -1006,14 +1006,14 @@ def test_max_pool_options():
                   [5, 6, 8, 7],
                   [9, 10, 11, 12],
                   [9, 10, 14, 15]],
-                 dtype=theano.config.floatX)[np.newaxis, np.newaxis, ...]
+                 dtype="float32")[np.newaxis, np.newaxis, ...]
 
     expected = np.array([[2, 4],
                          [6, 8],
                          [10, 15]],
-                        dtype=theano.config.floatX)[np.newaxis,
-                                                    np.newaxis,
-                                                    ...]
+                        dtype="float32")[np.newaxis,
+                                         np.newaxis,
+                                         ...]
     actual, actual_dnn = f(X)
     actual_dnn = np.array(actual_dnn)
     assert np.allclose(expected, actual)
@@ -1038,13 +1038,13 @@ def test_max_pool_options():
                   [5, 6, 8, 7],
                   [9, 10, 11, 12],
                   [9, 10, 14, 15]],
-                 dtype=theano.config.floatX)[np.newaxis, np.newaxis, ...]
+                 dtype="float32")[np.newaxis, np.newaxis, ...]
 
     expected = np.array([[2, 4],
                          [10, 12]],
-                        dtype=theano.config.floatX)[np.newaxis,
-                                                    np.newaxis,
-                                                    ...]
+                        dtype="float32")[np.newaxis,
+                                         np.newaxis,
+                                         ...]
     actual, actual_dnn = f(X)
     actual_dnn = np.array(actual_dnn)
     assert np.allclose(expected, actual)
@@ -1069,14 +1069,14 @@ def test_max_pool_options():
                   [5, 6, 8, 7],
                   [9, 10, 11, 12],
                   [9, 10, 14, 15]],
-                 dtype=theano.config.floatX)[np.newaxis, np.newaxis, ...]
+                 dtype="float32")[np.newaxis, np.newaxis, ...]
 
     expected = np.array([[2, 4],
                          [6, 8],
                          [10, 15]],
-                        dtype=theano.config.floatX)[np.newaxis,
-                                                    np.newaxis,
-                                                    ...]
+                        dtype="float32")[np.newaxis,
+                                         np.newaxis,
+                                         ...]
     actual, actual_dnn = f(X)
     actual_dnn = np.array(actual_dnn)
     assert np.allclose(expected, actual)
