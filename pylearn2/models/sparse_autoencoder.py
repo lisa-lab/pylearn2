@@ -29,6 +29,9 @@ class SparseDenoisingAutoencoder(DenoisingAutoencoder):
     Reconstruction Sampling. In Proceedings of the 28th International
     Conference on Machine Learning (ICML 2011).
     """
-    raise NotImplementedError(
+    
+    def __init__(self):
+        raise NotImplementedError(
         'This class has been deprecated since 2012.'\
         'In Feb, 2015, all historical codes are hence removed.')
+        
