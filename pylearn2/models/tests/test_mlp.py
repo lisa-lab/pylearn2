@@ -1,6 +1,7 @@
 from __future__ import print_function
-
+import copy
 from itertools import product
+
 from nose.tools import assert_raises
 from nose.plugins.skip import SkipTest
 import numpy as np
@@ -923,7 +924,10 @@ def test_max_pool_options():
     if not dnn_available():
         raise SkipTest('Optional package cuDNN disabled.')
 
-    X_sym = tensor.tensor4('X')
+    mode = copy.copy(theano.compile.get_default_mode())
+    mode.check_isfinite = False
+
+    X_sym = tensor.ftensor4('X')
     # Case 1: shape > stride
     shp = (3, 3)
     strd = (2, 2)
@@ -934,8 +938,8 @@ def test_max_pool_options():
                         image_shape=im_shp)
     # Make sure that different ops were used.
     assert pool_it.owner.op != pool_dnn.owner.op
-
-    f = theano.function(inputs=[X_sym], outputs=[pool_it, pool_dnn])
+    f = theano.function(inputs=[X_sym], outputs=[pool_it, pool_dnn],
+                        mode=mode)
 
     X = np.array([[2, 1, 3, 4],
                   [1, 1, 3, 3],
@@ -967,7 +971,8 @@ def test_max_pool_options():
     # Make sure that different ops were used.
     assert pool_it.owner.op != pool_dnn.owner.op
 
-    f = theano.function(inputs=[X_sym], outputs=[pool_it, pool_dnn])
+    f = theano.function(inputs=[X_sym], outputs=[pool_it, pool_dnn],
+                        mode=mode)
 
     X = np.array([[2, 1, 3, 4],
                   [1, 1, 3, 3],
@@ -998,7 +1003,8 @@ def test_max_pool_options():
     # Make sure that different ops were used.
     assert pool_it.owner.op != pool_dnn.owner.op
 
-    f = theano.function(inputs=[X_sym], outputs=[pool_it, pool_dnn])
+    f = theano.function(inputs=[X_sym], outputs=[pool_it, pool_dnn],
+                        mode=mode)
 
     X = np.array([[2, 1, 3, 4],
                   [1, 1, 3, 3],
@@ -1030,7 +1036,8 @@ def test_max_pool_options():
     # Make sure that different ops were used.
     assert pool_it.owner.op != pool_dnn.owner.op
 
-    f = theano.function(inputs=[X_sym], outputs=[pool_it, pool_dnn])
+    f = theano.function(inputs=[X_sym], outputs=[pool_it, pool_dnn],
+                        mode=mode)
 
     X = np.array([[2, 1, 3, 4],
                   [1, 1, 3, 3],
@@ -1061,7 +1068,8 @@ def test_max_pool_options():
     # Make sure that different ops were used.
     assert pool_it.owner.op != pool_dnn.owner.op
 
-    f = theano.function(inputs=[X_sym], outputs=[pool_it, pool_dnn])
+    f = theano.function(inputs=[X_sym], outputs=[pool_it, pool_dnn],
+                        mode=mode)
 
     X = np.array([[2, 1, 3, 4],
                   [1, 1, 3, 3],
