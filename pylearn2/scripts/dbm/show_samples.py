@@ -29,6 +29,13 @@ from theano.compat.six.moves import input, xrange
 
 
 def init_viewer(dataset, rows, cols):
+    """
+    Parameters
+    ----------
+    dataset: pylearn2 dataset
+    rows: int
+    cols: int
+    """
     m = rows * cols
     vis_batch = dataset.get_batch_topo(m)
 
@@ -48,8 +55,8 @@ def get_mapped_batch(dataset, design_batch):
     """
     Parameters
     ----------
-    batch: numpy array
-        WRITEME
+    dataset: pylearn2 dataset
+    design_batch: numpy array
     """
     if design_batch.ndim != 2:
         design_batch = dataset.get_design_matrix(design_batch)
@@ -61,7 +68,13 @@ def get_mapped_batch(dataset, design_batch):
 
 def update_viewer(dataset, pv, vis_batch, rows, cols):
     """
-    Method to update the viewer with a new visible batch.
+    Parameters
+    ----------
+    dataset: pylearn2 dataset
+    pv: PatchViewer
+    vis_batch: numpy array
+    rows: int
+    cols: int
     """
     mapback = hasattr(dataset, 'mapback_for_viewer')
     display_batch = dataset.adjust_for_viewer(vis_batch)
@@ -114,6 +127,13 @@ def validate_all_samples(model, layer_to_state):
 
 
 def get_sample_func(model, layer_to_state, x):
+    """
+    Parameters
+    ----------
+    model: pylearn2 model
+    layer_to_state: dict
+    x: int
+    """
     theano_rng = MRG_RandomStreams(2012+9+18)
 
     if x > 0:
@@ -161,6 +181,14 @@ def load_model(model_path, m):
 
 
 def show_samples(m, model_path):
+    """
+    Parameters
+    ----------
+    m: int
+        rows * cols
+    model_path: str
+        Path of the model.
+    """
     model = load_model(model_path, m)
 
     print('Loading data (used for setting up visualization '
