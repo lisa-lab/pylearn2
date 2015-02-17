@@ -19,6 +19,7 @@ from theano.compat.six.moves import reduce, xrange
 from theano import config
 from theano.gof.op import get_debug_values
 from theano.sandbox.rng_mrg import MRG_RandomStreams
+from theano.sandbox.cuda.dnn import dnn_available, dnn_pool
 from theano.tensor.signal.downsample import max_pool_2d
 import theano.tensor as T
 
@@ -3430,7 +3431,37 @@ class ConvRectifiedLinear(ConvElemwise):
                                                   monitor_style=monitor_style)
 
 
-def max_pool(bc01, pool_shape, pool_stride, image_shape):
+def pool_dnn(bc01, pool_shape, pool_stride, mode='max'):
+    """
+    cuDNN pooling op.
+
+    Parameters
+    ----------
+    bc01 : theano tensor
+        Minibatch in format (batch size, channels, rows, cols).
+    pool_shape : tuple
+        Shape of the pool region (rows, cols).
+    pool_stride : tuple
+        Strides between pooling regions (row stride, col stride).
+    mode : str
+        Flag for `mean` or `max` pooling.
+
+    Returns
+    -------
+    mx : theano tensor
+        The output of pooling applied to `bc01`.
+    """
+    assert mode in ['max', 'mean']
+    if mode == 'mean':
+        raise NotImplementedError('Mean pooling is not implemented '
+                                  'in Pylearn2 using cuDNN as of '
+                                  'January 19th, 2015.')
+
+    mx = dnn_pool(bc01, tuple(pool_shape), tuple(pool_stride), mode)
+    return mx
+
+
+def max_pool(bc01, pool_shape, pool_stride, image_shape, try_dnn=True):
     """
     Theano's max pooling op only supports pool_stride = pool_shape
     so here we have a graph that does max pooling with strides
@@ -3445,6 +3476,8 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
         strides between pooling regions (row stride, col stride)
     image_shape : tuple
         avoid doing some of the arithmetic in theano
+    try_dnn : bool
+        Flag to set cuDNN use (default: True).
 
     Returns
     -------
@@ -3470,7 +3503,12 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
     if name is None:
         name = 'anon_bc01'
 
-    if pool_shape == pool_stride:
+    if try_dnn and bc01.dtype == "float32":
+        use_dnn = dnn_available()
+    else:
+        use_dnn = False
+
+    if pool_shape == pool_stride and not use_dnn:
         mx = max_pool_2d(bc01, pool_shape, False)
         mx.name = 'max_pool(' + name + ')'
         return mx
@@ -3481,6 +3519,10 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
         rval = int(np.ceil(float(im_shp - p_shp) / p_strd))
         assert p_strd * rval + p_shp >= im_shp
         assert p_strd * (rval - 1) + p_shp < im_shp
+        # Catch case where p_strd > p_shp causes pool
+        # to be set outside of im_shp.
+        if p_strd * rval >= im_shp:
+            rval -= 1
         return rval
     # Compute starting row of the last pool
     last_pool_r = last_pool(image_shape[0],
@@ -3499,31 +3541,40 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
         assert bc01v.shape[2] == image_shape[0]
         assert bc01v.shape[3] == image_shape[1]
 
-    wide_infinity = T.alloc(T.constant(-np.inf, dtype=config.floatX),
-                            bc01.shape[0],
-                            bc01.shape[1],
-                            required_r,
-                            required_c)
+    if (required_r > r) or (required_c > c):
+        small_r = min(required_r, r)
+        small_c = min(required_c, c)
+        assert bc01.dtype.startswith('float')
+        wide_infinity = T.alloc(T.constant(-np.inf, dtype=bc01.dtype),
+                                bc01.shape[0],
+                                bc01.shape[1],
+                                required_r,
+                                required_c)
 
-    bc01 = T.set_subtensor(wide_infinity[:, :, 0:r, 0:c], bc01)
-    bc01.name = 'infinite_padded_' + name
+        bc01 = T.set_subtensor(wide_infinity[:, :, 0:small_r, 0:small_c],
+                               bc01[:, :, 0:small_r, 0:small_c])
+        bc01.name = 'infinite_padded_' + name
 
-    for row_within_pool in xrange(pool_shape[0]):
-        row_stop = last_pool_r + row_within_pool + 1
-        for col_within_pool in xrange(pool_shape[1]):
-            col_stop = last_pool_c + col_within_pool + 1
-            cur = bc01[:,
-                       :,
-                       row_within_pool:row_stop:rs,
-                       col_within_pool:col_stop:cs]
-            cur.name = ('max_pool_cur_' + bc01.name + '_' +
-                        str(row_within_pool) + '_' + str(col_within_pool))
-            if mx is None:
-                mx = cur
-            else:
-                mx = T.maximum(mx, cur)
-                mx.name = ('max_pool_mx_' + bc01.name + '_' +
-                           str(row_within_pool) + '_' + str(col_within_pool))
+    if use_dnn:
+        mx = pool_dnn(bc01, pool_shape, pool_stride, 'max')
+    else:
+        for row_within_pool in xrange(pool_shape[0]):
+            row_stop = last_pool_r + row_within_pool + 1
+            for col_within_pool in xrange(pool_shape[1]):
+                col_stop = last_pool_c + col_within_pool + 1
+                cur = bc01[:,
+                           :,
+                           row_within_pool:row_stop:rs,
+                           col_within_pool:col_stop:cs]
+                cur.name = ('max_pool_cur_' + bc01.name + '_' +
+                            str(row_within_pool) + '_' + str(col_within_pool))
+                if mx is None:
+                    mx = cur
+                else:
+                    mx = T.maximum(mx, cur)
+                    mx.name = ('max_pool_mx_' + bc01.name + '_' +
+                               str(row_within_pool) + '_' +
+                               str(col_within_pool))
 
     mx.name = 'max_pool(' + name + ')'
 
