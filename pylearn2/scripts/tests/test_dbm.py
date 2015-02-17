@@ -19,7 +19,10 @@ from theano import function
 
 
 def setup():
-    """Create pickle file with a simple model."""
+    """
+    Create pickle file with a simple model.
+    tearDown is guaranteed to exexute and pop the data.
+    """
     control.push_load_data(False)
     with open('dbm.pkl', 'wb') as f:
         dataset = MNIST(which_set='train', start=0, stop=100, binarize=True)
