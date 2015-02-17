@@ -5,8 +5,8 @@ Tests scripts in the DBM folder
 import cPickle
 import os
 import pylearn2.scripts.dbm.show_negative_chains as negative_chains
-import pylearn2.scripts.dbm.show_reconstructions as reconstructions
-import pylearn2.scripts.dbm.show_samples as samples
+import pylearn2.scripts.dbm.show_reconstructions as show_reconstruct
+import pylearn2.scripts.dbm.show_samples as show_samples
 import pylearn2.scripts.dbm.top_filters as top_filters
 from pylearn2.config import yaml_parse
 from pylearn2.models.dbm.layer import BinaryVector, BinaryVectorMaxPool
@@ -15,6 +15,7 @@ from pylearn2.models.dbm.dbm import DBM
 from nose.tools import with_setup
 from pylearn2.datasets import control
 from pylearn2.utils import serial
+from theano import function
 
 
 def setup():
@@ -29,7 +30,7 @@ def setup():
         hid_layer2 = BinaryVectorMaxPool(layer_name='h2', pool_size=1,
                                          irange=.05, init_bias=-2.,
                                          detector_layer_dim=10)
-        model = DBM(batch_size=20, niter=1, visible_layer=vis_layer,
+        model = DBM(batch_size=20, niter=2, visible_layer=vis_layer,
                     hidden_layers=[hid_layer1, hid_layer2])
         model.dataset_yaml_src = """
 !obj:pylearn2.datasets.binarizer.Binarizer {
@@ -64,12 +65,17 @@ def test_show_reconstructions():
     cols = 10
     m = rows * cols
 
-    model = reconstructions.load_model('dbm.pkl', m)
-    dataset = reconstructions.load_dataset(model.dataset_yaml_src,
-                                           use_test_set='n')
+    model = show_reconstruct.load_model('dbm.pkl', m)
+    dataset = show_reconstruct.load_dataset(model.dataset_yaml_src,
+                                            use_test_set='n')
 
-    recons_viewer = reconstructions.ReconsViewer(model, dataset, rows, cols)
-    recons_viewer.update_viewer()
+    batch = model.visible_layer.space.make_theano_batch()
+    reconstruction = model.reconstruct(batch)
+    recons_func = function([batch], reconstruction)
+
+    vis_batch = dataset.get_batch_topo(m)
+    patch_viewer = show_reconstruct.init_viewer(dataset, rows, cols, vis_batch)
+    show_reconstruct.update_viewer(dataset, batch, rows, cols, patch_viewer, recons_func, vis_batch)
 
 
 @with_setup(setup, teardown)
@@ -79,11 +85,13 @@ def test_show_samples():
     cols = 10
     m = rows * cols
 
-    model = samples.load_model('dbm.pkl', m)
+    model = show_samples.load_model('dbm.pkl', m)
     dataset = yaml_parse.load(model.dataset_yaml_src)
 
-    samples_viewer = samples.SamplesViewer(model, dataset, rows, cols)
-    samples_viewer.update_viewer()
+    samples_viewer = show_samples.init_viewer(dataset, rows, cols)
+
+    vis_batch = dataset.get_batch_topo(m)
+    show_samples.update_viewer(dataset, samples_viewer, vis_batch, rows, cols)
 
 
 @with_setup(setup, teardown)

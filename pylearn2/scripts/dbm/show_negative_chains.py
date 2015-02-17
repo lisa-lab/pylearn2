@@ -48,10 +48,10 @@ def get_vis_chains(layer_to_chains, model, dataset):
     """
     vis_chains = layer_to_chains[model.visible_layer]
     vis_chains = vis_chains.get_value()
-    print vis_chains.shape
+    print(vis_chains.shape)
     if vis_chains.ndim == 2:
         vis_chains = dataset.get_topological_view(vis_chains)
-    print vis_chains.shape
+    print(vis_chains.shape)
     vis_chains = dataset.adjust_for_viewer(vis_chains)
 
     return vis_chains
