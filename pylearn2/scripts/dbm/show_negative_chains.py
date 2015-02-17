@@ -90,8 +90,8 @@ def show_negative_chains(model_path):
     """
     model = serial.load(model_path)
 
-    control.push_load_data(False)
     try:
+        control.push_load_data(False)
         dataset = yaml_parse.load(model.dataset_yaml_src)
     finally:
         control.pop_load_data()
