@@ -3503,7 +3503,7 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape, try_dnn=True):
     if name is None:
         name = 'anon_bc01'
 
-    if try_dnn:
+    if try_dnn and bc01.dtype == "float32":
         use_dnn = dnn_available()
     else:
         use_dnn = False
@@ -3544,7 +3544,8 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape, try_dnn=True):
     if (required_r > r) or (required_c > c):
         small_r = min(required_r, r)
         small_c = min(required_c, c)
-        wide_infinity = T.alloc(T.constant(-np.inf, dtype=config.floatX),
+        assert bc01.dtype.startswith('float')
+        wide_infinity = T.alloc(T.constant(-np.inf, dtype=bc01.dtype),
                                 bc01.shape[0],
                                 bc01.shape[1],
                                 required_r,
