@@ -23,6 +23,14 @@ from theano import function
 
 
 def init_viewer(dataset, rows, cols, vis_batch):
+    """
+    Parameters
+    ----------
+    dataset: pylearn2 dataset
+    rows: int
+    cols: int
+    vis_batch: numpy array
+    """
     m = rows * cols
     _, patch_rows, patch_cols, channels = vis_batch.shape
 
@@ -40,8 +48,8 @@ def get_mapped_batch(dataset, design_batch):
     """
     Parameters
     ----------
-    batch: numpy array
-        WRITEME
+    dataset: pylearn2 dataset
+    design_batch: numpy array
     """
     if design_batch.ndim != 2:
         design_batch = dataset.get_design_matrix(design_batch.copy())
@@ -52,7 +60,17 @@ def get_mapped_batch(dataset, design_batch):
 
 def update_viewer(dataset, batch, rows, cols, pv, recons_func, vis_batch):
     """
-    Method to update the viewer with a new visible batch.
+    Function to update the viewer with a new visible batch.
+ 
+    Parameters
+    ----------
+    dataset: pylearn2 dataset
+    batch: numpy array
+    rows: int
+    cols: int
+    pv: PatchViewer
+    recons_func: theano function
+    vis_batch: numpy array
     """
     mapback = hasattr(dataset, 'mapback_for_viewer')
     topo = batch.ndim > 2
@@ -139,6 +157,14 @@ def load_dataset(dataset_yml, use_test_set):
 
 
 def show_reconstructions(m, model_path):
+    """
+    Parameters
+    ----------
+    m: int
+        rows * cols
+    model_path: str
+        Path of the model.
+    """
     model = load_model(model_path, m)
 
     x = input('use test set? (y/n) ')
