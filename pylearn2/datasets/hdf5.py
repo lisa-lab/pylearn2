@@ -17,6 +17,7 @@ try:
 except ImportError:
     tables = None
 import warnings
+from os.path import isfile
 from pylearn2.compat import OrderedDict
 from pylearn2.datasets import cache
 from pylearn2.datasets.dataset import Dataset
@@ -42,10 +43,12 @@ class HDF5Dataset(Dataset):
     spaces : list of Space objects
         A list of spaces, one for each source in sources.
     aliases : list of str, optional
-        A list of aliases, one for each source. They work as an alias for
-        the original name of the sources and once set can be used to access
+        A list of aliases, one for each source. They work as an alternative
+        name for the sources of the dataset and if set can be used to access
         the data. If you use this parameter, for each element in sources
-        you have to either specify an alias or None.
+        you have to either specify an alias or None. Note that this allows you
+        to use the new interface with legacy code by just setting the aliases
+        `features` and, if needed, `targets`.
     load_all : bool, optional (default False)
         If true, datasets are loaded into memory instead of being left
         on disk.
@@ -94,6 +97,7 @@ class HDF5Dataset(Dataset):
         Class constructor
         """
         assert isinstance(filename, string_types)
+        assert isfile(filename), '%s does not exist.' % filename
         assert isinstance(sources, list)
         assert all([isinstance(el, string_types) for el in sources])
         assert isinstance(spaces, list)
@@ -109,13 +113,15 @@ class HDF5Dataset(Dataset):
         assert isinstance(use_h5py, bool) or use_h5py == 'auto'
 
         self.load_all = load_all
-        self.is_warned = False
-        self.aliases = aliases[0] if len(aliases) == 1 else aliases
+        self._aliases = aliases if aliases else [None for _ in sources]
+        self._sources = sources
 
-        # Create a dictionary indexed with both keys and aliases
+        # self.spaces is a dictionary indexed with both keys and aliases
         self.spaces = alias_dict()
-        for i, (source, alias) in enumerate(safe_zip(sources, aliases)):
+        for i, (source, alias) in enumerate(safe_zip(self._sources,
+                                            self._aliases)):
             self.spaces[source, alias] = spaces[i]
+        del spaces, aliases, sources
 
         if load_all:
             warnings.warn('You can load all the data in memory for speed, but '
@@ -150,7 +156,8 @@ class HDF5Dataset(Dataset):
                 raise RuntimeError("Could not import tables.")
             self._fhandler = tables.openFile(filename, mode='r')
 
-        self.data = self._read_hdf5(sources, aliases, load_all, use_h5py)
+        self.data = self._read_hdf5(self._sources, self._aliases, load_all,
+                                    use_h5py)
 
         assert len(self.data) != 0, (
             'No dataset was loaded. Please make sure that sources is a list '
@@ -220,14 +227,15 @@ class HDF5Dataset(Dataset):
 
     def _get_sources(self):
         """
-        Returns the aliases (if any, sources otherwise) provided when the HDF5
-        object was created
+        Returns the aliases (if defined, sources otherwise) provided when the
+        HDF5 object was created
 
         Returns
         -------
         A string or a list of strings.
         """
-        return self.aliases if self.aliases else self.sources
+        return tuple([alias if alias else source for alias, source in
+                      safe_zip(self._aliases, self._sources)])
 
     def _get_spaces(self):
         """
@@ -239,25 +247,7 @@ class HDF5Dataset(Dataset):
         A Space or a list of Spaces.
         """
         space = [self.spaces[s] for s in self._get_sources]
-        return space[0] if len(space) == 1 else space
-
-    def _get_canonical_data(self):
-        """
-        Returns a list. The first element will be the data of `X` if present,
-        or of `topo_view` otherwise. The second element will be the data of
-        `y` if present. This is needed for compatibility with legacy code but
-        you should not rely on it.
-        """
-        data = []
-        try:
-            data.append(self.data['X'])
-        except KeyError:
-            data.append(self.data['topo_view'])
-        try:
-            data.append(self.data['y'])
-        except KeyError:
-            pass
-        return data
+        return space[0] if len(space) == 1 else tuple(space)
 
     # @wraps(Dataset.get_data_specs, assigned=(), updated=())
     def get_data_specs(self, source_or_alias=None):
@@ -267,15 +257,28 @@ class HDF5Dataset(Dataset):
             use self.aliases, if not None, or self.sources.
         """
         if source_or_alias is None:
-            source_or_alias = self.aliases if self.aliases is not None else  \
-                self.sources
+            source_or_alias = self._get_sources()
 
-        if isinstance(source_or_alias, tuple):
+        if isinstance(source_or_alias, (list, tuple)):
             space = tuple([self.spaces[s] for s in source_or_alias])
             space = CompositeSpace(space)
         else:
             space = self.spaces[source_or_alias]
         return (space, source_or_alias)
+
+    def get_data(self):
+        """
+        DEPRECATED
+        Returns all the data, as it is internally stored.
+        The definition and format of these data are described in
+        `self.get_data_specs()`.
+
+        Returns
+        -------
+        data : numpy matrix or 2-tuple of matrices
+            The data
+        """
+        return tuple([self.data[s] for s in self._get_sources()])
 
     # @wraps(Dataset.get, assigned=(), updated=())
     def get(self, sources, indexes):
@@ -329,19 +332,22 @@ class HDF5Dataset(Dataset):
     @wraps(Dataset.get_num_examples, assigned=(), updated=())
     def get_num_examples(self, source_or_alias=None):
         """
+        Return the number of examples *OF THE FIRST SOURCE*.
+        Note that this behavior will probably be deprecated in the future,
+        returing a list of num_examples. Do not rely on this function unless
+        unavoidable.
 
         Parameter
         ---------
         source_or_alias : str, optional
             The source you want the number of examples of
         """
+        assert source_or_alias is None or isinstance(source_or_alias,
+                                                     string_types)
+
         if source_or_alias is None:
-            if self.aliases is None:
-                alias = self.sources[0] if isinstance(self.sources, tuple) else \
-                    self.sources
-            else:
-                alias = self.aliases[0] if isinstance(self.aliases, tuple) else \
-                    self.aliases
+            alias = self._get_sources()
+            alias = alias[0] if isinstance(alias, (list, tuple)) else alias
             data = self.data[alias]
         else:
             data = self.data[source_or_alias]
@@ -370,6 +376,7 @@ class alias_dict(OrderedDict):
         key_or_alias: any valid key for a dictionary
             A key or an alias.
         """
+        assert isinstance(key_or_alias, string_types)
         try:
             return super(alias_dict, self).__getitem__(key_or_alias)
         except KeyError:
@@ -393,7 +400,12 @@ class alias_dict(OrderedDict):
             1) my_dict[key] = value
             2) my_dict[key, alias] = value
         """
-        if isinstance(keys, tuple):
+        assert isinstance(keys, (list, tuple, string_types))
+        if isinstance(keys, (list, tuple)):
+            assert all([el is None or isinstance(el, string_types)
+                        for el in keys])
+
+        if isinstance(keys, (list, tuple)):
             if keys[1] is not None:
                 # workaround to avoid using the deprecated method has_key()
                 if keys[0] in self.__a2k__ or keys[0] in super(alias_dict,
