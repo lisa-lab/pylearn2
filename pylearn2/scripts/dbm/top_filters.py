@@ -1,14 +1,7 @@
 #!/usr/bin/env python
-from __future__ import print_function
-
-__authors__ = "Ian Goodfellow"
-__copyright__ = "Copyright 2012, Universite de Montreal"
-__credits__ = ["Ian Goodfellow"]
-__license__ = "3-clause BSD"
-__maintainer__ = "LISA Lab"
 """
-
-Usage: ./top_filters <path_to_a_saved_DBM.pkl> <optional: output path prefix>
+Usage:
+./top_filters <path_to_a_saved_DBM.pkl> <optional: output path prefix>
 
 Displays the matrix product of the layer 1 and layer 2 weights.
 Also displays a grid visualization the connections in more detail.
@@ -25,8 +18,15 @@ magenta = negative / inhibitory).
 Optionally saves these images as png files prefixed with
 the given output path name instead of displaying them.
 This can be useful when working over ssh.
-
 """
+
+from __future__ import print_function
+
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "LISA Lab"
 
 import numpy as np
 import sys
@@ -82,7 +82,7 @@ def get_connections_viewer(imgs, W1, W2):
     """
     Show connections between 2 hidden layers.
 
-    Paramaters
+    Parameters
     ----------
     imgs: ndarray
         Images of weights from the first layer.

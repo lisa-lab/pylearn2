@@ -1,4 +1,12 @@
 #!/usr/bin/env python
+"""
+Usage: python show_samples <path_to_a_saved_DBM.pkl>
+Displays a batch of data from the DBM's training set.
+Then interactively allows the user to run Gibbs steps
+starting from that seed data to see how the DBM's MCMC
+sampling changes the data.
+"""
+
 from __future__ import print_function
 
 __authors__ = "Ian Goodfellow"
@@ -6,15 +14,6 @@ __copyright__ = "Copyright 2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
-"""
-
-Usage: python show_samples <path_to_a_saved_DBM.pkl>
-Displays a batch of data from the DBM's training set.
-Then interactively allows the user to run Gibbs steps
-starting from that seed data to see how the DBM's MCMC
-sampling changes the data.
-
-"""
 
 import numpy as np
 import sys
@@ -30,6 +29,8 @@ from theano.compat.six.moves import input, xrange
 
 def init_viewer(dataset, rows, cols):
     """
+    Initialisation of the PatchViewer with given rows and columns.
+
     Parameters
     ----------
     dataset: pylearn2 dataset
@@ -53,6 +54,8 @@ def init_viewer(dataset, rows, cols):
 
 def get_mapped_batch(dataset, design_batch):
     """
+    Get mapped batch if 'mapback_for_viewer' is available with the dataset.
+
     Parameters
     ----------
     dataset: pylearn2 dataset
@@ -68,6 +71,8 @@ def get_mapped_batch(dataset, design_batch):
 
 def update_viewer(dataset, pv, vis_batch, rows, cols):
     """
+    Function to update the viewer with a new visible batch.
+
     Parameters
     ----------
     dataset: pylearn2 dataset
@@ -93,7 +98,14 @@ def update_viewer(dataset, pv, vis_batch, rows, cols):
 
 
 def validate_all_samples(model, layer_to_state):
-    """Validate samples"""
+    """
+    Validate samples
+
+    Parameters
+    ----------
+    model: pylearn2 DBM model
+    layer_to_state: dict
+    """
     # Run some checks on the samples, this should help catch any bugs
     layers = [model.visible_layer] + model.hidden_layers
 
@@ -128,6 +140,8 @@ def validate_all_samples(model, layer_to_state):
 
 def get_sample_func(model, layer_to_state, x):
     """
+    Construct the sample theano function.
+
     Parameters
     ----------
     model: pylearn2 model
@@ -182,6 +196,8 @@ def load_model(model_path, m):
 
 def show_samples(m, model_path):
     """
+    Show samples given a DBM model.
+
     Parameters
     ----------
     m: int

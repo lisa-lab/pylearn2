@@ -78,7 +78,8 @@ def test_show_reconstructions():
 
     vis_batch = dataset.get_batch_topo(m)
     patch_viewer = show_reconstruct.init_viewer(dataset, rows, cols, vis_batch)
-    show_reconstruct.update_viewer(dataset, batch, rows, cols, patch_viewer, recons_func, vis_batch)
+    show_reconstruct.update_viewer(dataset, batch, rows, cols, patch_viewer,
+                                   recons_func, vis_batch)
 
 
 @with_setup(setup, teardown)

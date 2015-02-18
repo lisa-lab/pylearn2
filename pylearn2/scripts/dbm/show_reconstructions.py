@@ -1,4 +1,12 @@
 #!/usr/bin/env python
+"""
+Usage: python show_reconstructions <path_to_a_saved_DBM.pkl>
+Displays a batch of data from the DBM's training set.
+Then shows how the DBM reconstructs it if you run mean field
+to estimate the hidden units, then do one mean field downward
+pass from hidden_layers[0] to the visible layer.
+"""
+
 from __future__ import print_function
 
 __authors__ = "Ian Goodfellow"
@@ -6,14 +14,7 @@ __copyright__ = "Copyright 2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
-"""
 
-Usage: python show_reconstructions <path_to_a_saved_DBM.pkl>
-Displays a batch of data from the DBM's training set.
-Then shows how the DBM reconstructs it if you run mean field
-to estimate the hidden units, then do one mean field downward
-pass from hidden_layers[0] to the visible layer.
-"""
 import sys
 from pylearn2.config import yaml_parse
 from pylearn2.gui.patch_viewer import PatchViewer
@@ -24,6 +25,8 @@ from theano import function
 
 def init_viewer(dataset, rows, cols, vis_batch):
     """
+    Initialisation of the PatchViewer with given rows and columns.
+
     Parameters
     ----------
     dataset: pylearn2 dataset
@@ -46,6 +49,8 @@ def init_viewer(dataset, rows, cols, vis_batch):
 
 def get_mapped_batch(dataset, design_batch):
     """
+    Get mapped batch if 'mapback_for_viewer' is available with the dataset.
+
     Parameters
     ----------
     dataset: pylearn2 dataset
@@ -58,10 +63,11 @@ def get_mapped_batch(dataset, design_batch):
 
     return mapped_batch
 
+
 def update_viewer(dataset, batch, rows, cols, pv, recons_func, vis_batch):
     """
     Function to update the viewer with a new visible batch.
- 
+
     Parameters
     ----------
     dataset: pylearn2 dataset
@@ -98,23 +104,29 @@ def update_viewer(dataset, batch, rows, cols, pv, recons_func, vis_batch):
                 pv.add_patch(adjusted_vis_patch, rescale=False)
 
             if mapback:
-                pv.add_patch(dataset.adjust_for_viewer(mapped_batch[row_start+j, :, :, :].copy()),
-                             rescale=False)
-                pv.add_patch(dataset.adjust_to_be_viewed_with(
-                    mapped_r_batch[row_start+j, :, :, :].copy(),
-                    mapped_batch[row_start+j, :, :, :].copy()),
-                             rescale=False)
+                pv.add_patch(
+                    dataset.adjust_for_viewer(
+                        mapped_batch[row_start+j, :, :, :].copy()),
+                    rescale=False)
+                pv.add_patch(
+                    dataset.adjust_to_be_viewed_with(
+                        mapped_r_batch[row_start+j, :, :, :].copy(),
+                        mapped_batch[row_start+j, :, :, :].copy()),
+                    rescale=False)
             if recons_batch.shape[-1] == 2:
-                pv.add_patch(dataset.adjust_to_be_viewed_with(
-                    recons_batch[row_start+j, :, :, 1].copy(), vis_patch),
-                             rescale=False)
-                pv.add_patch(dataset.adjust_to_be_viewed_with(
-                    recons_batch[row_start+j, :, :, 0].copy(), vis_patch),
-                             rescale=False)
+                pv.add_patch(
+                    dataset.adjust_to_be_viewed_with(
+                        recons_batch[row_start+j, :, :, 1].copy(), vis_patch),
+                    rescale=False)
+                pv.add_patch(
+                    dataset.adjust_to_be_viewed_with(
+                        recons_batch[row_start+j, :, :, 0].copy(), vis_patch),
+                    rescale=False)
             else:
-                pv.add_patch(dataset.adjust_to_be_viewed_with(
-                    recons_batch[row_start+j, :, :, :].copy(), vis_patch),
-                             rescale=False)
+                pv.add_patch(
+                    dataset.adjust_to_be_viewed_with(
+                        recons_batch[row_start+j, :, :, :].copy(), vis_patch),
+                    rescale=False)
 
 
 def load_model(model_path, m):
@@ -158,6 +170,8 @@ def load_dataset(dataset_yml, use_test_set):
 
 def show_reconstructions(m, model_path):
     """
+    Show reconstructions of a given DBM model.
+
     Parameters
     ----------
     m: int
