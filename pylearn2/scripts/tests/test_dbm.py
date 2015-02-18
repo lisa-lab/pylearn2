@@ -2,7 +2,6 @@
 Tests scripts in the DBM folder
 """
 
-import cPickle
 import os
 import pylearn2.scripts.dbm.show_negative_chains as negative_chains
 import pylearn2.scripts.dbm.show_reconstructions as show_reconstruct
@@ -16,6 +15,7 @@ from nose.tools import with_setup
 from pylearn2.datasets import control
 from pylearn2.utils import serial
 from theano import function
+from theano.compat.six.moves import cPickle
 
 
 def setup():
