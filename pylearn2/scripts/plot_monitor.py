@@ -279,28 +279,28 @@ def main():
         handles, labels = ax.get_legend_handles_labels()
         lgd = ax.legend(handles, labels, loc = 'upper left',
                bbox_to_anchor = (1.05, 1.02))
-	
-	# Get the axis positions and the height and width of the legend
+
+        # Get the axis positions and the height and width of the legend
 
         plt.draw()       
         ax_pos = ax.get_position()
-	pad_width = ax_pos.x0 * fig.get_size_inches()[0]
-	pad_height = ax_pos.y0 * fig.get_size_inches()[1]
-	dpi = fig.get_dpi()
-	lgd_width = ax.get_legend().get_frame().get_width() / dpi 
-	lgd_height = ax.get_legend().get_frame().get_height() / dpi 
-	
-	# Adjust the bounding box to encompass both legend and axis.  Axis should be 3x3 inches.
-	# I had trouble getting everything to align vertically.
+        pad_width = ax_pos.x0 * fig.get_size_inches()[0]
+        pad_height = ax_pos.y0 * fig.get_size_inches()[1]
+        dpi = fig.get_dpi()
+        lgd_width = ax.get_legend().get_frame().get_width() / dpi 
+        lgd_height = ax.get_legend().get_frame().get_height() / dpi 
 
-	ax_width = 3
-	ax_height = 3
-	total_width = 2*pad_width + ax_width + lgd_width
-	total_height = 2*pad_height + np.maximum(ax_height, lgd_height)
+        # Adjust the bounding box to encompass both legend and axis.  Axis should be 3x3 inches.
+        # I had trouble getting everything to align vertically.
 
-	fig.set_size_inches(total_width, total_height)
-	ax.set_position([pad_width/total_width, 1-6*pad_height/total_height, ax_width/total_width, ax_height/total_height])
-	
+        ax_width = 3
+        ax_height = 3
+        total_width = 2*pad_width + ax_width + lgd_width
+        total_height = 2*pad_height + np.maximum(ax_height, lgd_height)
+
+        fig.set_size_inches(total_width, total_height)
+        ax.set_position([pad_width/total_width, 1-6*pad_height/total_height, ax_width/total_width, ax_height/total_height])
+
         if(options.yrange is not None):
             ymin, ymax = map(float, options.yrange.split(':'))
             plt.ylim(ymin, ymax)
