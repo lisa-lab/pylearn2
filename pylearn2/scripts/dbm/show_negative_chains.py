@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+"""
+Usage: python show_negative_chains.py <path_to_a_saved_DBM.pkl>
+Show negative chains of a saved DBM model.
+"""
+
 from __future__ import print_function
 
 __authors__ = "Ian Goodfellow"
