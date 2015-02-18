@@ -221,7 +221,7 @@ if __name__ == '__main__':
     print(W1.shape)
     print(W2.shape)
 
-    mat_v = get_mat_product_viewer(W1, W2, out_prefix)
+    mat_v = get_mat_product_viewer(W1, W2)
 
     if out_prefix is None:
         mat_v.show()
