@@ -197,17 +197,12 @@ class HDF5Dataset(Dataset):
                     data[s, a] = self._fhandler.getNode('/', s)
         return data
 
-    @wraps(Dataset.iterator, assigned=(), updated=())
+    @wraps(Dataset.iterator, assigned=(), updated=(), append=True)
     def iterator(self, mode=None, data_specs=None, batch_size=None,
                  num_batches=None, rng=None, return_tuple=False, **kwargs):
         """
-        data_specs : tuple, optional
-            A `(space, source)` tuple. See :ref:`data_specs` for a full
-            description. If set to None, the aliases (or sources) and spaces
-            provided when the dataset object has been created will be used.
-        return_tuple : bool, optional
-            Always return a tuple, even if there is exactly one source
-            of data being returned. Defaults to `False`.
+        if data_specs is set to None, the aliases (or sources) and spaces
+        provided when the dataset object has been created will be used.
         """
         if data_specs is None:
             data_specs = (self._get_sources, self._get_spaces)
