@@ -3,7 +3,6 @@ Objects for datasets serialized in HDF5 format (.h5).
 """
 
 __author__ = "Francesco Visin"
-__copyright__ = "Copyright 2015, Politecnico di Milano"
 __license__ = "3-clause BSD"
 __credits__ = "Francesco Visin and Steven Kearnes"
 __maintainer__ = "Francesco Visin"
@@ -244,7 +243,6 @@ class HDF5Dataset(Dataset):
         space = [self.spaces[s] for s in self._get_sources]
         return space[0] if len(space) == 1 else tuple(space)
 
-    # @wraps(Dataset.get_data_specs, assigned=(), updated=())
     def get_data_specs(self, source_or_alias=None):
         """
             Returns a tuple `(space, source)` for each one of the provided
@@ -275,7 +273,6 @@ class HDF5Dataset(Dataset):
         """
         return tuple([self.data[s] for s in self._get_sources()])
 
-    # @wraps(Dataset.get, assigned=(), updated=())
     def get(self, sources, indexes):
         """
         Retrieves the requested elements from the dataset.
