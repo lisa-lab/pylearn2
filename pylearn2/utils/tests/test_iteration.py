@@ -13,7 +13,8 @@ from pylearn2.utils.iteration import (
     RandomSliceSubsetIterator,
     RandomUniformSubsetIterator,
     BatchwiseShuffledSequentialIterator,
-    as_even
+    as_even,
+    EvenSequencesSubsetIterator,
 )
 
 
@@ -57,6 +58,7 @@ def test_correct_sequential_slices():
     assert sl.stop == 10
     assert sl.step is None
 
+    
 def test_correct_shuffled_sequential_slices():
 
     dataset_size = 13
@@ -141,6 +143,7 @@ def test_random_uniform():
         num += 1
     assert num == 10
 
+
 def test_batchwise_shuffled_sequential():
 
     iterator = BatchwiseShuffledSequentialIterator(30, batch_size = 7)
@@ -186,7 +189,8 @@ def test_uneven_batches():
     test_include_uneven_iterator(SequentialSubsetIterator)
     test_include_uneven_iterator(ShuffledSequentialSubsetIterator)
     test_include_uneven_iterator(BatchwiseShuffledSequentialIterator)
-    
+
+
 def test_finitedataset_source_check():
     """
     Check that the FiniteDatasetIterator returns sensible
@@ -205,3 +209,17 @@ def test_finitedataset_source_check():
                          data_specs=(VectorSpace(15),'featuresX'))
     except ValueError as e:
         assert 'featuresX' in str(e)
+
+
+def test_even_sequences():
+    np.random.seed(123)
+    lengths = np.random.randint(1,10, 100)
+    data = [['w']*l for l in lengths]
+    batch_size = 5
+    my_iter = EvenSequencesSubsetIterator(data, batch_size)
+    visited = [False] * len(data)
+    for ind_list in my_iter:
+        assert [len(data[i]) == len(data[ind_list[0]]) for i in ind_list]
+        for i in ind_list:
+            visited[i] = True
+    assert all(visited)
