@@ -655,9 +655,9 @@ class EvenSequencesSubsetIterator(SubsetIterator):
 
     Parameters
     ----------
-    sequence_data : list or ndarray
+    sequence_data : list of lists or ndarray of objects (ndarrays)
         The sequential data used to determine indices within the dataset such
-        that within a minibatch all sequences will have same lengths
+        that within a minibatch all sequences will have same lengths.
 
     See :py:class:`SubsetIterator` for detailed constructor parameter
     and attribute documentation.
