@@ -26,6 +26,7 @@ from pylearn2.utils import safe_izip, wraps
 from pylearn2.utils.data_specs import is_flat_specs
 from pylearn2.utils.exc import reraise_as
 from pylearn2.utils.rng import make_np_rng
+import copy
 
 # Make sure that the docstring uses restructured text list format.
 # If you change the module-level docstring, please re-run
@@ -639,6 +640,111 @@ class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
     uniform_batch_size = False
 
 
+class EvenSequencesSubsetIterator(SubsetIterator):
+    """
+    An iterator for datasets with sequential data (e.g. list of words)
+    which returns a list of indices of sequences in the dataset which have
+    the same length.
+    Within one minibatch all sequences will have the same lenght, so it
+    might return minibatches with different sizes depending on the
+    distribution of the lengths of sequences in the data.
+
+    Notes
+    -----
+    Returns lists of indices (`fancy = True`).
+
+    Parameters
+    ----------
+    sequence_data : list or ndarray
+        The sequential data used to determine indices within the dataset such
+        that within a minibatch all sequences will have same lengths
+
+    See :py:class:`SubsetIterator` for detailed constructor parameter
+    and attribute documentation.
+    """
+
+    def __init__(self, sequence_data, batch_size, num_batches=None, rng=None):
+        self._rng = make_np_rng(rng, which_method=["random_integers",
+                                                   "shuffle"])
+
+        if batch_size is None:
+            raise ValueError("batch_size cannot be None for random uniform "
+                             "iteration")
+        if num_batches is not None:
+            raise ValueError("EvenSequencesSubsetIterator doesn't support"
+                             " fixed number of batches")
+        if isinstance(sequence_data, list):
+            self._dataset_size = len(sequence_data)
+        elif isinstance(sequence_data, np.ndarray):
+            self._dataset_size = sequence_data.shape[0]
+        else:
+            raise ValueError("sequence_data must be of type list or np.ndarray")
+        self._sequence_data = sequence_data
+        self._batch_size = batch_size
+        self.prepare()
+        self.reset()
+
+    def prepare(self):
+        # find the unique lengths
+        self.lengths = [len(s) for s in self._sequence_data]
+        self.len_unique = np.unique(self.lengths)
+
+        # indices of unique lengths
+        self.len_indices = dict()
+        self.len_counts = dict()
+        for ll in self.len_unique:
+            self.len_indices[ll] = np.where(self.lengths == ll)[0]
+            self.len_counts[ll] = len(self.len_indices[ll])
+
+    def reset(self):
+        self.len_curr_counts = copy.copy(self.len_counts)
+        self.len_unique = self._rng.permutation(self.len_unique)
+        self.len_indices_pos = dict()
+        for ll in self.len_unique:
+            self.len_indices_pos[ll] = 0
+            self.len_indices[ll] = self._rng.permutation(self.len_indices[ll])
+        self.len_idx = -1
+
+    @wraps(SubsetIterator.next)
+    def next(self):
+        # randomly choose the length
+        count = 0
+        while True:
+            self.len_idx = np.mod(self.len_idx+1, len(self.len_unique))
+            if self.len_curr_counts[self.len_unique[self.len_idx]] > 0:
+                break
+            count += 1
+            if count >= len(self.len_unique):
+                break
+        if count >= len(self.len_unique):
+            self.reset()
+            raise StopIteration()
+        curr_len = self.len_unique[self.len_idx]
+
+        # get the batch size
+        curr_batch_size = np.minimum(self._batch_size, self.len_curr_counts[curr_len])
+        curr_pos = self.len_indices_pos[curr_len]
+
+        # get the indices for the current batch
+        curr_indices = self.len_indices[curr_len][curr_pos:curr_pos+curr_batch_size]
+        self.len_indices_pos[curr_len] += curr_batch_size
+        self.len_curr_counts[curr_len] -= curr_batch_size
+
+        return curr_indices
+
+    def __next__(self):
+        return self.next()
+
+    @property
+    @wraps(SubsetIterator.num_examples, assigned=(), updated=())
+    def num_examples(self):
+        return len(self._sequence_data)
+
+    fancy = True
+    stochastic = True
+    uniform_batch_size = False
+
+
 _iteration_schemes = {
     'sequential': SequentialSubsetIterator,
     'shuffled_sequential': ShuffledSequentialSubsetIterator,
@@ -649,6 +755,7 @@ _iteration_schemes = {
     'even_shuffled_sequential': as_even(ShuffledSequentialSubsetIterator),
     'even_batchwise_shuffled_sequential':
     as_even(BatchwiseShuffledSequentialIterator),
+    'even_sequences': EvenSequencesSubsetIterator,
 }
 
 
