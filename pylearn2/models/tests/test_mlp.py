@@ -1089,3 +1089,18 @@ def test_max_pool_options():
     actual_dnn = np.array(actual_dnn)
     assert np.allclose(expected, actual)
     assert np.allclose(actual, actual_dnn)
+
+
+def test_pooling_with_anon_variable():
+    """
+    Ensure that pooling works with anonymous
+    variables.
+    """
+    X_sym = tensor.ftensor4()
+    shp = (3, 3)
+    strd = (1, 1)
+    im_shp = (6, 6)
+    pool_0 = max_pool(X_sym, pool_shape=shp, pool_stride=strd,
+                      image_shape=im_shp, try_dnn=False)
+    pool_1 = mean_pool(X_sym, pool_shape=shp, pool_stride=strd,
+                       image_shape=im_shp)
