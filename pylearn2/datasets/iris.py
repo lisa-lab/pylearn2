@@ -39,6 +39,8 @@ class Iris(DenseDesignMatrix):
         assert X.shape == (150, 4)
         assert len(y) == 150
 
+        # Build a column array for y
+        y = np.array([[y_i] for y_i in y])
         assert min(y) == 0
         assert max(y) == 2
 
