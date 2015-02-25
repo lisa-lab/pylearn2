@@ -43,9 +43,7 @@ class TestGpuFilterActs(test_unshared_conv.TestFilterActs):
     fshape = (2, 2, 1, 3, 3, 1, 16) # 5 3x3 filters at each location in a 2x2 grid
     module_stride = 1
     dtype = 'float32'
-    mode = theano.compile.get_default_mode().including('gpu_opt',
-            'fast_run', 'inplace').including('gpu_after_fusion',
-                    'fast_run', 'inplace')
+    mode = mode_with_gpu
 
     def setUp(self):
         test_unshared_conv.TestFilterActs.setUp(self)
