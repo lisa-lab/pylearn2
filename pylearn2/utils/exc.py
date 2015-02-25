@@ -1,8 +1,6 @@
 """Exceptions used by basic support utilities."""
 __author__ = "Ian Goodfellow"
-import inspect
 import sys
-import textwrap
 
 from pylearn2.utils.common_strings import environment_variable_essay
 from theano.compat import six
@@ -11,6 +9,11 @@ from theano.compat import six
 class EnvironmentVariableError(Exception):
     """
     An exception raised when a required environment variable is not defined
+
+    Parameters
+    ----------
+    *args: list
+        Arguments passed to Exception()
     """
 
     def __init__(self, *args):
@@ -25,11 +28,6 @@ class NoDataPathError(EnvironmentVariableError):
     defined.
     """
     def __init__(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(NoDataPathError, self).__init__(data_path_essay +
                                               environment_variable_essay)
 
@@ -41,6 +39,8 @@ using a computer at LISA, this should be set to /data/lisa/data.
 
 def reraise_as(new_exc):
     """
+    Re-raise current exception as a new exception.
+
     Parameters
     ----------
     new_exc : Exception isinstance
@@ -55,14 +55,14 @@ def reraise_as(new_exc):
     you want to retain the original exception arguments, please use:
 
     >>> except Exception as e:
-    >>>     reraise_as(NewException("Extra information", *e.args))
+    ...     reraise_as(NewException("Extra information", *e.args))
 
     Examples
     --------
     >>> try:
-    >>>     do_something_crazy()
-    >>> except Exception:
-    >>>     reraise_as(UnhandledException("Informative message"))
+    ...     do_something_crazy()
+    ... except Exception:
+    ...     reraise_as(UnhandledException("Informative message"))
     """
     orig_exc_type, orig_exc_value, orig_exc_traceback = sys.exc_info()
 

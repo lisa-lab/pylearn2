@@ -445,7 +445,6 @@ whitelist_docstrings = [
     'utils/iteration.py',
     'utils/pooling.py',
     'utils/theano_graph.py',
-    'utils/exc.py',
     'utils/common_strings.py',
     'utils/datasets.py',
     'utils/serial.py',
