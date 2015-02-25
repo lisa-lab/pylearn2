@@ -54,15 +54,15 @@ def reraise_as(new_exc):
     exception are cast to strings and appended to the error message. If
     you want to retain the original exception arguments, please use:
 
-    >>> except Exception as e:
-    >>>     reraise_as(NewException("Extra information", *e.args))
+    except Exception as e:
+         reraise_as(NewException("Extra information", *e.args))
 
     Examples
     --------
-    >>> try:
-    >>>     do_something_crazy()
-    >>> except Exception:
-    >>>     reraise_as(UnhandledException("Informative message"))
+    try:
+         do_something_crazy()
+    except Exception:
+         reraise_as(UnhandledException("Informative message"))
     """
     orig_exc_type, orig_exc_value, orig_exc_traceback = sys.exc_info()
 
