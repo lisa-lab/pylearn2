@@ -34,8 +34,10 @@ class Avicenna(object):
 
         if standardize:
             union = N.concatenate([train, valid, test], axis=0)
-            self.X -= union.mean(axis=0)
-            std = union.std(axis=0)
+            # perform mean and std in float64 to avoid losing
+            # too much numerical precision
+            self.X -= union.mean(axis=0, dtype='float64')
+            std = union.std(axis=0, dtype='float64')
             std[std < 1e-3] = 1e-3
             self.X /= std
 

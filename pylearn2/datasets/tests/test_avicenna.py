@@ -19,14 +19,16 @@ def test_avicenna():
 
     # test that train/valid/test sets load (when standardize=True).
     data_train = Avicenna(which_set='train', standardize=True)
-    assert data.X.shape == (150205, 120)
+    assert data_train.X.shape == (150205, 120)
 
     data_valid = Avicenna(which_set='valid', standardize=True)
-    assert data.X.shape == (4096, 120)
+    assert data_valid.X.shape == (4096, 120)
 
     data_test = Avicenna(which_set='test', standardize=True)
-    assert data.X.shape == (4096, 120)
+    assert data_test.X.shape == (4096, 120)
 
     dt = np.concatenate([data_train.X, data_valid.X, data_test.X], axis=0)
-    assert np.allclose(dt.mean(), 0)
-    assert np.allclose(dt.std(), 1.)
+    # Force double precision to compute mean and std, otherwise the test
+    # fails because of precision.
+    assert np.allclose(dt.mean(dtype='float64'), 0)
+    assert np.allclose(dt.std(dtype='float64'), 1.)
