@@ -223,10 +223,11 @@ class MomentumAdjustor(TrainExtension):
     def _apply_momentum(self, algorithm):
         """Updates the momentum on algorithm based on the epochs elapsed."""
         if not hasattr(algorithm, 'learning_rule'):
-            raise ValueError('For MomentumAdjustor to work, you need to ' +
-                             'specify a learning_rule (for instance,' +
-                             ' Momentum) for your training algorithm' +
-                             '(for instance, SGD)')
+            raise ValueError(
+                'For MomentumAdjustor to work, you need to use a '
+                'TrainingAlgorithm that supports learning rules '
+                '(for instance, SGD), and specify a learning_rule '
+                '(for instance, Momentum) for that training algorithm.')
 
         momentum = algorithm.learning_rule.momentum
 
