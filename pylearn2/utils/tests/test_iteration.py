@@ -212,8 +212,8 @@ def test_finitedataset_source_check():
 
 
 def test_even_sequences():
-    np.random.seed(123)
-    lengths = np.random.randint(1,10, 100)
+    rng = np.random.RandomState(123)
+    lengths = rng.randint(1,10, 100)
     data = [['w']*l for l in lengths]
     batch_size = 5
     my_iter = EvenSequencesSubsetIterator(data, batch_size)
@@ -223,3 +223,24 @@ def test_even_sequences():
         for i in ind_list:
             visited[i] = True
     assert all(visited)
+
+
+def test_determinism_even_sequences():
+    rng = np.random.RandomState(123)
+    lengths = rng.randint(1,10, 100)
+    data = [['w']*l for l in lengths]
+    batch_size = 5
+    my_iter = EvenSequencesSubsetIterator(data, batch_size)
+    visited1 = [0] * len(data)
+    for b_ind, ind_list in enumerate(my_iter):
+        assert [len(data[i]) == len(data[ind_list[0]]) for i in ind_list]
+        for i in ind_list:
+            visited1[i] = b_ind
+
+    my_iter = EvenSequencesSubsetIterator(data, batch_size)
+    visited2 = [0] * len(data)
+    for b_ind, ind_list in enumerate(my_iter):
+        assert [len(data[i]) == len(data[ind_list[0]]) for i in ind_list]
+        for i in ind_list:
+            visited2[i] = b_ind
+    assert np.all(np.asarray(visited1) == np.asarray(visited2))
