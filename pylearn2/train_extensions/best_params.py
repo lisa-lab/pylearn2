@@ -113,6 +113,10 @@ class MonitorBasedSaveBest(TrainExtension):
     store_best_model : bool, optional
         Whether to store the best model in memory. If False (the default),
         save_path must be defined.
+    start_epoch : int, optional
+        After the specified epoch, the model will start to be saved. Setting
+        this value to a reasonable value prevents the library from saving the
+        model too many times at the beginning of training.
     higher_is_better : bool, optional
         Whether a higher value of channel_name indicates a better model.
     tag_key : str, optional

@@ -26,12 +26,6 @@ class MockChannel(object):
         self.val_record = []
 
 
-class MockMonitor(object):
-    """A mock object for Monitor."""
-    def __init__(self):
-        self.channels = {}
-
-
 def test_tagging():
     """Test the tagging functionality of this extension."""
     try:
@@ -61,38 +55,64 @@ def test_tagging():
         assert model.tag['test123']['best_cost'] == float("inf")
         # Best cost after one iteration.
         model.monitor.channels['foobar'].val_record.append(5.0)
+        model.monitor.report_epoch()
         ext.on_monitor(model, None, None)
         assert model.tag['test123']['best_cost'] == 5.0
         # Best cost after a second, worse iteration.
         model.monitor.channels['foobar'].val_record.append(7.0)
+        model.monitor.report_epoch()
         ext.on_monitor(model, None, None)
         assert model.tag['test123']['best_cost'] == 5.0
         # Best cost after a third iteration better than 2 but worse than 1.
         model.monitor.channels['foobar'].val_record.append(6.0)
+        model.monitor.report_epoch()
         ext.on_monitor(model, None, None)
         assert model.tag['test123']['best_cost'] == 5.0
         # Best cost after a fourth, better iteration.
         model.monitor.channels['foobar'].val_record.append(3.0)
+        model.monitor.report_epoch()
         ext.on_monitor(model, None, None)
         assert model.tag['test123']['best_cost'] == 3.0
 
         # setting the starting epoch of saving models.
+        model = MockModel()
+        model.monitor = Monitor(model)
+        model.monitor.channels['foobar'] = MockChannel()
         ext = MonitorBasedSaveBest(channel_name='foobar', tag_key='test12',
-                                   start_epoch=10, save_path=fn)
+                                   start_epoch=4, save_path=fn)
         ext.setup(model, None, None)
         assert model.tag['test12']['best_cost'] == float("inf")
         # Best cost after one iteration.
         model.monitor.channels['foobar'].val_record.append(5.0)
+        model.monitor.report_epoch()
         ext.on_monitor(model, None, None)
         assert model.tag['test12']['best_cost'] == float("inf")
         # Best cost after a second, better iteration.
         model.monitor.channels['foobar'].val_record.append(3.0)
+        model.monitor.report_epoch()
         ext.on_monitor(model, None, None)
         assert model.tag['test12']['best_cost'] == float("inf")
         # Best cost after a third, worse iteration.
         model.monitor.channels['foobar'].val_record.append(7.0)
+        model.monitor.report_epoch()
         ext.on_monitor(model, None, None)
         assert model.tag['test12']['best_cost'] == float("inf")
+        # Best cost after a fourth, worse iteration.
+        model.monitor.channels['foobar'].val_record.append(7.0)
+        model.monitor.report_epoch()
+        ext.on_monitor(model, None, None)
+        assert model.tag['test12']['best_cost'] == 7.0
+
+        # Best cost after a fifth, worse iteration.
+        model.monitor.channels['foobar'].val_record.append(10.0)
+        model.monitor.report_epoch()
+        ext.on_monitor(model, None, None)
+        assert model.tag['test12']['best_cost'] == 7.0
+        # Best cost after a fifth, better iteration.
+        model.monitor.channels['foobar'].val_record.append(1.0)
+        model.monitor.report_epoch()
+        ext.on_monitor(model, None, None)
+        assert model.tag['test12']['best_cost'] == 1.0
 
     finally:
         os.remove(fn)
