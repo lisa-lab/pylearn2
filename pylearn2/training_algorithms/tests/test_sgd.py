@@ -1423,7 +1423,7 @@ def test_determinism():
         termination_criterion = EpochCounter(5)
 
         def run_algorithm():
-            unsupported_modes = ['random_slice', 'random_uniform']
+            unsupported_modes = ['random_slice', 'random_uniform', 'even_sequences']
             algorithm = SGD(learning_rate,
                             cost,
                             batch_size=batch_size,
