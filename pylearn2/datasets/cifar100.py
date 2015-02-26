@@ -101,8 +101,6 @@ class CIFAR100(DenseDesignMatrix):
         # patch old pkl files
         if not hasattr(self, 'center'):
             self.center = False
-        if not hasattr(self, 'rescale'):
-            self.rescale = False
         if not hasattr(self, 'gcn'):
             self.gcn = False
 
@@ -115,9 +113,7 @@ class CIFAR100(DenseDesignMatrix):
         if not self.center:
             rval -= 127.5
 
-        if not self.rescale:
-            rval /= 127.5
-
+        rval /= 127.5
         rval = np.clip(rval, -1., 1.)
 
         return rval
@@ -146,8 +142,6 @@ class CIFAR100(DenseDesignMatrix):
         # patch old pkl files
         if not hasattr(self, 'center'):
             self.center = False
-        if not hasattr(self, 'rescale'):
-            self.rescale = False
         if not hasattr(self, 'gcn'):
             self.gcn = False
 
@@ -164,9 +158,7 @@ class CIFAR100(DenseDesignMatrix):
         if not self.center:
             rval -= 127.5
 
-        if not self.rescale:
-            rval /= 127.5
-
+        rval /= 127.5
         rval = np.clip(rval, -1., 1.)
 
         return rval
@@ -179,7 +171,6 @@ class CIFAR100(DenseDesignMatrix):
         """
         return CIFAR100(which_set='test',
                         center=self.center,
-                        rescale=self.rescale,
                         gcn=self.gcn,
                         toronto_prepro=self.toronto_prepro,
                         axes=self.axes)
