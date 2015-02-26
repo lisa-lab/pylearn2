@@ -24,6 +24,10 @@ def test_convolutional_network():
     yaml_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                   '..'))
     save_path = os.path.dirname(os.path.realpath(__file__))
+    # Escape potential backslashes in Windows filenames, since
+    # they will be processed when the YAML parser will read it
+    # as a string
+    save_path.replace('\\', r'\\')
 
     yaml = open("{0}/conv.yaml".format(yaml_file_path), 'r').read()
     hyper_params = {'train_stop': 50,
