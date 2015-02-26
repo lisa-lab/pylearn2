@@ -10,6 +10,7 @@ __maintainer__ = "David Warde-Farley"
 import os
 import tempfile
 from pylearn2.models.model import Model
+from pylearn2.monitor import Monitor
 from pylearn2.train_extensions.best_params import MonitorBasedSaveBest
 
 
@@ -44,14 +45,14 @@ def test_tagging():
 
         # Test that the default key gets created.
         def_model = MockModel()
-        def_model.monitor = MockMonitor()
+        def_model.monitor = Monitor(def_model)
         def_ext = MonitorBasedSaveBest(channel_name='foobar', save_path=fn)
         def_ext.setup(def_model, None, None)
         assert 'MonitorBasedSaveBest' in def_model.tag
 
         # Test with a custom key.
         model = MockModel()
-        model.monitor = MockMonitor()
+        model.monitor = Monitor(model)
         model.monitor.channels['foobar'] = MockChannel()
         ext = MonitorBasedSaveBest(channel_name='foobar', tag_key='test123',
                                    save_path=fn)
@@ -74,5 +75,24 @@ def test_tagging():
         model.monitor.channels['foobar'].val_record.append(3.0)
         ext.on_monitor(model, None, None)
         assert model.tag['test123']['best_cost'] == 3.0
+
+        # setting the starting epoch of saving models.
+        ext = MonitorBasedSaveBest(channel_name='foobar', tag_key='test12',
+                                   start_epoch=10, save_path=fn)
+        ext.setup(model, None, None)
+        assert model.tag['test12']['best_cost'] == float("inf")
+        # Best cost after one iteration.
+        model.monitor.channels['foobar'].val_record.append(5.0)
+        ext.on_monitor(model, None, None)
+        assert model.tag['test12']['best_cost'] == float("inf")
+        # Best cost after a second, better iteration.
+        model.monitor.channels['foobar'].val_record.append(3.0)
+        ext.on_monitor(model, None, None)
+        assert model.tag['test12']['best_cost'] == float("inf")
+        # Best cost after a third, worse iteration.
+        model.monitor.channels['foobar'].val_record.append(7.0)
+        ext.on_monitor(model, None, None)
+        assert model.tag['test12']['best_cost'] == float("inf")
+
     finally:
         os.remove(fn)
