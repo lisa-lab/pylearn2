@@ -3502,6 +3502,7 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape, try_dnn=True):
     name = bc01.name
     if name is None:
         name = 'anon_bc01'
+        bc01.name = name
 
     if try_dnn and bc01.dtype == "float32":
         use_dnn = dnn_available()
