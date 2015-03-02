@@ -1180,8 +1180,14 @@ class ZCA(Preprocessor):
 
     Parameters
     ----------
-    n_components : WRITEME
-    n_drop_components : WRITEME
+    n_components : integer, optional
+        Keeps the n_components biggest eigenvalues and corresponding
+        eigenvectors of covariance matrix.
+    n_drop_components : integer, optional
+        Drops the n_drop_components smallest eigenvalues and corresponding
+        eigenvectors of covariance matrix. Will only drop components
+        when n_components is not set i.e. n_components has preference over
+        n_drop_components.
     filter_bias : float, optional
         TODO: verify that default of 0.1 is what was used in the
         Coates and Ng paper, add reference
@@ -1421,15 +1427,16 @@ class ZCA(Preprocessor):
         t1 = time.time()
         eigs, eigv = linalg.eigh(covariance)
         t2 = time.time()
+
         log.info("eigh() took {0} seconds".format(t2 - t1))
         assert not contains_nan(eigs)
         assert not contains_nan(eigv)
         assert eigs.min() > 0
         if self.n_components:
-            eigs = eigs[:self.n_components]
-            eigv = eigv[:, :self.n_components]
+            eigs = eigs[-self.n_components:]
+            eigv = eigv[:, -self.n_components:]
 
-        if self.n_drop_components:
+        if self.n_drop_components and not self.n_components:
             eigs = eigs[self.n_drop_components:]
             eigv = eigv[:, self.n_drop_components:]
 
