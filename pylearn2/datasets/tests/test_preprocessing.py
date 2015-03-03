@@ -292,7 +292,7 @@ class testZCA:
                                         fit_preprocessor=True)
 
             preprocessed_X = dataset.get_design_matrix()
-            assert_allclose(X, preprocessor.inverse(preprocessed_X))
+            assert_allclose(self.X, preprocessor.inverse(preprocessed_X))
 
         test(store_inverse=True)
         test(store_inverse=False)
