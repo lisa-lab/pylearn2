@@ -502,8 +502,9 @@ class RMSProp(LearningRule):
 
 class Adam(LearningRule):
     """
-    Implements the AdaDelta learning rule as described in:
-    "AdaDelta: An Adaptive Learning Rate Method", Matthew D. Zeiler.
+    Implements the Adam learning rule as described in:
+    "Adam: A Method for Stochastic Optimization",
+    Diederik P. Kingma, Jimmy Lei Ba.
 
     Parameters
     ----------
@@ -514,10 +515,10 @@ class Adam(LearningRule):
     eps : float, optional
         Denominator minimum value.
     lamb : float, optional
-        Decay rate for first moment coefficient.
+        Decay rate for first moment decay rate.
     """
 
-    def __init__(self, b1=.1, b2=.001, eps=1.e-8, lamb=1.e-8):
+    def __init__(self, b1=.9, b2=.999, eps=1.e-8, lamb=(1.-1.e-8)):
         assert b1 > 0. and b1 <= 1.
         assert b2 > 0. and b2 <= 1.
         self.b1 = b1
@@ -543,20 +544,19 @@ class Adam(LearningRule):
         updates = OrderedDict()
         t = sharedX(0.)
         t_p1 = t+1.
-        b1_cor = 1. - (1. - b1)**t_p1
-        b2_cor = 1. - (1. - b2)**t_p1
-        b1t = 1. - (1. - b1)*self.lamb**(t)
+        b1t = self.b1*(self.lamb**t)
         for param in grads.keys():
             alpha = learning_rate *lr_scalers.get(param, 1.)
             # m: first moment estimate
             m = sharedX(param.get_value() * 0.)
             # v: second moment estimate
             v = sharedX(param.get_value() * 0.)
-            mt = b1t * grads[param] + (1. - b1t)*m
-            vt = b2 * T.sqr(grads[param]) + (1. - b2)*v
-            mt_hat = mt / b1_corr
-            vt_hat = vt / b2_corr
-            delta = -alpha * mt_hat / (T.sqrt(vt_hat) + self.eps)
+
+            mt = (1.-b1t)*grads[param] + b1t*m
+            vt = (1.-self.b2)*T.sqr(grads[param]) + self.b2*v
+            at = alpha*T.sqrt(1-self.b2**2)/(1-b1t)
+            delta = -at * mt / (T.sqrt(vt_hat) + self.eps)
+
             updates[param] = param + delta
             updates[m] = mt
             updates[v] = vt
