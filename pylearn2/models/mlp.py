@@ -4135,7 +4135,6 @@ class CompositeLayer(Layer):
             self.inputs_to_layers = OrderedDict()
             for key in sorted(inputs_to_layers):
                 assert isinstance(key, py_integer_types)
-                assert 0 <= key < self.num_layers
                 value = inputs_to_layers[key]
                 assert is_iterable(value)
                 assert all(isinstance(v, py_integer_types) for v in value)
