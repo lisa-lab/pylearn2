@@ -14,16 +14,19 @@ This should make the test run in about one minute.
 
 import os
 from pylearn2.testing import skip
-from pylearn2.testing import no_debug_mode
 from pylearn2.config import yaml_parse
 
 
 def test_convolutional_network():
-
+    """Test smaller version of convolutional_network.ipynb"""
     skip.skip_if_no_data()
     yaml_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                   '..'))
     save_path = os.path.dirname(os.path.realpath(__file__))
+    # Escape potential backslashes in Windows filenames, since
+    # they will be processed when the YAML parser will read it
+    # as a string
+    save_path.replace('\\', r'\\')
 
     yaml = open("{0}/conv.yaml".format(yaml_file_path), 'r').read()
     hyper_params = {'train_stop': 50,
@@ -42,4 +45,3 @@ def test_convolutional_network():
         os.remove("{}/convolutional_network_best.pkl".format(save_path))
     except OSError:
         pass
-

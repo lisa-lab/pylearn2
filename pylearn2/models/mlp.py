@@ -3553,7 +3553,7 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape, try_dnn=True):
 
         bc01 = T.set_subtensor(wide_infinity[:, :, 0:small_r, 0:small_c],
                                bc01[:, :, 0:small_r, 0:small_c])
-        bc01.name = 'infinite_padded_' + name
+        name = 'infinite_padded_' + name
 
     if use_dnn:
         mx = pool_dnn(bc01, pool_shape, pool_stride, 'max')
@@ -3566,13 +3566,13 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape, try_dnn=True):
                            :,
                            row_within_pool:row_stop:rs,
                            col_within_pool:col_stop:cs]
-                cur.name = ('max_pool_cur_' + bc01.name + '_' +
+                cur.name = ('max_pool_cur_' + name + '_' +
                             str(row_within_pool) + '_' + str(col_within_pool))
                 if mx is None:
                     mx = cur
                 else:
                     mx = T.maximum(mx, cur)
-                    mx.name = ('max_pool_mx_' + bc01.name + '_' +
+                    mx.name = ('max_pool_mx_' + name + '_' +
                                str(row_within_pool) + '_' +
                                str(col_within_pool))
 
@@ -4135,7 +4135,6 @@ class CompositeLayer(Layer):
             self.inputs_to_layers = OrderedDict()
             for key in sorted(inputs_to_layers):
                 assert isinstance(key, py_integer_types)
-                assert 0 <= key < self.num_layers
                 value = inputs_to_layers[key]
                 assert is_iterable(value)
                 assert all(isinstance(v, py_integer_types) for v in value)

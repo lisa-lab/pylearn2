@@ -329,6 +329,42 @@ def test_multiple_inputs():
     train.main_loop()
 
 
+def test_input_discard():
+    """
+    Create a VectorSpacesDataset with two inputs (features0 and features1)
+    and train an MLP which discards one input with a CompositeLayer.
+    """
+    mlp = MLP(
+        layers=[
+            FlattenerLayer(
+                CompositeLayer(
+                    'composite',
+                    [Linear(10, 'h0', 0.1)],
+                    {
+                        0: [0],
+                        1: []
+                    }
+                )
+            ),
+            Softmax(5, 'softmax', 0.1)
+        ],
+        input_space=CompositeSpace([VectorSpace(15), VectorSpace(20)]),
+        input_source=('features0', 'features1')
+    )
+    dataset = VectorSpacesDataset(
+        (np.random.rand(20, 20).astype(theano.config.floatX),
+         np.random.rand(20, 15).astype(theano.config.floatX),
+         np.random.rand(20, 5).astype(theano.config.floatX)),
+        (CompositeSpace([
+            VectorSpace(20),
+            VectorSpace(15),
+            VectorSpace(5)]),
+         ('features1', 'features0', 'targets')))
+    train = Train(dataset, mlp, SGD(0.1, batch_size=5))
+    train.algorithm.termination_criterion = EpochCounter(1)
+    train.main_loop()
+
+
 def test_input_and_target_source():
     """
     Create a MLP and test input_source and target_source
@@ -1089,3 +1125,18 @@ def test_max_pool_options():
     actual_dnn = np.array(actual_dnn)
     assert np.allclose(expected, actual)
     assert np.allclose(actual, actual_dnn)
+
+
+def test_pooling_with_anon_variable():
+    """
+    Ensure that pooling works with anonymous
+    variables.
+    """
+    X_sym = tensor.ftensor4()
+    shp = (3, 3)
+    strd = (1, 1)
+    im_shp = (6, 6)
+    pool_0 = max_pool(X_sym, pool_shape=shp, pool_stride=strd,
+                      image_shape=im_shp, try_dnn=False)
+    pool_1 = mean_pool(X_sym, pool_shape=shp, pool_stride=strd,
+                       image_shape=im_shp)
