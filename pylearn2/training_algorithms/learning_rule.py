@@ -555,7 +555,7 @@ class Adam(LearningRule):
             mt = (1.-b1t)*grads[param] + b1t*m
             vt = (1.-self.b2)*T.sqr(grads[param]) + self.b2*v
             at = alpha*T.sqrt(1-self.b2**2)/(1-b1t)
-            delta = -at * mt / (T.sqrt(vt_hat) + self.eps)
+            delta = -at * mt / (T.sqrt(vt) + self.eps)
 
             updates[param] = param + delta
             updates[m] = mt
