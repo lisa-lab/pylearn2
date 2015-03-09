@@ -51,8 +51,6 @@ def accs():
                             data_specs = model.cost_from_X_data_specs())
     for item in iterator:
         x_arg, y_arg = item
-        if Xb.ndim > 2:
-            x_arg = test.get_topological_view(x_arg)
         mf1_accs.append(batch_acc(x_arg, y_arg)[0])
     return sum(mf1_accs) / float(len(mf1_accs))
 
