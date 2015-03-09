@@ -325,3 +325,8 @@ Use the `with` statement, i.e.::
 
 This is cleaner and ensures that the file always gets closed, even in an
 error condition.
+
+Are you adding new files or changing files permissions?
+=======================================================
+The files containing unit tests (named `test_....py`) should never be
+executable, otherwise nose will ignore them, and not execute the tests.
