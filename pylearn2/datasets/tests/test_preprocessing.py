@@ -213,10 +213,6 @@ class testZCA:
                                          y=as_floatX(np.ones((8, 1))))
         self.num_components = self.dataset.get_design_matrix().shape[1] - 1
 
-    def is_almost_equal(self, A, B, epsilon=1e-4):
-        abs_difference = np.abs(A - B)
-        return (abs_difference < epsilon).all()
-
     def get_preprocessed_data(self, preprocessor):
         X = copy.copy(self.X)
         dataset = DenseDesignMatrix(X=X,
@@ -235,17 +231,17 @@ class testZCA:
         identity = np.identity(self.X.shape[1], theano.config.floatX)
         # Check some basics of transformation matrix
         assert preprocessor.P_.shape == (self.X.shape[1], self.X.shape[1])
-        assert self.is_almost_equal(np.dot(preprocessor.P_,
-                                           preprocessor.inv_P_), identity)
+        assert_allclose(np.dot(preprocessor.P_,
+                               preprocessor.inv_P_), identity, rtol=1e-4)
 
         preprocessor = ZCA(filter_bias=0.0)
         preprocessed_X = self.get_preprocessed_data(preprocessor)
 
-        #Check if preprocessed data matrix is white
-        assert self.is_almost_equal(np.cov(preprocessed_X.transpose(),
-                                           bias=1), identity)
+        # Check if preprocessed data matrix is white
+        assert_allclose(np.cov(preprocessed_X.transpose(),
+                               bias=1), identity, rtol=1e-4)
 
-        #Check if we obtain correct solution
+        # Check if we obtain correct solution
         zca_transformed_X = np.array(
             [[-1.0199, -0.1832, 1.9528, -0.9603, -0.8162],
              [0.0729, 1.4142, 0.2529, 1.1861, -1.0876],
@@ -256,9 +252,10 @@ class testZCA:
              [0.4993, -1.4219, -0.3443, 0.9664, -1.1022],
              [1.4022, 0.1917, 0.3736, 0.8520, 0.8456]]
         )
-        assert self.is_almost_equal(preprocessed_X, zca_transformed_X, 1e-3)
+        assert_allclose(preprocessed_X, zca_transformed_X, rtol=1e-3)
 
     def test_num_components(self):
+        # Keep 3 components
         preprocessor = ZCA(filter_bias=0.0, n_components=3)
         preprocessed_X = self.get_preprocessed_data(preprocessor)
 
@@ -272,11 +269,12 @@ class testZCA:
              [0.0079, -0.2582, 0.1368, -0.3571, -0.8147],
              [1.1636, 0.8362, 0.2777, 0.5666, 0.7480]]
         )
-        self.is_almost_equal(zca_truncated_X, preprocessed_X)
+        assert_allclose(zca_truncated_X, preprocessed_X, rtol=1e-3)
 
+        # Drop 2 components: result should be similar
         preprocessor = ZCA(filter_bias=0.0, n_drop_components=2)
         preprocessed_X = self.get_preprocessed_data(preprocessor)
-        self.is_almost_equal(zca_truncated_X, preprocessed_X)
+        assert_allclose(zca_truncated_X, preprocessed_X, rtol=1e-3)
 
     def test_zca_inverse(self):
         """
