@@ -1432,11 +1432,16 @@ class ZCA(Preprocessor):
         assert not contains_nan(eigs)
         assert not contains_nan(eigv)
         assert eigs.min() > 0
+
+        if self.n_components and self.n_drop_components:
+            raise ValueError('Either n_components or n_drop_components'
+                             'should be specified')
+
         if self.n_components:
             eigs = eigs[-self.n_components:]
             eigv = eigv[:, -self.n_components:]
 
-        if self.n_drop_components and not self.n_components:
+        if self.n_drop_components:
             eigs = eigs[self.n_drop_components:]
             eigv = eigv[:, self.n_drop_components:]
 
@@ -1545,7 +1550,7 @@ class LeCunLCN(ExamplewisePreprocessor):
             elif isinstance(channels, int):
                 self._channels = [channels]
             else:
-                raise ValueError("channesl should be either a list or int")
+                raise ValueError("channels should be either a list or int")
 
     def transform(self, x):
         """
