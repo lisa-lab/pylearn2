@@ -221,16 +221,16 @@ class EpochCounter(TerminationCriterion):
         if self._new_epochs:
             self._epochs_done = 0
         else:
-            # epochs_seen = 1 on first continue_learning() call
-            self._epochs_done = model.monitor.get_epochs_seen() - 1
+            self._epochs_done = model.monitor.get_epochs_seen()
 
     @functools.wraps(TerminationCriterion.continue_learning)
     def continue_learning(self, model):
         if not hasattr(self, "_epochs_done"):
             self.initialize(model)
 
+        old_epochs_done = self._epochs_done
         self._epochs_done += 1
-        return self._epochs_done < self._max_epochs
+        return old_epochs_done < self._max_epochs
 
 
 class And(TerminationCriterion):
