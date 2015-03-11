@@ -1094,6 +1094,16 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
     rng : object, optional
         A random number generator used for picking random indices into the
         design matrix when choosing minibatches.
+    X_labels : int, optional
+        If X contains labels then X_labels must be passed to indicate the
+        total number of possible labels e.g. the size of a the vocabulary
+        when X contains word indices. This will make the set use
+        IndexSpace.
+    y_labels : int, optional
+        If y contains labels then y_labels must be passed to indicate the
+        total number of possible labels e.g. 10 for the MNIST dataset
+        where the targets are numbers. This will make the set use
+        IndexSpace.
     """
 
     _default_seed = (17, 2, 946)
@@ -1104,14 +1114,18 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
                  y=None,
                  view_converter=None,
                  axes=('b', 0, 1, 'c'),
-                 rng=_default_seed):
+                 rng=_default_seed,
+                 X_labels=None,
+                 y_labels=None):
         super_self = super(DenseDesignMatrixPyTables, self)
         super_self.__init__(X=X,
                             topo_view=topo_view,
                             y=y,
                             view_converter=view_converter,
                             axes=axes,
-                            rng=rng)
+                            rng=rng,
+                            X_labels=X_labels,
+                            y_labels=y_labels)
         ensure_tables()
         if not hasattr(self, 'filters'):
             self.filters = tables.Filters(complib='blosc', complevel=5)
