@@ -212,6 +212,10 @@ def test_finitedataset_source_check():
 
 
 def test_even_sequences():
+    """
+    Check that EvenSequencesSubsetIterator visits all entries
+    in a dataset of sequence data.
+    """
     rng = np.random.RandomState(123)
     lengths = rng.randint(1,10, 100)
     data = [['w']*l for l in lengths]
@@ -226,6 +230,10 @@ def test_even_sequences():
 
 
 def test_determinism_even_sequences():
+    """
+    Check that EvenSequencesSubsetIterator deterministically visits
+    entries of a dataset of sequence data.
+    """
     rng = np.random.RandomState(123)
     lengths = rng.randint(1,10, 100)
     data = [['w']*l for l in lengths]
