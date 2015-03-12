@@ -2,338 +2,459 @@
 Objects for datasets serialized in HDF5 format (.h5).
 """
 
-__author__ = "Steven Kearnes"
-__copyright__ = "Copyright 2014, Stanford University"
+__author__ = "Francesco Visin"
 __license__ = "3-clause BSD"
-__maintainer__ = "Steven Kearnes"
+__credits__ = "Francesco Visin and Steven Kearnes"
+__maintainer__ = "Francesco Visin"
 
 try:
     import h5py
 except ImportError:
     h5py = None
-import numpy as np
-from theano.compat.six.moves import xrange
+try:
+    import tables
+except ImportError:
+    tables = None
 import warnings
+from os.path import isfile
+from pylearn2.compat import OrderedDict
+from pylearn2.datasets import cache
+from pylearn2.datasets.dataset import Dataset
+from pylearn2.datasets.hdf5_deprecated import HDF5DatasetDeprecated
+from pylearn2.utils import safe_zip, wraps, py_integer_types
+from pylearn2.utils.iteration import FiniteDatasetIterator
+from pylearn2.utils.exc import reraise_as
+from pylearn2.space import Space, CompositeSpace
+from theano.compat.six import string_types
 
-from pylearn2.datasets.dense_design_matrix import (DenseDesignMatrix,
-                                                   DefaultViewConverter)
-from pylearn2.space import CompositeSpace, VectorSpace
-from pylearn2.utils.iteration import FiniteDatasetIterator, safe_izip
-from pylearn2.utils import contains_nan
 
-
-class HDF5Dataset(DenseDesignMatrix):
+class HDF5Dataset(Dataset):
 
     """
-    Dense dataset loaded from an HDF5 file.
+    Dataset loaded from an HDF5 file.
 
     Parameters
     ----------
     filename : str
         HDF5 file name.
-    X : str, optional
-        Key into HDF5 file for dataset design matrix.
-    topo_view: str, optional
-        Key into HDF5 file for topological view of dataset.
-    y : str, optional
-        Key into HDF5 file for dataset targets.
+    sources : list of str
+        A list of key(s) of dataset data in the HDF5 file.
+    spaces : list of Space objects
+        A list of spaces, one for each source in sources.
+    aliases : list of str, optional
+        A list of aliases, one for each source. They work as an alternative
+        name for the sources of the dataset and if set can be used to access
+        the data. If you use this parameter, for each element in sources
+        you have to either specify an alias or None. Note that this allows you
+        to use the new interface with legacy code by just setting the aliases
+        `features` and, if needed, `targets`.
     load_all : bool, optional (default False)
         If true, datasets are loaded into memory instead of being left
         on disk.
-    cache_size: int, optionally specify the size in bytes for the chunk
-        cache of the HDF5 library. Useful when the HDF5 files has large
-        chunks and when using a sequantial iterator. The chunk cache allows
-        to only access the disk for the chunks and then copy the batches to
-        the GPU from memory, which can result in a significant speed up.
-        Sensible default values depend on the size of your data and the
-        batch size you wish to use. A rule of thumb is to make a chunk
-        contain 100 - 1000 batches and make sure they encompass complete
-        samples.
+    cache_size: int, optional
+        This value is used when use_h5py is True.
+        The size in bytes for the chunk cache of the HDF5 library. Useful
+        when the HDF5 files has large chunks and when using a sequential
+        iterator. The chunk cache allows only access the disk for the
+        chunks and then copy the batches to GPU from memory, which can
+        result in a significant speed up. Sensible default values depend
+        on the size of your data and the batch size you wish to use. A
+        rule of thumb is to make a chunk contain 100 - 1000 batches and
+        make sure they encompass complete samples.
+    use_h5py: bool or 'auto', optional
+        Specifies if h5py or pytables should be used. If set to auto
+        pylearn2 will try to use pytables and will switch to h5py if
+        pytables cannot be loaded (e.g. is not installed).
     kwargs : dict, optional
         Keyword arguments passed to `DenseDesignMatrix`.
     """
-
-    def __init__(self, filename, X=None, topo_view=None, y=None,
-                 load_all=False, cache_size=None, **kwargs):
-        self.load_all = load_all
-        if h5py is None:
-            raise RuntimeError("Could not import h5py.")
-        if cache_size:
-            propfaid = h5py.h5p.create(h5py.h5p.FILE_ACCESS)
-            settings = list(propfaid.get_cache())
-            settings[2] = cache_size
-            propfaid.set_cache(*settings)
-            fid = h5py.h5f.open(filename, fapl=propfaid)
-            self._file = h5py.File(fid)
+    def __new__(cls, filename, X=None, topo_view=None, y=None, load_all=False,
+                cache_size=None, sources=None, spaces=None, aliases=None,
+                use_h5py='auto', **kwargs):
+        """
+        Temporary method to manage the deprecation
+        """
+        if X is not None or topo_view is not None:
+            warnings.warn(
+                'A dataset is using the old interface that is now deprecated '
+                'and will become officially unsupported as of July 27, 2015. '
+                'The dataset should use the new interface that inherits from '
+                'the dataset class instead of the DenseDesignMatrix class. '
+                'Please refer to pylearn2.datasets.hdf5.py for more details '
+                'on arguments and details of the new '
+                'interface.', DeprecationWarning)
+            return HDF5DatasetDeprecated(filename, X, topo_view, y, load_all,
+                                         cache_size, **kwargs)
         else:
-            self._file = h5py.File(filename)
-        if X is not None:
-            X = self.get_dataset(X, load_all)
-        if topo_view is not None:
-            topo_view = self.get_dataset(topo_view, load_all)
-        if y is not None:
-            y = self.get_dataset(y, load_all)
+            return super(HDF5Dataset, cls).__new__(
+                cls, filename, sources, spaces, aliases, load_all, cache_size,
+                use_h5py, **kwargs)
 
-        super(HDF5Dataset, self).__init__(X=X, topo_view=topo_view, y=y,
-                                          **kwargs)
-
-    def _check_labels(self):
+    def __init__(self, filename, sources, spaces, aliases=None, load_all=False,
+                 cache_size=None, use_h5py='auto', **kwargs):
         """
-        Sanity checks for X_labels and y_labels.
-
-        Since the np.all test used for these labels does not work with HDF5
-        datasets, we issue a warning that those values are not checked.
+        Class constructor
         """
-        if self.X_labels is not None:
-            assert self.X is not None
-            assert self.view_converter is None
-            assert self.X.ndim <= 2
-            if self.load_all:
-                assert np.all(self.X < self.X_labels)
+        assert isinstance(filename, string_types)
+        assert isfile(filename), '%s does not exist.' % filename
+        assert isinstance(sources, list)
+        assert all([isinstance(el, string_types) for el in sources])
+        assert isinstance(spaces, list)
+        assert all([isinstance(el, Space) for el in spaces])
+        assert len(sources) == len(spaces)
+        if aliases is not None:
+            assert isinstance(aliases, list)
+            assert all([isinstance(el, string_types) for el in aliases
+                       if el is not None])
+            assert len(aliases) == len(sources)
+        assert isinstance(load_all, bool)
+        assert cache_size is None or isinstance(cache_size, py_integer_types)
+        assert isinstance(use_h5py, bool) or use_h5py == 'auto'
+
+        self.load_all = load_all
+        self._aliases = aliases if aliases else [None for _ in sources]
+        self._sources = sources
+
+        # self.spaces is a dictionary indexed with both keys and aliases
+        self.spaces = alias_dict()
+        for i, (source, alias) in enumerate(safe_zip(self._sources,
+                                            self._aliases)):
+            self.spaces[source, alias] = spaces[i]
+        del spaces, aliases, sources
+
+        if load_all:
+            warnings.warn('You can load all the data in memory for speed, but '
+                          'DO NOT use modify all the dataset at once (e.g., '
+                          'reshape, transform, etc, ...) because your code '
+                          'will fail if at some point you won\'t have enough '
+                          'memory to store the dataset alltogheter. Use the '
+                          'iterator to reshape the data after you load it '
+                          'from the dataset.')
+
+        # Locally cache the files before reading them
+        datasetCache = cache.datasetCache
+        filename = datasetCache.cache_file(filename)
+
+        if use_h5py == 'auto':
+            use_h5py = True if tables is None else False
+
+        if use_h5py:
+            if h5py is None:
+                raise RuntimeError("Could not import h5py.")
+            if cache_size:
+                propfaid = h5py.h5p.create(h5py.h5p.FILE_ACCESS)
+                settings = list(propfaid.get_cache())
+                settings[2] = cache_size
+                propfaid.set_cache(*settings)
+                self._fhandler = h5py.File(h5py.h5f.open(filename,
+                                           fapl=propfaid), mode='r')
             else:
-                warnings.warn("HDF5Dataset cannot perform test np.all(X < " +
-                              "X_labels). Use X_labels at your own risk.")
+                self._fhandler = h5py.File(filename, mode='r')
+        else:
+            if tables is None:
+                raise RuntimeError("Could not import tables.")
+            self._fhandler = tables.openFile(filename, mode='r')
 
-        if self.y_labels is not None:
-            assert self.y is not None
-            assert self.y.ndim <= 2
-            if self.load_all:
-                assert np.all(self.y < self.y_labels)
-            else:
-                warnings.warn("HDF5Dataset cannot perform test np.all(y < " +
-                              "y_labels). Use y_labels at your own risk.")
+        self.data = self._read_hdf5(self._sources, self._aliases, load_all,
+                                    use_h5py)
 
-    def get_dataset(self, dataset, load_all=False):
+        assert len(self.data) != 0, (
+            'No dataset was loaded. Please make sure that sources is a list '
+            'with at least one value and that the provided values are keys of '
+            'the dataset you are trying to load.')
+        super(HDF5Dataset, self).__init__(**kwargs)
+
+    def _read_hdf5(self, sources, aliases, load_all=False, use_h5py=True):
         """
-        Get a handle for an HDF5 dataset, or load the entire dataset into
-        memory.
+        Loads elements from an HDF5 dataset using either h5py or tables. It can
+        load either the whole object in memory or a reference to the object on
+        disk, depending on the load_all parameter. Returns a list of objects.
 
         Parameters
         ----------
-        dataset : str
-            Name or path of HDF5 dataset.
+        sources : list of str
+            List of HDF5 keys corresponding to the data to be loaded.
         load_all : bool, optional (default False)
             If true, load dataset into memory.
+        use_h5py: bool, optional (default True)
+            If true uses h5py, else tables.
         """
-        if load_all:
-            data = self._file[dataset][:]
+        data = alias_dict()
+        if use_h5py:
+            for s, a in safe_zip(sources, aliases):
+                if load_all:
+                    data[s, a] = self._fhandler[s][:]
+                else:
+                    data[s, a] = self._fhandler[s]
+                    # hdf5 handle has no ndim
+                    data[s].ndim = len(data[s].shape)
         else:
-            data = self._file[dataset]
-            data.ndim = len(data.shape)  # hdf5 handle has no ndim
+            for s, a in safe_zip(sources, aliases):
+                if load_all:
+                    data[s, a](self._fhandler.getNode('/', s)[:])
+                else:
+                    data[s, a] = self._fhandler.getNode('/', s)
         return data
 
-    def iterator(self, *args, **kwargs):
+    @wraps(Dataset.iterator, assigned=(), updated=(), append=True)
+    def iterator(self, mode=None, data_specs=None, batch_size=None,
+                 num_batches=None, rng=None, return_tuple=False, **kwargs):
         """
-        Get an iterator for this dataset.
-
-        The FiniteDatasetIterator uses indexing that is not supported by
-        HDF5 datasets, so we change the class to HDF5DatasetIterator to
-        override the iterator.next method used in dataset iteration.
-
-        Parameters
-        ----------
-        WRITEME
+        if data_specs is set to None, the aliases (or sources) and spaces
+        provided when the dataset object has been created will be used.
         """
-        iterator = super(HDF5Dataset, self).iterator(*args, **kwargs)
-        iterator.__class__ = HDF5DatasetIterator
-        return iterator
+        if data_specs is None:
+            data_specs = (self._get_sources, self._get_spaces)
 
-    def set_topological_view(self, V, axes=('b', 0, 1, 'c')):
+        [mode, batch_size, num_batches, rng, data_specs] = self._init_iterator(
+            mode, batch_size, num_batches, rng, data_specs)
+        convert = None
+
+        return FiniteDatasetIterator(self,
+                                     mode(self.get_num_examples(),
+                                          batch_size,
+                                          num_batches,
+                                          rng),
+                                     data_specs=data_specs,
+                                     return_tuple=return_tuple,
+                                     convert=convert)
+
+    def _get_sources(self):
         """
-        Set up dataset topological view, without building an in-memory
-        design matrix.
+        Returns the aliases (if defined, sources otherwise) provided when the
+        HDF5 object was created
 
-        This is mostly copied from DenseDesignMatrix, except:
-        * HDF5ViewConverter is used instead of DefaultViewConverter
-        * Data specs are derived from topo_view, not X
-        * NaN checks have been moved to HDF5DatasetIterator.next
-        * Support for "old pickled models" is dropped.
-
-        Note that y may be loaded into memory for reshaping if y.ndim != 2.
-
-        Parameters
-        ----------
-        V : ndarray
-            Topological view.
-        axes : tuple, optional (default ('b', 0, 1, 'c'))
-            Order of axes in topological view.
+        Returns
+        -------
+        A string or a list of strings.
         """
-        shape = [V.shape[axes.index('b')],
-                 V.shape[axes.index(0)],
-                 V.shape[axes.index(1)],
-                 V.shape[axes.index('c')]]
-        self.view_converter = HDF5ViewConverter(shape[1:], axes=axes)
-        self.X = self.view_converter.topo_view_to_design_mat(V)
-        # self.X_topo_space stores a "default" topological space that
-        # will be used only when self.iterator is called without a
-        # data_specs, and with "topo=True", which is deprecated.
-        self.X_topo_space = self.view_converter.topo_space
+        return tuple([alias if alias else source for alias, source in
+                      safe_zip(self._aliases, self._sources)])
 
-        # Update data specs
-        X_space = VectorSpace(dim=V.shape[axes.index('b')])
-        X_source = 'features'
-        if self.y is None:
-            space = X_space
-            source = X_source
+    def _get_spaces(self):
+        """
+        Returns the Space(s) associated with the aliases (or sources) specified
+        when the HDF5 object has been created.
+
+        Returns
+        -------
+        A Space or a list of Spaces.
+        """
+        space = [self.spaces[s] for s in self._get_sources]
+        return space[0] if len(space) == 1 else tuple(space)
+
+    def get_data_specs(self, source_or_alias=None):
+        """
+            Returns a tuple `(space, source)` for each one of the provided
+            source_or_alias keys, if any. If no key is provided, it will
+            use self.aliases, if not None, or self.sources.
+        """
+        if source_or_alias is None:
+            source_or_alias = self._get_sources()
+
+        if isinstance(source_or_alias, (list, tuple)):
+            space = tuple([self.spaces[s] for s in source_or_alias])
+            space = CompositeSpace(space)
         else:
-            if self.y.ndim == 1:
-                dim = 1
-            else:
-                dim = self.y.shape[-1]
-            y_space = VectorSpace(dim=dim)
-            y_source = 'targets'
-            space = CompositeSpace((X_space, y_space))
-            source = (X_source, y_source)
+            space = self.spaces[source_or_alias]
+        return (space, source_or_alias)
 
-        self.data_specs = (space, source)
-        self.X_space = X_space
-        self._iter_data_specs = (X_space, X_source)
-
-
-class HDF5DatasetIterator(FiniteDatasetIterator):
-
-    """
-    Dataset iterator for HDF5 datasets.
-
-    FiniteDatasetIterator expects a design matrix to be available, but this
-    will not always be the case when using HDF5 datasets with topological
-    views.
-
-    Parameters
-    ----------
-    dataset : Dataset
-        Dataset over which to iterate.
-    subset_iterator : object
-        Iterator that returns slices of the dataset.
-    data_specs : tuple, optional
-        A (space, source) tuple.
-    return_tuple : bool, optional (default False)
-        Whether to return a tuple even if only one source is used.
-    convert : list, optional
-        A list of callables (in the same order as the sources in
-        data_specs) that will be applied to each slice of the dataset.
-    """
-
-    def next(self):
+    def get_data(self):
         """
-        Get the next subset of the dataset during dataset iteration.
+        DEPRECATED
+        Returns all the data, as it is internally stored.
+        The definition and format of these data are described in
+        `self.get_data_specs()`.
 
-        Converts index selections for batches to boolean selections that
-        are supported by HDF5 datasets.
+        Returns
+        -------
+        data : numpy matrix or 2-tuple of matrices
+            The data
         """
-        next_index = self._subset_iterator.next()
+        return tuple([self.data[s] for s in self._get_sources()])
 
-        # convert to boolean selection
-        sel = np.zeros(self.num_examples, dtype=bool)
-        sel[next_index] = True
-        next_index = sel
+    def get(self, sources, indexes):
+        """
+        Retrieves the requested elements from the dataset.
+
+        Parameter
+        ---------
+        sources : tuple
+            A tuple of source identifiers
+        indexes : slice or list
+            A slice or a list of indexes
+
+        Return
+        ------
+        rval : tuple
+            A tuple of batches, one for each source
+        """
+        assert isinstance(sources, (tuple, list)) and len(sources) > 0, (
+            'sources should be an instance of tuple and not empty')
+        assert all([isinstance(el, string_types) for el in sources]), (
+            'sources elements should be strings')
+        assert isinstance(indexes, (tuple, list, slice, py_integer_types)), (
+            'indexes should be either an int, a slice or a tuple/list of ints')
+        if isinstance(indexes, (tuple, list)):
+            assert len(indexes) > 0 and all([isinstance(i, py_integer_types)
+                                            for i in indexes]), (
+                'indexes elements should be ints')
 
         rval = []
-        for data, fn in safe_izip(self._raw_data, self._convert):
+        for s in sources:
             try:
-                this_data = data[next_index]
-            except TypeError:
-                this_data = data[next_index, :]
-            if fn:
-                this_data = fn(this_data)
-            assert not contains_nan(this_data)
-            rval.append(this_data)
-        rval = tuple(rval)
-        if not self._return_tuple and len(rval) == 1:
-            rval, = rval
-        return rval
+                sdata = self.data[s]
+            except ValueError as e:
+                reraise_as(ValueError(
+                    'The requested source %s is not part of the dataset' %
+                    sources[s], *e.args))
+            if (isinstance(indexes, (slice, py_integer_types)) or
+                    len(indexes) == 1):
+                rval.append(sdata[indexes])
+            else:
+                warnings.warn('Accessing non sequential elements of an '
+                              'HDF5 file will be at best VERY slow. Avoid '
+                              'using iteration schemes that access '
+                              'random/shuffled data with hdf5 datasets!!')
+                val = []
+                [val.append(sdata[idx]) for idx in indexes]
+                rval.append(val)
+        return tuple(rval)
 
-
-class HDF5ViewConverter(DefaultViewConverter):
-
-    """
-    View converter that doesn't have to transpose the data.
-
-    In order to keep data on disk, does not generate a full design matrix.
-    Instead, an instance of HDF5TopoViewConverter is returned, which
-    transforms data from the topological view into the design view for each
-    batch.
-
-    Parameters
-    ----------
-    shape : tuple
-        Shape of this view.
-    axes : tuple, optional (default ('b', 0, 1, 'c'))
-        Order of axes in topological view.
-    """
-
-    def topo_view_to_design_mat(self, V):
+    @wraps(Dataset.get_num_examples, assigned=(), updated=())
+    def get_num_examples(self, source_or_alias=None):
         """
-        Generate a design matrix from the topological view.
+        Return the number of examples *OF THE FIRST SOURCE*.
+        Note that this behavior will probably be deprecated in the future,
+        returing a list of num_examples. Do not rely on this function unless
+        unavoidable.
 
-        This override of DefaultViewConverter.topo_view_to_design_mat does
-        not attempt to transpose the topological view, since transposition
-        is not supported by HDF5 datasets.
+        Parameter
+        ---------
+        source_or_alias : str, optional
+            The source you want the number of examples of
         """
-        v_shape = (V.shape[self.axes.index('b')],
-                   V.shape[self.axes.index(0)],
-                   V.shape[self.axes.index(1)],
-                   V.shape[self.axes.index('c')])
+        assert source_or_alias is None or isinstance(source_or_alias,
+                                                     string_types)
 
-        if np.any(np.asarray(self.shape) != np.asarray(v_shape[1:])):
-            raise ValueError('View converter for views of shape batch size '
-                             'followed by ' + str(self.shape) +
-                             ' given tensor of shape ' + str(v_shape))
+        if source_or_alias is None:
+            alias = self._get_sources()
+            alias = alias[0] if isinstance(alias, (list, tuple)) else alias
+            data = self.data[alias]
+        else:
+            data = self.data[source_or_alias]
 
-        rval = HDF5TopoViewConverter(V, self.axes)
-        return rval
+        return data.shape[0]
 
 
-class HDF5TopoViewConverter(object):
-
+class alias_dict(OrderedDict):
     """
-    Class for transforming batches from the topological view to the design
-    matrix view.
-
-    Parameters
-    ----------
-    topo_view : HDF5 dataset
-        On-disk topological view.
-    axes : tuple, optional (default ('b', 0, 1, 'c'))
-        Order of axes in topological view.
+    A class that behaves like a dictionary, but let you associates a key and
+    an alias to a value.
+    IMPORTANT: Do not rely too much on this class, many functionalities are
+    missing (e.g. element removal)
     """
+    def __init__(self, **kwargs):
+        self.__a2k__ = {}
+        self.__k2a__ = {}
+        super(alias_dict, self).__init__(**kwargs)
 
-    def __init__(self, topo_view, axes=('b', 0, 1, 'c')):
-        self.topo_view = topo_view
-        self.axes = axes
-        self.topo_view_shape = (topo_view.shape[axes.index('b')],
-                                topo_view.shape[axes.index(0)],
-                                topo_view.shape[axes.index(1)],
-                                topo_view.shape[axes.index('c')])
-        self.pixels_per_channel = (self.topo_view_shape[1] *
-                                   self.topo_view_shape[2])
-        self.n_channels = self.topo_view_shape[3]
-        self.shape = (self.topo_view_shape[0],
-                      np.product(self.topo_view_shape[1:]))
-        self.ndim = len(self.shape)
-
-    def __getitem__(self, item):
+    def __getitem__(self, key_or_alias):
         """
-        Indexes the design matrix and transforms the requested batch from
-        the topological view.
+        Returns the item corresponding to a key or an alias.
 
-        Parameters
-        ----------
-        item : slice or ndarray
-            Batch selection. Either a slice or a boolean mask.
+        Parameter
+        ---------
+        key_or_alias: any valid key for a dictionary
+            A key or an alias.
         """
-        sel = [slice(None)] * len(self.topo_view_shape)
-        sel[self.axes.index('b')] = item
-        sel = tuple(sel)
-        V = self.topo_view[sel]
-        batch_size = V.shape[self.axes.index('b')]
-        rval = np.zeros((batch_size,
-                         self.pixels_per_channel * self.n_channels),
-                        dtype=V.dtype)
-        for i in xrange(self.n_channels):
-            ppc = self.pixels_per_channel
-            sel = [slice(None)] * len(V.shape)
-            sel[self.axes.index('c')] = i
-            sel = tuple(sel)
-            rval[:, i * ppc:(i + 1) * ppc] = V[sel].reshape(batch_size, ppc)
-        return rval
+        assert isinstance(key_or_alias, string_types)
+        try:
+            return super(alias_dict, self).__getitem__(key_or_alias)
+        except KeyError:
+            return super(alias_dict, self).__getitem__(
+                self.__a2k__[key_or_alias])
+
+    def __setitem__(self, keys, value):
+        """
+        Add an element to the dictionary
+
+        Parameter
+        ---------
+        keys: either a tuple `(key, alias)` or any valid key for a dictionary
+            The key and optionally the alias of the new element.
+        value: any input accepted as value by a dictionary
+            The value of the new element.i
+
+        Notes
+        -----
+        You can add elements to the dictionary as follows:
+            1) my_dict[key] = value
+            2) my_dict[key, alias] = value
+        """
+        assert isinstance(keys, (list, tuple, string_types))
+        if isinstance(keys, (list, tuple)):
+            assert all([el is None or isinstance(el, string_types)
+                        for el in keys])
+
+        if isinstance(keys, (list, tuple)):
+            if keys[1] is not None:
+                # workaround to avoid using the deprecated method has_key()
+                if keys[0] in self.__a2k__ or keys[0] in super(alias_dict,
+                                                               self).keys():
+                    raise Exception('The key is already used in the '
+                                    'dictionary either as key or alias')
+                # workaround to avoid using the deprecated method has_key()
+                if keys[1] in self.__a2k__ or keys[1] in super(alias_dict,
+                                                               self).keys():
+                    raise Exception('The alias is already used in the '
+                                    'dictionary either as key or alias')
+                self.__k2a__[keys[0]] = keys[1]
+                self.__a2k__[keys[1]] = keys[0]
+            keys = keys[0]
+        return super(alias_dict, self).__setitem__(keys, value)
+
+    def set_alias(self, key, alias):
+        """
+        Add an alias to a key of the dictionary that doesn't have already an
+        alias.
+
+        Parameter
+        ---------
+        keys: any valid key for a dictionary
+           A key of the dictionary.
+        alias: any input accepted as key by a dictionary
+            The alias.
+        """
+        if alias is None:
+            return
+        # workaround to avoid using the deprecated method has_key()
+        if key not in super(alias_dict, self).keys():
+            raise NameError('The key is not in the dictionary')
+        if key in self.__k2a__ and alias != self.__k2a__[key]:
+            raise NameError('The key is already associated to a different '
+                            'alias')
+        # workaround to avoid using the deprecated method has_key()
+        if (alias in self.__a2k__ and key != self.__a2k__[alias] or
+                alias in super(alias_dict, self).keys()):
+            raise Exception('The alias is already used in the dictionary '
+                            'either as key or alias')
+        self.__k2a__[key] = alias
+        self.__a2k__[alias] = key
+
+    def __contains__(self, key_or_alias):
+        """
+        Returns true if the key or alias is an element of the dictionary
+
+        Parameter
+        ---------
+        keys_or_alias: any valid key for a dictionary
+            The key or the alias to look for.
+        """
+        try:
+            isalias = super(alias_dict, self).__contains__(
+                self.__k2a__[key_or_alias])
+        except KeyError:
+            isalias = False
+            pass
+        return isalias or super(alias_dict, self).__contains__(key_or_alias)
