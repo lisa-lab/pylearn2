@@ -218,6 +218,8 @@ def test_revisit():
         
         for mode in sorted(_iteration_schemes):
             if mode == 'even_sequences' and nums is not None:
+                # even_sequences iterator does not support specifying a fixed number
+                # of minibatches.
                 continue
             for num_mon_batches in nums:
                 if num_mon_batches is None and mode in ['random_uniform', 'random_slice']:
