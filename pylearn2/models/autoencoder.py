@@ -695,13 +695,13 @@ class UntiedAutoencoder(Autoencoder):
             act_dec=base.act_dec, tied_weights=True, irange=base.irange,
             rng=base.rng)
 
-        self.weights = tensor.shared(base.weights.get_value(borrow=False),
+        self.weights = theano.shared(base.weights.get_value(borrow=False),
                                      name='weights')
-        self.visbias = tensor.shared(base.visbias.get_value(borrow=False),
+        self.visbias = theano.shared(base.visbias.get_value(borrow=False),
                                      name='vb')
-        self.hidbias = tensor.shared(base.visbias.get_value(borrow=False),
+        self.hidbias = theano.shared(base.visbias.get_value(borrow=False),
                                      name='hb')
-        self.w_prime = tensor.shared(base.weights.get_value(borrow=False).T,
+        self.w_prime = theano.shared(base.weights.get_value(borrow=False).T,
                                      name='w_prime')
         self._params = [self.visbias, self.hidbias, self.weights, self.w_prime]
 

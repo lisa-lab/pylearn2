@@ -18,14 +18,13 @@ def test_MNISTPlus():
     Tests that it work well with selected type of augmentation.
     """
     skip_if_no_data()
-    train = MNISTPlus(which_set='train')
-    valid = MNISTPlus(which_set='valid')
-    test = MNISTPlus(which_set='test')
-    for ids in [train, valid, test]:
+    for subset in ['train', 'valid', 'test']:
+        ids = MNISTPlus(which_set=subset)
         assert 0.01 >= ids.X.min() >= 0.0
         assert 0.99 <= ids.X.max() <= 1.0
         topo = ids.get_batch_topo(1)
         assert topo.ndim == 4
+        del ids
 
     train_y = MNISTPlus(which_set='train', label_type='label')
     assert 0.99 <= train_y.X.max() <= 1.0
