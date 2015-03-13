@@ -1158,9 +1158,21 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
                             rng=rng,
                             X_labels=X_labels,
                             y_labels=y_labels)
+        self._check_labels()
         ensure_tables()
         if not hasattr(self, 'filters'):
             self.filters = tables.Filters(complib='blosc', complevel=5)
+
+    def _check_labels(self):
+        """Sanity checks for X_labels and y_labels."""
+        if self.X_labels is not None:
+            assert self.X is not None
+            assert self.view_converter is None
+            assert self.X.ndim <= 2
+
+        if self.y_labels is not None:
+            assert self.y is not None
+            assert self.y.ndim <= 2
 
     def set_design_matrix(self, X, start=0):
         """
