@@ -2969,6 +2969,9 @@ class ConvElemwise(Layer):
 
         assert nonlinearity is not None
 
+        if tied_b is None:
+            self.tied_b = True
+
         self.nonlin = nonlinearity
         self.__dict__.update(locals())
         assert monitor_style in ['classification', 'detection'], (
