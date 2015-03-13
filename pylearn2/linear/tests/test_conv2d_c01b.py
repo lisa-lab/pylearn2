@@ -1,5 +1,6 @@
 import theano
 from theano import tensor
+from theano.compat.six.moves import xrange
 import numpy
 from pylearn2.linear.conv2d_c01b import (Conv2D, make_random_conv2D,
     make_sparse_random_conv2D, setup_detector_layer_c01b)
@@ -31,15 +32,33 @@ class TestConv2DC01b(unittest.TestCase):
         self.image = \
             numpy.random.rand(16, 3, 3, 1).astype(theano.config.floatX)
         self.image_tensor = tensor.tensor4()
-        self.filters_values = numpy.ones(
-            (16, 2, 2, 16), dtype=theano.config.floatX
-        )
+        self.filters_values = numpy.random.rand(
+            16, 2, 2, 32).astype(theano.config.floatX)
         self.filters = sharedX(self.filters_values, name='filters')
         self.conv2d = Conv2D(self.filters)
 
     def tearDown(self):
         theano.config.floatX = self.orig_floatX
         theano.sandbox.cuda.unuse()
+
+    def scipy_conv_c01b(self, images, filters):
+        """
+        Emulate c01b convolution with scipy
+        """
+        assert images.ndim == 4
+        assert filters.ndim == 4
+        in_chans, rows, cols, bs = images.shape
+        in_chans_, rows_, cols_, out_chans = filters.shape
+        assert in_chans_ == in_chans
+
+        out_bc01 = [
+            [sum(scipy.ndimage.filters.convolve(images[c, :, :, b],
+                                                filters[c, ::-1, ::-1, i])
+                 for c in xrange(in_chans))
+             for i in xrange(out_chans)]
+            for b in xrange(bs)]
+        out_c01b = numpy.array(out_bc01).transpose(1, 2, 3, 0)
+        return out_c01b
 
     def test_get_params(self):
         """
@@ -55,13 +74,11 @@ class TestConv2DC01b(unittest.TestCase):
         f = theano.function([self.image_tensor],
                             self.conv2d.lmul(self.image_tensor))
         if scipy_available:
-            numpy.allclose(
-                f(self.image).reshape((16, 2, 2)),
-                scipy.ndimage.filters.convolve(
-                    self.image.reshape((16, 3, 3, 1)),
-                    self.filters_values.reshape((16, 2, 2, 16))
-                )[:2, :2]
-            )
+            self.assertTrue(
+                numpy.allclose(
+                    f(self.image),
+                    self.scipy_conv_c01b(self.image,
+                                         self.filters_values)[:, :2, :2, :]))
 
     def test_lmul_T(self):
         """
