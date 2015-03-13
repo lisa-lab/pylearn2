@@ -3,7 +3,7 @@ Binarized, unlabeled version of the MNIST dataset, used in
 
     On the Quantitative Analysis of Deep Belief Networks
     Salakhutdinov and Murray
-    http://www.mit.edu/~rsalakhu/papers/dbn_ais.pdf
+    http://www.cs.toronto.edu/~rsalakhu/papers/dbn_ais.pdf
     The MNIST database of handwritten digits
     LeCun and Cortes
     http://yann.lecun.com/exdb/mnist/
