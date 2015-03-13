@@ -2483,9 +2483,26 @@ class GaussianVisLayer(VisibleLayer):
 
 class ConvMaxPool(HiddenLayer):
     """
-    .. todo::
+    Implements a hidden convolutional layer. The layer lives in a Conv2DSpace.
 
-        WRITEME
+    Parameters
+    ----------
+    output_channels : WRITEME
+    kernel_rows : WRITEME
+    kernel_cols : WRITEME
+    pool_rows : WRITEME
+    pool_cols : WRITEME
+    layer_name : str
+        Name of the layer
+    center : bool
+        If True, use Gregoire Montavon's centering trick
+    irange : float
+        If specified, initialize the weights in U(-irange, irange)
+    sparse_init : WRITEME
+    scale_by_sharing : WRITEME
+    init_bias : WRITEME
+    border_mode : WRITEME
+    output_axes : WRITEME
     """
 
     def __init__(self,
@@ -2502,6 +2519,7 @@ class ConvMaxPool(HiddenLayer):
             init_bias = 0.,
             border_mode = 'valid',
             output_axes = ('b', 'c', 0, 1)):
+        super(ConvMaxPool, self).__init__()
         self.__dict__.update(locals())
         del self.self
 
