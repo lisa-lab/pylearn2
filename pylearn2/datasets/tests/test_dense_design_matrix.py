@@ -78,6 +78,23 @@ def test_pytables():
     it.next()
 
 
+def test_init_pytables_with_labels():
+    """
+    Test whether DenseDesignMatrixPytables can be constructed with X_labels
+    and y_labels.
+    """
+
+    rng = np.random.RandomState([34, 22, 89])
+    X = rng.randn(2, 3)
+    y = rng.randint(low=0, high=5, size=(2,))
+    ds = DenseDesignMatrixPyTables(
+        X=X,
+        y=y,
+        X_labels=len(np.unique(X).flat),
+        y_labels=np.max(y)+1
+    )
+
+
 def test_from_dataset():
     """
     Tests whether it supports integer labels.
