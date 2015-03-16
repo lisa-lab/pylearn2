@@ -295,7 +295,7 @@ class DenseDesignMatrix(Dataset):
             convert.append(conv_fn)
 
         return FiniteDatasetIterator(self,
-                                     mode(self.X.shape[0],
+                                     mode(self.get_num_examples(),
                                           batch_size,
                                           num_batches,
                                           rng),
