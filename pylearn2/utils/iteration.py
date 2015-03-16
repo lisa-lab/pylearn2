@@ -645,7 +645,7 @@ class EvenSequencesSubsetIterator(SubsetIterator):
     An iterator for datasets with sequential data (e.g. list of words)
     which returns a list of indices of sequences in the dataset which have
     the same length.
-    Within one minibatch all sequences will have the same lenght, so it
+    Within one minibatch all sequences will have the same length, so it
     might return minibatches with different sizes depending on the
     distribution of the lengths of sequences in the data.
 
