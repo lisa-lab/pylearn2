@@ -126,7 +126,7 @@ class SequenceDatasetIterator(FiniteDatasetIterator):
                 # Create mask
                 if source in self.mask_needed:
                     mask = self._create_mask(rval)
-                rval = np.transpose(batch, (1, 0, 2))
+                rval = np.swapaxes(batch, 0, 1)
                 if fn:
                     rval = fn(rval)
                 rvals.append(rval)
