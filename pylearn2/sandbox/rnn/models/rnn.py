@@ -422,12 +422,13 @@ class LSTM(Recurrent):
         The name of the layer. All layers in an MLP must have a unique name.
     irange : float
         Initializes each weight randomly in U(-irange, irange)
-    output : slice, list of integers or integer, optional
+    indices : slice, list of integers or integer, optional
         If specified this layer will return only the given hidden
         states. If an integer is given, it will not return a
         SequenceSpace. Otherwise, it will return a SequenceSpace of
         fixed length. Note that a SequenceSpace of fixed length
         can be flattened by using the FlattenerLayer.
+        Note: For now only [-1] is supported.
     irange : float
     init_bias : float
     forget_gate_init_bias : float
@@ -617,12 +618,13 @@ class GRU(Recurrent):
         The name of the layer. All layers in an MLP must have a unique name.
     irange : float
         Initializes each weight randomly in U(-irange, irange)
-    output : slice, list of integers or integer, optional
+    indices : slice, list of integers or integer, optional
         If specified this layer will return only the given hidden
         states. If an integer is given, it will not return a
         SequenceSpace. Otherwise, it will return a SequenceSpace of
         fixed length. Note that a SequenceSpace of fixed length
         can be flattened by using the FlattenerLayer.
+        Note: For now only [-1] is supported.
     irange : float
     init_bias : float
     reset_gate_init_bias: float
