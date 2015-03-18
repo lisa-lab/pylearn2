@@ -716,7 +716,7 @@ class DeepComposedAutoencoder(AbstractAutoencoder):
     autoencoders : list
         A list of autoencoder objects.
     """
-    def __init__(self, autoencoders):
+    def __init__(self, autoencoders, corruptor=None):
         super(DeepComposedAutoencoder, self).__init__()
         self.fn = None
         self.cpu_only = False
@@ -727,6 +727,21 @@ class DeepComposedAutoencoder(AbstractAutoencoder):
         self.autoencoders = list(autoencoders)
         self.input_space = autoencoders[0].get_input_space()
         self.output_space = autoencoders[-1].get_output_space()
+        self.corruptor = corruptor
+
+    @functools.wraps(Autoencoder.reconstruct)
+    def reconstruct(self, inputs):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        corrupted = None
+        if self.corruptor is None:
+            corrupted = inputs
+        else:
+            corrupted = self.corruptor(inputs)
+        return self.decode(self.encode(corrupted))
 
     @functools.wraps(Autoencoder.encode)
     def encode(self, inputs):
