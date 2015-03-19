@@ -473,7 +473,8 @@ class Monitor(object):
                 if n == 0:
                     raise ValueError("Iterating over 0 examples results in " +
                                      "divide by 0")
-                val = T.cast(channel.val * batch_size / cur_num_examples, config.floatX)
+                val = T.cast(channel.val * batch_size / cur_num_examples,
+                             config.floatX)
             u[channel.val_shared] = channel.val_shared + val
 
         with log_timing(log, "Compiling accum"):
