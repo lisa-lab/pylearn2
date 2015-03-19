@@ -738,7 +738,7 @@ class FiniteDatasetIterator(object):
     The dataset should provide a `get` method which accepts a tuple of source
     identifiers and a list or slice of indexes and returns a tuple of batches
     of examples, one for each source. The old interface using `get_data` is
-    deprecated and will become unsupported as of July 28, 2015.
+    still supported for the moment being.
     """
 
     def __init__(self, dataset, subset_iterator, data_specs=None,
@@ -780,11 +780,6 @@ class FiniteDatasetIterator(object):
         # If `dataset` is incompatible with the new interface, fall back to the
         # old interface
         if not hasattr(self._dataset, 'get'):
-            warnings.warn("dataset is using the old iterator interface which "
-                          "is deprecated and will become officially "
-                          "unsupported as of July 28, 2015. The dataset "
-                          "should implement a `get` method respecting the new "
-                          "interface.")
             all_data = self._dataset.get_data()
             if not isinstance(all_data, tuple):
                 all_data = (all_data,)
