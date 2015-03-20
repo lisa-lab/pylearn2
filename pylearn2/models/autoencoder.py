@@ -716,7 +716,7 @@ class DeepComposedAutoencoder(AbstractAutoencoder):
     autoencoders : list
         A list of autoencoder objects.
     """
-    def __init__(self, autoencoders, corruptor=None):
+    def __init__(self, autoencoders):
         super(DeepComposedAutoencoder, self).__init__()
         self.fn = None
         self.cpu_only = False
@@ -727,21 +727,6 @@ class DeepComposedAutoencoder(AbstractAutoencoder):
         self.autoencoders = list(autoencoders)
         self.input_space = autoencoders[0].get_input_space()
         self.output_space = autoencoders[-1].get_output_space()
-        self.corruptor = corruptor
-
-    @functools.wraps(Autoencoder.reconstruct)
-    def reconstruct(self, inputs):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        corrupted = None
-        if self.corruptor is None:
-            corrupted = inputs
-        else:
-            corrupted = self.corruptor(inputs)
-        return self.decode(self.encode(corrupted))
 
     @functools.wraps(Autoencoder.encode)
     def encode(self, inputs):
@@ -785,6 +770,46 @@ class DeepComposedAutoencoder(AbstractAutoencoder):
         """
         for autoencoder in self.autoencoders:
             autoencoder.modify_updates(updates)
+
+
+class StackedDenoisingAutoencoder(DeepComposedAutoencoder):
+    """
+    A stacked denoising autoencoder learns a representation of the input by
+    reconstructing a noisy version of it.
+
+    Parameters
+    ----------
+    autoencoders : list
+        A list of autoencoder objects.
+    corruptor : object
+        Instance of a corruptor object to use for corrupting the
+        input.
+    """
+    def __init__(self, autoencoders, corruptor):
+        super(StackedDenoisingAutoencoder, self).__init__(autoencoders)
+        self.corruptor = corruptor
+
+    def reconstruct(self, inputs):
+        """
+        Reconstruct the inputs after corrupting and mapping through the
+        encoder and decoder.
+
+        Parameters
+        ----------
+        inputs : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the input
+            minibatch(es) to be corrupted and reconstructed. Assumed to be
+            2-tensors, with the first dimension indexing training examples
+            and the second indexing data dimensions.
+
+        Returns
+        -------
+        reconstructed : tensor_like or list of tensor_like
+            Theano symbolic (or list thereof) representing the corresponding
+            reconstructed minibatch(es) after corruption and encoding/decoding.
+        """
+        corrupted = self.corruptor(inputs)
+        return super(StackedDenoisingAutoencoder, self).reconstruct(corrupted)
 
 
 def build_stacked_ae(nvis, nhids, act_enc, act_dec,

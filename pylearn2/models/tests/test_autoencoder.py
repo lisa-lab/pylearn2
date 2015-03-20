@@ -9,7 +9,7 @@ import theano.tensor as tensor
 from theano import config
 from pylearn2.models.autoencoder import Autoencoder, \
     HigherOrderContractiveAutoencoder, DeepComposedAutoencoder, \
-    UntiedAutoencoder
+    UntiedAutoencoder, StackedDenoisingAutoencoder
 from pylearn2.corruption import BinomialCorruptor
 from pylearn2.config import yaml_parse
 from theano.tensor.basic import _allclose
@@ -123,15 +123,15 @@ def test_dcae():
     model.perform(data)
 
 
-def test_denoising_dcae():
+def test_sdae():
     """
-    Tests that Denoising DeepComposedAutoencoder works correctly
+    Tests that StackedDenoisingAutoencoder works correctly
     """
     data = np.random.randn(10, 5).astype(config.floatX) * 100
     ae = Autoencoder(5, 7, act_enc='tanh', act_dec='cos',
                      tied_weights=False)
     corruptor = BinomialCorruptor(corruption_level=0.5)
-    model = DeepComposedAutoencoder([ae], corruptor=corruptor)
+    model = StackedDenoisingAutoencoder([ae], corruptor)
     model._ensure_extensions()
 
     w = ae.weights.get_value()
