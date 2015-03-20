@@ -438,7 +438,8 @@ class Monitor(object):
             it.append(d.iterator(mode=i, num_batches=n, batch_size=b,
                                  data_specs=self._flat_data_specs,
                                  return_tuple=True))
-        self.num_examples = [i.num_examples for i in it]
+        self.num_examples = [np.cast['float64'](float(i.num_examples))
+                             for i in it]
         givens = [OrderedDict() for d in self._datasets]
         updates = [OrderedDict() for d in self._datasets]
         for i, channel in enumerate(self.channels.values()):
@@ -473,8 +474,8 @@ class Monitor(object):
                 if n == 0:
                     raise ValueError("Iterating over 0 examples results in " +
                                      "divide by 0")
-                val = T.cast(channel.val * batch_size / cur_num_examples,
-                             config.floatX)
+                val = T.cast(channel.val * T.cast(batch_size, 'float64')
+                             / cur_num_examples, config.floatX)
             u[channel.val_shared] = channel.val_shared + val
 
         with log_timing(log, "Compiling accum"):
