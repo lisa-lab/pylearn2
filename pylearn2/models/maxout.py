@@ -1086,6 +1086,7 @@ class MaxoutLocalC01B(Layer):
                  kernel_stride=(1, 1)):
 
         assert (pool_shape is None) == (pool_stride is None)
+        super(MaxoutLocalC01B, self).__init__()
 
         detector_channels = num_channels * num_pieces
 
