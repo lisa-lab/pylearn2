@@ -435,22 +435,35 @@ def test_get_layer_monitor_channels():
                                       state=None, targets=targets)
 
 
-def test_flattener_layer():
-    # To test the FlattenerLayer we create a very simple feed-forward neural
-    # network with two parallel linear layers. We then create two separate
-    # feed-forward neural networks with single linear layers. In principle,
-    # these two models should be identical if we start from the same
-    # parameters. This makes it easy to test that the composite layer works
-    # as expected.
+def compare_flattener_composite_mlp_with_separate_mlps(first_composite_layer,
+                                                       second_composite_layer,
+                                                       first_indep_layer,
+                                                       second_indep_layer,
+                                                       features_in_first_mlp,
+                                                       features_in_second_mlp,
+                                                       targets_in_first_mlp,
+                                                       targets_in_second_mlp):
+
+    """ This function compares two mlp with a single mlp composed
+    of the two mlps and a flattener layer.
+
+    To test the FlattenerLayer it creates a very simple feed-forward neural
+    network with two parallel layers. It then creates two separate
+    feed-forward neural networks with single layers. In principle,
+    these two models should be identical if we start from the same
+    parameters. This makes it easy to test that the composite layer works
+    as expected.
+    """
 
     # Create network with composite layers.
+
     mlp_composite = MLP(
         layers=[
             FlattenerLayer(
                 CompositeLayer(
                     'composite',
-                    [Linear(2, 'h0', 0.1),
-                     Linear(2, 'h1', 0.1)],
+                    [first_composite_layer,
+                     second_composite_layer],
                     {
                         0: [0],
                         1: [1]
@@ -458,27 +471,28 @@ def test_flattener_layer():
                 )
             )
         ],
-        input_space=CompositeSpace([VectorSpace(5), VectorSpace(10)]),
+        input_space=CompositeSpace([VectorSpace(features_in_first_mlp),
+                                   VectorSpace(features_in_second_mlp)]),
         input_source=('features0', 'features1')
     )
 
-    # Create network with single linear layer, corresponding to first
+    # Create network with single softmax layer, corresponding to first
     # layer in the composite network.
     mlp_first_part = MLP(
         layers=[
-            Linear(2, 'h0', 0.1)
+            first_indep_layer
         ],
-        input_space=VectorSpace(5),
+        input_space=VectorSpace(features_in_first_mlp),
         input_source=('features0')
     )
 
-    # Create network with single linear layer, corresponding to second
+    # Create network with single softmax layer, corresponding to second
     # layer in the composite network.
     mlp_second_part = MLP(
         layers=[
-            Linear(2, 'h1', 0.1)
+            second_indep_layer
         ],
-        input_space=VectorSpace(10),
+        input_space=VectorSpace(features_in_second_mlp),
         input_source=('features1')
     )
 
@@ -487,33 +501,48 @@ def test_flattener_layer():
 
     # Make dataset for composite network.
     dataset_composite = VectorSpacesDataset(
-        (shared_dataset[:, 0:5],
-         shared_dataset[:, 5:15],
-         shared_dataset[:, 15:19]),
+        (shared_dataset[:, 0:features_in_first_mlp],
+         shared_dataset[:,
+                        features_in_first_mlp:(features_in_first_mlp
+                                               + features_in_second_mlp)],
+         shared_dataset[:,
+                        (features_in_first_mlp + features_in_second_mlp):
+                        (features_in_first_mlp + features_in_second_mlp
+                         + targets_in_first_mlp + targets_in_second_mlp)]),
         (CompositeSpace([
-            VectorSpace(5),
-            VectorSpace(10),
-            VectorSpace(4)]),
+            VectorSpace(features_in_first_mlp),
+            VectorSpace(features_in_second_mlp),
+            VectorSpace(targets_in_first_mlp + targets_in_second_mlp)]),
          ('features0', 'features1', 'targets'))
     )
 
-    # Make dataset for first single linear layer network.
+    # Make dataset for first single softmax layer network.
     dataset_first_part = VectorSpacesDataset(
-        (shared_dataset[:, 0:5],
-         shared_dataset[:, 15:17]),
+        (shared_dataset[:, 0:features_in_first_mlp],
+         shared_dataset[:, (features_in_first_mlp + features_in_second_mlp):
+                           (features_in_first_mlp + features_in_second_mlp
+                            + targets_in_first_mlp)]),
         (CompositeSpace([
-            VectorSpace(5),
-            VectorSpace(2)]),
+            VectorSpace(features_in_first_mlp),
+            VectorSpace(targets_in_first_mlp)]),
          ('features0', 'targets'))
     )
 
-    # Make dataset for second single linear layer network.
+    # Make dataset for second single softmax layer network.
     dataset_second_part = VectorSpacesDataset(
-        (shared_dataset[:, 5:15],
-         shared_dataset[:, 17:19]),
+        (shared_dataset[:,
+                        features_in_first_mlp:
+                        (features_in_first_mlp + features_in_second_mlp)],
+            shared_dataset[:, (features_in_first_mlp
+                               + features_in_second_mlp
+                               + targets_in_first_mlp):
+                              (features_in_first_mlp
+                               + features_in_second_mlp
+                               + targets_in_first_mlp
+                               + targets_in_second_mlp)]),
         (CompositeSpace([
-            VectorSpace(10),
-            VectorSpace(2)]),
+            VectorSpace(features_in_second_mlp),
+            VectorSpace(targets_in_second_mlp)]),
          ('features1', 'targets'))
     )
 
@@ -565,15 +594,35 @@ def test_flattener_layer():
     fprop_second_part = theano.function([X_second_part],
                                         mlp_second_part.fprop(X_second_part))
 
-    X_data = np.random.random(size=(10, 15)).astype(theano.config.floatX)
-    y_data = np.random.randint(low=0, high=10, size=(10, 4))
+    X_data = np.random.random(size=(10,
+                              (features_in_first_mlp
+                               + features_in_second_mlp))).astype(
+                                   theano.config.floatX)
+    y_data = np.random.randint(low=0, high=10, size=(10,
+                               (targets_in_first_mlp
+                                + targets_in_second_mlp)))
 
-    np.testing.assert_allclose(fprop_composite(X_data[:, 0:5],
-                               X_data[:, 5:15])[:, 0:2],
-                               fprop_first_part(X_data[:, 0:5]))
-    np.testing.assert_allclose(fprop_composite(X_data[:, 0:5],
-                               X_data[:, 5:15])[:, 2:4],
-                               fprop_second_part(X_data[:, 5:15]))
+    np.testing.assert_allclose(fprop_composite(X_data[:,
+                               0:features_in_first_mlp],
+                               X_data[:,
+                               features_in_first_mlp:
+                               (features_in_first_mlp
+                                + features_in_second_mlp)])
+                               [:, 0:targets_in_first_mlp],
+                               fprop_first_part(X_data[:,
+                                                0:features_in_first_mlp]))
+    np.testing.assert_allclose(fprop_composite(X_data[:,
+                               0:features_in_first_mlp],
+                               X_data[:, features_in_first_mlp:
+                               (features_in_first_mlp
+                                + features_in_second_mlp)])
+                               [:, targets_in_first_mlp:
+                                (targets_in_first_mlp
+                                 + targets_in_second_mlp)],
+                               fprop_second_part(X_data[:,
+                                                 features_in_first_mlp:
+                                                 (features_in_first_mlp
+                                                  + features_in_second_mlp)]))
 
     # Finally check that calling the internal FlattenerLayer behaves
     # as we would expect. First, retrieve the FlattenerLayer.
@@ -586,6 +635,206 @@ def test_flattener_layer():
     for i in range(0, 4):
         np.testing.assert_allclose(fl.get_params()[i].eval(),
                                    mlp_composite.get_params()[i].eval())
+
+
+def test_flattener_layer():
+    """ This function tests that linear, sigmoid and softmax layers are
+    equivalent for separate networks as for compositing them together
+    and then flattening them.
+
+    """
+
+    # Test linear layer, see the function
+    # compare_flattener_composite_mlp_with_separate_mlps for more details
+    features_in_first_mlp = 5
+    features_in_second_mlp = 10
+    targets_in_first_mlp = 2
+    targets_in_second_mlp = 2
+
+    first_composite_layer = Linear(2, 'h0', 0.1)
+    second_composite_layer = Linear(2, 'h1', 0.1)
+    first_indep_layer = Linear(2, 'h0', 0.1)
+    second_indep_layer = Linear(2, 'h1', 0.1)
+
+    compare_flattener_composite_mlp_with_separate_mlps(first_composite_layer,
+                                                       second_composite_layer,
+                                                       first_indep_layer,
+                                                       second_indep_layer,
+                                                       features_in_first_mlp,
+                                                       features_in_second_mlp,
+                                                       targets_in_first_mlp,
+                                                       targets_in_second_mlp)
+
+    # Test softmax layer
+    first_composite_layer = Softmax(2, 'h0', 0.1)
+    second_composite_layer = Softmax(2, 'h1', 0.1)
+    first_indep_layer = Softmax(2, 'h0', 0.1)
+    second_indep_layer = Softmax(2, 'h1', 0.1)
+
+    compare_flattener_composite_mlp_with_separate_mlps(first_composite_layer,
+                                                       second_composite_layer,
+                                                       first_indep_layer,
+                                                       second_indep_layer,
+                                                       features_in_first_mlp,
+                                                       features_in_second_mlp,
+                                                       targets_in_first_mlp,
+                                                       targets_in_second_mlp)
+
+    # Test sigmoid layer
+    first_composite_layer = Sigmoid(dim=targets_in_first_mlp,
+                                    layer_name='h0', irange=0.1)
+    second_composite_layer = Sigmoid(dim=targets_in_second_mlp,
+                                     layer_name='h1', irange=0.1)
+    first_indep_layer = Sigmoid(dim=targets_in_first_mlp,
+                                layer_name='h0', irange=0.1)
+    second_indep_layer = Sigmoid(dim=targets_in_second_mlp,
+                                 layer_name='h1', irange=0.1)
+
+    compare_flattener_composite_mlp_with_separate_mlps(first_composite_layer,
+                                                       second_composite_layer,
+                                                       first_indep_layer,
+                                                       second_indep_layer,
+                                                       features_in_first_mlp,
+                                                       features_in_second_mlp,
+                                                       targets_in_first_mlp,
+                                                       targets_in_second_mlp)
+
+
+def test_flattener_layer_convolutional_layer():
+    """ This function tests that convolutional layers are
+    equivalent for separate networks as for compositing them together
+    and then flattening them.
+
+    """
+
+    conv1 = ConvElemwise(8, [2, 2], 'sf1', SigmoidConvNonlinearity(), .1)
+    conv2 = ConvElemwise(8, [2, 2], 'sf2', SigmoidConvNonlinearity(), .1)
+    mlp_composite = MLP(layers=[FlattenerLayer(CompositeLayer('comp',
+                        [conv1, conv2]))],
+                        input_space=Conv2DSpace(shape=[5, 5], num_channels=2))
+
+    # Create network with single softmax layer, corresponding to first
+    # layer in the composite network.
+    conv_first_part = ConvElemwise(8, [2, 2], 'sf1',
+                                   SigmoidConvNonlinearity(), .1)
+    mlp_first_part = MLP(layers=[conv_first_part],
+                         input_space=Conv2DSpace(shape=[5, 5],
+                         num_channels=2))
+
+    conv_second_part = ConvElemwise(8, [2, 2], 'sf2',
+                                    SigmoidConvNonlinearity(), .1)
+    mlp_second_part = MLP(layers=[conv_second_part],
+                          input_space=Conv2DSpace(shape=[5, 5],
+                          num_channels=2))
+
+    topo_view = np.random.rand(10, 5, 5, 2).astype(theano.config.floatX)
+    y = np.random.rand(10, 256).astype(theano.config.floatX)
+    shared_dataset = DenseDesignMatrix(topo_view=topo_view, y=y)
+
+    # Initialize the independent networks to the same as the composite network
+    mlp_first_part.layers[0].set_weights(mlp_composite.layers[0]
+                                         .raw_layer.layers[0].get_params()[0]
+                                         .get_value())
+    mlp_first_part.layers[0].set_biases(mlp_composite.layers[0]
+                                        .raw_layer.layers[0].get_params()[1]
+                                        .get_value())
+
+    mlp_second_part.layers[0].set_weights(mlp_composite.layers[0]
+                                          .raw_layer.layers[1].get_params()[0]
+                                          .get_value())
+    mlp_second_part.layers[0].set_biases(mlp_composite.layers[0]
+                                         .raw_layer.layers[1].get_params()[1]
+                                         .get_value())
+
+    # Test that they have been initialized correctly
+    np.testing.assert_allclose(
+        mlp_composite.layers[0].raw_layer.layers[0]
+                               .get_params()[0].get_value(),
+        mlp_first_part.layers[0].get_params()[0].get_value())
+    np.testing.assert_allclose(
+        mlp_composite.layers[0].raw_layer.layers[0]
+                               .get_params()[1].get_value(),
+        mlp_first_part.layers[0].get_params()[1].get_value())
+
+    np.testing.assert_allclose(
+        mlp_composite.layers[0].raw_layer.layers[1]
+                               .get_params()[0].get_value(),
+        mlp_second_part.layers[0].get_params()[0].get_value())
+
+    np.testing.assert_allclose(
+        mlp_composite.layers[0].raw_layer.layers[1]
+                               .get_params()[1].get_value(),
+        mlp_second_part.layers[0].get_params()[1].get_value())
+
+    # Now train the three networks on the same dataset
+    train_composite = Train(shared_dataset, mlp_composite, SGD(0.1,
+                            batch_size=5,
+                            monitoring_dataset=shared_dataset))
+    train_composite.algorithm.termination_criterion = EpochCounter(1)
+    train_composite.main_loop()
+
+    first_part_dataset = DenseDesignMatrix(topo_view=topo_view,
+                                           y=y[:, 0:128])
+    train_first_part = Train(first_part_dataset, mlp_first_part, SGD(0.1,
+                             batch_size=5,
+                             monitoring_dataset=first_part_dataset))
+    train_first_part.algorithm.termination_criterion = EpochCounter(1)
+    train_first_part.main_loop()
+
+    second_part_dataset = DenseDesignMatrix(topo_view=topo_view,
+                                            y=y[:, 128:256])
+    train_second_part = Train(second_part_dataset, mlp_second_part, SGD(0.1,
+                              batch_size=5,
+                              monitoring_dataset=second_part_dataset))
+    train_second_part.algorithm.termination_criterion = EpochCounter(1)
+    train_second_part.main_loop()
+
+    # Check that the composite feed-forward conv neural network has learned
+    # same parameters as each individual feed-forward conv neural network.
+    np.testing.assert_allclose(
+        mlp_composite.layers[0].raw_layer.layers[0]
+                               .get_params()[0].get_value(),
+        mlp_first_part.layers[0].get_params()[0].get_value())
+    np.testing.assert_allclose(
+        mlp_composite.layers[0].raw_layer.layers[0]
+                               .get_params()[1].get_value(),
+        mlp_first_part.layers[0].get_params()[1].get_value())
+    np.testing.assert_allclose(
+        mlp_composite.layers[0].raw_layer.layers[1]
+                               .get_params()[0].get_value(),
+        mlp_second_part.layers[0].get_params()[0].get_value())
+    np.testing.assert_allclose(
+        mlp_composite.layers[0].raw_layer.layers[1]
+                               .get_params()[1].get_value(),
+        mlp_second_part.layers[0].get_params()[1].get_value())
+
+    # Finally, check that we get same output given the same input on a randomly
+    # generated dataset.
+    X_composite = mlp_composite.get_input_space().make_theano_batch()
+    X_first_part = mlp_first_part.get_input_space().make_theano_batch()
+    X_second_part = mlp_second_part.get_input_space().make_theano_batch()
+
+    fprop_composite = theano.function([X_composite],
+                                      mlp_composite.fprop(X_composite))
+    fprop_first_part = theano.function([X_first_part],
+                                       mlp_first_part.fprop(X_first_part))
+    fprop_second_part = theano.function([X_second_part],
+                                        mlp_second_part.fprop(X_second_part))
+
+    X_data = np.random.rand(10, 5, 5, 2).astype(theano.config.floatX)
+    y_data = np.random.rand(10, 256).astype(theano.config.floatX)
+
+    np.testing.assert_allclose(
+        np.reshape(fprop_composite(X_data)[0, 0:128], (128, 1)),
+        np.reshape(np.swapaxes(np.swapaxes(
+            fprop_first_part(X_data)[0, :, :, :], 0, 1), 1, 2), (128, 1)),
+        1e-07)
+
+    np.testing.assert_allclose(
+        np.reshape(fprop_composite(X_data)[0, 128:256], (128, 1)),
+        np.reshape(np.swapaxes(np.swapaxes(
+            fprop_second_part(X_data)[0, :, :, :], 0, 1), 1, 2),
+            (128, 1)), 1e-07)
 
 
 def test_flattener_layer_state_separation_for_softmax():
