@@ -51,6 +51,9 @@ class RNNWrapper(MetaLibVersion):
                     if attr.endswith('_wrapper')]
         for wrapper in wrappers:
             if wrapper not in dct:
+                # avoid multiple wrapping for fprop
+                if wrapper == "fprop":
+                    continue
                 for base in bases:
                     method = getattr(base, wrapper, None)
                     if method is not None:
