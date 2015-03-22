@@ -20,7 +20,7 @@ from pylearn2.compat import OrderedDict
 from pylearn2.models.mlp import Layer, MLP
 from pylearn2.monitor import get_monitor_doc
 from pylearn2.sandbox.rnn.space import SequenceSpace, SequenceDataSpace
-from pylearn2.space import CompositeSpace, VectorSpace
+from pylearn2.space import CompositeSpace, VectorSpace, Conv2DSpace
 from pylearn2.utils import sharedX
 from pylearn2.utils.rng import make_theano_rng
 
@@ -189,12 +189,13 @@ class Recurrent(Layer):
 
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
-        if ((not isinstance(space, SequenceSpace) and
-                not isinstance(space, SequenceDataSpace)) or
-                not isinstance(space.space, VectorSpace)):
-            raise ValueError("Recurrent layer needs a SequenceSpace("
-                             "VectorSpace) or SequenceDataSpace(VectorSpace)\
-                             as input but received  %s instead"
+        if not ((isinstance(space, SequenceSpace) or
+                 isinstance(space, SequenceDataSpace)) and
+                (isinstance(space.space, VectorSpace) or
+                 isinstance(space.space, Conv2DSpace))):
+            raise ValueError("Recurrent layer needs a SequenceSpace or"
+                             "SequenceDataSpace of either VectorSpace or"
+                             "Conv2DSpace as input but received  %s instead"
                              % (space))
 
         self.input_space = space
