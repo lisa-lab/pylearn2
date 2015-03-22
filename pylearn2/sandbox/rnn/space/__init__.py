@@ -175,11 +175,16 @@ class SequenceDataSpace(space.SimplyTypedSpace):
 
     @wraps(space.Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
-
         dtype = self._clean_dtype_arg(dtype)
-        broadcastable = [False] * 3
-        broadcastable[1] = (batch_size == 1)
-        broadcastable[2] = (self.dim == 1)
+        if not isinstance(self.space, Conv2DSpace):
+            broadcastable = [False] * 3
+            broadcastable[1] = (batch_size == 1)
+            broadcastable[2] = (self.dim == 1)
+        else:
+            broadcastable = [False] * 5
+            broadcastable[self.space.axes.index('b') + 1] = (batch_size == 1)
+            broadcastable[self.space.axes.index('c') + 1] = (
+                self.space.num_channels == 1)
         broadcastable = tuple(broadcastable)
 
         rval = TensorType(dtype=dtype,
