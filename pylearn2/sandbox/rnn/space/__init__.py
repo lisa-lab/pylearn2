@@ -69,16 +69,10 @@ class SequenceSpace(space.CompositeSpace):
     @wraps(space.Space._format_as_impl)
     def _format_as_impl(self, is_numeric, batch, space):
         assert isinstance(space, SequenceSpace)
-        if is_numeric:
-            rval = np.apply_over_axes(
-                lambda batch, axis: self.space._format_as_impl(
-                    is_numeric=is_numeric,
-                    batch=batch,
-                    space=space.space),
-                batch, 0)
-        else:
-            NotImplementedError("Can't convert SequenceSpace Theano variables")
-        return rval
+        data, mask = batch
+        formatted_data = self.data_space._format_as_impl(
+            is_numeric, data, space.data_space)
+        return (formatted_data, mask)
 
 
 class SequenceDataSpace(space.SimplyTypedSpace):
