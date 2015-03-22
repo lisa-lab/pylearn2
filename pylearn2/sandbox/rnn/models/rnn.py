@@ -200,6 +200,16 @@ class Recurrent(Layer):
 
         self.input_space = space
 
+        # If the unit space is Conv2DSpace, prepare an alternative space
+        # with VectorSpace which dim is equivalent to the original one
+        if isinstance(space.space, VectorSpace):
+            self.requires_reformat = False
+        else:
+            self.requires_reformat = True
+            sequence_space_type = type(self.input_space)
+            self.desired_space = sequence_space_type(
+                VectorSpace(self.input_space.dim))
+
         if self.indices is not None:
             if len(self.indices) > 1:
                 raise ValueError("Only indices = [-1] is supported right now")
