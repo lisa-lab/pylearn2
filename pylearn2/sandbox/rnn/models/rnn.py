@@ -345,6 +345,10 @@ class Recurrent(Layer):
 
     @wraps(Layer.fprop)
     def fprop(self, state_below, return_all=False):
+        if self.requires_reformat:
+            state_below = self.input_space.format_as(state_below,
+                                                     self.desired_space)
+
         if isinstance(state_below, tuple):
             state_below, mask = state_below
         else:
@@ -492,6 +496,9 @@ class LSTM(Recurrent):
 
     @wraps(Layer.fprop)
     def fprop(self, state_below, return_all=False):
+        if self.requires_reformat:
+            state_below = self.input_space.format_as(state_below,
+                                                     self.desired_space)
 
         if isinstance(state_below, tuple):
             state_below, mask = state_below
@@ -657,6 +664,9 @@ class GRU(Recurrent):
 
     @wraps(Layer.fprop)
     def fprop(self, state_below, return_all=False):
+        if self.requires_reformat:
+            state_below = self.input_space.format_as(state_below,
+                                                     self.desired_space)
 
         if isinstance(state_below, tuple):
             state_below, mask = state_below
