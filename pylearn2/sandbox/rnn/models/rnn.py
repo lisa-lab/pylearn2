@@ -216,6 +216,9 @@ class Recurrent(Layer):
                 self.output_space =\
                     SequenceDataSpace(VectorSpace(dim=self.dim))
 
+        self.initialize_params()
+
+    def initialize_params(self):
         # Initialize the parameters
         rng = self.mlp.rng
         if self.irange is None:
@@ -448,35 +451,7 @@ class LSTM(Recurrent):
         self.__dict__.update(locals())
         del self.self
 
-    @wraps(Layer.set_input_space)
-    def set_input_space(self, space):
-        if ((not isinstance(space, SequenceSpace) and
-                not isinstance(space, SequenceDataSpace)) or
-                not isinstance(space.space, VectorSpace)):
-            raise ValueError("Recurrent layer needs a SequenceSpace("
-                             "VectorSpace) or SequenceDataSpace(VectorSpace)\
-                             as input but received  %s instead"
-                             % (space))
-
-        self.input_space = space
-
-        if self.indices is not None:
-            if len(self.indices) > 1:
-                raise ValueError("Only indices = [-1] is supported right now")
-                self.output_space = CompositeSpace(
-                    [VectorSpace(dim=self.dim) for _
-                     in range(len(self.indices))]
-                )
-            else:
-                assert self.indices == [-1], "Only indices = [-1] works now"
-                self.output_space = VectorSpace(dim=self.dim)
-        else:
-            if isinstance(self.input_space, SequenceSpace):
-                self.output_space = SequenceSpace(VectorSpace(dim=self.dim))
-            elif isinstance(self.input_space, SequenceDataSpace):
-                self.output_space =\
-                    SequenceDataSpace(VectorSpace(dim=self.dim))
-
+    def initialize_params(self):
         # Initialize the parameters
         rng = self.mlp.rng
         if self.irange is None:
@@ -642,35 +617,7 @@ class GRU(Recurrent):
         self.__dict__.update(locals())
         del self.self
 
-    @wraps(Layer.set_input_space)
-    def set_input_space(self, space):
-        if ((not isinstance(space, SequenceSpace) and
-                not isinstance(space, SequenceDataSpace)) or
-                not isinstance(space.space, VectorSpace)):
-            raise ValueError("Recurrent layer needs a SequenceSpace("
-                             "VectorSpace) or SequenceDataSpace(VectorSpace)\
-                             as input but received  %s instead"
-                             % (space))
-
-        self.input_space = space
-
-        if self.indices is not None:
-            if len(self.indices) > 1:
-                raise ValueError("Only indices = [-1] is supported right now")
-                self.output_space = CompositeSpace(
-                    [VectorSpace(dim=self.dim) for _
-                     in range(len(self.indices))]
-                )
-            else:
-                assert self.indices == [-1], "Only indices = [-1] works now"
-                self.output_space = VectorSpace(dim=self.dim)
-        else:
-            if isinstance(self.input_space, SequenceSpace):
-                self.output_space = SequenceSpace(VectorSpace(dim=self.dim))
-            elif isinstance(self.input_space, SequenceDataSpace):
-                self.output_space =\
-                    SequenceDataSpace(VectorSpace(dim=self.dim))
-
+    def initialize_params(self):
         # Initialize the parameters
         rng = self.mlp.rng
         if self.irange is None:
