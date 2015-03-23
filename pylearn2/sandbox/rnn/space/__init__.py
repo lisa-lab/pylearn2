@@ -110,11 +110,11 @@ class SequenceDataSpace(space.SimplyTypedSpace):
         else:
             if isinstance(space, SequenceDataSpace):
                 if is_numeric:
-                    formatted_batch = np.transpose(np.asarray([
+                    formatted_batch = np.swapaxes(np.asarray([
                         self.space._format_as_impl(is_numeric, sample,
                                                    space.space)
-                        for sample in np.transpose(batch, (1, 0, 2))
-                    ]), (1, 0, 2))
+                        for sample in np.swapaxes(batch, 0, 1)
+                    ]), 0, 1)
                 else:
                     formatted_batch, _ = scan(
                         fn=lambda elem: self.space._format_as_impl(
