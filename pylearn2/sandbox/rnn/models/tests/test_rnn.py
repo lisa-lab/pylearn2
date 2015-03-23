@@ -4,14 +4,15 @@ Unit tests for the RNN model
 import unittest
 
 import numpy as np
+import theano
 from theano import function
 from theano import tensor
 
 from pylearn2.costs.mlp import Default
-from pylearn2.models.mlp import Linear
+from pylearn2.models.mlp import Linear, ConvRectifiedLinear
 from pylearn2.sandbox.rnn.models.rnn import Recurrent, RNN
 from pylearn2.sandbox.rnn.space import SequenceSpace
-from pylearn2.space import VectorSpace
+from pylearn2.space import VectorSpace, Conv2DSpace
 
 
 class TestRNNs(unittest.TestCase):
@@ -120,6 +121,54 @@ class TestRNNs(unittest.TestCase):
         default_cost = Default()
         cost = default_cost.expr(rnn, ((X_data, X_mask), (y_data, y_mask)))
         tensor.grad(cost, rnn.get_params(), disconnected_inputs='ignore')
+
+
+class TestRNNOfConvRectifiedLinearAndRecurrent(unittest.TestCase):
+    """
+    Test cases for the RNN[ConvRectifiedLinear -> Recurrent] model
+
+    Parameters
+    ----------
+    None
+    """
+    def test_fprop(self):
+        """
+        Check whether fprop of ConvRectifiedLinear-Recurrent RNN model
+        works correctly.
+        """
+        image_shape = (5, 5)
+        channels = 1
+        input_space = SequenceSpace(Conv2DSpace(shape=image_shape,
+                                                channels=channels))
+        conv_layer = ConvRectifiedLinear(output_channels=1, layer_name='conv',
+                                         irange=0.1, kernel_shape=[3, 3],
+                                         pool_shape=[2, 2], pool_stride=[1, 1])
+        recurrent_layer = Recurrent(dim=1, layer_name='recurrent', irange=0.1,
+                                    indices=[-1], nonlinearity=lambda x: x)
+        rnn = RNN(layers=[conv_layer, recurrent_layer],
+                  input_space=input_space)
+
+        conv_W, conv_b = rnn.layers[0].get_params()
+        conv_W.set_value(np.ones((1, 1, 3, 3), dtype=theano.config.floatX))
+        recurrent_W, recurrent_U, recurrent_b = rnn.layers[1].get_params()
+        recurrent_W.set_value(np.ones((4, 1), dtype=theano.config.floatX))
+        recurrent_U.set_value([[1]])
+
+        X_data, X_mask = rnn.get_input_space().make_theano_batch()
+        y_hat = rnn.fprop((X_data, X_mask))
+
+        seq_len = 10
+        batch_size = 10
+        X_data_vals_shape = (seq_len, batch_size) + image_shape + (channels,)
+        X_data_vals = np.ones(X_data_vals_shape)
+        X_mask_vals = np.triu(np.ones((seq_len, batch_size)))
+
+        f = function([X_data, X_mask], y_hat, allow_input_downcast=True)
+        # [5x5 of 1.0] -(conv)-> [3x3 of 9.0] -(pool & ReLU)-> [2x2 of 9.0] ->
+        # -(flatten)-> [4 of 9.0] -(dot product with recurrent_W)-> 36.0
+        expected_value = 36.0 * np.arange(1, batch_size + 1)
+        np.testing.assert_allclose(f(X_data_vals, X_mask_vals).flatten(),
+                                   expected_value)
 
 
 if __name__ == '__main__':
