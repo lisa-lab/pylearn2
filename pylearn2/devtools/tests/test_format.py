@@ -121,7 +121,6 @@ whitelist_pep8 = [
     "corruption.py",
     "devtools/nan_guard.py",
     "sandbox/lisa_rl/bandit/gaussian_bandit.py",
-    "utils/iteration.py",
     "utils/track_version.py",
     "scripts/get_version.py",
     "training_algorithms/tests/test_bgd.py",
