@@ -678,7 +678,8 @@ class EvenSequencesSubsetIterator(SubsetIterator):
         elif isinstance(sequence_data, np.ndarray):
             self._dataset_size = sequence_data.shape[0]
         else:
-            raise ValueError("sequence_data must be of type list or np.ndarray")
+            raise ValueError("sequence_data must be of type list or"
+                             " ndarray")
         self._sequence_data = sequence_data
         self._batch_size = batch_size
         self.prepare()
@@ -689,7 +690,8 @@ class EvenSequencesSubsetIterator(SubsetIterator):
         self.lengths = [len(s) for s in self._sequence_data]
         self.len_unique = np.unique(self.lengths)
 
-        # store the indices of sequences for each unique length, and their counts
+        # store the indices of sequences for each unique length,
+        # and their counts
         self.len_indices = dict()
         self.len_counts = dict()
         for ll in self.len_unique:
@@ -727,13 +729,16 @@ class EvenSequencesSubsetIterator(SubsetIterator):
             curr_len = self.len_unique[self.len_idx]
             if self.len_curr_counts[curr_len] > 0:
                 break
-        
-        # find the position and the size of the minibatch of sequences to be returned
-        curr_batch_size = np.minimum(self._batch_size, self.len_curr_counts[curr_len])
+
+        # find the position and the size of the minibatch of sequences
+        # to be returned
+        curr_batch_size = np.minimum(self._batch_size,
+                                     self.len_curr_counts[curr_len])
         curr_pos = self.len_indices_pos[curr_len]
 
         # get the actual indices for the sequences
-        curr_indices = self.len_indices[curr_len][curr_pos:curr_pos+curr_batch_size]
+        curr_indices = self.len_indices[curr_len][curr_pos:curr_pos +
+                                                  curr_batch_size]
 
         # update the pointer and counts of sequences in the chosen length
         self.len_indices_pos[curr_len] += curr_batch_size
