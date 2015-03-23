@@ -1439,9 +1439,7 @@ def test_determinism():
             raised = False
             try:
                 algorithm.train(dataset)
-            except ValueError as e:
-                print(mode)
-                print(e)
+            except ValueError:
                 assert mode in unsupported_modes
                 raised = True
             if mode in unsupported_modes:
