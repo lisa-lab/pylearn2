@@ -44,9 +44,10 @@ class RNN(MLP):
                  layer_name=None, **kwargs):
         input_source = self.add_mask_source(input_space, input_source)
         self.use_monitoring_channels = kwargs.pop('use_monitoring_channels', 0)
-        super(RNN, self).__init__(layers, batch_size, input_space,
-                                  input_source, nvis, seed, layer_name,
-                                  **kwargs)
+        super(RNN, self).__init__(layers=layers, batch_size=batch_size,
+                                  input_space=input_space,
+                                  input_source=input_source, nvis=nvis,
+                                  seed=seed, layer_name=layer_name, **kwargs)
         self.theano_rng = make_theano_rng(int(self.rng.randint(2 ** 30)),
                                           which_method=["normal", "uniform"])
 
