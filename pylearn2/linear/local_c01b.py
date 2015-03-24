@@ -58,7 +58,8 @@ class Local(LinearTransform, LocalDot):
         """TODO: Local ignores partial_sum argument,
                  figure out how James' code controls it"""
 
-        logger.warning("partial_sum argument ignored")
+        if partial_sum is not None:
+            logger.warning("partial_sum argument ignored")
 
         LocalDot.__init__(self,
             filters=filters,
