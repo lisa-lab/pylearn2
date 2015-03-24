@@ -3,6 +3,7 @@ Utilities for working with data format specifications.
 
 See :ref:`data_specs` for a high level overview of the relevant concepts.
 """
+from collections import Sized
 from pylearn2.space import CompositeSpace, NullSpace, Space
 from pylearn2.utils import safe_zip
 
@@ -64,7 +65,7 @@ class DataSpecsMapping(object):
 
         elif not isinstance(space, CompositeSpace):
             # Space is a simple Space, source should be a simple source
-            if isinstance(source, tuple):
+            if isinstance(source, (tuple, list)):
                 source, = source
 
             # If (space, source) has not already been seen, insert it.
@@ -118,7 +119,7 @@ class DataSpecsMapping(object):
         if isinstance(mapping, int):
             # "nested" should actually be a single element
             idx = mapping
-            if isinstance(nested, tuple):
+            if isinstance(nested, (tuple, list)):
                 if len(nested) != 1:
                     raise ValueError("When mapping is an int, we expect "
                             "nested to be a single element. But mapping is "
@@ -179,7 +180,7 @@ class DataSpecsMapping(object):
         # else, return something close to the type of nested
         if len(rval) == 1:
             return rval[0]
-        if isinstance(nested, tuple):
+        if isinstance(nested, (tuple, list)):
             return tuple(rval)
         elif isinstance(nested, Space):
             return CompositeSpace(rval)
@@ -205,7 +206,7 @@ class DataSpecsMapping(object):
         if isinstance(mapping, int):
             # We are at a leaf of the tree
             idx = mapping
-            if isinstance(flat, tuple):
+            if isinstance(flat, (tuple, list)):
                 assert 0 <= idx < len(flat)
                 return flat[idx]
             else:
@@ -265,7 +266,7 @@ class DataSpecsMapping(object):
                 assert self.n_unique_specs == 1
             return self._make_nested_space(flat, self.spec_mapping)
         else:
-            if isinstance(flat, tuple):
+            if isinstance(flat, (list, tuple)):
                 assert len(flat) == self.n_unique_specs
             else:
                 # flat is not iterable, this is valid only if spec_mapping
