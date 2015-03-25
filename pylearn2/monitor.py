@@ -438,8 +438,7 @@ class Monitor(object):
             it.append(d.iterator(mode=i, num_batches=n, batch_size=b,
                                  data_specs=self._flat_data_specs,
                                  return_tuple=True))
-        self.num_examples = [np.cast['float64'](float(i.num_examples))
-                             for i in it]
+        self.num_examples = [i.num_examples for i in it]
         givens = [OrderedDict() for d in self._datasets]
         updates = [OrderedDict() for d in self._datasets]
         for i, channel in enumerate(self.channels.values()):
