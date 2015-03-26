@@ -1423,7 +1423,8 @@ def test_determinism():
         termination_criterion = EpochCounter(5)
 
         def run_algorithm():
-            unsupported_modes = ['random_slice', 'random_uniform']
+            unsupported_modes = ['random_slice', 'random_uniform',
+                                 'even_sequences']
             algorithm = SGD(learning_rate,
                             cost,
                             batch_size=batch_size,
@@ -1439,7 +1440,6 @@ def test_determinism():
             try:
                 algorithm.train(dataset)
             except ValueError:
-                print(mode)
                 assert mode in unsupported_modes
                 raised = True
             if mode in unsupported_modes:

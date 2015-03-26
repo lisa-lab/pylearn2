@@ -215,9 +215,13 @@ def test_revisit():
     for mon_batch_size in xrange(BATCH_SIZE, MAX_BATCH_SIZE + 1,
             BATCH_SIZE_STRIDE):
         nums = [1, 3, int(num_examples / mon_batch_size), None]
-        for num_mon_batches in nums:
-            for mode in sorted(_iteration_schemes):
-
+        
+        for mode in sorted(_iteration_schemes):
+            if mode == 'even_sequences' and nums is not None:
+                # even_sequences iterator does not support specifying a fixed number
+                # of minibatches.
+                continue
+            for num_mon_batches in nums:
                 if num_mon_batches is None and mode in ['random_uniform', 'random_slice']:
                     continue
 
