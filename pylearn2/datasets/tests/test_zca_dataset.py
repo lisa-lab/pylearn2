@@ -25,15 +25,15 @@ def test_zca_dataset():
     rng = np.random.RandomState([2014, 11, 4])
     raw = random_dense_design_matrix(rng, x.shape[0], x.shape[1], 2)
     raw.X = x
-    zca = ZCA()
+    zca = ZCA(filter_bias=0.0)
     zca.apply(raw, can_fit=True)
     zca_dataset = ZCA_Dataset(raw, zca, start, stop)
 
     # Testing general behaviour
     mean = zca_dataset.X.mean(axis=0)
     var = zca_dataset.X.std(axis=0)
-    assert_allclose(mean, np.zeros(num_feat), atol=1e-1)
-    assert_allclose(var, np.ones(num_feat), atol=1e-1)
+    assert_allclose(mean, np.zeros(num_feat), atol=1e-2)
+    assert_allclose(var, np.ones(num_feat), atol=1e-2)
 
     # Testing mapback()
     y = zca_dataset.mapback(zca_dataset.X)
