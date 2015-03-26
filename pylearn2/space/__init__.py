@@ -1965,7 +1965,7 @@ class Conv2DSpace(SimplyTypedSpace):
         # checks batch.type against self.dtype
         super(Conv2DSpace, self)._validate_impl(is_numeric, batch)
 
-        if isinstance(batch, theano.gof.Variable):
+        if not is_numeric:
             if isinstance(batch, theano.sparse.SparseVariable):
                 raise TypeError("Conv2DSpace cannot use SparseVariables, "
                                 "since as of this writing (28 Dec 2013), "
