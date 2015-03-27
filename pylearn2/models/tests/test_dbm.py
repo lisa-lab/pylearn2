@@ -352,7 +352,40 @@ def test_gaussian_vis_layer_sample_conv():
     sample = sample.eval()
 
     check_gaussian_samples(sample, num_samples, n, rows, cols, channels, mean, tol)
-
+    
+def test_gaussian_vis_get_lr_scalers():
+    """
+    Verifies that the GaussianVisLayer.get_lr_scalers returns the right values.
+        
+    """
+    print("We expect all the learning rates to be 1/100")
+    n = None
+    rows = 10
+    cols = 10
+    channels = 1
+    beta = 1.
+    mu=0.
+    layer = GaussianVisLayer(rows=rows, cols=cols, channels=channels, init_beta=beta, tie_beta='locations', beta_lr_scale='by_sharing', init_mu=mu, tie_mu='locations', mu_lr_scale='by_sharing')
+    print(layer.get_lr_scalers())
+    layer = GaussianVisLayer(rows=rows, cols=cols, channels=channels, init_beta=beta, tie_beta=None, beta_lr_scale='by_sharing', init_mu=mu, tie_mu=None, mu_lr_scale='by_sharing')
+    print(layer.get_lr_scalers())
+    layer = GaussianVisLayer(rows=rows, cols=cols, channels=channels, init_beta=beta, tie_beta='locations', beta_lr_scale=None, init_mu=mu, tie_mu='locations', mu_lr_scale=None)
+    print(layer.get_lr_scalers())
+    layer = GaussianVisLayer(rows=rows, cols=cols, channels=channels, init_beta=beta, tie_beta=None, beta_lr_scale=None, init_mu=mu, tie_mu=None, mu_lr_scale=None)
+    print(layer.get_lr_scalers())
+    layer = GaussianVisLayer(rows=rows, cols=cols, channels=channels, init_beta=beta, tie_beta='locations', beta_lr_scale=1./(rows * cols), init_mu=mu, tie_mu='locations', mu_lr_scale= 1./(rows * cols))
+    print(layer.get_lr_scalers())
+    layer = GaussianVisLayer(rows=rows, cols=cols, channels=channels, init_beta=beta, tie_beta=None, beta_lr_scale=1./(rows * cols), init_mu=mu, tie_mu=None, mu_lr_scale=1./(rows * cols))
+    print(layer.get_lr_scalers())
+    
+    n = rows*cols*channels
+    layer = GaussianVisLayer(nvis = n, init_beta=beta, tie_beta=None, beta_lr_scale='by_sharing', init_mu=mu, tie_mu=None, mu_lr_scale='by_sharing')
+    print(layer.get_lr_scalers())
+    layer = GaussianVisLayer(nvis = n, init_beta=beta, tie_beta=None, beta_lr_scale=None, init_mu=mu, tie_mu=None, mu_lr_scale=None)
+    print(layer.get_lr_scalers())
+    layer = GaussianVisLayer(nvis = n, init_beta=beta, tie_beta=None, beta_lr_scale=1./n, init_mu=mu, tie_mu=None, mu_lr_scale=1./n)
+    print(layer.get_lr_scalers())
+    
 def check_bvmp_samples(value, num_samples, n, pool_size, mean, tol):
     """
     bvmp=BinaryVectorMaxPool
