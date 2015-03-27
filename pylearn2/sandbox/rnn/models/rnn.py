@@ -228,7 +228,10 @@ class Recurrent(Layer):
         self.initialize_params()
 
     def initialize_params(self):
-        # Initialize the parameters
+        """
+        This method initializes the parameters of the class.
+        Re-running this function will reset the parameters.
+        """
         rng = self.mlp.rng
         if self.irange is None:
             raise ValueError("Recurrent layer requires an irange value in "
@@ -465,7 +468,10 @@ class LSTM(Recurrent):
         del self.self
 
     def initialize_params(self):
-        # Initialize the parameters
+        """
+        This method initializes the parameters of the class.
+        Re-running this function will reset the parameters.
+        """
         rng = self.mlp.rng
         if self.irange is None:
             raise ValueError("Recurrent layer requires an irange value in "
@@ -634,7 +640,10 @@ class GRU(Recurrent):
         del self.self
 
     def initialize_params(self):
-        # Initialize the parameters
+        """
+        This method initializes the parameters of the class.
+        Re-running this function will reset the parameters.
+        """
         rng = self.mlp.rng
         if self.irange is None:
             raise ValueError("Recurrent layer requires an irange value in "
