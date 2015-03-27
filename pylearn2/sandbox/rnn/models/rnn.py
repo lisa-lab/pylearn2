@@ -189,10 +189,8 @@ class Recurrent(Layer):
 
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
-        if not ((isinstance(space, SequenceSpace) or
-                 isinstance(space, SequenceDataSpace)) and
-                (isinstance(space.space, VectorSpace) or
-                 isinstance(space.space, Conv2DSpace))):
+        if not (isinstance(space, (SequenceSpace, SequenceDataSpace)) and
+                isinstance(space.space, (VectorSpace, Conv2DSpace))):
             raise ValueError("Recurrent layer needs a SequenceSpace or"
                              "SequenceDataSpace of either VectorSpace or"
                              "Conv2DSpace as input but received  %s instead"
