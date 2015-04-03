@@ -35,6 +35,8 @@ def main(models, all=False):
     values = {}
     for filename in np.atleast_1d(models):
         this_models = serial.load(filename)
+        if not isinstance(this_models, list):
+          this_models = [this_models]
         for model in list(this_models):
             monitor = model.monitor
             channels = monitor.channels
