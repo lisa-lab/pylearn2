@@ -36,6 +36,6 @@ def test_NanGuardMode():
         fun(biga)  # big values
     except AssertionError:
         work[2] = True
-    
+
     if not reduce(lambda x, y: x and y, work):
         raise AssertionError("NanGuardMode not working.")

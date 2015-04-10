@@ -59,7 +59,6 @@ def test_epoch_counter():
     train_obj.main_loop()
     test_epochs(train_obj.model.monitor.get_epochs_seen(), 5)
 
-
     # Tests for 0 new epochs
     train_obj = produce_train_obj(new_epochs=True, max_epochs=0)
     before_train = train_obj.model.get_weights()
