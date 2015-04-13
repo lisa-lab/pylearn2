@@ -1,5 +1,5 @@
 """
-Tests for ROC AUC.
+Tests for WMAPE.
 """
 from pylearn2.config import yaml_parse
 from pylearn2.testing.skip import skip_if_no_sklearn
@@ -9,7 +9,6 @@ def test_wmape():
     """Test RocAucChannel."""
 #     return 
     skip_if_no_sklearn()
-    print 'wahaha'
     trainer = yaml_parse.load(test_yaml)
     trainer.main_loop()
 

@@ -61,17 +61,7 @@ class WMapeOp(gof.Op):
             List of mutable 1-element lists.
         """
         y_true, y_score = inputs
-        print y_true
-        print y_true.shape
-        print y_score
-        print y_score.shape
-        print output_storage[0][0]
-        print type(output_storage[0][0])
         wmape = np.sum(abs(y_true - y_score)) / np.sum(abs(y_true))
-        
-        print wmape
-        print type(wmape)
-        print theano._asarray(wmape, dtype=config.floatX)
         
         output_storage[0][0] = theano._asarray(wmape, dtype=config.floatX)
 
