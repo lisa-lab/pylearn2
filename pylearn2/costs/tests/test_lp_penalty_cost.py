@@ -10,6 +10,9 @@ from pylearn2.costs.cost import LpPenalty
 
 
 def test_correctness():
+    """
+    Test that the Theano implementation matches a numpy implementation.
+    """
     model = MLP(
         layers=[Linear(dim=10, layer_name='linear', irange=1.0),
                 Softmax(n_classes=2, layer_name='softmax', irange=1.0)],
