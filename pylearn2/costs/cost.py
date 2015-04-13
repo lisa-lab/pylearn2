@@ -66,8 +66,41 @@ class Cost(object):
         kwargs : dict
             Optional extra arguments. Not used by the base class.
         """
-        raise NotImplementedError(str(type(self)) + " does not implement "
-                                  "expr.")
+
+        # Fall back to cost_per_example implementation if possible
+        try:
+            per_example = self.cost_per_example(self, model, data, **kwargs)
+        except NotImplementedError:
+            raise NotImplementedError(str(type(self)) + " does not implement "
+                                      "expr.")
+
+        # Handle explicitly undefined costs
+        if per_example is None:
+            return None
+
+        assert per_example.ndim == 1
+
+        return per_example.mean()
+
+    def cost_per_example(self, model, data, ** kwargs):
+        """
+        Returns a theano expression for the cost per example.
+
+        Result is a 1-D tensor. Each elemnt of this vector gives the cost
+        for another example. The overall cost is the mean of this vector.
+        This method is optional. Most training algorithms will work without
+        it.
+
+        Parameters
+        ----------
+        model : Model
+        data : a batch in cosst.get_data_specs() form
+        kwargs : dict
+            Optional extra arguments to be used by 3rd party
+            TrainingAlgorithm classes and/or FixedVarDescr.
+        """
+        raise NotImplementedError(str(type(self)) + "does not implement "
+                                  "cost_per_example.")
 
     def get_gradients(self, model, data, ** kwargs):
         """
