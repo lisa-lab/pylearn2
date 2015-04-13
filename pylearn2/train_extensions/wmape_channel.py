@@ -1,6 +1,7 @@
 """
-TrainExtension subclass for calculating Weighted Mean Average Percentage Error scores for regression models on monitoring
-dataset(s), reported via monitor channels.
+TrainExtension subclass for calculating Weighted Mean Average Percentage 
+Error scores for regression models on monitoring dataset(s), reported via 
+monitor channels.
 """
 
 __author__ = "Junbo chen"
@@ -33,7 +34,7 @@ class WMapeOp(gof.Op):
 
     def make_node(self, y_true, y_score):
         """
-        Calculate ROC AUC score.
+        Calculate WMAPE score.
 
         Parameters
         ----------
@@ -61,8 +62,7 @@ class WMapeOp(gof.Op):
             List of mutable 1-element lists.
         """
         y_true, y_score = inputs
-        wmape = np.sum(abs(y_true - y_score)) / np.sum(abs(y_true))
-        
+        wmape = np.sum(abs(y_true - y_score)) / np.sum(abs(y_true))      
         output_storage[0][0] = theano._asarray(wmape, dtype=config.floatX)
 
 
@@ -84,7 +84,7 @@ class WMapeChannel(TrainExtension):
 
     def setup(self, model, dataset, algorithm):
         """
-        Add ROC AUC channels for monitoring dataset(s) to model.monitor.
+        Add WMAPE channels for monitoring dataset(s) to model.monitor.
 
         Parameters
         ----------
@@ -98,8 +98,8 @@ class WMapeChannel(TrainExtension):
         m_space, m_source = model.get_monitoring_data_specs()
         state, target = m_space.make_theano_batch()
 
-        y = target[:,0]
-        y_hat = model.fprop(state)[:,0]
+        y = target[:, 0]
+        y_hat = model.fprop(state)[:, 0]
 
         wmape = WMapeOp(self.channel_name_suffix)(y, y_hat)
         wmape = T.cast(wmape, config.floatX)

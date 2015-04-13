@@ -6,8 +6,7 @@ from pylearn2.testing.skip import skip_if_no_sklearn
 
 
 def test_wmape():
-    """Test RocAucChannel."""
-#     return 
+    """Test WMapeChannel."""
     skip_if_no_sklearn()
     trainer = yaml_parse.load(test_yaml)
     trainer.main_loop()
@@ -16,7 +15,7 @@ def test_wmape():
 test_yaml = """
 !obj:pylearn2.train.Train {
     dataset:
-      &train !obj:pylearn2.testing.datasets.random_dense_design_matrix_for_regression
+        &train !obj:pylearn2.testing.datasets.random_dense_design_matrix_for_regression
       {
           rng: !obj:numpy.random.RandomState { seed: 1 },
           num_examples: 10,
@@ -63,4 +62,3 @@ test_yaml = """
     ],
 }
 """
-
