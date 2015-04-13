@@ -6,6 +6,8 @@ __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
+from functools import wraps
+
 from pylearn2.costs.cost import Cost
 from pylearn2.space import NullSpace
 from pylearn2.utils import CallbackOp
@@ -35,9 +37,11 @@ class CallbackCost(Cost):
         self.data_specs = data_specs
         self._mapping = DataSpecsMapping(data_specs)
 
+    @wraps(Cost.get_data_specs)
     def get_data_specs(self, model):
         return self.data_specs
 
+    @wraps(Cost.expr)
     def expr(self, model, data):
         self.get_data_specs(model)[0].validate(data)
         callbacks = self.data_callbacks
@@ -67,10 +71,12 @@ class SumOfParams(Cost):
     on every parameter is 1.
     """
 
+    @wraps(Cost.expr)
     def expr(self, model, data):
         self.get_data_specs(model)[0].validate(data)
         return sum(param.sum() for param in model.get_params())
 
+    @wraps(Cost.get_data_specs)
     def get_data_specs(self, model):
         # This cost does not need any data
         return (NullSpace(), '')
@@ -78,14 +84,16 @@ class SumOfParams(Cost):
 
 class SumOfOneHalfParamsSquared(Cost):
     """
-    A cost that is just 0.5 * the sum of all parameters squared, so the gradient
-    on every parameter is the parameter itself.
+    A cost that is just 0.5 * the sum of all parameters squared, so the
+    gradient on every parameter is the parameter itself.
     """
 
+    @wraps(Cost.expr)
     def expr(self, model, data):
         self.get_data_specs(model)[0].validate(data)
         return 0.5 * sum((param**2).sum() for param in model.get_params())
 
+    @wraps(Cost.get_data_specs)
     def get_data_specs(self, model):
         # This cost does not need any data
         return (NullSpace(), '')
