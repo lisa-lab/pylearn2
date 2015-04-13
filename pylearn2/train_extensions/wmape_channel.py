@@ -33,7 +33,7 @@ class WMapeOp(gof.Op):
 
     def make_node(self, y_true, y_score):
         """
-        Calculate ROC AUC score.
+        Calculate WMAPE score.
 
         Parameters
         ----------
@@ -84,7 +84,7 @@ class WMapeChannel(TrainExtension):
 
     def setup(self, model, dataset, algorithm):
         """
-        Add ROC AUC channels for monitoring dataset(s) to model.monitor.
+        Add WMAPE channels for monitoring dataset(s) to model.monitor.
 
         Parameters
         ----------

@@ -6,7 +6,7 @@ from pylearn2.testing.skip import skip_if_no_sklearn
 
 
 def test_wmape():
-    """Test RocAucChannel."""
+    """Test WMapeChannel."""
 #     return 
     skip_if_no_sklearn()
     trainer = yaml_parse.load(test_yaml)
