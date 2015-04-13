@@ -1,17 +1,22 @@
 """
-.. todo::
-
-    WRITEME
+The GSNCost class.
 """
+from functools import wraps
+
 from pylearn2.compat import OrderedDict
 from pylearn2.costs.cost import Cost
 from pylearn2.costs.autoencoder import GSNFriendlyCost
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_zip
 
+
 class GSNCost(Cost):
     """
     Customizable cost class for GSNs.
+
+    Note from IG: the following is not 100% accurate, you can use
+    CompositeSpace to model interactions between arbitrarily many
+    vectors.
 
     This class currently can only handle datasets with only one or two sets
     of vectors. The get_input_source and get_target_source methods on the model
@@ -22,7 +27,8 @@ class GSNCost(Cost):
     The explicit use of get_input_source and get_target_source (and the
     non-existance of similar hooks) is what limits this class to learning
     the joint distribution between only 2 sets of vectors. The allow for more
-    than 2 sets of vectors, the Model class would need to be modified, preferably
+    than 2 sets of vectors, the Model class would need to be modified,
+    preferably
     in a way that allows reference to arbitrarily many sets of vectors within
     one dataset.
 
@@ -66,9 +72,10 @@ class GSNCost(Cost):
             assert len(costs) == 2
         self.mode = mode
 
-        assert len(costs) in [1, 2], "This is (hopefully) a temporary restriction"
-        assert len(set(c[0] for c in costs)) == len(costs), "Must have only" +\
-            " one cost function per index"
+        msg = "This is (hopefully) a temporary restriction"
+        assert len(costs) in [1, 2], msg
+        msg = "Must have only one cost function per index"
+        assert len(set(c[0] for c in costs)) == len(costs), msg
         self.costs = costs
 
         # convert GSNFriendCost instances into just callables
@@ -117,7 +124,7 @@ class GSNCost(Cost):
         .. todo::
 
             WRITEME properly
-        
+
         Handles the different GSNCost modes.
         """
         layer_idxs = [idx for idx, _, _ in self.costs]
@@ -139,12 +146,14 @@ class GSNCost(Cost):
 
     def expr(self, model, data):
         """
+        Theano expression for the cost.
+
         Parameters
         ----------
         model : GSN object
             WRITEME
         data : list of tensor_likes
-            Data must be a list or tuple of the same length as self.costs. \
+            Data must be a list or tuple of the same length as self.costs.
             All elements in data must be a tensor_like (cannot be None).
 
         Returns
@@ -165,17 +174,8 @@ class GSNCost(Cost):
         # normalize for coefficients on each cost
         return total / coeff_sum
 
+    @wraps(Cost.get_monitoring_channels)
     def get_monitoring_channels(self, model, data, **kwargs):
-        """
-        .. todo::
-
-            WRITEME properly
-        
-        Provides monitoring of the individual costs that are being added together.
-
-        This is a very useful method to subclass if you need to monitor more
-        things about the model.
-        """
         self.get_data_specs(model)[0].validate(data)
 
         rval = OrderedDict()
@@ -192,14 +192,10 @@ class GSNCost(Cost):
 
         return rval
 
+    @wraps(Cost.get_data_specs)
     def get_data_specs(self, model):
-        """
-        .. todo::
-
-            WRITEME
-        """
         # get space for layer i of model
-        get_space = lambda i: (model.aes[i].get_input_space() if i==0
+        get_space = lambda i: (model.aes[i].get_input_space() if i == 0
                                else model.aes[i - 1].get_output_space())
 
         # get the spaces for layers that we have costs at

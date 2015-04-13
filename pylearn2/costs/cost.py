@@ -86,8 +86,6 @@ class Cost(object):
         """
         Returns a theano expression for the cost per example.
 
-        Result is a 1-D tensor. Each elemnt of this vector gives the cost
-        for another example. The overall cost is the mean of this vector.
         This method is optional. Most training algorithms will work without
         it.
 
@@ -98,6 +96,12 @@ class Cost(object):
         kwargs : dict
             Optional extra arguments to be used by 3rd party
             TrainingAlgorithm classes and/or FixedVarDescr.
+
+        Returns
+        -------
+        cost_per_example : 1-D Theano tensor
+            Each element of this vector gives the cost
+            for another example. The overall cost is the mean of this vector.
         """
         raise NotImplementedError(str(type(self)) + "does not implement "
                                   "cost_per_example.")
