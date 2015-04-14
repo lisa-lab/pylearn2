@@ -41,16 +41,16 @@ class NCE(DefaultDataSpecsMixin, Cost):
     """
     Noise-Contrastive Estimation
 
-    See "Noise-Contrastive Estimation:
-         A new estimation principle for unnormalized models"
-    by Gutmann and Hyvarinen
+    See "Noise-Contrastive Estimation: A new estimation principle for
+    unnormalized models" by Gutmann and Hyvarinen
 
     Parameters
     ----------
     noise : WRITEME
         A Distribution from which noisy examples are generated
-    noise_per_clean : WRITEME
+    noise_per_clean : int
         Number of noisy examples to generate for each clean example given
+
     """
     def h(self, X, model):
         """
