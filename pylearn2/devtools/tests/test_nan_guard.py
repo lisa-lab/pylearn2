@@ -1,3 +1,6 @@
+"""
+This test is for testing the NanGuardMode.
+"""
 from pylearn2.devtools.nan_guard import NanGuardMode
 import numpy
 import theano
@@ -42,5 +45,5 @@ def test_NanGuardMode():
     except AssertionError:
         work[2] = True
 
-    if not reduce(lambda x, y: x and y, work):
+    if not (work[0] and work[1] and work[2]):
         raise AssertionError("NanGuardMode not working.")
