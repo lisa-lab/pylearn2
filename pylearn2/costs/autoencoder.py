@@ -1,35 +1,46 @@
 """
-.. todo::
-
-    WRITEME
+Costs related to autoencoders.
 """
+
+from functools import wraps
+
+from theano.tensor.shared_randomstreams import RandomStreams
 from theano import tensor
 import theano.sparse
+
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
-from theano.tensor.shared_randomstreams import RandomStreams
 
 
 class GSNFriendlyCost(DefaultDataSpecsMixin, Cost):
     """
-    .. todo::
-
-        WRITEME
+    A Cost that can be used to train the GSN.
     """
 
     @staticmethod
     def cost(target, output):
         """
-        .. todo::
+        The cost of returning `output` when the truth was `target`
 
-            WRITEME
+        Parameters
+        ----------
+        target : Theano tensor
+            The ground truth
+        output : Theano tensor
+            The model's output
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def expr(self, model, data, *args, **kwargs):
         """
-        .. todo::
+        The cost of reconstructing `data` using `model`.
 
-            WRITEME
+        Parameters
+        ----------
+        model : a GSN
+        data : a batch of inputs to reconstruct.
+        args : evidently ignored?
+        kwargs : optional keyword arguments
+            For use with third party TrainingAlgorithms or FixedVarDescr
         """
         self.get_data_specs(model)[0].validate(data)
         X = data
@@ -44,12 +55,10 @@ class MeanSquaredReconstructionError(GSNFriendlyCost):
     """
 
     @staticmethod
-    def cost(a, b):
-        """
-        .. todo::
-
-            WRITEME
-        """
+    @wraps(GSNFriendlyCost.cost)
+    def cost(targets, outputs):
+        a = targets
+        b = outputs
         return ((a - b) ** 2).sum(axis=1).mean()
 
 
@@ -61,12 +70,8 @@ class MeanBinaryCrossEntropy(GSNFriendlyCost):
     """
 
     @staticmethod
+    @wraps(GSNFriendlyCost.cost)
     def cost(target, output):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return tensor.nnet.binary_crossentropy(output, target) \
             .sum(axis=1).mean()
 
@@ -95,12 +100,8 @@ class SampledMeanBinaryCrossEntropy(DefaultDataSpecsMixin, Cost):
         self.L1 = L1
         self.one_ratio = ratio
 
+    @wraps(Cost.expr)
     def expr(self, model, data, ** kwargs):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.get_data_specs(model)[0].validate(data)
         X = data
         # X is theano sparse
@@ -158,12 +159,8 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
         self.L1 = L1
         self.ratio = ratio
 
+    @wraps(Cost.expr)
     def expr(self, model, data, ** kwargs):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.get_data_specs(model)[0].validate(data)
         X = data
         # X is theano sparse
@@ -194,20 +191,6 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
         return cost
 
 
-# class MeanBinaryCrossEntropyTanh(Cost):
-#     def expr(self, model, data):
-#        self.get_data_specs(model)[0].validate(data)
-#        X = data
-#        X = (X + 1) / 2.
-#        return (
-#            tensor.xlogx.xlogx(model.reconstruct(X)) +
-#            tensor.xlogx.xlogx(1 - model.reconstruct(X))
-#        ).sum(axis=1).mean()
-#
-#    def get_data_specs(self, model):
-#        return (model.get_input_space(), model.get_input_source())
-
-
 class SparseActivation(DefaultDataSpecsMixin, Cost):
     """
     Autoencoder sparse activation cost.
@@ -228,10 +211,8 @@ class SparseActivation(DefaultDataSpecsMixin, Cost):
         self.coeff = coeff
         self.p = p
 
+    @wraps(Cost.expr)
     def expr(self, model, data, **kwargs):
-        """
-        Calculate regularization penalty.
-        """
         X = data
         p = self.p
         p_hat = tensor.abs_(model.encode(X)).mean(axis=0)
