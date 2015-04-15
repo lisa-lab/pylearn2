@@ -59,7 +59,8 @@ random_dense_design_matrix_for_regression
         },
     },
     extensions: [
-        !obj:pylearn2.train_extensions.wmape_channel.WMapeChannel {},
+        !obj:pylearn2.train_extensions.wmape_channel.WMapeNumeratorChannel {},
+        !obj:pylearn2.train_extensions.wmape_channel.WMapeDenominatorChannel {},
     ],
 }
 """
