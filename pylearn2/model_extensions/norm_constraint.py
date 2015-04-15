@@ -21,12 +21,23 @@ class MaxL2FilterNorm(ModelExtension):
     Parameters
     ----------
     limit : float or symbolic float
-        The maximum column norm of the weight matrix is constrained
-        to be <= limit
+        The maximum norm of the weight matrix is constrained
+        to be <= limit along the axes
+    min_limit : float or symbolic float
+        The minimum norm of the weight matrix is constrained
+        to be => limit along the axes
+    axis : int or tuple of int
+        The axis or axes over which the norm is computed. Default is 0.
     """
 
-    def __init__(self, limit):
-        self.limit = limit
+    def __init__(self, limit, min_limit=0., axis=0):
+        self.max_limit = limit
+        self.min_limit = min_limit
+        if (limit is not None) and (min_limit is not None):
+            if limit < min_limit:
+                raise ValueError('The maximum limit must be higher than '
+                                 'the minimum limit.')
+        self.axis = axis
 
     @wraps(ModelExtension.post_modify_updates)
     def post_modify_updates(self, updates, model):
@@ -44,7 +55,21 @@ class MaxL2FilterNorm(ModelExtension):
 
         if W in updates:
             updated_W = updates[W]
-            col_norms = T.sqrt(T.square(updated_W).sum(axis=0))
-            desired_norms = T.minimum(col_norms, self.limit)
-            scale = desired_norms / T.maximum(1e-7, col_norms)
+            l2_norms = T.sqrt(
+                T.square(updated_W).sum(
+                    axis=self.axis, keepdims=True
+                )
+            )
+            if self.min_limit is None:
+                min_limit = 0.
+            else:
+                min_limit = self.min_limit
+
+            if self.max_limit is None:
+                max_limit = l2_norms.max()
+            else:
+                max_limit = self.max_limit
+
+            desired_norms = T.clip(l2_norms, min_limit, max_limit)
+            scale = desired_norms / T.maximum(1e-7, l2_norms)
             updates[W] = updated_W * scale
