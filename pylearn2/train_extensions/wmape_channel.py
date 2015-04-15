@@ -1,6 +1,6 @@
 """
-TrainExtension subclass for calculating Weighted Mean Average Percentage 
-Error scores for regression models on monitoring dataset(s), reported via 
+TrainExtension subclass for calculating Weighted Mean Average Percentage
+Error scores for regression models on monitoring dataset(s), reported via
 monitor channels.
 """
 
@@ -62,7 +62,7 @@ class WMapeOp(gof.Op):
             List of mutable 1-element lists.
         """
         y_true, y_score = inputs
-        wmape = np.sum(abs(y_true - y_score)) / np.sum(abs(y_true))      
+        wmape = np.sum(abs(y_true - y_score)) / np.sum(abs(y_true))
         output_storage[0][0] = theano._asarray(wmape, dtype=config.floatX)
 
 

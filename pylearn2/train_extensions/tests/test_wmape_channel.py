@@ -15,7 +15,8 @@ def test_wmape():
 test_yaml = """
 !obj:pylearn2.train.Train {
     dataset:
-        &train !obj:pylearn2.testing.datasets.random_dense_design_matrix_for_regression
+      &train !obj:pylearn2.testing.datasets.\
+random_dense_design_matrix_for_regression
       {
           rng: !obj:numpy.random.RandomState { seed: 1 },
           num_examples: 10,
