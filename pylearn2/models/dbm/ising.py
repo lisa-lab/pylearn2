@@ -43,6 +43,7 @@ import warnings
 from pylearn2.compat import OrderedDict
 from pylearn2.expr.nnet import sigmoid_numpy
 from pylearn2.linear.matrixmul import MatrixMul
+from pylearn2.model_extensions.norm_constraint import MaxL2FilterNorm
 from pylearn2.models.dbm import init_sigmoid_bias_from_array
 from pylearn2.models.dbm.layer import HiddenLayer, VisibleLayer
 from pylearn2.space import Conv2DSpace
@@ -297,6 +298,9 @@ class IsingHidden(HiddenLayer):
         self.b = sharedX(np.zeros((self.dim,)) + init_bias,
                          name=layer_name + '_b')
 
+        if max_col_norm is not None:
+            self.extensions.append(MaxL2FilterNorm(max_col_norm, axis=0))
+
     def get_lr_scalers(self):
         """
         .. todo::
@@ -363,21 +367,6 @@ class IsingHidden(HiddenLayer):
 
         W, = self.transformer.get_params()
         assert W.name is not None
-
-    def _modify_updates(self, updates):
-        """
-        .. todo::
-
-            WRITEME
-        """
-
-        if self.max_col_norm is not None:
-            W, = self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
     def get_total_state_space(self):
         """
@@ -893,7 +882,8 @@ class BoltzmannIsingVisible(VisibleLayer):
             updates[self.boltzmann_bias] = bhn
 
         if self.noisy_sampling_b is not None:
-            theano_rng = make_theano_rng(None, self.dbm.rng.randint(2**16), which_method="normal")
+            theano_rng = make_theano_rng(None, self.dbm.rng.randint(2**16),
+                                         which_method="normal")
 
             b = updates[self.boltzmann_bias]
             W_above = updates[self.layer_above.W]
@@ -923,7 +913,11 @@ class BoltzmannIsingVisible(VisibleLayer):
                     sharedX(np.zeros((self.dbm.batch_size, self.nvis)))
 
             if self.noisy_sampling_b is not None:
-                theano_rng = make_theano_rng(None, self.dbm.rng.randint(2**16), which_method="normal")
+                theano_rng = make_theano_rng(
+                    None,
+                    self.dbm.rng.randint(2**16),
+                    which_method="normal"
+                )
 
                 b = self.boltzmann_bias
                 W_above = self.layer_above.W
@@ -1171,6 +1165,9 @@ class BoltzmannIsingHidden(HiddenLayer):
         self.layer_above = None
         self.resample_fn = None
 
+        if max_col_norm is not None:
+            self.extensions.append(MaxL2FilterNorm(max_col_norm, axis=0))
+
     def get_lr_scalers(self):
         """
         .. todo::
@@ -1273,14 +1270,6 @@ class BoltzmannIsingHidden(HiddenLayer):
             updated_beta = updates[beta]
             updates[beta] = T.clip(updated_beta, 1., 1000.)
 
-        if self.max_col_norm is not None:
-            W = self.W
-            if W in updates:
-                updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
-
         if any(constraint is not None for constraint in [self.min_ising_b,
                                                          self.max_ising_b,
                                                          self.min_ising_W,
@@ -1331,7 +1320,8 @@ class BoltzmannIsingHidden(HiddenLayer):
             updates[self.boltzmann_b] = bhn
 
         if self.noisy_sampling_W is not None:
-            theano_rng = make_theano_rng(None, self.dbm.rng.randint(2**16), which_method="normal")
+            theano_rng = make_theano_rng(None, self.dbm.rng.randint(2**16),
+                                         which_method="normal")
 
             W = updates[self.W]
             ising_W = 0.25 * W
@@ -1373,7 +1363,11 @@ class BoltzmannIsingHidden(HiddenLayer):
                     sharedX(np.zeros((self.dbm.batch_size, self.dim)))
 
             if self.noisy_sampling_b is not None:
-                theano_rng = make_theano_rng(None, self.dbm.rng.randint(2**16), which_method="normal")
+                theano_rng = make_theano_rng(
+                    None,
+                    self.dbm.rng.randint(2**16),
+                    which_method="normal"
+                )
 
                 b = self.boltzmann_b
                 if self.layer_above is not None:
@@ -1806,7 +1800,8 @@ class BoltzmannIsingHidden(HiddenLayer):
             Should disregard top-down feedback
         """
 
-        z = self.beta * (T.dot(state_below, self.ising_weights()) + self.ising_b())
+        z = self.beta * (T.dot(state_below,
+                               self.ising_weights()) + self.ising_b())
 
         return z
 

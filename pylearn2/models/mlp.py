@@ -1164,7 +1164,10 @@ class Softmax(Layer):
         super(Softmax, self).__init__()
 
         if max_col_norm is not None:
-            self.extensions.append(MaxL2FilterNorm(max_col_norm))
+            self.extensions.append(MaxL2FilterNorm(max_col_norm, axis=0))
+
+        if max_row_norm is not None:
+            self.extensions.append(MaxL2FilterNorm(max_row_norm, axis=1))
 
         if non_redundant:
             if init_bias_target_marginals:
@@ -1496,14 +1499,6 @@ class Softmax(Layer):
 
         if self.no_affine:
             return
-        if self.max_row_norm is not None:
-            W = self.W
-            if W in updates:
-                updated_W = updates[W]
-                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=1))
-                desired_norms = T.clip(row_norms, 0, self.max_row_norm)
-                scales = desired_norms / (1e-7 + row_norms)
-                updates[W] = updated_W * scales.dimshuffle(0, 'x')
 
 
 class SoftmaxPool(Layer):
@@ -1558,6 +1553,9 @@ class SoftmaxPool(Layer):
 
         self.b = sharedX(np.zeros((self.detector_layer_dim,)) + init_bias,
                          name=(layer_name + '_b'))
+
+        if max_col_norm is not None:
+            self.extensions.append(MaxL2FilterNorm(max_col_norm, axis=0))
 
     @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
@@ -1653,14 +1651,6 @@ class SoftmaxPool(Layer):
             W, = self.transformer.get_params()
             if W in updates:
                 updates[W] = updates[W] * self.mask
-
-        if self.max_col_norm is not None:
-            W, = self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
     @wraps(Layer.get_params)
     def get_params(self):
@@ -1955,6 +1945,20 @@ class Linear(Layer):
             assert b_lr_scale is None
             init_bias is None
 
+        if (((max_col_norm is not None) or (min_col_norm is not None))
+                and (max_row_norm is not None)):
+            raise ValueError('Column and row constraint '
+                             'at the same time is forbidden.')
+
+        if (max_col_norm is not None) or (min_col_norm is not None):
+            self.extensions.append(MaxL2FilterNorm(
+                limit=max_col_norm,
+                min_limit=min_col_norm,
+                axis=0))
+
+        if max_row_norm is not None:
+            self.extensions.append(MaxL2FilterNorm(max_row_norm, axis=1))
+
     @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
 
@@ -2043,32 +2047,6 @@ class Linear(Layer):
             W, = self.transformer.get_params()
             if W in updates:
                 updates[W] = updates[W] * self.mask
-
-        if self.max_row_norm is not None:
-            W, = self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=1))
-                desired_norms = T.clip(row_norms, 0, self.max_row_norm)
-                scales = desired_norms / (1e-7 + row_norms)
-                updates[W] = updated_W * scales.dimshuffle(0, 'x')
-
-        if self.max_col_norm is not None or self.min_col_norm is not None:
-            assert self.max_row_norm is None
-            if self.max_col_norm is not None:
-                max_col_norm = self.max_col_norm
-            if self.min_col_norm is None:
-                self.min_col_norm = 0
-            W, = self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                if self.max_col_norm is None:
-                    max_col_norm = col_norms.max()
-                desired_norms = T.clip(col_norms,
-                                       self.min_col_norm,
-                                       max_col_norm)
-                updates[W] = updated_W * desired_norms / (1e-7 + col_norms)
 
     @wraps(Layer.get_params)
     def get_params(self):
@@ -2993,6 +2971,11 @@ class ConvElemwise(Layer):
             "detection or classification" % self.__class__.__name__)
         del self.self
 
+        if max_kernel_norm is not None:
+            self.extensions.append(
+                MaxL2FilterNorm(max_kernel_norm, axis=(1, 2, 3))
+            )
+
     def initialize_transformer(self, rng):
         """
         This function initializes the transformer of the class. Re-running
@@ -3116,18 +3099,6 @@ class ConvElemwise(Layer):
         logger.info('Detector space: {0}'.format(self.detector_space.shape))
 
         self.initialize_output_space()
-
-    @wraps(Layer._modify_updates)
-    def _modify_updates(self, updates):
-        if self.max_kernel_norm is not None:
-            W, = self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=(1, 2, 3)))
-                desired_norms = T.clip(row_norms, 0, self.max_kernel_norm)
-                updates[W] = updated_W * (
-                    desired_norms /
-                    (1e-7 + row_norms)).dimshuffle(0, 'x', 'x', 'x')
 
     @wraps(Layer.get_params)
     def get_params(self):
