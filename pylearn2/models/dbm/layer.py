@@ -28,6 +28,7 @@ from pylearn2.expr.probabilistic_max_pooling import max_pool_channels, max_pool_
 from pylearn2.linear.conv2d import make_random_conv2D, make_sparse_random_conv2D
 from pylearn2.linear.conv2d_c01b import setup_detector_layer_c01b
 from pylearn2.linear.matrixmul import MatrixMul
+from pylearn2.model_extensions.norm_constraint import MaxL2FilterNorm
 from pylearn2.models import Model
 from pylearn2.models.dbm import init_sigmoid_bias_from_marginals
 from pylearn2.space import VectorSpace, CompositeSpace, Conv2DSpace, Space
@@ -715,6 +716,9 @@ class BinaryVectorMaxPool(HiddenLayer):
                 raise NotImplementedError()
             self.offset = sharedX(sigmoid_numpy(self.b.get_value()))
 
+        if max_col_norm is not None:
+            self.extensions.append(MaxL2FilterNorm(max_col_norm, axis=0))
+
     def get_lr_scalers(self):
         """
         .. todo::
@@ -820,15 +824,6 @@ class BinaryVectorMaxPool(HiddenLayer):
             W ,= self.transformer.get_params()
             if W in updates:
                 updates[W] = updates[W] * self.mask
-
-        if self.max_col_norm is not None:
-            W, = self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
-
 
     def get_total_state_space(self):
         """
@@ -1530,19 +1525,8 @@ class Softmax(HiddenLayer):
             b = self.b.get_value()
             self.offset = sharedX(np.exp(b) / np.exp(b).sum())
 
-    @functools.wraps(Model._modify_updates)
-    def _modify_updates(self, updates):
-
-        if not hasattr(self, 'max_col_norm'):
-            self.max_col_norm = None
-
-        if self.max_col_norm is not None:
-            W = self.W
-            if W in updates:
-                updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
+        if max_col_norm is not None:
+            self.extensions.append(MaxL2FilterNorm(max_col_norm, axis=0))
 
     @functools.wraps(Model.get_lr_scalers)
     def get_lr_scalers(self):
