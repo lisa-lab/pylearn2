@@ -92,7 +92,7 @@ def random_one_hot_topological_dense_design_matrix(rng,
     return DenseDesignMatrix(topo_view=X, axes=axes, y=Y)
 
 
-def random_dense_design_matrix_for_regression(rng, num_examples, 
+def random_dense_design_matrix_for_regression(rng, num_examples,
                                               dim, reg_min, reg_max):
     """
     Creates a random dense design matrix for regression.
