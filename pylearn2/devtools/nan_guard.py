@@ -11,6 +11,7 @@ __email__ = "pylearn-dev@googlegroups"
 import logging
 from theano.compile import Mode
 import theano
+import theano.tensor as T
 import numpy as np
 from pylearn2.models.dbm import flatten
 from pylearn2.utils import contains_nan, contains_inf
@@ -36,6 +37,22 @@ class NanGuardMode(Mode):
         If True, raise an error when a value greater than 1e10 is encountered.
     """
     def __init__(self, nan_is_error, inf_is_error, big_is_error=True):
+        self.guard_input = T.vector('nan_guard')
+        if nan_is_error or inf_is_error:
+            self.gpumin = theano.function(
+                [self.guard_input], T.min(self.guard_input),
+                mode='FAST_RUN'
+            )
+        if inf_is_error:
+            self.gpumax = theano.function(
+                [self.guard_input], T.max(self.guard_input),
+                mode='FAST_RUN'
+            )
+        if big_is_error:
+            self.gpuabsmax = theano.function(
+                [self.guard_input], T.max(T.abs_(self.guard_input)),
+                mode='FAST_RUN'
+            )
         def do_check_on(var, nd, f, is_input):
             """
             Checks `var` for NaNs / Infs. If detected, raises an exception
@@ -56,15 +73,31 @@ class NanGuardMode(Mode):
             """
             error = False
             if nan_is_error:
-                if contains_nan(var):
+                err = False
+                if isinstance(var, theano.sandbox.cuda.CudaNdarray):
+                    err = np.isnan(self.gpumin(var.reshape(var.size)))
+                else:
+                    err = contains_nan(var)
+                if err:
                     logger.error('NaN detected')
                     error = True
             if inf_is_error:
-                if contains_inf(var):
+                err = False
+                if isinstance(var, theano.sandbox.cuda.CudaNdarray):
+                    err = (np.isinf(self.gpumin(var.reshape(var.size))) or \
+                           np.isinf(self.gpumax(var.reshape(var.size))))
+                else:
+                    err = contains_inf(var)
+                if err:
                     logger.error('Inf detected')
                     error = True
             if big_is_error:
-                if np.abs(var).max() > 1e10:
+                err = False
+                if isinstance(var, theano.sandbox.cuda.CudaNdarray):
+                    err = (self.gpuabsmax(var.reshape(var.size)) > 1e10)
+                else:
+                    err = (np.abs(var).max() > 1e10)
+                if err:
                     logger.error('Big value detected')
                     error = True
             if error:
