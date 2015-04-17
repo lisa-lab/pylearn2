@@ -45,5 +45,5 @@ def test_NanGuardMode():
     except AssertionError:
         work[2] = True
 
-    if not reduce(lambda x, y: x and y, work):
+    if not (work[0] and work[1] and work[2]):
         raise AssertionError("NanGuardMode not working.")
