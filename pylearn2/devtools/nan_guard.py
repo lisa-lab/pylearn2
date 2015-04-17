@@ -12,6 +12,7 @@ import logging
 from theano.compile import Mode
 import theano
 import theano.tensor as T
+from theano.sandbox.cuda import CudaNdarray
 import numpy as np
 from pylearn2.models.dbm import flatten
 from pylearn2.utils import contains_nan, contains_inf
@@ -37,7 +38,7 @@ class NanGuardMode(Mode):
         If True, raise an error when a value greater than 1e10 is encountered.
     """
     def __init__(self, nan_is_error, inf_is_error, big_is_error=True):
-        self.guard_input = T.vector('nan_guard')
+        self.guard_input = theano.sandbox.cuda.fvector('nan_guard')
         if nan_is_error or inf_is_error:
             self.gpumin = theano.function(
                 [self.guard_input], T.min(self.guard_input),
@@ -74,7 +75,7 @@ class NanGuardMode(Mode):
             error = False
             if nan_is_error:
                 err = False
-                if isinstance(var, theano.sandbox.cuda.CudaNdarray):
+                if isinstance(var, CudaNdarray):
                     err = np.isnan(self.gpumin(var.reshape(var.size)))
                 else:
                     err = contains_nan(var)
@@ -83,7 +84,7 @@ class NanGuardMode(Mode):
                     error = True
             if inf_is_error:
                 err = False
-                if isinstance(var, theano.sandbox.cuda.CudaNdarray):
+                if isinstance(var, CudaNdarray):
                     err = (np.isinf(self.gpumin(var.reshape(var.size))) or \
                            np.isinf(self.gpumax(var.reshape(var.size))))
                 else:
@@ -93,7 +94,7 @@ class NanGuardMode(Mode):
                     error = True
             if big_is_error:
                 err = False
-                if isinstance(var, theano.sandbox.cuda.CudaNdarray):
+                if isinstance(var, CudaNdarray):
                     err = (self.gpuabsmax(var.reshape(var.size)) > 1e10)
                 else:
                     err = (np.abs(var).max() > 1e10)
