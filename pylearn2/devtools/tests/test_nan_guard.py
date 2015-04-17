@@ -1,3 +1,6 @@
+"""
+This test is for testing the NanGuardMode.
+"""
 from pylearn2.devtools.nan_guard import NanGuardMode
 import numpy
 import theano
@@ -5,6 +8,11 @@ import theano.tensor as T
 
 
 def test_NanGuardMode():
+    """
+    Tests if NanGuardMode is working by feeding in numpy.inf and numpy.nans
+    intentionally. A working implementation should be able to capture all
+    the abnormalties.
+    """
     x = T.matrix()
     w = theano.shared(numpy.random.randn(5, 7).astype(theano.config.floatX))
     y = T.dot(x, w)
