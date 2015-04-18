@@ -15,6 +15,7 @@ from theano import tensor as T
 
 from pylearn2.train_extensions import TrainExtension
 
+
 class WMapeNumeratorChannel(TrainExtension):
     """
     Adds a WMape Numerator channel to the monitor for each monitoring dataset.
@@ -30,7 +31,8 @@ class WMapeNumeratorChannel(TrainExtension):
 
     def setup(self, model, dataset, algorithm):
         """
-        Add WMAPE Numerator channels for monitoring dataset(s) to model.monitor.
+        Add WMAPE Numerator channels for monitoring dataset(s) to
+        model.monitor.
 
         Parameters
         ----------
@@ -46,7 +48,7 @@ class WMapeNumeratorChannel(TrainExtension):
 
         y = target[:, 0]
         y_hat = model.fprop(state)[:, 0]
-        
+
         wmape_numerator = abs(y - y_hat).sum()
         wmape_numerator = T.cast(wmape_numerator, config.floatX)
         for dataset_name, dataset in algorithm.monitoring_dataset.items():
@@ -60,11 +62,12 @@ class WMapeNumeratorChannel(TrainExtension):
                                       val=wmape_numerator,
                                       data_specs=(m_space, m_source),
                                       dataset=dataset)
-            
+
+
 class WMapeDenominatorChannel(TrainExtension):
     """
-    Adds a WMape Denominator channel to the monitor for each monitoring dataset.
-    It calculates the denominator of the WMAPE formula.
+    Adds a WMape Denominator channel to the monitor for each monitoring
+    dataset. It calculates the denominator of the WMAPE formula.
 
     Parameters
     ----------
@@ -76,7 +79,8 @@ class WMapeDenominatorChannel(TrainExtension):
 
     def setup(self, model, dataset, algorithm):
         """
-        Add WMAPE Denominator channels for monitoring dataset(s) to model.monitor.
+        Add WMAPE Denominator channels for monitoring dataset(s) to
+        model.monitor.
 
         Parameters
         ----------
@@ -91,7 +95,7 @@ class WMapeDenominatorChannel(TrainExtension):
         state, target = m_space.make_theano_batch()
 
         y = target[:, 0]
-        
+
         wmape_denominator = abs(y).sum()
         wmape_denominator = T.cast(wmape_denominator, config.floatX)
         for dataset_name, dataset in algorithm.monitoring_dataset.items():
