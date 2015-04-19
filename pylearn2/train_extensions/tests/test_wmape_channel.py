@@ -3,6 +3,9 @@ Tests for WMAPE.
 """
 from pylearn2.config import yaml_parse
 from pylearn2.testing.skip import skip_if_no_sklearn
+from theano.compile import function
+import numpy as np
+from numpy.testing import assert_allclose
 
 
 def test_wmape():
@@ -10,6 +13,24 @@ def test_wmape():
     skip_if_no_sklearn()
     trainer = yaml_parse.load(test_yaml)
     trainer.main_loop()
+
+    X = trainer.model.get_input_space().make_theano_batch()
+    Y = trainer.model.fprop(X)
+
+    f = function([X], Y, allow_input_downcast=True)
+    y_hat = f(trainer.dataset.X)
+
+    wmape_num_exp = abs(trainer.dataset.y - y_hat).sum()
+    wmape_den_exp = abs(trainer.dataset.y).sum()
+    exp_array = np.asarray([wmape_num_exp, wmape_den_exp])
+
+    wmape_num_real = trainer.model.monitor.channels['train_wmape_num'].\
+        val_record
+    wmape_den_real = trainer.model.monitor.channels['train_wmape_den'].\
+        val_record
+    real_array = np.asarray([wmape_num_real[-1], wmape_den_real[-1]])
+
+    assert_allclose(exp_array, real_array)
 
 
 test_yaml = """
@@ -51,7 +72,7 @@ random_dense_design_matrix_for_regression
                     max_epochs: 1,
                 },
                 !obj:pylearn2.termination_criteria.MonitorBased {
-                    channel_name: train_y_wmape,
+                    channel_name: train_wmape_num,
                     prop_decrease: 0.,
                     N: 1,
                 },

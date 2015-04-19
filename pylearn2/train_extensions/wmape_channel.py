@@ -19,12 +19,18 @@ from pylearn2.train_extensions import TrainExtension
 class WMapeNumeratorChannel(TrainExtension):
     """
     Adds a WMape Numerator channel to the monitor for each monitoring dataset.
-    It calculates the numerator of the WMAPE formula.
+    It calculates the numerator of the WMAPE formula:
+    :math:`WMAPE = \frac{\sum_i|R_i - P_i|}{\sum_i |R_i|}`
 
     Parameters
     ----------
     channel_name_suffix : str, optional (default 'wmape_num')
         Channel name suffix.
+
+    Notes
+    ----------
+    * See also: WMapeDenominatorChannel defines the denominator of the
+        WMAPE formula.
     """
     def __init__(self, channel_name_suffix='wmape_num'):
         self.channel_name_suffix = channel_name_suffix
@@ -67,12 +73,18 @@ class WMapeNumeratorChannel(TrainExtension):
 class WMapeDenominatorChannel(TrainExtension):
     """
     Adds a WMape Denominator channel to the monitor for each monitoring
-    dataset. It calculates the denominator of the WMAPE formula.
+    dataset. It calculates the denominator of the WMAPE formula:
+    :math:`WMAPE = \frac{\sum_i|R_i - P_i|}{\sum_i |R_i|}`
 
     Parameters
     ----------
     channel_name_suffix : str, optional (default 'wmape_den')
         Channel name suffix.
+
+    Notes
+    ----------
+    * See also: WMapeNumeratorChannel defines the numerator of the
+        WMAPE formula.
     """
     def __init__(self, channel_name_suffix='wmape_den'):
         self.channel_name_suffix = channel_name_suffix
