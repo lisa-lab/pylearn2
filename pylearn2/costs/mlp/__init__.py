@@ -8,6 +8,7 @@ from functools import wraps
 import operator
 import warnings
 
+import theano
 from theano import tensor as T
 from theano.compat.six.moves import reduce
 
@@ -197,7 +198,7 @@ class L1WeightDecay(NullDataSpecsMixin, Cost):
                         layer_costs.append(cost)
 
         if len(layer_costs) == 0:
-            rval = T.as_tensor_variable(0.)
+            rval = T.constant(0., dtype=theano.config.floatX)
             rval.name = '0_l1_penalty'
             return rval
         else:
