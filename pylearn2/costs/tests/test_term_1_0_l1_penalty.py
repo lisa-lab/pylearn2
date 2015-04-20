@@ -16,11 +16,14 @@ def create_dataset():
     Create a fake dataset to initiate the training
     """
     x = np.array([[0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0],
-                  [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
-                  [0.3, 0.1, 0.8, 0.1, 0.2, 0.6, 0.83, 0.45, 0.0, 0.67, 0.3, 0.74, 0.8, 0.1,
+                  [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 11, 12, 13, 14, 15, 
+                  16, 17, 18, 19, 20],
+                  [0.3, 0.1, 0.8, 0.1, 0.2, 0.6, 0.83, 0.45, 0.0, 0.67, 0.3, 
+                  0.74, 0.8, 0.1,
                    0.2, 0.46, 0.83, 0.45, 0.0, 0.67]])
 
-    y = np.array([0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0]).reshape(20, 1)
+    y = np.array([0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 
+                  1, 0, 1, 0, 0, 0, 0, 0]).reshape(20, 1)
 
     x_train = x[:7, :]
     x_valid = x[7:, :]
@@ -46,18 +49,22 @@ def test_correctness():
     hidden_istdev = 4 * (6 / (n_inputs + n_hidden)) ** 0.5
     output_istdev = 4 * (6 / (n_hidden + n_outputs)) ** 0.5
 
-    model = MLP(layers=[Sigmoid(dim=n_hidden, layer_name='hidden', istdev=hidden_istdev),
-                        Sigmoid(dim=n_outputs, layer_name='output', istdev=output_istdev)],
+    model = MLP(layers=[Sigmoid(dim=n_hidden, layer_name='hidden', 
+                        istdev=hidden_istdev),
+                        Sigmoid(dim=n_outputs, layer_name='output', 
+                        istdev=output_istdev)],
                 nvis=n_inputs, seed=[2013, 9, 16])
 
     termination_criterion = And([EpochCounter(max_epochs=1),
                                  MonitorBased(prop_decrease=1e-7,
                                  N=2)])
 
-    cost = SumOfCosts([(0.99, Default()), (0.01, L1WeightDecay((0., 1.0)))])
+    cost = SumOfCosts([(0.99, Default()), (0.01, 
+                      L1WeightDecay((0., 1.0)))])
 
     algo = SGD(1e-1,
-               update_callbacks=[ExponentialDecay(decay_factor=1.00001, min_lr=1e-10)],
+               update_callbacks=[ExponentialDecay(decay_factor=1.00001, 
+                                 min_lr=1e-10)],
                cost=cost,
                monitoring_dataset=validset,
                termination_criterion=termination_criterion,
