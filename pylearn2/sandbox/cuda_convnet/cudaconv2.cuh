@@ -38,7 +38,7 @@
 #define DllExport   __declspec( dllimport )
 #endif
 #else //else _WIN32
-#define DllExport
+#define DllExport __attribute__((visibility ("default")))
 #endif
 
 enum FILTER_OUTPUT_ORDER {MODULE_FILTER_IMAGE, FILTER_MODULE_IMAGE};
