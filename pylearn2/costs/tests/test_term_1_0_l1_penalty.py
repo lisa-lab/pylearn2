@@ -45,8 +45,8 @@ def test_correctness():
     n_outputs = 1
     n_hidden = 10
 
-    hidden_istdev = 4 * (6 / (n_inputs + n_hidden)) ** 0.5
-    output_istdev = 4 * (6 / (n_hidden + n_outputs)) ** 0.5
+    hidden_istdev = 4 * (6 / float(n_inputs + n_hidden)) ** 0.5
+    output_istdev = 4 * (6 / float(n_hidden + n_outputs)) ** 0.5
 
     model = MLP(layers=[Sigmoid(dim=n_hidden, layer_name='hidden',
                                 istdev=hidden_istdev),
@@ -59,7 +59,7 @@ def test_correctness():
                                  N=2)])
 
     cost = SumOfCosts([(0.99, Default()),
-                       (0.01, L1WeightDecay((0., 1.0)))])
+                       (0.01, L1WeightDecay({}))])
 
     algo = SGD(1e-1,
                update_callbacks=[ExponentialDecay(decay_factor=1.00001,
