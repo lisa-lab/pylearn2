@@ -59,8 +59,7 @@ def test_correctness():
                                  N=2)])
 
     cost = SumOfCosts([(0.99, Default()),
-                       (0.01, L1WeightDecay({'hidden': 0.,
-                                             'output': 1.0}))])
+                       (0.01, L1WeightDecay({}))])
 
     algo = SGD(1e-1,
                update_callbacks=[ExponentialDecay(decay_factor=1.00001,
