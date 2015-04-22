@@ -18,15 +18,23 @@ from theano.compat import six
 from theano.compat.six.moves import reduce, xrange
 from theano import config
 from theano.gof.op import get_debug_values
-from theano.sandbox.rng_mrg import MRG_RandomStreams
+from theano.sandbox.cuda import cuda_enabled
 from theano.sandbox.cuda.dnn import dnn_available, dnn_pool
+from theano.sandbox.rng_mrg import MRG_RandomStreams
 from theano.tensor.signal.downsample import max_pool_2d
 import theano.tensor as T
 
 from pylearn2.compat import OrderedDict
 from pylearn2.costs.mlp import Default
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels
-from pylearn2.linear import conv2d
+# Try to import the fast cudnn library, else fallback to conv2d
+if cuda_enabled and dnn_available():
+    try:
+        from linear import cudnn2d as conv2d
+    except ImportError:
+        from pylearn2.linear import conv2d
+else:
+    from pylearn2.linear import conv2d
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.model_extensions.norm_constraint import MaxL2FilterNorm
 from pylearn2.models.model import Model
@@ -608,7 +616,6 @@ class MLP(Layer):
         else:
             X = data
             Y = None
-        state = X
         rval = self.get_layer_monitoring_channels(state_below=X,
                                                   targets=Y)
 
@@ -2769,7 +2776,6 @@ class SigmoidConvNonlinearity(ConvNonlinearity):
         """
         Applies the sigmoid nonlinearity over the convolutional layer.
         """
-        rval = OrderedDict()
         p = T.nnet.sigmoid(linear_response)
         return p
 
@@ -2847,7 +2853,6 @@ class TanhConvNonlinearity(ConvNonlinearity):
 
 
 class ConvElemwise(Layer):
-
     """
     Generic convolutional elemwise layer.
     Takes the ConvNonlinearity object as an argument and implements
@@ -2948,7 +2953,6 @@ class ConvElemwise(Layer):
                  output_normalization=None,
                  kernel_stride=(1, 1),
                  monitor_style="classification"):
-        super(ConvElemwise, self).__init__()
 
         if (irange is None) and (sparse_init is None):
             raise AssertionError("You should specify either irange or "
@@ -2961,14 +2965,14 @@ class ConvElemwise(Layer):
 
         if pool_type is not None:
             assert pool_shape is not None, (
-                "You should specify the shape of "
-                "the spatial %s-pooling." % pool_type)
+                "You should specify the shape of the spatial %s-pooling." %
+                pool_type)
             assert pool_stride is not None, (
-                "You should specify the strides of "
-                "the spatial %s-pooling." % pool_type)
+                "You should specify the strides of the spatial %s-pooling." %
+                pool_type)
 
         assert nonlinearity is not None
-
+        super(ConvElemwise, self).__init__()
         self.nonlin = nonlinearity
         self.__dict__.update(locals())
         assert monitor_style in ['classification', 'detection'], (
@@ -2988,6 +2992,7 @@ class ConvElemwise(Layer):
         """
         if self.irange is not None:
             assert self.sparse_init is None
+
             self.transformer = conv2d.make_random_conv2D(
                 irange=self.irange,
                 input_space=self.input_space,
@@ -3005,6 +3010,8 @@ class ConvElemwise(Layer):
                 subsample=self.kernel_stride,
                 border_mode=self.border_mode,
                 rng=rng)
+        else:
+            raise ValueError('irange and sparse_init cannot be both None')
 
     def initialize_output_space(self):
         """
@@ -3216,7 +3223,6 @@ class ConvElemwise(Layer):
 
     @wraps(Layer.fprop)
     def fprop(self, state_below):
-
         self.input_space.validate(state_below)
 
         z = self.transformer.lmul(state_below)
@@ -3236,6 +3242,7 @@ class ConvElemwise(Layer):
             self.detector_space.validate(d)
 
         if self.pool_type is not None:
+            # Format the input to be supported by max pooling
             if not hasattr(self, 'detector_normalization'):
                 self.detector_normalization = None
 
@@ -3250,6 +3257,7 @@ class ConvElemwise(Layer):
                 p = max_pool(bc01=d, pool_shape=self.pool_shape,
                              pool_stride=self.pool_stride,
                              image_shape=self.detector_space.shape)
+
             elif self.pool_type == 'mean':
                 p = mean_pool(bc01=d, pool_shape=self.pool_shape,
                               pool_stride=self.pool_stride,
@@ -4458,11 +4466,6 @@ class FlattenerLayer(Layer):
 
         super(FlattenerLayer, self).set_mlp(mlp)
         self.raw_layer.set_mlp(mlp)
-
-    @wraps(Layer.get_weights)
-    def get_weights(self):
-
-        return self.raw_layer.get_weights()
 
 
 class WindowLayer(Layer):
