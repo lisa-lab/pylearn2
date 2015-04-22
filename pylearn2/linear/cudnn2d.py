@@ -138,7 +138,8 @@ class Cudnn2D(OrigConv2D):
         assert len(axes) == 4
 
         if tuple(self._output_axes) != op_axes:
-            rval = rval.dimshuffle(*[op_axes.index(ax) for ax in self._output_axes])
+            rval = rval.dimshuffle(*[op_axes.index(ax) for ax in
+                                     self._output_axes])
 
         return rval
 
