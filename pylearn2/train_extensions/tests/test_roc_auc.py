@@ -62,7 +62,7 @@ test_yaml = """
                     max_epochs: 1,
                 },
                 !obj:pylearn2.termination_criteria.MonitorBased {
-                    channel_name: train_y_roc_auc,
+                    channel_name: train_roc_auc,
                     prop_decrease: 0.,
                     N: 1,
                 },
@@ -112,7 +112,7 @@ test_yaml_ovr = """
                     max_epochs: 1,
                 },
                 !obj:pylearn2.termination_criteria.MonitorBased {
-                    channel_name: train_y_roc_auc,
+                    channel_name: train_roc_auc-0vX,
                     prop_decrease: 0.,
                     N: 1,
                 },
@@ -173,7 +173,7 @@ test_yaml_ovo = """
                     max_epochs: 1,
                 },
                 !obj:pylearn2.termination_criteria.MonitorBased {
-                    channel_name: train_y_roc_auc,
+                    channel_name: train_roc_auc-0v1,
                     prop_decrease: 0.,
                     N: 1,
                 },
