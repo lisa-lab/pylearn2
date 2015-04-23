@@ -44,12 +44,12 @@ def test_max_l2_filter_norm():
     # Column 3 tests the case where a column is too big
     W[0, 3] = 2.
 
-    W = sharedX(W)
+    W = sharedX(W / 2.)
     model = ModelWithW(W)
     model.extensions.append(ext)
 
     updates = OrderedDict()
-    updates[W] = W
+    updates[W] = W * 2.
     model.modify_updates(updates)
     f = function([], updates=updates)
     f()

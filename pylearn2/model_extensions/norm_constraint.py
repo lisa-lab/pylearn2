@@ -44,7 +44,7 @@ class MaxL2FilterNorm(ModelExtension):
 
         if W in updates:
             updated_W = updates[W]
-            col_norms = T.sqrt(T.square(W).sum(axis=0))
+            col_norms = T.sqrt(T.square(updated_W).sum(axis=0))
             desired_norms = T.minimum(col_norms, self.limit)
             scale = desired_norms / T.maximum(1e-7, col_norms)
             updates[W] = updated_W * scale
