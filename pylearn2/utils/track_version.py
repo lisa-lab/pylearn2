@@ -28,6 +28,7 @@ import platform
 import socket
 import subprocess
 import sys
+import warnings
 
 from theano.compat import six
 
@@ -159,7 +160,10 @@ class LibVersion(object):
         except Exception:
             pass
         finally:
-            os.chdir(cwd_backup)
+            try:
+                os.chdir(cwd_backup)
+            except Exception:
+                warnings.warn("Could not chdir back to " + cwd_backup)
 
     def _get_hg_version(self, root):
         """Same as `get_git_version` but for a Mercurial repository."""
