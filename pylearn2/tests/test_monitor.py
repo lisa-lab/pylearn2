@@ -134,6 +134,31 @@ def test_counting():
     assert isinstance(model.monitor.get_examples_seen(), py_integer_types)
     assert isinstance(model.monitor.get_batches_seen(), py_integer_types)
 
+def test_large_examples():
+    BATCH_SIZE = 10000
+    num_examples = 60002994
+    NUM_FEATURES = 3
+
+    model = DummyModel(NUM_FEATURES)
+    monitor = Monitor.get_monitor(model)
+
+    monitoring_dataset = DummyDataset(num_examples = num_examples,
+            num_features = NUM_FEATURES)
+
+    monitor.add_dataset(monitoring_dataset, 'sequential', batch_size=BATCH_SIZE)
+
+    name = 'z'
+
+    monitor.add_channel(name = name,
+            ipt = model.input_space.make_theano_batch(),
+            val = 0.,
+            data_specs=(model.get_input_space(), model.get_input_source()))
+
+    try:
+        monitor()
+    except RuntimeError:
+        assert False
+
 def test_reject_empty():
 
     # Test that Monitor raises an error if asked to iterate over 0 batches
