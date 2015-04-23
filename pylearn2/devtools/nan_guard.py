@@ -1,14 +1,19 @@
 """
 Functionality for detecting NaNs in a Theano graph.
+
+Some nodes are ignored by name because of known issues:
+- GPU_mrg_uniform: Theano hack (see #1465)
+Please add an explanation if you add nodes to this list.
 """
-__authors__ = "Ian Goodfellow"
+__authors__ = "Ian Goodfellow, Nicu Tofan"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
-__credits__ = ["Ian Goodfellow"]
+__credits__ = ["Ian Goodfellow", "Nicu Tofan"]
 __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
 import logging
+import re
 from theano.compile import Mode
 import theano
 import numpy as np
@@ -18,6 +23,8 @@ from pylearn2.utils import contains_nan, contains_inf
 
 logger = logging.getLogger(__name__)
 
+# Following nodes are ignored by the NanGuardMode check.
+IGNORED_NODES = ['GPU_mrg_uniform']
 
 class NanGuardMode(Mode):
     """
@@ -57,31 +64,29 @@ class NanGuardMode(Mode):
             error = False
             if nan_is_error:
                 if contains_nan(var):
-                    logger.error('NaN detected')
+                    error_s = 'NaN detected'
                     error = True
             if inf_is_error:
                 if contains_inf(var):
-                    logger.error('Inf detected')
+                    error_s = 'Inf detected'
                     error = True
             if big_is_error:
                 if np.abs(var).max() > 1e10:
-                    logger.error('Big value detected')
+                    error_s = 'Big value detected'
                     error = True
             if error:
+                 
                 if is_input:
-                    logger.error('In an input')
+                    logger.error('%s in an input', error_s)
                 else:
-                    logger.error('In an output')
+                    logger.error('%s in an output', error_s)
                 logger.error('Inputs: ')
                 for ivar, ival in zip(nd.inputs, f.inputs):
-                    logger.error('var')
-                    logger.error(ivar)
-                    logger.error(theano.printing.min_informative_str(ivar))
-                    logger.error('val')
-                    logger.error(ival)
-                logger.error('Node:')
-                logger.error(nd)
-                assert False
+                    logger.error('var %s', str(ivar))
+                    logger.error('    %s', str(theano.printing.min_informative_str(ivar)))
+                    logger.error('    value: %s', str(ival))
+                logger.error('Node: %s', str(nd))
+                assert False, error_s 
 
         def nan_check(i, node, fn):
             """
@@ -89,20 +94,34 @@ class NanGuardMode(Mode):
 
             Parameters
             ----------
-            i : currently ignored (TODO: determine why it is here or remove)
+            i : int
+                Currently ignored (is here to match required signature for wrappers)
             node : theano.gof.Apply
                 The Apply node currently being executed
             fn : callable
                 The thunk to execute for this Apply node
             """
-            inputs = fn.inputs
-            # TODO: figure out why individual inputs are themselves lists sometimes
-            for x in flatten(inputs):
-                do_check_on(x, node, fn, True)
-            fn()
-            outputs = fn.outputs
-            for j, x in enumerate(flatten(outputs)):
-                do_check_on(x, node, fn, False)
 
+            # Some nodes are ignored; see module level documentation
+            perform_checks = True
+            node_match = self.__node_name_rex__.match(str(node))
+            if node_match:
+                if node_match.group(1) in IGNORED_NODES:
+                    perform_checks = False
+
+            if perform_checks:
+                inputs = fn.inputs
+                # TODO: figure out why individual inputs are themselves lists sometimes
+                for x in flatten(inputs):
+                    do_check_on(x, node, fn, True)
+
+            fn()
+
+            if perform_checks:
+                outputs = fn.outputs
+                for j, x in enumerate(flatten(outputs)):
+                    do_check_on(x, node, fn, False)
+
+        self.__node_name_rex__ = re.compile('^([A-Za-z0-9_]+)')
         wrap_linker = theano.gof.WrapLinkerMany([theano.gof.OpWiseCLinker()], [nan_check])
         super(NanGuardMode, self).__init__(wrap_linker, optimizer=theano.config.optimizer)
