@@ -12,6 +12,7 @@ def test_one_hot_formatter_simple():
         integer_labels = rng.random_integers(0, max_labels - 1, size=ncases)
         one_hot_labels = fmt.format(integer_labels)
         assert len(list(zip(*one_hot_labels.nonzero()))) == ncases
+        assert one_hot_labels.dtype == dtype
         for case, label in enumerate(integer_labels):
             assert one_hot_labels[case, label] == 1
     rng = numpy.random.RandomState(0)
@@ -32,6 +33,7 @@ def test_one_hot_formatter_symbolic():
         f = theano.function([x], y)
         one_hot_labels = f(integer_labels)
         assert len(list(zip(*one_hot_labels.nonzero()))) == ncases
+        assert one_hot_labels.dtype == dtype
         for case, label in enumerate(integer_labels):
             assert one_hot_labels[case, label] == 1
 
