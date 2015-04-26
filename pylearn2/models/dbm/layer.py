@@ -1524,7 +1524,7 @@ class Softmax(HiddenLayer):
         assert isinstance(n_classes, py_integer_types)
 
         self.output_space = VectorSpace(n_classes)
-        self.b = sharedX( np.zeros((n_classes,)), name = 'softmax_b')
+        self.b = sharedX( np.zeros((n_classes,)), name=layer_name+'_b')
 
         if self.center:
             b = self.b.get_value()
@@ -1624,7 +1624,7 @@ class Softmax(HiddenLayer):
                         idx = rng.randint(0, self.input_dim)
                     W[idx, i] = rng.randn() * self.sparse_istdev
 
-        self.W = sharedX(W,  'softmax_W' )
+        self.W = sharedX(W,  self.layer_name+'_W' )
 
         self._params = [ self.b, self.W ]
 
