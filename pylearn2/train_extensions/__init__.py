@@ -78,6 +78,23 @@ class TrainExtension(object):
             used to train the model.
         """
 
+    def tear_down(self, model, dataset, algorithm):
+        """
+        Train calls this after the main loop.
+
+        Parameters
+        ----------
+        model : pylearn2.models.Model
+            The model object being trained.
+
+        dataset : pylearn2.datasets.Dataset
+            The dataset object being trained.
+
+        algorithm : pylearn2.training_algorithms.TrainingAlgorithm
+            The object representing the training algorithm being
+            used to train the model.
+        """
+
 class SharedSetter(TrainExtension):
     """
     Sets shared variables to take on the specified values after the
