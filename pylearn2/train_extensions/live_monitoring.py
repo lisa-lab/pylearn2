@@ -170,21 +170,31 @@ class LiveMonitoring(TrainExtension):
         assert(pub_port > 1024 and pub_port < 65536)
         self.pub_port = pub_port
 
-        address_template = self.address + ':%d'
+        self.address_template = self.address + ':%d'
         self.context = zmq.Context()
-
         self.req_sock = None
-        if self.req_port > 0:
-            self.req_sock = self.context.socket(zmq.REP)
-            self.req_sock.bind(address_template % self.req_port)
-
         self.pub_sock = None
-        if self.pub_port > 0:
-            self.pub_sock = self.context.socket(zmq.PUB)
-            self.req_sock.bind(address_template % self.pub_port)
 
         # Tracks the number of times on_monitor has been called
         self.counter = 0
+
+    @wraps(TrainExtension.setup)
+    def setup(self, model, dataset, algorithm):
+        if self.req_port > 0:
+            self.req_sock = self.context.socket(zmq.REP)
+            self.req_sock.bind(self.address_template % self.req_port)
+        if self.pub_port > 0:
+            self.pub_sock = self.context.socket(zmq.PUB)
+            self.req_sock.bind(self.address_template % self.pub_port)
+
+    @wraps(TrainExtension.tear_down)
+    def tear_down(self, model, dataset, algorithm):
+        if self.req_sock:
+            self.req_sock.unbind(self.address_template % self.req_port)
+            self.req_sock = None
+        if self.pub_sock:
+            self.req_sock.unbind(self.address_template % self.pub_port)
+            self.pub_sock = None
 
     @wraps(TrainExtension.on_monitor)
     def on_monitor(self, model, dataset, algorithm):
