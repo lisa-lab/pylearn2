@@ -330,7 +330,17 @@ class AdaGrad(LearningRule):
     Implements the AdaGrad learning rule as described in:
     "Adaptive subgradient methods for online learning and
     stochastic optimization", Duchi J, Hazan E, Singer Y.
+
+    Parameters
+    ----------
+    max_scaling: float, optional
+        Restrict the gradient scaling coefficient to values
+        below `max_scaling`. This prevents corner cases (like all-zero weights)
+        to generate NaNs (see #1496).
     """
+    def __init__(self, max_scaling=1e5):
+        assert max_scaling > 0
+        self.eps = 1. / max_scaling
 
     def get_updates(self, learning_rate, grads, lr_scalers=None):
         """
@@ -363,7 +373,8 @@ class AdaGrad(LearningRule):
 
             # Compute update
             epsilon = lr_scalers.get(param, 1.) * learning_rate
-            delta_x_t = (- epsilon / T.sqrt(new_sum_squared_grad)
+            delta_x_t = (- epsilon / T.maximum(self.eps,
+                                               T.sqrt(new_sum_squared_grad))
                          * grads[param])
 
             # Apply update
