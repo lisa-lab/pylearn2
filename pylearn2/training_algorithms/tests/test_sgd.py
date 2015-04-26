@@ -50,10 +50,28 @@ class DummyCost(DefaultDataSpecsMixin, Cost):
 
 
 class DummyModel(Model):
+    """
+    A dummy model used for testing.
 
-    def __init__(self, shapes, lr_scalers=None):
+    Parameters
+    ----------
+    shapes : list
+        List of shapes for each parameter.
+    lr_scalers : list, optional
+        Scalers to use for each parameter.
+    init_type : string, optional
+        How to fill initial values in parameters: `random` - generate random
+        values; `zeros` - set all to zeros.
+    """
+    def __init__(self, shapes, lr_scalers=None, init_type='random'):
         super(DummyModel, self).__init__()
-        self._params = [sharedX(np.random.random(shape)) for shape in shapes]
+        if init_type == 'random':
+            self._params = [sharedX(np.random.random(shape)) for shape in shapes]
+        elif init_type == 'zeros':
+            self._params = [sharedX(np.zeros(shape)) for shape in shapes]
+        else:
+            raise ValueError('Unknown value for init_type: %s',
+                             init_type)
         self.input_space = VectorSpace(1)
         self.lr_scalers = lr_scalers
 
