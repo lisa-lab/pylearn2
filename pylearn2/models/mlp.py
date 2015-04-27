@@ -2738,7 +2738,7 @@ class IdentityConvNonlinearity(ConvNonlinearity):
 
         Notes
         -----
-        Mean squared error across batch 
+        Mean squared error across batches 
         """
         return T.sum(T.mean(T.sqr(Y-Y_hat), axis = batch_axis))
 
