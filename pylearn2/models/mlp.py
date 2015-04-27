@@ -2673,6 +2673,13 @@ class ConvNonlinearity(object):
         rval = self._get_monitoring_channels_for_activations(state)
 
         return rval
+    
+    @wraps(Layer.cost)
+    def cost(self, Y, Y_hat):
+        raise NotImplementedError(
+            str(type(self)) + " does not implement cost function.")
+
+
 
 
 class IdentityConvNonlinearity(ConvNonlinearity):
@@ -2701,6 +2708,30 @@ class IdentityConvNonlinearity(ConvNonlinearity):
             rval["misclass"] = T.cast(incorrect, config.floatX).mean()
 
         return rval
+    
+    @wraps(Linear.cost)
+    def cost(self, Y, Y_hat, batch_axis):
+        """
+        Parameters
+        ----------
+        Y : theano.gof.Variable
+            Output of `fprop`
+        Y_hat : theano.gof.Variable
+            Targets
+        batch_axis : integer 
+            axis representing batch dimension
+
+        Returns
+        -------
+        cost : theano.gof.Variable
+            0-D tensor describing the cost
+
+        Notes
+        -----
+        Mean squared error across batch 
+        """
+        return T.sum(T.mean(T.sqr(Y-Y_hat), axis = batch_axis))
+
 
 
 class RectifierConvNonlinearity(ConvNonlinearity):
@@ -2813,6 +2844,33 @@ class SigmoidConvNonlinearity(ConvNonlinearity):
             rval['per_output_f1_min'] = f1.min()
 
         return rval
+        
+    @wraps(Linear.cost)
+    def cost(self, Y, Y_hat, batch_axis):
+        """
+        Parameters
+        ----------
+        Y : theano.gof.Variable
+            Output of `fprop`
+        Y_hat : theano.gof.Variable
+            Targets
+        batch_axis : integer 
+            axis representing batch dimension
+
+        Returns
+        -------
+        cost : theano.gof.Variable
+            0-D tensor describing the cost
+
+        Notes
+        -----
+        Cost mean across units, mean across batch of KL divergence
+        KL(P || Q) where P is defined by Y and Q is defined by Y_hat
+        KL(P || Q) = p log p - p log q + (1-p) log (1-p) - (1-p) log (1-q)
+        """
+        ave_total = kl(Y=Y, Y_hat=Y_hat, batch_axis=batch_axis)
+        ave = ave_total.mean()
+        return ave
 
 
 class TanhConvNonlinearity(ConvNonlinearity):
@@ -3248,16 +3306,14 @@ class ConvElemwise(Layer):
             p = self.output_normalization(p)
 
         return p
-
+       
+    @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
         """
-        Cost for convnets is hardcoded to be the cost for sigmoids.
-        TODO: move the cost into the non-linearity class.
-
         Parameters
         ----------
         Y : theano.gof.Variable
-            Output of `fprop`
+             Output of `fprop`
         Y_hat : theano.gof.Variable
             Targets
 
@@ -3265,24 +3321,11 @@ class ConvElemwise(Layer):
         -------
         cost : theano.gof.Variable
             0-D tensor describing the cost
-
-        Notes
-        -----
-        Cost mean across units, mean across batch of KL divergence
-        KL(P || Q) where P is defined by Y and Q is defined by Y_hat
-        KL(P || Q) = p log p - p log q + (1-p) log (1-p) - (1-p) log (1-q)
-        """
-        assert self.nonlin.non_lin_name == "sigmoid", ("ConvElemwise "
-                                                       "supports "
-                                                       "cost function "
-                                                       "for only "
-                                                       "sigmoid layer "
-                                                       "for now.")
+        """              
+    
         batch_axis = self.output_space.get_batch_axis()
-        ave_total = kl(Y=Y, Y_hat=Y_hat, batch_axis=batch_axis)
-        ave = ave_total.mean()
-        return ave
-
+        return self.nonlin.cost(Y=Y, Y_hat=Y_hat, batch_axis=batch_axis)
+        
 
 class ConvRectifiedLinear(ConvElemwise):
 
