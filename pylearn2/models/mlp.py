@@ -3916,6 +3916,10 @@ class LinearGaussian(Linear):
         return (0.5 * T.dot(T.sqr(Y - Y_hat), self.beta).mean() -
                 0.5 * T.log(self.beta).sum())
 
+    @wraps(Linear.cost_matrix)
+    def cost_matrix(self, Y, Y_hat):
+        return 0.5 * T.sqr(Y - Y_hat) * self.beta - 0.5 * T.log(self.beta)
+
     @wraps(Layer._modify_updates)
     def _modify_updates(self, updates):
 
