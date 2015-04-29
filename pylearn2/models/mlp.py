@@ -30,7 +30,7 @@ from pylearn2.expr.probabilistic_max_pooling import max_pool_channels
 # Try to import the fast cudnn library, else fallback to conv2d
 if cuda_enabled and dnn_available():
     try:
-        from linear import cudnn2d as conv2d
+        from pylearn2.linear import cudnn2d as conv2d
     except ImportError:
         from pylearn2.linear import conv2d
 else:
