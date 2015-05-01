@@ -1467,6 +1467,99 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
 
         return total_cost
 
+    @wraps(Cost.cost_per_example)
+    def cost_per_example(self, model, data, drop_mask=None, drop_mask_Y=None,
+             return_locals=False, include_toronto=True, ** kwargs):
+        if self.supervised:
+            X, Y = data
+        else:
+            X = data
+            Y = None
+
+        if not self.supervised:
+            assert drop_mask_Y is None
+            # ignore Y if some other cost is supervised and has made it get
+            # passed in (can this still happen after the (space, source)
+            # interface change?)
+            Y = None
+        if self.supervised:
+            assert Y is not None
+            if drop_mask is not None:
+                assert drop_mask_Y is not None
+
+        if not hasattr(model, 'cost'):
+            model.cost = self
+        if not hasattr(model, 'mask_gen'):
+            model.mask_gen = self.mask_gen
+
+        dbm = model
+
+        X_space = model.get_input_space()
+
+        if drop_mask is None:
+            if self.supervised:
+                drop_mask, drop_mask_Y = self.mask_gen(X, Y, X_space=X_space)
+            else:
+                drop_mask = self.mask_gen(X, X_space=X_space)
+
+        if drop_mask_Y is not None:
+            assert drop_mask_Y.ndim == 1
+
+        if drop_mask.ndim < X.ndim:
+            if self.mask_gen is not None:
+                assert self.mask_gen.sync_channels
+            if X.ndim != 4:
+                raise NotImplementedError()
+            drop_mask = drop_mask.dimshuffle(0, 1, 2, 'x')
+
+        if not hasattr(self, 'noise'):
+            self.noise = False
+
+        history = dbm.do_inpainting(X, Y=Y, drop_mask=drop_mask,
+                                    drop_mask_Y=drop_mask_Y,
+                                    return_history=True,
+                                    noise=self.noise,
+                                    niter=self.niter,
+                                    block_grad=self.block_grad)
+        final_state = history[-1]
+
+        new_drop_mask = None
+        new_drop_mask_Y = None
+        new_history = [None for state in history]
+
+        if not hasattr(self, 'both_directions'):
+            self.both_directions = False
+        if self.both_directions:
+            raise NotImplementedError("both_directions was a research "
+                    "feature not supported going forward.")
+
+        new_final_state = new_history[-1]
+
+        cfs = self.per_example_cost_from_states
+        out = cfs(final_state, new_final_state, dbm, X, Y, drop_mask,
+                  drop_mask_Y, new_drop_mask, new_drop_mask_Y,
+                  return_locals=True)
+        total_per_example_cost, sublocals = out
+        assert total_per_example_cost.ndim == 1
+
+        if not hasattr(self, 'robustness'):
+            self.robustness = None
+        if self.robustness is not None:
+            raise NotImplementedError("robustness was a research "
+                    "feature not supported going forward.")
+
+        if not hasattr(self, 'toronto_act_targets'):
+            self.toronto_act_targets = None
+        toronto_act_cost = None
+        if self.toronto_act_targets is not None and include_toronto:
+            raise NotImplementedError("Toronto sparsity was a research "
+                    "feature not supported going forward.")
+
+        if return_locals:
+            return locals()
+
+        return total_per_example_cost
+
     def get_fixed_var_descr(self, model, data):
         """
         Returns the FixedVarDescr object responsible for making sure the
@@ -1603,7 +1696,7 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
     def get_inpaint_cost(self, dbm, X, V_hat_unmasked, drop_mask, state,
                          Y, drop_mask_Y):
         """
-        Returns the generalized pseudolikelihood giving raw data, a mask,
+        Returns the generalized pseudolikelihood given raw data, a mask,
         and the output of inference.
 
         Parameters
@@ -1629,6 +1722,40 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
             Y_hat_unmasked = state['Y_hat_unmasked']
             rc = dbm.hidden_layers[-1].recons_cost
             rval = rval + rc(Y, Y_hat_unmasked, drop_mask_Y, scale)
+
+        return rval
+
+    def get_inpaint_cost_per_example(self, dbm, X, V_hat_unmasked, drop_mask, state,
+                         Y, drop_mask_Y):
+        """
+        Returns the generalized pseudolikelihood per example given raw data, a mask,
+        and the output of inference.
+
+        Parameters
+        ----------
+        dbm : DBM
+        X : a batch of inputs
+        V_hat_unmasked : A batch of reconstructions of X
+        drop_mask : A batch of mask values
+        state : Hidden states of the DBM
+        Y : a batch of labels
+        drop_mask_Y : A batch of Y mask values
+        """
+        rcpe = dbm.visible_layer.recons_cost_per_example
+        rval = rcpe(X, V_hat_unmasked, drop_mask, use_sum=self.use_sum)
+        assert rval.ndim == 1
+
+        if self.supervised:
+            # pyflakes is too dumb to see that both branches define `scale`
+            scale = None
+            if self.use_sum:
+                scale = 1.
+            else:
+                scale = 1. / float(dbm.get_input_space().get_total_dimension())
+            Y_hat_unmasked = state['Y_hat_unmasked']
+            rc = dbm.hidden_layers[-1].recons_cost_per_example
+            rval = rval + rc(Y, Y_hat_unmasked, drop_mask_Y, scale)
+            assert rval.ndim == 1
 
         return rval
 
@@ -1819,6 +1946,120 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
             return total_cost, locals()
 
         return total_cost
+
+    def per_example_cost_from_states(self, state, new_state, dbm, X, Y,
+            drop_mask, drop_mask_Y, new_drop_mask, new_drop_mask_Y,
+            return_locals=False):
+        """
+        Returns the total cost per example, given the states produced by
+        inference.
+        This includes activity regularization costs, not just generalized
+        pseudolikelihood costs.
+
+        Parameters
+        ----------
+        state : The state of the model after inference.
+        new_state : OrderedDict
+            The state of the model after inference with a different mask.
+        dbm : DBM.
+        X : A batch of input pixels.
+        Y : A batch of output labels.
+        drop_mask : A batch of mask values determining which pixels are inputs.
+        drop_mask_Y : Theano matrix
+            A batch of mask values determining which labels are inputs.
+        new_drop_mask : The second mask.
+        new_drop_mask_Y : The second label mask.
+        return_locals : bool
+            If True, return all local variables
+
+        Returns
+        -------
+        cost_per_example : 1D Theano tensor containing cost per example
+        locals : Optional
+            If return_locals is True, returns the dictionary of all local
+            variables. Note that this means all implementation changes are
+            now API changes.
+        """
+
+        if hasattr(self, 'both_directions') and self.both_directions:
+            raise NotImplementedError("both_directions was a research"
+                    "feature that is no longer supported.")
+
+        if not self.supervised:
+            assert drop_mask_Y is None
+            assert new_drop_mask_Y is None
+        if self.supervised:
+            assert drop_mask_Y is not None
+            assert Y is not None
+
+        V_hat_unmasked = state['V_hat_unmasked']
+        assert V_hat_unmasked.ndim == X.ndim
+
+        if not hasattr(self, 'use_sum'):
+            self.use_sum = False
+
+        gicpe = self.get_inpaint_cost_per_example
+        inpaint_cost_per_example = gicpe(dbm, X, V_hat_unmasked, drop_mask,
+                                         state, Y, drop_mask_Y)
+        assert inpaint_cost_per_example.ndim == 1
+
+        total_cost_per_example = inpaint_cost_per_example
+
+        if hasattr(self, 'range_rewards') and self.range_rewards is not None:
+            raise NotImplementedError("range_rewards was a research feature "
+                    "not supported going forward.")
+
+        if hasattr(self, 'stdev_rewards') and self.stdev_rewards is not None:
+            raise NotImplementedError("stdev_rewards was a research feature "
+                    "not supported going forward.")
+
+        l1_act_cost_per_example = None
+        if self.l1_act_targets is not None:
+            l1_act_cost_per_example = T.zeros_like(total_cost_per_example)
+            if self.l1_act_eps is None:
+                self.l1_act_eps = [None] * len(self.l1_act_targets)
+            for layer, mf_state, targets, coeffs, eps in \
+                    safe_izip(dbm.hidden_layers, state['H_hat'],
+                              self.l1_act_targets, self.l1_act_coeffs,
+                              self.l1_act_eps):
+
+                assert not isinstance(targets, str)
+
+                try:
+                    gl1acpe = layer.get_l1_act_cost_per_example
+                    layer_cost_per_example = gl1acpe(mf_state, targets,
+                                                     coeffs, eps)
+                    assert layer_cost_per_example.ndim == 1
+                except NotImplementedError:
+                    if coeffs == 0.:
+                        layer_cost_per_example = 0.
+                    else:
+                        raise
+                if layer_cost_per_example != 0.:
+                    l1_act_cost_per_example += layer_cost_per_example
+                # end for substates
+            # end for layers
+            assert l1_act_cost_per_example.ndim == 1
+            total_cost_per_example += l1_act_cost_per_example
+        # end if act penalty
+
+        if not hasattr(self, 'hid_presynaptic_cost'):
+            self.hid_presynaptic_cost = None
+        if self.hid_presynaptic_cost is not None:
+            raise NotImplementedError("this was a research feature "
+                    "not supported going forward.")
+
+        if not hasattr(self, 'reweighted_act_targets'):
+            self.reweighted_act_targets = None
+        if self.reweighted_act_targets is not None:
+            raise NotImplementedError("this was a research feature "
+                    "not supported going forward.")
+
+        assert total_cost_per_example.ndim == 1
+        if return_locals:
+            return total_cost_per_example, locals()
+
+        return total_cost_per_example
 
 default_seed = 20120712
 
