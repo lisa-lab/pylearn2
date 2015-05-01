@@ -118,6 +118,9 @@ if __name__ == "__main__":
                     #print "got error trying to delete "+field
                     idx += 1
                     success = False
+                except TypeError:
+                    idx += 1
+                    success = False
                 if success and field in dir(orig_obj):
                     print(field + ' reappears after being deleted')
                     idx += 1
