@@ -353,6 +353,37 @@ class SumOfCosts(Cost):
 
         return sum_of_costs
 
+    def cost_per_example(self, model, data, ** kwargs):
+        """
+        Returns the sum of the per-example constituent costs.
+
+        Parameters
+        ----------
+        model : pylearn2.models.model.Model
+            the model for which we want to calculate the sum of
+            per-example costs
+        data : flat tuple of tensor_like variables.
+            data has to follow the format defined by self.get_data_specs(),
+            but this format will always be a flat tuple.
+        """
+        self.get_data_specs(model)[0].validate(data)
+        composite_specs, mapping = self.get_composite_specs_and_mapping(model)
+        nested_data = mapping.nest(data)
+        costs = []
+        for cost, cost_data in safe_zip(self.costs, nested_data):
+            costs.append(cost.cost_per_example(model, cost_data, **kwargs))
+        assert len(costs) > 0
+
+        if any([cost is None for cost in costs]):
+            sum_of_costs = None
+        else:
+            costs = [coeff * cost
+                     for coeff, cost in safe_zip(self.coeffs, costs)]
+            assert len(costs) > 0
+            sum_of_costs = reduce(lambda x, y: x + y, costs)
+
+        return sum_of_costs
+
     def get_composite_data_specs(self, model):
         """
         Build and return a composite data_specs of all costs.
