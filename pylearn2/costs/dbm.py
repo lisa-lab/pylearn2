@@ -1469,7 +1469,7 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
 
     @wraps(Cost.cost_per_example)
     def cost_per_example(self, model, data, drop_mask=None, drop_mask_Y=None,
-             return_locals=False, include_toronto=True, ** kwargs):
+                         return_locals=False, include_toronto=True, ** kwargs):
         if self.supervised:
             X, Y = data
         else:
@@ -1531,7 +1531,7 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
             self.both_directions = False
         if self.both_directions:
             raise NotImplementedError("both_directions was a research "
-                    "feature not supported going forward.")
+                                      "feature not supported going forward.")
 
         new_final_state = new_history[-1]
 
@@ -1546,14 +1546,14 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
             self.robustness = None
         if self.robustness is not None:
             raise NotImplementedError("robustness was a research "
-                    "feature not supported going forward.")
+                                      "feature not supported going forward.")
 
         if not hasattr(self, 'toronto_act_targets'):
             self.toronto_act_targets = None
         toronto_act_cost = None
         if self.toronto_act_targets is not None and include_toronto:
             raise NotImplementedError("Toronto sparsity was a research "
-                    "feature not supported going forward.")
+                                      "feature not supported going forward.")
 
         if return_locals:
             return locals()
@@ -1725,11 +1725,12 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
 
         return rval
 
-    def get_inpaint_cost_per_example(self, dbm, X, V_hat_unmasked, drop_mask, state,
-                         Y, drop_mask_Y):
+    def get_inpaint_cost_per_example(
+        self, dbm, X, V_hat_unmasked, drop_mask, state,
+            Y, drop_mask_Y):
         """
-        Returns the generalized pseudolikelihood per example given raw data, a mask,
-        and the output of inference.
+        Returns the generalized pseudolikelihood per example given raw
+        data, a mask, and the output of inference.
 
         Parameters
         ----------
@@ -1948,8 +1949,8 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
         return total_cost
 
     def per_example_cost_from_states(self, state, new_state, dbm, X, Y,
-            drop_mask, drop_mask_Y, new_drop_mask, new_drop_mask_Y,
-            return_locals=False):
+                                     drop_mask, drop_mask_Y, new_drop_mask,
+                                     new_drop_mask_Y, return_locals=False):
         """
         Returns the total cost per example, given the states produced by
         inference.
@@ -1983,7 +1984,7 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
 
         if hasattr(self, 'both_directions') and self.both_directions:
             raise NotImplementedError("both_directions was a research"
-                    "feature that is no longer supported.")
+                                      "feature that is no longer supported.")
 
         if not self.supervised:
             assert drop_mask_Y is None
@@ -2007,11 +2008,11 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
 
         if hasattr(self, 'range_rewards') and self.range_rewards is not None:
             raise NotImplementedError("range_rewards was a research feature "
-                    "not supported going forward.")
+                                      "not supported going forward.")
 
         if hasattr(self, 'stdev_rewards') and self.stdev_rewards is not None:
             raise NotImplementedError("stdev_rewards was a research feature "
-                    "not supported going forward.")
+                                      "not supported going forward.")
 
         l1_act_cost_per_example = None
         if self.l1_act_targets is not None:
@@ -2047,13 +2048,13 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
             self.hid_presynaptic_cost = None
         if self.hid_presynaptic_cost is not None:
             raise NotImplementedError("this was a research feature "
-                    "not supported going forward.")
+                                      "not supported going forward.")
 
         if not hasattr(self, 'reweighted_act_targets'):
             self.reweighted_act_targets = None
         if self.reweighted_act_targets is not None:
             raise NotImplementedError("this was a research feature "
-                    "not supported going forward.")
+                                      "not supported going forward.")
 
         assert total_cost_per_example.ndim == 1
         if return_locals:
