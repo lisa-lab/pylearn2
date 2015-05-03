@@ -330,6 +330,10 @@ class ForcedEvenIterator(SubsetIterator):
     def __next__(self):
         return self.next()
 
+    @property
+    @wraps(SubsetIterator.uneven, assigned=(), updated=())
+    def uneven(self):
+        return False
 
 def as_even(iterator_cls):
     """
