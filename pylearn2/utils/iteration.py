@@ -335,6 +335,7 @@ class ForcedEvenIterator(SubsetIterator):
     def uneven(self):
         return False
 
+
 def as_even(iterator_cls):
     """
     Returns a class wrapping iterator_cls that forces equal batch size.
