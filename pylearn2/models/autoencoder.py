@@ -427,16 +427,6 @@ class DenoisingAutoencoder(Autoencoder):
     corruptor : object
         Instance of a corruptor object to use for corrupting the
         input.
-    nvis : int
-        WRITEME
-    nhid : int
-        WRITEME
-    act_enc : WRITEME
-    act_dec : WRITEME
-    tied_weights : bool, optional
-        WRITEME
-    irange : WRITEME
-    rng : WRITEME
 
     Notes
     -----
@@ -612,15 +602,6 @@ class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
         Instance of a corruptor object to use for corrupting the input.
     num_corruptions : integer
         number of corrupted inputs to use
-    nvis : int
-        WRITEME
-    nhid : int
-        WRITEME
-    act_enc : WRITEME
-    act_dec : WRITEME
-    tied_weights : WRITEME
-    irange : WRITEME
-    rng : WRITEME
 
     Notes
     -----
