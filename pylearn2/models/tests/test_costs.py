@@ -106,10 +106,10 @@ def test_unimplemented_case(ConvNonlinearity):
     X = conv_model.get_input_space().make_theano_batch()
     Y = conv_model.get_target_space().make_theano_batch()
     Y_hat = conv_model.fprop(X)
-    g = theano.function([X], Y_hat)
 
     conv_cost = theano.function([X, Y], conv_model.cost(Y, Y_hat))
-    # Not sure how to catch the exception here.  I think it should be something like assertRaises(NotImplementedError, np.linalg.norm(conv_cost(x,y)))
+    # Not sure how to catch the exception here.  I think it should be something 
+    # like assertRaises(NotImplementedError, np.linalg.norm(conv_cost(x,y)))
 
 
 def test_all_costs():
