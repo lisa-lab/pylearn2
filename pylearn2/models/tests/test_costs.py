@@ -1,14 +1,10 @@
+"""
+Note: Cost functions are not implemented for RectifierConvNonlinearity,
+TanhConvNonlinearity, RectifiedLinear, and Tanh.  Here we verify that 
+cost functions for convolutional layers give the correct output
+by comparing to standard MLP's.
+"""
 
-"""
-Notes: Cost function is not implemented for IdentityConvNonlinearity, RectifierConvNonlinearity, 
-TanhConvNonlinearity.  It is bugged for SigmoidConvNonlinearity, but we are not triggering the 
-bug here. The cost function is also not implemented for standard mlp RectifiedLinear or Tanh.
-"""
-
-
-"""
-Test costs
-"""
 import numpy as np
 import theano
 import theano.tensor as T
@@ -18,79 +14,70 @@ from pylearn2.models.mlp import ConvElemwise
 from pylearn2.space import Conv2DSpace
 from pylearn2.models.mlp import SigmoidConvNonlinearity, TanhConvNonlinearity, IdentityConvNonlinearity, RectifierConvNonlinearity
 
-#def test_costs():
+def test_costs():
 
-# Create fake data
-np.random.seed(12345)
+    ImplementedNonLinearities = [[SigmoidConvNonlinearity(), Sigmoid], [IdentityConvNonlinearity(), Linear]]
 
+    for ConvNonlinearity, MLPNonlinearity in ImplementedNonLinearities:
 
-r = 31
-s = 21
-shape = [r, s]
-nvis = r*s
-output_channels = 13
-batch_size = 103
+        # Create fake data
+        np.random.seed(12345)
 
-x = np.random.rand(batch_size, r, s, 1)
-y = np.random.randint(2, size = [batch_size, output_channels, 1 ,1])
+        r = 31
+        s = 21
+        shape = [r, s]
+        nvis = r*s
+        output_channels = 13
+        batch_size = 103
 
-x = x.astype('float32')
-y = y.astype('float32')
+        x = np.random.rand(batch_size, r, s, 1).astype('float32')
+        y = np.random.randint(2, size = [batch_size, output_channels, 1 ,1]).astype('float32')
 
-x_mlp = x.flatten().reshape(batch_size, nvis)
-y_mlp = y.flatten().reshape(batch_size, output_channels)
+        x_mlp = x.flatten().reshape(batch_size, nvis)
+        y_mlp = y.flatten().reshape(batch_size, output_channels)
 
-nonlinearity = IdentityConvNonlinearity()
+        # Initialize convnet with random weights.  
 
-# Initialize convnet with random weights.  
+        conv_model = MLP(
+            input_space = Conv2DSpace(shape = shape, axes = ['b', 0, 1, 'c'], num_channels = 1),
+            layers = [ConvElemwise(layer_name='conv', nonlinearity = ConvNonlinearity, output_channels = output_channels, kernel_shape = shape, pool_shape = [1,1], pool_stride = shape, irange= 1.0)],
+            batch_size = batch_size
+        )
 
-conv_model = MLP(
-    input_space = Conv2DSpace(shape = shape, axes = ['b', 0, 1, 'c'], num_channels = 1),
-    layers = [ConvElemwise(layer_name='conv', nonlinearity = nonlinearity, output_channels = output_channels, kernel_shape = shape, pool_shape = [1,1], pool_stride = shape, irange= 1.0)],
-    batch_size = batch_size
-)
+        X = conv_model.get_input_space().make_theano_batch()
+        Y = conv_model.get_target_space().make_theano_batch()
+        Y_hat = conv_model.fprop(X).flatten()
+        g = theano.function([X], Y_hat)
 
-X = conv_model.get_input_space().make_theano_batch()
-Y = conv_model.get_target_space().make_theano_batch()
-Y_hat = conv_model.fprop(X)
-g = theano.function([X], Y_hat)
+        # Construct an equivalent MLP which gives the same output after flattening.
 
-# Construct an equivalent MLP which gives the same output.
+        mlp_model = MLP(
+            layers = [MLPNonlinearity(dim = output_channels, layer_name = 'mlp', irange = 1.0)],
+            batch_size = batch_size,
+            nvis = nvis
+        )
 
-mlp_model = MLP(
-    layers = [Linear(dim = output_channels, layer_name = 'mlp', irange = 1.0)],
-    batch_size = batch_size,
-    nvis = nvis
-)
+        W, b = conv_model.get_param_values()
+        W = W.astype('float32')
+        b = b.astype('float32')
+        W_mlp = np.zeros(shape = (output_channels, nvis))
+        for k in range(output_channels):
+            W_mlp[k] = W[k, 0].flatten()[::-1]
+        W_mlp = W_mlp.T
+        b_mlp = b.flatten()
+        W_mlp = W_mlp.astype('float32')
+        b_mlp = b_mlp.astype('float32')
+        mlp_model.set_param_values([W_mlp, b_mlp])
 
-W, b = conv_model.get_param_values()
-W = W.astype('float32')
-b = b.astype('float32')
-W_mlp = np.zeros(shape = (output_channels, nvis))
-for k in range(output_channels):
-    W_mlp[k] = W[k, 0].flatten()[::-1]
-W_mlp = W_mlp.T
-b_mlp = b.flatten()
-W_mlp = W_mlp.astype('float32')
-b_mlp = b_mlp.astype('float32')
-mlp_model.set_param_values([W_mlp, b_mlp])
-
-X1 = mlp_model.get_input_space().make_theano_batch()
-Y1 = mlp_model.get_target_space().make_theano_batch()
-Y1_hat = mlp_model.fprop(X1)
-f = theano.function([X1], Y1_hat)
+        X1 = mlp_model.get_input_space().make_theano_batch()
+        Y1 = mlp_model.get_target_space().make_theano_batch()
+        Y1_hat = mlp_model.fprop(X1).flatten()
+        f = theano.function([X1], Y1_hat)
 
 
-# Check that the two models give the same throughput
-assert  np.linalg.norm(f(x_mlp).flatten() -  g(x).flatten()) < 10**-3
-print "f-prop ok"
+        # Check that the two models give the same output
+        assert np.linalg.norm(f(x_mlp) -  g(x)) < 10**-3
 
-# Cost functions:
-mlp_cost = theano.function([X1, Y1], mlp_model.cost(Y1, Y1_hat))
-print "mlp_cost = "+str(mlp_cost(x_mlp, y_mlp))
-
-batch_axis = T.scalar()
-conv_cost = theano.function([X, Y], conv_model.cost(Y, Y_hat))
-print "conv_cost = "+str(conv_cost(x,y))
-
+if __name__ == "__main__":
+    test_costs()
 
