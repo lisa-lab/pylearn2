@@ -1516,20 +1516,27 @@ class SoftmaxPool(Layer):
     Parameters
     ----------
     detector_layer_dim : WRITEME
-    layer_name : WRITEME
+    layer_name : str
+        The name of the layer. All layers in an MLP must have a unique name.
     pool_size : WRITEME
-    irange : WRITEME
-    sparse_init : WRITEME
+    irange : float, optional
+        If specified, initialized each weight randomly in U(-irange, irange).
+    sparse_init : int, optional
+        If specified, initial sparse_init number of weights for each unit from
+        N(0,1).
     sparse_stdev : WRITEME
     include_prob : float, optional
         Probability of including a weight element in the set of weights
         initialized to U(-irange, irange). If not included it is
         initialized to 0.
     init_bias : WRITEME
-    W_lr_scale : WRITEME
-    b_lr_scale : WRITEME
+    W_lr_scale : float, optional
+        Multiply the learning rate on the weights by this constant.
+    b_lr_scale : float, optional
+        Multiply the learning rate on the biases by this constant.
     mask_weights : WRITEME
-    max_col_norm : WRITEME
+    max_col_norm : float, optional
+        Maximum norm for a column of the weight matrix.
     """
 
     def __init__(self,
@@ -1861,9 +1868,13 @@ class Linear(Layer):
         The number of elements in the output of the layer.
     layer_name : str
         The name of the layer. All layers in an MLP must have a unique name.
-    irange : WRITEME
-    istdev : WRITEME
-    sparse_init : WRITEME
+    irange : float, optional
+        If specified, initialized each weight randomly in U(-irange, irange).
+    istdev : float, optional
+        If specified, initialize each weight randomly from N(0,istdev).
+    sparse_init : int, optional
+        If specified, initial sparse_init number of weights for each unit from
+        N(0,1).
     sparse_stdev : WRITEME
     include_prob : float
         Probability of including a weight element in the set of weights
@@ -1886,8 +1897,10 @@ class Linear(Layer):
     mask_weights : ndarray, optional
         If provided, the weights will be multiplied by this mask after each
         learning update.
-    max_row_norm : WRITEME
-    max_col_norm : WRITEME
+    max_row_norm : float, optional
+        Maximum norm for a row of the weight matrix.
+    max_col_norm : float, optional
+        Maximum norm for a column of the weight matrix.
     min_col_norm : WRITEME
     copy_input : REMOVED
     use_abs_loss : bool, optional
