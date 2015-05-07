@@ -1108,6 +1108,13 @@ def test_dtypes():
     for is_numeric in (True, False):
         for space in vector_spaces + conv2d_spaces:
             for batch_dtype in ('floatX', ) + all_scalar_dtypes:
+                # Skip the test if the symbolic SparseType does not implement
+                # that dtype. As of 2015-05-07, this happens for 'float16'.
+                if ((isinstance(space, VectorSpace) and
+                     space.sparse and
+                     batch_dtype in all_scalar_dtypes and
+                     batch_dtype not in theano.sparse.SparseType.dtype_set)):
+                    continue
                 test_simply_typed_space_validate(space,
                                                  batch_dtype,
                                                  is_numeric)
@@ -1119,6 +1126,13 @@ def test_dtypes():
         # Tests batch-making and dtype setting methods with non-composite
         # dtypes.
         for to_dtype in dtypes:
+            # Skip the test if the symbolic SparseType does not implement
+            # that dtype. As of 2015-05-07, this happens for 'float16'.
+            if ((isinstance(from_space, VectorSpace) and
+                 from_space.sparse and
+                 to_dtype in all_scalar_dtypes and
+                 to_dtype not in theano.sparse.SparseType.dtype_set)):
+                continue
             test_get_origin_batch(from_space, to_dtype)
             test_make_shared_batch(from_space, to_dtype)
             test_make_theano_batch(from_space, to_dtype)
@@ -1126,6 +1140,14 @@ def test_dtypes():
 
         # Tests _format_as
         for to_space in all_spaces:
+            # Skip the test if the symbolic SparseType does not implement
+            # that dtype. As of 2015-05-07, this happens for 'float16'.
+            if ((isinstance(to_space, VectorSpace) and
+                 to_space.sparse and
+                 to_space.dtype in all_scalar_dtypes and
+                 to_space.dtype not in theano.sparse.SparseType.dtype_set)):
+                continue
+
             for is_numeric in (True, False):
                 test_format(from_space, to_space, is_numeric)
 
