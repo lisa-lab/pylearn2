@@ -1519,9 +1519,9 @@ class SoftmaxPool(Layer):
     layer_name : str
         The name of the layer. All layers in an MLP must have a unique name.
     pool_size : WRITEME
-    irange : float
+    irange : float, optional
         If specified, initialized each weight randomly in U(-irange, irange).
-    sparse_init : int
+    sparse_init : int, optional
         If specified, initial sparse_init number of weights for each unit from
         N(0,1).
     sparse_stdev : WRITEME
@@ -1535,7 +1535,7 @@ class SoftmaxPool(Layer):
     b_lr_scale : float, optional
         Multiply the learning rate on the biases by this constant.
     mask_weights : WRITEME
-    max_col_norm : float
+    max_col_norm : float, optional
         Maximum norm for a column of the weight matrix.
     """
 
@@ -1868,11 +1868,11 @@ class Linear(Layer):
         The number of elements in the output of the layer.
     layer_name : str
         The name of the layer. All layers in an MLP must have a unique name.
-    irange : float
+    irange : float, optional
         If specified, initialized each weight randomly in U(-irange, irange).
-    istdev : float
+    istdev : float, optional
         If specified, initialize each weight randomly from N(0,istdev).
-    sparse_init : int
+    sparse_init : int, optional
         If specified, initial sparse_init number of weights for each unit from
         N(0,1).
     sparse_stdev : WRITEME
@@ -1897,9 +1897,9 @@ class Linear(Layer):
     mask_weights : ndarray, optional
         If provided, the weights will be multiplied by this mask after each
         learning update.
-    max_row_norm : float
+    max_row_norm : float, optional
         Maximum norm for a row of the weight matrix.
-    max_col_norm : float
+    max_col_norm : float, optional
         Maximum norm for a column of the weight matrix.
     min_col_norm : WRITEME
     copy_input : REMOVED
