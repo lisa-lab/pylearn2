@@ -9,7 +9,7 @@ import theano.tensor as tensor
 from theano import config
 from pylearn2.models.autoencoder import Autoencoder, \
     HigherOrderContractiveAutoencoder, DeepComposedAutoencoder, \
-    UntiedAutoencoder
+    UntiedAutoencoder, StackedDenoisingAutoencoder
 from pylearn2.corruption import BinomialCorruptor
 from pylearn2.config import yaml_parse
 from theano.tensor.basic import _allclose
@@ -121,3 +121,26 @@ def test_dcae():
 
     data = np.random.randn(10, 5).astype(config.floatX)
     model.perform(data)
+
+
+def test_sdae():
+    """
+    Tests that StackedDenoisingAutoencoder works correctly
+    """
+    data = np.random.randn(10, 5).astype(config.floatX) * 100
+    ae = Autoencoder(5, 7, act_enc='tanh', act_dec='cos',
+                     tied_weights=False)
+    corruptor = BinomialCorruptor(corruption_level=0.5)
+    model = StackedDenoisingAutoencoder([ae], corruptor)
+    model._ensure_extensions()
+
+    w = ae.weights.get_value()
+    w_prime = ae.w_prime.get_value()
+    ae.hidbias.set_value(np.random.randn(7).astype(config.floatX))
+    hb = ae.hidbias.get_value()
+    ae.visbias.set_value(np.random.randn(5).astype(config.floatX))
+    vb = ae.visbias.get_value()
+    d = tensor.matrix()
+    result = np.cos(np.dot(np.tanh(hb + np.dot(data,  w)), w_prime) + vb)
+    ff = theano.function([d], model.reconstruct(d))
+    assert not _allclose(ff(data), result)

@@ -753,6 +753,29 @@ class DeepComposedAutoencoder(AbstractAutoencoder):
             autoencoder.modify_updates(updates)
 
 
+class StackedDenoisingAutoencoder(DeepComposedAutoencoder):
+    """
+    A stacked denoising autoencoder learns a representation of the input by
+    reconstructing a noisy version of it.
+
+    Parameters
+    ----------
+    autoencoders : list
+        A list of autoencoder objects.
+    corruptor : object
+        Instance of a corruptor object to use for corrupting the
+        input.
+    """
+    def __init__(self, autoencoders, corruptor):
+        super(StackedDenoisingAutoencoder, self).__init__(autoencoders)
+        self.corruptor = corruptor
+
+    @functools.wraps(AbstractAutoencoder.reconstruct)
+    def reconstruct(self, inputs):
+        corrupted = self.corruptor(inputs)
+        return super(StackedDenoisingAutoencoder, self).reconstruct(corrupted)
+
+
 def build_stacked_ae(nvis, nhids, act_enc, act_dec,
                      tied_weights=False, irange=1e-3, rng=None,
                      corruptor=None, contracting=False):
