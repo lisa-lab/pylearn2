@@ -789,25 +789,8 @@ class StackedDenoisingAutoencoder(DeepComposedAutoencoder):
         super(StackedDenoisingAutoencoder, self).__init__(autoencoders)
         self.corruptor = corruptor
 
+    @functools.wraps(AbstractAutoencoder.reconstruct)
     def reconstruct(self, inputs):
-        """
-        Reconstruct the inputs after corrupting and mapping through the
-        encoder and decoder.
-
-        Parameters
-        ----------
-        inputs : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the input
-            minibatch(es) to be corrupted and reconstructed. Assumed to be
-            2-tensors, with the first dimension indexing training examples
-            and the second indexing data dimensions.
-
-        Returns
-        -------
-        reconstructed : tensor_like or list of tensor_like
-            Theano symbolic (or list thereof) representing the corresponding
-            reconstructed minibatch(es) after corruption and encoding/decoding.
-        """
         corrupted = self.corruptor(inputs)
         return super(StackedDenoisingAutoencoder, self).reconstruct(corrupted)
 
