@@ -898,19 +898,21 @@ class EpochMonitor(object):
     monitor_rate : int (optional)
         Call full monitor updates within epochs every `monitor_rate` batches
 
-    YAML usage
-    ----------
-    model: &model !obj:pylearn2.models.mlp.MLP {
-        ...
-    },
-    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
-        update_callbacks: [
-            !obj:pylearn2.training_algorithms.sgd.EpochMonitor {
-                model: *model,
-                tick_rate: 20,
-                monitor_rate: 110 }],
-        ...
-    }
+    Example
+    -------
+    YAML usage::
+
+        model: &model !obj:pylearn2.models.mlp.MLP {
+            ...
+        },
+        algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+            update_callbacks: [
+                !obj:pylearn2.training_algorithms.sgd.EpochMonitor {
+                    model: *model,
+                    tick_rate: 20,
+                    monitor_rate: 110 }],
+            ...
+        }
     """
     def __init__(self, model, tick_rate=None, monitor_rate=None):
         self.model = model
