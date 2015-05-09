@@ -1,11 +1,16 @@
 from __future__ import print_function
 
+import sys
 import warnings
 from setuptools import setup, find_packages, Extension
 from setuptools.command.install import install
 import numpy
 
-from theano.compat.six.moves import input
+# Importing theano.compat.six.moves.input may not work here,
+# because the dependencies may not have been installed yet.
+PY3 = sys.version_info[0] == 3
+if not PY3:
+    input = raw_input
 
 # Because many people neglected to run the pylearn2/utils/setup.py script
 # separately, we compile the necessary Cython extensions here but because

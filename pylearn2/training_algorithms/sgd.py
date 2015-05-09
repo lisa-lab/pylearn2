@@ -898,8 +898,8 @@ class EpochMonitor(object):
     monitor_rate : int (optional)
         Call full monitor updates within epochs every `monitor_rate` batches
 
-    Example
-    -------
+    Examples
+    --------
     YAML usage::
 
         model: &model !obj:pylearn2.models.mlp.MLP {
