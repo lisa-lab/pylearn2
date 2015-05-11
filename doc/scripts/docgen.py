@@ -11,7 +11,9 @@ import sys
 
 if __name__ == '__main__':
 
-    throot = "/".join(sys.path[0].split("/")[:-2])
+    # Equivalent of sys.path[0]/../..
+    throot = os.path.abspath(
+        os.path.join(sys.path[0], os.pardir, os.pardir))
 
     options = defaultdict(bool)
     options.update(dict([x, y or True] for x, y in getopt.getopt(sys.argv[1:], 'o:', ['epydoc', 'rst', 'help', 'nopdf', 'test'])[0]))
@@ -45,19 +47,19 @@ if __name__ == '__main__':
     if options['--test']:
         import sphinx
         sys.path[0:0] = [os.path.join(throot, 'doc')]
-        out = sphinx.main(['', '-b' 'text', '-W',
-                           '-E', os.path.join(throot, 'doc'), '.'])
+        out = sphinx.build_main(['', '-b' 'text', '-W',
+                                 '-E', os.path.join(throot, 'doc'), '.'])
         sys.exit(out)
     elif options['--all'] or options['--rst']:
         import sphinx
         sys.path[0:0] = [os.path.join(throot, 'doc')]
-        sphinx.main(['', '-E', os.path.join(throot, 'doc'), '.'])
+        sphinx.build_main(['', '-E', os.path.join(throot, 'doc'), '.'])
 
         if not options['--nopdf']:
             # Generate latex file in a temp directory
             import tempfile
             workdir = tempfile.mkdtemp()
-            sphinx.main(['', '-E', '-b', 'latex',
+            sphinx.build_main(['', '-E', '-b', 'latex',
                 os.path.join(throot, 'doc'), workdir])
             # Compile to PDF
             os.chdir(workdir)
