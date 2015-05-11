@@ -1,4 +1,7 @@
 # This is for readthedocs.org to be able to build the documentation,
 # ignore otherwise
 numpydoc
-git+git://github.com/Theano/Theano.git
+
+--allow-external theano
+--allow-unverified theano
+git+https://github.com/Theano/Theano.git#egg=theano
