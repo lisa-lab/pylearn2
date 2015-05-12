@@ -113,7 +113,7 @@
             decay_factor: .01
         },
         !obj:pylearn2.train_extensions.window_flip.WindowAndFlip {
-            pad_randomized: 8,
+            pad_randomized: 4,
             window_shape: *window_shape,
             randomize: [ *train],
             center: [ *valid ]
