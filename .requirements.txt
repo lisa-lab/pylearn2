@@ -1,11 +1,7 @@
 # This is for readthedocs.org to be able to build the documentation,
 # ignore otherwise
 numpydoc
-
-#--allow-external numpy
 numpy>=1.6.2
-
-#--allow-external scipy
 scipy>=0.11
 
 --allow-external theano
