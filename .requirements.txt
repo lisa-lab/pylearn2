@@ -2,6 +2,12 @@
 # ignore otherwise
 numpydoc
 
+#--allow-external numpy
+numpy>=1.6.2
+
+#--allow-external scipy
+scipy>=0.11
+
 --allow-external theano
 --allow-unverified theano
 git+https://github.com/Theano/Theano.git#egg=theano
