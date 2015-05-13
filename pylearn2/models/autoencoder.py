@@ -232,15 +232,14 @@ class Autoencoder(AbstractAutoencoder):
             assert istdev is None
             W = rng.uniform(
                 -irange,
-                 irange,
-                 (nvis, self.nhid)
-                 )
+                irange,
+                (nvis, self.nhid)
+            )
         else:
             assert istdev is not None
             W = rng.randn(nvis, self.nhid) * istdev
 
         self.weights = sharedX(W, name='W', borrow=True)
-
 
     def _initialize_hidbias(self):
         """
@@ -291,7 +290,6 @@ class Autoencoder(AbstractAutoencoder):
             W = rng.randn(self.nhid, nvis) * istdev
 
         self.w_prime = sharedX(W, name='Wprime', borrow=True)
-
 
     def set_visible_size(self, nvis, rng=None):
         """
@@ -633,7 +631,8 @@ class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
     docstring for details.
     """
     def __init__(self, corruptor, num_corruptions, nvis, nhid, act_enc,
-                 act_dec, tied_weights=False, irange=1e-3, istdev=None, rng=9001):
+                 act_dec, tied_weights=False, irange=1e-3, istdev=None,
+                 rng=9001):
         super(HigherOrderContractiveAutoencoder, self).__init__(
             nvis=nvis,
             nhid=nhid,
