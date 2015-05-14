@@ -5,7 +5,6 @@
         axes: ['c', 0, 1, 'b']
     },
     model: !obj:pylearn2.models.mlp.MLP {
-        batch_size: 128,
         layers: [
                  !obj:pylearn2.models.maxout.MaxoutConvC01B {
                      layer_name: 'h0',
@@ -70,8 +69,8 @@
         },
     },
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
-        train_iteration_mode: 'even_batchwise_shuffled_sequential',
-        monitor_iteration_mode: 'even_sequential',
+        batch_size: 128,
+        train_iteration_mode: 'batchwise_shuffled_sequential',
         learning_rate: 0.200000,
         learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
             init_momentum: 0.5,
