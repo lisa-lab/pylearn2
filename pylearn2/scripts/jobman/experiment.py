@@ -3,7 +3,7 @@ import pylearn2.config.yaml_parse
 
 from theano.compat import six
 import jobman
-from jobman.tools import expand, flatten
+from jobman.tools import expand, flatten, DD
 
 
 class ydict(dict):
@@ -83,3 +83,9 @@ def train_experiment(state, channel):
         # to it.
         state.results = jobman.tools.resolve(state.extract_results)(train_obj)
         return channel.COMPLETE
+
+def results_extractor(train_obj):
+    """
+    Default results extractor that does nothing. Good for tutorials.
+    """
+    return DD()
