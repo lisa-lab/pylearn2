@@ -2684,8 +2684,22 @@ class ConvNonlinearity(object):
 
         return rval
     
-    @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
+        """
+        Parameters
+        ----------
+        Y : theano.gof.Variable
+            Output of `fprop`
+        Y_hat : theano.gof.Variable
+            Targets
+        batch_axis : integer 
+            axis representing batch dimension
+
+        Returns
+        -------
+        cost : theano.gof.Variable
+            0-D tensor describing the cost
+        """
         raise NotImplementedError(
             str(type(self)) + " does not implement cost function.")
 
@@ -2719,23 +2733,9 @@ class IdentityConvNonlinearity(ConvNonlinearity):
 
         return rval
     
-    @wraps(Linear.cost)
+    @wraps(ConvNonlinearity.cost)
     def cost(self, Y, Y_hat, batch_axis):
         """
-        Parameters
-        ----------
-        Y : theano.gof.Variable
-            Output of `fprop`
-        Y_hat : theano.gof.Variable
-            Targets
-        batch_axis : integer 
-            axis representing batch dimension
-
-        Returns
-        -------
-        cost : theano.gof.Variable
-            0-D tensor describing the cost
-
         Notes
         -----
         Mean squared error across batches 
@@ -2775,7 +2775,7 @@ class RectifierConvNonlinearity(ConvNonlinearity):
             linear_response * (linear_response < 0.)
         return p
 
-    @wraps(Linear.cost)
+    @wraps(ConvNonlinearity.cost)
     def cost(self, Y, Y_hat, batch_axis):
         raise NotImplementedError(
             str(type(self)) + " does not implement cost function.")
@@ -2860,23 +2860,9 @@ class SigmoidConvNonlinearity(ConvNonlinearity):
 
         return rval
         
-    @wraps(Linear.cost)
+    @wraps(ConvNonlinearity.cost)
     def cost(self, Y, Y_hat, batch_axis):
         """
-        Parameters
-        ----------
-        Y : theano.gof.Variable
-            Output of `fprop`
-        Y_hat : theano.gof.Variable
-            Targets
-        batch_axis : integer 
-            axis representing batch dimension
-
-        Returns
-        -------
-        cost : theano.gof.Variable
-            0-D tensor describing the cost
-
         Notes
         -----
         Cost mean across units, mean across batch of KL divergence
@@ -2905,7 +2891,7 @@ class TanhConvNonlinearity(ConvNonlinearity):
         p = T.tanh(linear_response)
         return p
 
-    @wraps(Linear.cost)
+    @wraps(ConvNonlinearity.cost)
     def cost(self, Y, Y_hat, batch_axis):
         raise NotImplementedError(
             str(type(self)) + " does not implement cost function.")
@@ -3332,17 +3318,9 @@ class ConvElemwise(Layer):
     @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
         """
-        Parameters
-        ----------
-        Y : theano.gof.Variable
-             Output of `fprop`
-        Y_hat : theano.gof.Variable
-            Targets
-
-        Returns
-        -------
-        cost : theano.gof.Variable
-            0-D tensor describing the cost
+        Notes
+        -----
+        The cost method calls self.nonlin.cost
         """              
     
         batch_axis = self.output_space.get_batch_axis()
