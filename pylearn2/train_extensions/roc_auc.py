@@ -6,7 +6,6 @@ dataset(s), reported via monitor channels.
 __author__ = "Steven Kearnes"
 __copyright__ = "Copyright 2014, Stanford University"
 __license__ = "3-clause BSD"
-__maintainer__ = "Steven Kearnes"
 
 import numpy as np
 try:

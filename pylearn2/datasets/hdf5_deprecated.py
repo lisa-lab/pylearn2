@@ -5,7 +5,6 @@ Objects for datasets serialized in HDF5 format (.h5).
 __author__ = "Steven Kearnes"
 __copyright__ = "Copyright 2014, Stanford University"
 __license__ = "3-clause BSD"
-__maintainer__ = "Steven Kearnes"
 
 try:
     import h5py
