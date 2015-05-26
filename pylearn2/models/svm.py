@@ -83,6 +83,5 @@ class DenseMulticlassSVM(OneVsRestClassifier):
             A 2D ndarray with each row containing the input features for one
             example.
         """
-        return np.concatenate([estimator.decision_function(X) for estimator in
-            self.estimators_ ], axis = 1)
-
+        return np.column_stack([estimator.decision_function(X)
+                                for estimator in self.estimators_])
