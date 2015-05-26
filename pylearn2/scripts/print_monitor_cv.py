@@ -10,7 +10,6 @@ from __future__ import print_function
 __author__ = "Steven Kearnes"
 __copyright__ = "Copyright 2014, Stanford University"
 __license__ = "3-clause BSD"
-__maintainer__ = "Steven Kearnes"
 
 import argparse
 from collections import Iterable

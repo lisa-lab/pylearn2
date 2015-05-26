@@ -5,7 +5,6 @@ Cross-validation with blocks.
 __author__ = "Steven Kearnes"
 __copyright__ = "Copyright 2014, Stanford University"
 __license__ = "3-clause BSD"
-__maintainer__ = "Steven Kearnes"
 
 from theano.compat.six.moves import xrange
 from pylearn2.blocks import StackedBlocks
