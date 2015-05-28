@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """
-.. todo::
-
-    WRITEME
+Visualizes the examples in a dataset
 """
 from __future__ import print_function
 
@@ -22,22 +20,27 @@ from pylearn2.config import yaml_parse
 
 def show_examples(path, rows, cols, rescale='global', out=None):
     """
-    .. todo::
-
-        WRITEME
+    Show or save examples to an image for a pickled/YAML dataset
 
     Parameters
     ----------
     path : string
         The pickle or YAML file to show examples of
     rows : int
-        WRITEME
+        Number of rows shown in the output image
     cols : int
-        WRITEME
-    rescale : {'rescale', 'global', 'individual'}
-        Default is 'rescale', WRITEME
+        Number of columns shown in the output image
+    rescale : {'none', 'global', 'individual'}
+        Default is 'global'
+        If 'none', no rescale is performed
+        If 'global', the examples is rescaled by the maximum absolute value
+            of a pixel in all the examples
+        If 'individual', the examples is rescaled by the maximum absolute
+            value of a pixel in each of the examples
     out : string, optional
-        WRITEME
+        Default is None
+        If None, the output image is opened by $PYLEARN2_VIEWER_COMMAND
+        Else, the output image is saved to the file named by $out
     """
 
     if rescale == 'none':
