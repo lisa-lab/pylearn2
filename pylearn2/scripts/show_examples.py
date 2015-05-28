@@ -34,9 +34,9 @@ def show_examples(path, rows, cols, rescale='global', out=None):
         Default is 'global'
         If 'none', no rescale is performed
         If 'global', the examples is rescaled by the maximum absolute value
-            of a pixel in all the examples
+        of a pixel in all the examples
         If 'individual', the examples is rescaled by the maximum absolute
-            value of a pixel in each of the examples
+        value of a pixel in each of the examples
     out : string, optional
         Default is None
         If None, the output image is opened by $PYLEARN2_VIEWER_COMMAND
