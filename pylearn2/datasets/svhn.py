@@ -15,6 +15,7 @@ import numpy
 from theano.compat.six.moves import xrange
 from theano import config
 from pylearn2.datasets import dense_design_matrix
+from pylearn2.datasets import cache
 from pylearn2.utils.serial import load
 from pylearn2.utils.string_utils import preprocess
 from pylearn2.utils.rng import make_np_rng
@@ -29,14 +30,27 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
     Parameters
     ----------
-    which_set : WRITEME
-    path : WRITEME
-    center : WRITEME
-    scale : WRITEME
-    start : WRITEME
-    stop : WRITEME
-    axes : WRITEME
-    preprocessor : WRITEME
+    which_set : str
+        Subset name.
+    path : str, optional
+        Path to pytable h5 files in case you want to use
+        preprocessed/modified data.
+    center : bool, optional
+        Center data around zero.
+    scale : bool, optional
+        Scale data to [0, 1] from [0, 255]
+    start : bool, optional
+        Start index
+    stop : bool, optional
+        Stop index
+    axes : str, tuple
+        Axes format.
+    preprocessor : obj, optional
+        Preprocessor
+    enable_cache : bool, optional
+        enables pylearn2 local caching.
+    write_permission: bool, optional
+        give write permission to the files. Use this with caution.
     """
 
     mapper = {'train': 0, 'test': 1, 'extra': 2, 'train_all': 3,
@@ -46,44 +60,48 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
     def __init__(self, which_set, path=None, center=False, scale=False,
                  start=None, stop=None, axes=('b', 0, 1, 'c'),
-                 preprocessor = None):
+                 preprocessor = None, enable_cache = True,
+                 write_permission = False):
 
         assert which_set in self.mapper.keys()
 
         self.__dict__.update(locals())
         del self.self
 
-        if path is None:
-            path = '${PYLEARN2_DATA_PATH}/SVHN/format2/'
+        if write_permission and (not enable_cache):
+            if path is None:
+                raise ValueError("You are not allowed to change the original" +
+                                 " file located at $PYLEARN2_DATA_PATH. " +
+                                 " Enable caching to remove this error.")
+            else:
+                warnings.warn("You might change the data in the files " +
+                              "located at: {}".format(path))
+
+        if not write_permission:
             mode = 'r'
         else:
             mode = 'r+'
-            warnings.warn("Because path is not same as PYLEARN2_DATA_PATH "
-                          "be aware that data might have been "
-                          "modified or pre-processed.")
+            warnings.warn("Mode is set to write more, any changes you apply " +
+                          "to data will affect the file on disk.")
 
-        if mode == 'r' and (scale or
-                            center or
-                            (start is not None) or
-                            (stop is not None)):
-            raise ValueError("Only for speed there is a copy of hdf5 file in "
-                             "PYLEARN2_DATA_PATH but it meant to be only "
-                             "readable. If you wish to modify the data, you "
-                             "should pass a local copy to the path argument.")
+        if path is None:
+            path = '${PYLEARN2_DATA_PATH}/SVHN/format2/'
 
-        # load data
         path = preprocess(path)
         file_n = "{0}_32x32.h5".format(os.path.join(path, "h5", which_set))
-        if os.path.isfile(file_n):
-            make_new = False
-        else:
-            make_new = True
-            warnings.warn("Over riding existing file: {0}".format(file_n))
+        if not os.path.isfile(file_n):
+            raise IOError("Pytables h5 file do not exist at {}.".format(path) +
+                          " You should construct them from original data " +
+                          "using SVHN.make_data method")
 
-        # if hdf5 file does not exist make them
-        if make_new:
-            self.filters = tables.Filters(complib='blosc', complevel=5)
-            self.make_data(which_set, path)
+        if enable_cache:
+            datasetCache = cache.datasetCache
+            path = datasetCache.cache_file(file_n)
+
+        if mode == 'r' and (scale or center or (start is not None) or
+                                               (stop is not None)):
+            raise ValueError("You can not modify data files as it's in " +
+                             "read-only mode")
 
         self.h5file = tables.openFile(file_n, mode=mode)
         data = self.h5file.getNode('/', "Data")
@@ -124,7 +142,8 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
                     start=self.start, stop=self.stop,
                     axes=self.axes, preprocessor=self.preprocessor)
 
-    def make_data(self, which_set, path, shuffle=True):
+    @staticmethod
+    def make_data(which_set, path, shuffle=True):
         """
         .. todo::
 
@@ -134,9 +153,8 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
                  'train_all': 604388, 'valid': 6000, 'splitted_train': 598388}
         image_size = 32 * 32 * 3
         h_file_n = "{0}_32x32.h5".format(os.path.join(path, "h5", which_set))
-        h5file, node = self.init_hdf5(h_file_n,
-                                      ([sizes[which_set], image_size],
-                                       [sizes[which_set], 10]))
+        h5file, node = SVHN.init_hdf5(h_file_n, ([sizes[which_set],
+                                      image_size], [sizes[which_set], 10]))
 
         # For consistency between experiments better to make new random stream
         rng = make_np_rng(None, 322, which_method="shuffle")
@@ -214,11 +232,11 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
             train_index = list(train_index)
 
             train_x = numpy.concatenate((train_x,
-                                         data['X'][:, :, :, train_index]),
+                                        data['X'][:, :, :, train_index]),
                                         axis=3)
             train_y = numpy.concatenate((train_y, data['y'][train_index, :]))
             valid_x = numpy.concatenate((valid_x,
-                                         data['X'][:, :, :, valid_index]),
+                                        data['X'][:, :, :, valid_index]),
                                         axis=3)
             valid_y = numpy.concatenate((valid_y, data['y'][valid_index, :]))
 
@@ -295,7 +313,7 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
 
     def __init__(self, which_set, center=False, scale=False,
                  start=None, stop=None, axes=('b', 0, 1, 'c'),
-                 preprocessor = None):
+                 preprocessor=None):
 
         assert which_set in self.mapper.keys()
 
@@ -343,7 +361,8 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
                               start=self.start, stop=self.stop,
                               axes=self.axes, preprocessor=self.preprocessor)
 
-    def make_data(self, which_set, path, shuffle=True):
+    @staticmethod
+    def make_data(which_set, path, shuffle=True):
         """
         .. todo::
 
@@ -434,9 +453,9 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
                                          data['X'][:, :, :, train_index]),
                                         axis=3)
             train_y = numpy.concatenate((train_y, data['y'][train_index, :]))
-            valid_x = numpy.concatenate(
-                (valid_x, data['X'][:, :, :, valid_index]),
-                axis=3)
+            valid_x = numpy.concatenate((valid_x,
+                                        data['X'][:, :, :, valid_index]),
+                                        axis=3)
             valid_y = numpy.concatenate((valid_y, data['y'][valid_index, :]))
 
             extra_size = data['X'].shape[3]
@@ -457,7 +476,7 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
         # The original splits
         if which_set in ['train', 'test']:
             data_x, data_y = load_data("{0}{1}_32x32.mat".format(path,
-                                                                 which_set))
+                                       which_set))
 
         # Train valid splits
         elif which_set in ['splitted_train', 'valid']:
