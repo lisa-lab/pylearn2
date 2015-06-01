@@ -65,8 +65,6 @@ from pylearn2.expr.nnet import (elemwise_kl, kl, compute_precision,
 from pylearn2.costs.mlp import L1WeightDecay as _L1WD
 from pylearn2.costs.mlp import WeightDecay as _WD
 
-from pylearn2.sandbox.rnn.models.mlp_hook import RNNWrapper
-
 
 logger = logging.getLogger(__name__)
 
@@ -86,13 +84,8 @@ logger.debug("MLP changing the recursion limit.")
 # precisely when you're going to exceed the stack segment.
 sys.setrecursionlimit(40000)
 
-if six.PY3:
-    LayerBase = six.with_metaclass(RNNWrapper, Model)
-else:
-    LayerBase = Model
 
-
-class Layer(LayerBase):
+class Layer(Model):
 
     """
     Abstract class. A Layer of an MLP.
@@ -112,9 +105,6 @@ class Layer(LayerBase):
     Block interface were upgraded to be that flexible, then we could make this
     a block.
     """
-    # This enables RNN compatibility
-    __metaclass__ = RNNWrapper
-
     # When applying dropout to a layer's input, use this for masked values.
     # Usually this will be 0, but certain kinds of layers may want to override
     # this behaviour.
