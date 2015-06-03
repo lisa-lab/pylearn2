@@ -265,16 +265,16 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
             if which_set == 'train_all':
                 train_x, train_y = load_data("{0}train_32x32.mat".format(path))
                 data_x = numpy.concatenate((data_x, train_x))
-                data_y = numpy.concatenate((data_y, data_y))
+                data_y = numpy.concatenate((data_y, train_y))
+
+        assert data_x.shape[0] == sizes[which_set]
+        assert data_y.shape[0] == sizes[which_set]
 
         if shuffle:
             index = range(data_x.shape[0])
             rng.shuffle(index)
             data_x = data_x[index, :]
             data_y = data_y[index, :]
-
-        assert data_x.shape[0] == sizes[which_set]
-        assert data_y.shape[0] == sizes[which_set]
 
         # .mat labels for SVHN are in range [1,10]
         # So subtract 1 to map labels to range [0,9]
@@ -486,15 +486,15 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
             if which_set == 'train_all':
                 train_x, train_y = load_data("{0}train_32x32.mat".format(path))
                 data_x = numpy.concatenate((data_x, train_x))
-                data_y = numpy.concatenate((data_y, data_y))
+                data_y = numpy.concatenate((data_y, train_y))
+
+        assert data_x.shape[0] == sizes[which_set]
+        assert data_y.shape[0] == sizes[which_set]
 
         if shuffle:
             index = range(data_x.shape[0])
             rng.shuffle(index)
             data_x = data_x[index, :]
             data_y = data_y[index, :]
-
-        assert data_x.shape[0] == sizes[which_set]
-        assert data_y.shape[0] == sizes[which_set]
 
         return data_x, data_y
