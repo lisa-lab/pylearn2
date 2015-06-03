@@ -1081,9 +1081,9 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         length number examples. The remaining dimensions are xamples with
         topological significance, e.g. for images the remaining axes are rows,
         columns, and channels.
-    y : ndarray, 1-dimensional(?), optional
-        Labels or targets for each example. The semantics here are not quite
-        nailed down for this yet.
+    y : ndarray, optional
+        Labels or targets for each example. The semantics are similar to the
+        y argument used in DenseDesignMatrix.
     view_converter : object, optional
         An object for converting between design matrices and topological views.
         Currently DefaultViewConverter is the only type available but later we
@@ -1188,7 +1188,9 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
                                             data_x=X,
                                             start=start)
 
-    def init_hdf5(self, path, shapes):
+    def init_hdf5(self, path, shapes,
+                  title="Pytables Dataset",
+                  y_dtype='float'):
         """
         Initializes the hdf5 file into which the data will be stored. This must
         be called before calling fill_hdf5.
@@ -1199,17 +1201,30 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
             The name of the hdf5 file.
         shapes : tuple
             The shapes of X and y.
+        title : string, optional
+            Name of the dataset. e.g. For SVHN, set this to "SVHN Dataset".
+            "Pytables Dataset" is used as title, by default.
+        y_dtype : string, optional
+            Either 'float' or 'int'. Decides the type of pytables atom
+            used to store the y data. By default 'float' type is used.
         """
+        assert y_dtype in ['float', 'int'], (
+            "y_dtype can be 'float' or 'int' only"
+        )
 
         x_shape, y_shape = shapes
         # make pytables
         ensure_tables()
-        h5file = tables.openFile(path, mode="w", title="SVHN Dataset")
+        h5file = tables.openFile(path, mode="w", title=title)
         gcolumns = h5file.createGroup(h5file.root, "Data", "Data")
         atom = (tables.Float32Atom() if config.floatX == 'float32'
                 else tables.Float64Atom())
         h5file.createCArray(gcolumns, 'X', atom=atom, shape=x_shape,
                             title="Data values", filters=self.filters)
+        if y_dtype != 'float':
+            # For 1D ndarray of int labels, override the atom to integer
+            atom = (tables.Int32Atom() if config.floatX == 'float32'
+                    else tables.Int64Atom())
         h5file.createCArray(gcolumns, 'y', atom=atom, shape=y_shape,
                             title="Data targets", filters=self.filters)
         return h5file, gcolumns
@@ -1294,6 +1309,10 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
                                 shape=((stop - start, data.X.shape[1])),
                                 title="Data values",
                                 filters=self.filters)
+        if np.issubdtype(data.y, int):
+            # For 1D ndarray of int labels, override the atom to integer
+            atom = (tables.Int32Atom() if config.floatX == 'float32'
+                    else tables.Int64Atom())
         y = h5file.createCArray(gcolumns,
                                 'y',
                                 atom=atom,
