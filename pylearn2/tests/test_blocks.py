@@ -1,6 +1,7 @@
 from pylearn2.models.autoencoder import Autoencoder
 from pylearn2.blocks import Block, StackedBlocks
 
+
 def test_stackedblocks_with_params():
 
     aes = [Autoencoder(100, 50, 'tanh', 'tanh'),
@@ -10,8 +11,9 @@ def test_stackedblocks_with_params():
 
     assert sb._params == _params
 
+
 def test_stackedblocks_without_params():
 
     sb = StackedBlocks([Block(), Block()])
 
-    assert sb._params == None
+    assert sb._params is None
