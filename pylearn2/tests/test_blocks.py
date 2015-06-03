@@ -1,5 +1,4 @@
-from pylearn2.models.autoencoder import (Autoencoder,
-                                         DeepComposedAutoencoder)
+from pylearn2.models.autoencoder import Autoencoder
 from pylearn2.blocks import Block, StackedBlocks
 
 def test_stackedblocks_with_params():
