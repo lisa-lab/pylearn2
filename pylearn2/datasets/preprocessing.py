@@ -1917,7 +1917,7 @@ class ShuffleAndSplit(Preprocessor):
 
 class MinMaxScaling(ExamplewisePreprocessor):
     """
-    Subtracts the min and divides by the |max - min|.
+    Subtracts the min and divides by the \|max - min\|.
 
     Parameters
     ----------
@@ -1927,12 +1927,12 @@ class MinMaxScaling(ExamplewisePreprocessor):
         each column (feature) separately. Default is `False`.
     global_std : bool, optional
         If `True`, after centering, divide by the (scalar)
-        |max - min| of every element in the design matrix. If `False`,
-        divide by the column-wise (per-feature) |max - min|.
+        \|max - min\| of every element in the design matrix. If `False`,
+        divide by the column-wise (per-feature) \|max - min\|.
         Default is `False`.
     mm_eps : float, optional
-        Stabilization factor added to the |max - min| before
-        dividing, to prevent |max - min| very close to zero
+        Stabilization factor added to the \|max - min\| before
+        dividing, to prevent \|max - min\| very close to zero
         from causing the feature values to blow up too much.
         Default is `1e-4`.
     """
