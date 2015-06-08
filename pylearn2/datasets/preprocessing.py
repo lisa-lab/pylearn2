@@ -1946,7 +1946,7 @@ class MinMaxScaling(ExamplewisePreprocessor):
 
     def apply(self, dataset, can_fit=False):
         """
-        :math:`WMAPE = \frac{\sum_i|R_i - P_i|}{\sum_i |R_i|}`
+        :math:`\hat{x} = \frac{x - min(x)}{|max(x) - min(x)|}`
         """
         X = dataset.get_design_matrix()
         if can_fit:
