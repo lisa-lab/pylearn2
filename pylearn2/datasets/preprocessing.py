@@ -1946,7 +1946,7 @@ class MinMaxScaling(ExamplewisePreprocessor):
 
     def apply(self, dataset, can_fit=False):
         """
-        :math:`\hat{x} = \frac{x - min(x)}{|max(x) - min(x)|}`
+        :math:`\hat{x} = \frac{x - min(x)}{\mid max(x) - min(x) \mid}`
         """
         X = dataset.get_design_matrix()
         if can_fit:
@@ -1965,6 +1965,5 @@ class MinMaxScaling(ExamplewisePreprocessor):
             raise ValueError("can't convert %s to block without fitting"
                              % self.__class__.__name__)
         return ExamplewiseAddScaleTransform(
-                    add=-self._min,
-                    multiply=numpy.abs(self._max - self._min) ** -1
-                )
+            add=-self._min,
+            multiply=numpy.abs(self._max - self._min) ** -1)
