@@ -1,0 +1,110 @@
+.. _predicting:
+
+==========================================
+Predicting values using your trained model
+==========================================
+
+This page presents a simple way to generate predictions
+using a trained model. 
+
+Prerequisites
+=============
+
+The tutorial assumes that the reader has a trained, pickled 
+model at hand:
+
+.. code-block:: python
+
+    from pylearn2.utils import serial
+    model = serial.load('model.pkl', retry=False)
+
+``serial.load()`` is a nice little wrapper that brings together
+loading from numpy ``.npy`` files, Matlab ``.mat`` files and pickled
+``.pkl`` files., among others. It can also wait for the resource
+to become available by making a number of attempts (``retry`` 
+parameter above).
+
+The data used to generate predictions is delivered as a dataset
+with same characteristics and type as the dataset used in training.
+For the sake of simplicity we use a
+:class:`~pylearn2.datasets.csv_dataset.CSVDataset>` here:
+
+.. code-block:: python
+
+    from pylearn2.datasets.csv_dataset import CSVDataset
+    dataset = CSVDataset(path='data_to_predict.csv',
+                         task='classification',
+                         expect_headers=True)
+
+The code expects a file called ``data_to_predict.csv`` in current 
+directory that has headers on first row. Internally, the dataset
+uses `numpy.loadtxt() <http://docs.scipy.org/doc/numpy/reference/generated/numpy.loadtxt.html#numpy-loadtxt>`_
+to process the file. If a preprocessor was used in training it may
+also be applied at this point:
+
+.. code-block:: python
+
+    from pylearn2.datasets.csv_dataset import CSVDataset
+    dataset = CSVDataset(path='data_to_predict.csv',
+                         task='classification',
+                         expect_headers=True,
+                         preprocessor=serial.load("preprocessor.pkl"))
+
+Setting the stage
+=================
+
+We need to get the description of the data expected by the
+model as input (see :ref:`data_specs` for an overview):
+
+.. code-block:: python
+
+    data_space = model.get_input_space()
+    data_source = model.get_input_source()
+    data_specs = (data_space, data_source)
+
+We also need a symbolic variable to represent the input and
+a `Theano <http://deeplearning.net/software/theano/>`_
+function that will compute forward propagation.
+`Theano documentation <http://deeplearning.net/tutorial/gettingstarted.html>`_
+can provide insights in what's going on here:
+
+.. code-block:: python
+
+    import theano
+    X = data_space.make_theano_batch('X')
+    predict = theano.function([X], model.fprop(X))
+
+Each dataset is expected to create its own iterators according to
+user preferences:
+
+.. code-block:: python
+
+    iter = dataset.iterator(mode='sequential',
+                            batch_size=1,
+                            data_specs=data_specs)
+
+The size of the batches can be adjusted based on the specifics of the
+dataset being used, but ``1`` is a safe bet. If the dataset
+has a reasonable size the code above may be replaced by:
+
+.. code-block:: python
+
+    iter = dataset.iterator(mode='sequential',
+                            batch_size=dataset.get_num_examples(),
+                            data_specs=data_specs)
+
+Predictions
+===========
+
+With all pieces in place we can now compute actual predictions:
+
+.. code-block:: python
+
+    predictions = []
+    for item in iter:
+        predictions.append(predict(item))
+
+    print predictions
+
+``predict()`` Theano function is used to generate predictions for all
+batches returned by our iterator as numpy arrays.

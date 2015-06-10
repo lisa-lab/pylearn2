@@ -37,3 +37,6 @@ pylearn2/utils/_video.so
 pylearn2/utils/_window_flip.c
 pylearn2/utils/_window_flip.so
 pylearn2/utils/build/
+
+# HTML documentation generated bu default in html/
+/html/

@@ -220,6 +220,7 @@ Developer
    api_change
    cluster
    features
+   predicting
    internal/index
    internal/metadocumentation
    internal/data_specs
