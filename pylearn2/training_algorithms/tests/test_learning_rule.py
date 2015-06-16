@@ -1,6 +1,6 @@
 import numpy as np
 
-from theano.compat.six.moves import zip as izip
+from six.moves import zip as izip
 
 from pylearn2.costs.cost import SumOfCosts
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix

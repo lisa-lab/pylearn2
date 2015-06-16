@@ -5,7 +5,7 @@ XXX
 from __future__ import print_function
 
 import numpy
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 import theano
 
 # Use grad_not_implemented for versions of theano that support it

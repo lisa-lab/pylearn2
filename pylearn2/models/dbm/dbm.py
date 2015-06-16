@@ -12,7 +12,7 @@ import logging
 import operator
 import numpy as np
 
-from theano.compat.six.moves import reduce, xrange
+from six.moves import reduce, xrange
 from theano import tensor as T, config
 
 from pylearn2.compat import OrderedDict

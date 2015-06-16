@@ -14,7 +14,7 @@ import logging
 import time
 
 import numpy as np
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 
 from theano import config
 from theano.printing import var_descriptor

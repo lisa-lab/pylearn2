@@ -10,7 +10,7 @@ __email__ = "pylearn-dev@googlegroups"
 import numpy as np
 import warnings
 
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from theano import config
 from theano import function
 import theano.tensor as T

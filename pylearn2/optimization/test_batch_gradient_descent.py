@@ -4,7 +4,7 @@ from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
 import theano.tensor as T
 from pylearn2.utils import sharedX
 import numpy as np
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from theano import config
 from theano.printing import min_informative_str
 

@@ -11,7 +11,7 @@ __maintainer__ = "David Warde-Farley"
 __email__ = "wardefar@iro"
 
 import numpy as np
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 import theano
 import theano.tensor as tensor
 from theano.gradient import grad_not_implemented

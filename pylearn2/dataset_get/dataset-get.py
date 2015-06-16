@@ -24,7 +24,7 @@ import urllib,urllib2
 import tarfile
 import subprocess
 
-from theano.compat.six.moves import input
+from six.moves import input
 
 logger = logging.getLogger(__name__)
 

@@ -12,7 +12,7 @@ __license__ = "3-clause BSD"
 __email__ = "bouthilx@iro"
 
 import numpy
-from theano.compat import six
+import six
 
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 # more distributions but slower

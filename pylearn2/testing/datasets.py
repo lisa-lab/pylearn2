@@ -7,7 +7,7 @@ __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
 import numpy as np
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 
 

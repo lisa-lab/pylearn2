@@ -10,7 +10,7 @@ import sys
 # Third-party imports
 import numpy
 N = numpy
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 import warnings
 from scipy import linalg, sparse
 # Warning: ridiculous.

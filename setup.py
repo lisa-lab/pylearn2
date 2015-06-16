@@ -5,7 +5,7 @@ from setuptools import setup, find_packages, Extension
 from setuptools.command.install import install
 import numpy
 
-from theano.compat.six.moves import input
+from six.moves import input
 
 # Because many people neglected to run the pylearn2/utils/setup.py script
 # separately, we compile the necessary Cython extensions here but because
@@ -77,7 +77,8 @@ setup(
     license='BSD 3-clause license',
     long_description=open('README.rst', 'rb').read().decode('utf8'),
     dependency_links=['git+http://github.com/Theano/Theano.git#egg=Theano'],
-    install_requires=['numpy>=1.5', 'pyyaml', 'argparse', "Theano"],
+    install_requires=['numpy>=1.5', 'pyyaml', 'argparse', "Theano",
+                      'six==1.9.0'],
     scripts=['bin/pylearn2-plot-monitor', 'bin/pylearn2-print-monitor',
              'bin/pylearn2-show-examples', 'bin/pylearn2-show-weights',
              'bin/pylearn2-train'],

@@ -7,7 +7,7 @@ from pylearn2.models.s3c import E_Step
 from pylearn2.utils import contains_nan
 from theano import function
 import numpy as np
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 import theano.tensor as T
 from theano import config
 #from pylearn2.utils import serial

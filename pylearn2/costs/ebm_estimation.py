@@ -8,7 +8,7 @@ import sys
 
 from theano import scan
 import theano.tensor as T
-from theano.compat.six.moves import zip as izip
+from six.moves import zip as izip
 
 from pylearn2.compat import OrderedDict
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin

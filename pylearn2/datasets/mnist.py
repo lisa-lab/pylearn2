@@ -10,7 +10,7 @@ __email__ = "pylearn-dev@googlegroups"
 
 import numpy as N
 np = N
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.datasets import control
 from pylearn2.datasets import cache

@@ -9,9 +9,9 @@ import functools
 import logging
 import warnings
 
-from theano.compat.six.moves import reduce
+from six.moves import reduce
 import theano.tensor as T
-from theano.compat.six.moves import zip as izip
+from six.moves import zip as izip
 
 from pylearn2.compat import OrderedDict
 from pylearn2.utils import safe_zip

@@ -1,7 +1,7 @@
 # Local imports
 import pylearn2.config.yaml_parse
 
-from theano.compat import six
+import six
 import jobman
 from jobman.tools import expand, flatten, DD
 

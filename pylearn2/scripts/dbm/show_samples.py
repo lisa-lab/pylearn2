@@ -24,7 +24,7 @@ from pylearn2.gui.patch_viewer import PatchViewer
 from pylearn2.utils import serial
 from theano import function
 from theano.sandbox.rng_mrg import MRG_RandomStreams
-from theano.compat.six.moves import input, xrange
+from six.moves import input, xrange
 
 
 def init_viewer(dataset, rows, cols):

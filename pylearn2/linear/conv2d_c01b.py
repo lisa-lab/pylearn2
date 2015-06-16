@@ -20,7 +20,7 @@ import logging
 import numpy as np
 import warnings
 
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from theano.sandbox import cuda
 import theano.tensor as T
 
