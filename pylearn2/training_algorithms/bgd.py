@@ -152,8 +152,8 @@ class BGD(TrainingAlgorithm):
                 if not (model.force_batch_size is None or
                         model.force_batch_size <= 0 or
                         batch_size == model.force_batch_size):
-                    raise ValueError("batch_size is %d but " +
-                                     "model.force_batch_size is %d" %
+                    raise ValueError(("batch_size is %d but " +
+                                      "model.force_batch_size is %d") %
                                      (batch_size, model.force_batch_size))
 
         self.monitor = Monitor.get_monitor(model)
