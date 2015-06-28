@@ -112,20 +112,20 @@ class EmotionsDataset(DenseDesignMatrix):
         reader = csv.reader(csv_file)
 
         # Discard header
-        row = reader.next()
+        row = next(reader)
 
         y_list = []
         X_list = []
 
         for row in reader:
             if expect_labels:
-                y_str, X_row_str = row
+                y_str, X_row_str = (row[0], row[1])
                 y = int(y_str)
                 y_list.append(y)
             else:
                 X_row_str ,= row
             X_row_strs = X_row_str.split(' ')
-            X_row = map(lambda x: float(x), X_row_strs)
+            X_row = [float(x) for x in X_row_strs]
             X_list.append(X_row)
 
         X = np.asarray(X_list).astype('float32')
