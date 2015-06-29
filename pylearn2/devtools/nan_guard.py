@@ -9,22 +9,16 @@ __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
 import logging
-from theano.compile import Mode
-import theano
-import theano.tensor as T
-import theano.sandbox.cuda as cuda
-import numpy as np
-from pylearn2.models.dbm import flatten
-from pylearn2.utils import contains_nan, contains_inf
-
+import theano.compile.nanguardmode
 
 logger = logging.getLogger(__name__)
 
 
-class NanGuardMode(Mode):
+class NanGuardMode(theano.compile.nanguardmode.NanGuardMode):
     """
     A Theano compilation Mode that makes the compiled function automatically
-    detect NaNs and Infs and detect an error if they occur.
+    detect NaNs and Infs and detect an error if they occur. This mode is now in
+    theano, thus it is depreciated in pylearn2.
 
     Parameters
     ----------
@@ -38,106 +32,8 @@ class NanGuardMode(Mode):
         If True, raise an error when a value greater than 1e10 is encountered.
     """
     def __init__(self, nan_is_error, inf_is_error, big_is_error=True):
-        if cuda.cuda_available:
-            self.guard_input = cuda.fvector('nan_guard')
-            if nan_is_error or inf_is_error:
-                self.gpumin = theano.function(
-                    [self.guard_input], T.min(self.guard_input),
-                    mode='FAST_RUN'
-                )
-            if inf_is_error:
-                self.gpumax = theano.function(
-                    [self.guard_input], T.max(self.guard_input),
-                    mode='FAST_RUN'
-                )
-            if big_is_error:
-                self.gpuabsmax = theano.function(
-                    [self.guard_input], T.max(T.abs_(self.guard_input)),
-                    mode='FAST_RUN'
-                )
-        def do_check_on(var, nd, f, is_input):
-            """
-            Checks `var` for NaNs / Infs. If detected, raises an exception
-            and / or prints information about `nd`, `f`, and `is_input` to
-            help the user determine the cause of the invalid values.
-
-            Parameters
-            ----------
-            var : numpy.ndarray
-                The value to be checked.
-            nd : theano.gof.Apply
-                The Apply node being executed
-            f : callable
-                The thunk for the apply node
-            is_input : bool
-                If True, `var` is an input to `nd`.
-                If False, it is an output.
-            """
-            error = False
-            if nan_is_error:
-                err = False
-                if cuda.cuda_available and isinstance(var, cuda.CudaNdarray):
-                    err = np.isnan(self.gpumin(var.reshape(var.size)))
-                else:
-                    err = contains_nan(var)
-                if err:
-                    logger.error('NaN detected')
-                    error = True
-            if inf_is_error:
-                err = False
-                if cuda.cuda_available and isinstance(var, cuda.CudaNdarray):
-                    err = (np.isinf(self.gpumin(var.reshape(var.size))) or \
-                           np.isinf(self.gpumax(var.reshape(var.size))))
-                else:
-                    err = contains_inf(var)
-                if err:
-                    logger.error('Inf detected')
-                    error = True
-            if big_is_error:
-                err = False
-                if cuda.cuda_available and isinstance(var, cuda.CudaNdarray):
-                    err = (self.gpuabsmax(var.reshape(var.size)) > 1e10)
-                else:
-                    err = (np.abs(var).max() > 1e10)
-                if err:
-                    logger.error('Big value detected')
-                    error = True
-            if error:
-                if is_input:
-                    logger.error('In an input')
-                else:
-                    logger.error('In an output')
-                logger.error('Inputs: ')
-                for ivar, ival in zip(nd.inputs, f.inputs):
-                    logger.error('var')
-                    logger.error(ivar)
-                    logger.error(theano.printing.min_informative_str(ivar))
-                    logger.error('val')
-                    logger.error(ival)
-                logger.error('Node:')
-                logger.error(nd)
-                assert False
-
-        def nan_check(i, node, fn):
-            """
-            Runs `fn` while checking its inputs and outputs for NaNs / Infs
-
-            Parameters
-            ----------
-            i : currently ignored (TODO: determine why it is here or remove)
-            node : theano.gof.Apply
-                The Apply node currently being executed
-            fn : callable
-                The thunk to execute for this Apply node
-            """
-            inputs = fn.inputs
-            # TODO: figure out why individual inputs are themselves lists sometimes
-            for x in flatten(inputs):
-                do_check_on(x, node, fn, True)
-            fn()
-            outputs = fn.outputs
-            for j, x in enumerate(flatten(outputs)):
-                do_check_on(x, node, fn, False)
-
-        wrap_linker = theano.gof.WrapLinkerMany([theano.gof.OpWiseCLinker()], [nan_check])
-        super(NanGuardMode, self).__init__(wrap_linker, optimizer=theano.config.optimizer)
+        super(NanGuardMode, self).__init__(
+            self, nan_is_error, inf_is_error, big_is_error=big_is_error
+        )
+        logger.warning("WARNING: NanGuardMode has been moved to theano. It is "
+                       "depreciated in pylearn2. Importing from theano. ")

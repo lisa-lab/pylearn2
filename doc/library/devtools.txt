@@ -7,11 +7,6 @@ List Files
 .. automodule:: pylearn2.devtools.list_files
     :members:
 
-Nan guard
-=========
-.. automodule:: pylearn2.devtools.nan_guard
-    :members:
-
 Run pyflakes
 ============
 .. automodule:: pylearn2.devtools.run_pyflakes
