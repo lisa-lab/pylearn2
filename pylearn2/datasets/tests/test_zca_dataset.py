@@ -16,7 +16,7 @@ def test_zca_dataset():
     Tests the ZCA_Dataset class.
     """
     # Preparation
-
+    rng = np.random.RandomState([2014, 11, 4])
     start = 0
     stop = 990
     num_examples = 1000
