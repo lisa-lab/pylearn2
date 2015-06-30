@@ -22,7 +22,6 @@ def test_zca_dataset():
     num_examples = 1000
     num_feat = 5
     num_classes = 2
-    x = np.random.uniform(low=-0.5, high=2.0, size=(num_examples, num_feat))
 
     # random_dense_design_matrix has values that are centered and of
     # unit stdev, which is not useful to test the ZCA.
