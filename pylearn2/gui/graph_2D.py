@@ -153,7 +153,6 @@ class HeatMap(object):
             A Graph2D object that defines the coordinate system
             of the heatmap.
 
-
         Returns
         -------
         img : The rendered heatmap
