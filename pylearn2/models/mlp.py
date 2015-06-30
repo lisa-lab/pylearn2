@@ -2888,10 +2888,6 @@ class TanhConvNonlinearity(ConvNonlinearity):
 
          
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 50a61fa13fb5277fe6a76b447f8539bf9fc36830
 class ConvElemwise(Layer):
     """
     Generic convolutional elemwise layer.
