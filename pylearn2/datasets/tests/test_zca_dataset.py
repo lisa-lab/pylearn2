@@ -27,12 +27,9 @@ def test_zca_dataset():
     # unit stdev, which is not useful to test the ZCA.
     # So, we replace its value by an uncentered uniform one.
     raw = random_dense_design_matrix(rng, num_examples, num_feat, num_classes)
-    x = rng.uniform(low=-0.5, high=2.0, size=(num_examples, num_feat))    x = x.astype(np.float32)
-    rng = np.random.RandomState([2014, 11, 4])
-    raw = random_dense_design_matrix(rng, x.shape[0], x.shape[1], 2)
+    x = rng.uniform(low=-0.5, high=2.0, size=(num_examples, num_feat))
+    x = x.astype(np.float32)
     raw.X = x
->>>>>>> 50a61fa13fb5277fe6a76b447f8539bf9fc36830
->>>>>>> f00a5c545f1de753ad482736388c5409feba38e5
     zca = ZCA(filter_bias=0.0)
     zca.apply(raw, can_fit=True)
     zca_dataset = ZCA_Dataset(raw, zca, start, stop)
