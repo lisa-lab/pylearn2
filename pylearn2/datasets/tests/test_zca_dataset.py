@@ -30,7 +30,7 @@ def test_zca_dataset():
     x = rng.uniform(low=-0.5, high=2.0, size=(num_examples, num_feat))
     x = x.astype(np.float32)
     raw.X = x
-    
+
     zca = ZCA(filter_bias=0.0)
     zca.apply(raw, can_fit=True)
     zca_dataset = ZCA_Dataset(raw, zca, start, stop)
