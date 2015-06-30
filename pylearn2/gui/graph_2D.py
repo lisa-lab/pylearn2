@@ -139,6 +139,10 @@ class HeatMap(object):
 
         Parameters
         ----------
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> f00a5c545f1de753ad482736388c5409feba38e5
         prev_layer : numpy ndarray
             An image that will be copied into the new output.
             The new image will be rendered on top of the first
@@ -148,6 +152,13 @@ class HeatMap(object):
         parent : Graph2D
             A Graph2D object that defines the coordinate system
             of the heatmap.
+<<<<<<< HEAD
+=======
+=======
+        prev_layer : WRITEME
+        parent : WRITEME
+>>>>>>> 50a61fa13fb5277fe6a76b447f8539bf9fc36830
+>>>>>>> f00a5c545f1de753ad482736388c5409feba38e5
 
         Returns
         -------

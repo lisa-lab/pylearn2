@@ -16,6 +16,10 @@ def test_zca_dataset():
     Tests the ZCA_Dataset class.
     """
     # Preparation
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> f00a5c545f1de753ad482736388c5409feba38e5
     rng = np.random.RandomState([2014, 11, 4])
     start = 0
     stop = 990
@@ -31,6 +35,20 @@ def test_zca_dataset():
     x = x.astype(np.float32)
     raw.X = x
 
+<<<<<<< HEAD
+=======
+=======
+    start = 0
+    stop = 990
+    num_examples = 1000
+    num_feat = 5
+    x = np.random.uniform(low=-0.5, high=2.0, size=(num_examples, num_feat))
+    x = x.astype(np.float32)
+    rng = np.random.RandomState([2014, 11, 4])
+    raw = random_dense_design_matrix(rng, x.shape[0], x.shape[1], 2)
+    raw.X = x
+>>>>>>> 50a61fa13fb5277fe6a76b447f8539bf9fc36830
+>>>>>>> f00a5c545f1de753ad482736388c5409feba38e5
     zca = ZCA(filter_bias=0.0)
     zca.apply(raw, can_fit=True)
     zca_dataset = ZCA_Dataset(raw, zca, start, stop)

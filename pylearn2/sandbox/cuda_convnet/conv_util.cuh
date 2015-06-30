@@ -47,7 +47,15 @@
 #define DllExport   __declspec( dllimport )
 #endif
 #else //else _WIN32
+<<<<<<< HEAD
 #define DllExport __attribute__((visibility ("default")))
+=======
+<<<<<<< HEAD
+#define DllExport __attribute__((visibility ("default")))
+=======
+#define DllExport __attribute__((visiblity ("default")))
+>>>>>>> 50a61fa13fb5277fe6a76b447f8539bf9fc36830
+>>>>>>> f00a5c545f1de753ad482736388c5409feba38e5
 #endif
 
 DllExport void convLocalMaxUndo(NVMatrix& images, NVMatrix& maxGrads, NVMatrix& maxActs, NVMatrix& target,
