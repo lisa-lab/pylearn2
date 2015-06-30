@@ -110,6 +110,7 @@ def check_unimplemented_case(ConvNonlinearity):
     assert np.testing.assert_raises(NotImplementedError, conv_model.cost(Y, Y_hat))
 
 
+
 def test_all_costs():
 
     ImplementedCases = [[SigmoidConvNonlinearity(), Sigmoid], \
