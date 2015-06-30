@@ -6,7 +6,6 @@ __author__ = "Steven Kearnes"
 __copyright__ = "Copyright 2014, Stanford University"
 __license__ = "3-clause BSD"
 
-
 try:
     import h5py
 except ImportError:
