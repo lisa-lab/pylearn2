@@ -17,8 +17,6 @@ def test_zca_dataset():
     """
     # Preparation
 
-=======
-=======
     start = 0
     stop = 990
     num_examples = 1000
