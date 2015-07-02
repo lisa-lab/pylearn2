@@ -65,7 +65,7 @@ f = function([X], y)
 
 y = []
 
-for i in xrange(dataset.X.shape[0] / batch_size):
+for i in xrange(int(dataset.X.shape[0] / batch_size)):
     x_arg = dataset.X[i*batch_size:(i+1)*batch_size,:]
     if X.ndim > 2:
         x_arg = dataset.get_topological_view(x_arg)
