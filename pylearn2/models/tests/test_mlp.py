@@ -24,11 +24,11 @@ from pylearn2.models.mlp import (FlattenerLayer, MLP, Linear, Softmax, Sigmoid,
                                  exhaustive_dropout_average,
                                  sampled_dropout_average, CompositeLayer,
                                  max_pool, mean_pool, pool_dnn,
-                                 SigmoidConvNonlinearity, ConvElemwise)
+                                 SigmoidConvNonlinearity, ConvElemwise,
+                                 QuantileRegression)
 from pylearn2.space import VectorSpace, CompositeSpace, Conv2DSpace
 from pylearn2.utils import is_iterable, sharedX
 from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
-
 
 class IdentityLayer(Linear):
     dropout_input_mask_value = -np.inf
@@ -1389,3 +1389,38 @@ def test_pooling_with_anon_variable():
                       image_shape=im_shp, try_dnn=False)
     pool_1 = mean_pool(X_sym, pool_shape=shp, pool_stride=strd,
                        image_shape=im_shp)
+
+
+def test_quantile_regression():
+    """
+    Create a VectorSpacesDataset with two inputs (features0 and features1)
+    and train an MLP which takes both inputs for 1 epoch.
+    """
+    np.random.seed(2)
+    nb_rows = 1000
+    X = np.random.normal(size=(nb_rows, 2)).astype(theano.config.floatX)
+    noise = np.random.rand(nb_rows, 1)  # X[:, 0:1] *
+    coeffs = np.array([[3.], [4.]])
+    y_0 = np.dot(X, coeffs)
+    y = y_0 + noise
+    dataset = DenseDesignMatrix(X=X, y=y)
+    for percentile in [0.22, 0.5, 0.65]:
+        mlp = MLP(
+            nvis=2,
+            layers=[
+                QuantileRegression('quantile_regression_layer',
+                                   init_bias=0.0,
+                                   percentile=percentile,
+                                   irange=0.1)
+            ]
+        )
+        train = Train(dataset, mlp, SGD(0.05, batch_size=100))
+        train.algorithm.termination_criterion = EpochCounter(100)
+        train.main_loop()
+        inputs = mlp.get_input_space().make_theano_batch()
+        outputs = mlp.fprop(inputs)
+        theano.function([inputs], outputs, allow_input_downcast=True)(X)
+        layers = mlp.layers
+        layer = layers[0]
+        assert np.allclose(layer.get_weights(), coeffs, rtol=0.05)
+        assert np.allclose(layer.get_biases(), np.array(percentile), rtol=0.05)
