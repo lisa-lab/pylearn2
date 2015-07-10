@@ -2673,7 +2673,7 @@ class ConvNonlinearity(object):
         rval = self._get_monitoring_channels_for_activations(state)
 
         return rval
-    
+
     def cost(self, Y, Y_hat):
         """
         Parameters
@@ -2682,7 +2682,7 @@ class ConvNonlinearity(object):
             Output of `fprop`
         Y_hat : theano.gof.Variable
             Targets
-        batch_axis : integer 
+        batch_axis : integer
             axis representing batch dimension
 
         Returns
@@ -2692,8 +2692,6 @@ class ConvNonlinearity(object):
         """
         raise NotImplementedError(
             str(type(self)) + " does not implement cost function.")
-
-
 
 
 class IdentityConvNonlinearity(ConvNonlinearity):
@@ -2722,16 +2720,15 @@ class IdentityConvNonlinearity(ConvNonlinearity):
             rval["misclass"] = T.cast(incorrect, config.floatX).mean()
 
         return rval
-    
+
     @wraps(ConvNonlinearity.cost)
     def cost(self, Y, Y_hat, batch_axis):
         """
         Notes
         -----
-        Mean squared error across batches 
+        Mean squared error across batches
         """
-        return T.sum(T.mean(T.sqr(Y-Y_hat), axis = batch_axis))
-
+        return T.sum(T.mean(T.sqr(Y-Y_hat), axis=batch_axis))
 
 
 class RectifierConvNonlinearity(ConvNonlinearity):
@@ -2849,7 +2846,7 @@ class SigmoidConvNonlinearity(ConvNonlinearity):
             rval['per_output_f1_min'] = f1.min()
 
         return rval
-        
+
     @wraps(ConvNonlinearity.cost)
     def cost(self, Y, Y_hat, batch_axis):
         """
@@ -2885,8 +2882,6 @@ class TanhConvNonlinearity(ConvNonlinearity):
     def cost(self, Y, Y_hat, batch_axis):
         raise NotImplementedError(
             str(type(self)) + " does not implement cost function.")
-
-         
 
 
 class ConvElemwise(Layer):
@@ -3304,18 +3299,18 @@ class ConvElemwise(Layer):
             p = self.output_normalization(p)
 
         return p
-       
+
     @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
         """
         Notes
         -----
         The cost method calls self.nonlin.cost
-        """              
-    
+        """
+
         batch_axis = self.output_space.get_batch_axis()
         return self.nonlin.cost(Y=Y, Y_hat=Y_hat, batch_axis=batch_axis)
-        
+
 
 class ConvRectifiedLinear(ConvElemwise):
 
