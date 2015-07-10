@@ -17,7 +17,21 @@ from pylearn2.models.mlp import IdentityConvNonlinearity
 from pylearn2.models.mlp import RectifierConvNonlinearity
 
 
-def check_implemented_case(ConvNonlinearity, MLPNonlinearity):
+def check_implemented_case(conv_nonlinearity, mlp_nonlinearity):
+    """Check that ConvNonLinearity and MLPNonlinearity are consistent.
+
+    This is done by building an MLP with a ConvElemwise layer with the
+    supplied non-linearity, an MLP with a dense layer, and checking that
+    the output and costs are consistent.
+
+    Parameters
+    ----------
+    conv_nonlinearity: instance of `ConvNonlinearity`
+        The non-linearity to provide to a `ConvElemwise` layer.
+
+    mlp_nonlinearity: subclass of `mlp.Linear`
+        The fully-connected MLP layer (including non-linearity).
+    """
 
     # Create fake data
     np.random.seed(12345)
@@ -45,7 +59,7 @@ def check_implemented_case(ConvNonlinearity, MLPNonlinearity):
                                 axes=['b', 0, 1, 'c'],
                                 num_channels=1),
         layers=[ConvElemwise(layer_name='conv',
-                             nonlinearity=ConvNonlinearity,
+                             nonlinearity=conv_nonlinearity,
                              output_channels=output_channels,
                              kernel_shape=shape,
                              pool_shape=[1, 1],
@@ -62,9 +76,9 @@ def check_implemented_case(ConvNonlinearity, MLPNonlinearity):
     # Construct an equivalent MLP which gives the same output
     # after flattening both.
     mlp_model = MLP(
-        layers=[MLPNonlinearity(dim=output_channels,
-                                layer_name='mlp',
-                                irange=1.0)],
+        layers=[mlp_nonlinearity(dim=output_channels,
+                                 layer_name='mlp',
+                                 irange=1.0)],
         batch_size=batch_size,
         nvis=nvis
     )
@@ -100,14 +114,24 @@ def check_implemented_case(ConvNonlinearity, MLPNonlinearity):
     assert np.linalg.norm(conv_cost(x, y) - mlp_cost(x_mlp, y_mlp)) < 10**-3
 
 
-def check_unimplemented_case(ConvNonlinearity):
+def check_unimplemented_case(conv_nonlinearity):
+    """Check a ConvNonlinearity does not have a `cost` method.
+
+    If the `cost` method gets implemented in the future, it should
+    be checked against a reference dense implementation.
+
+    Parameters
+    ----------
+    conv_nonlinearity: subclass of `ConvNonlinearity`
+        The non-linearity to provide to a `ConvElemwise` layer.
+    """
 
     conv_model = MLP(
         input_space=Conv2DSpace(shape=[1, 1],
                                 axes=['b', 0, 1, 'c'],
                                 num_channels=1),
         layers=[ConvElemwise(layer_name='conv',
-                             nonlinearity=ConvNonlinearity,
+                             nonlinearity=conv_nonlinearity,
                              output_channels=1,
                              kernel_shape=[1, 1],
                              pool_shape=[1, 1],
@@ -125,18 +149,23 @@ def check_unimplemented_case(ConvNonlinearity):
 
 
 def test_all_costs():
+    """Check all instances of ConvNonLinearity.
 
-    ImplementedCases = [[SigmoidConvNonlinearity(), Sigmoid],
-                        [IdentityConvNonlinearity(), Linear]]
+    Either they should be consistent with the corresponding subclass
+    of `Linear`, or their `cost` method should not be implemented.
+    """
 
-    UnimplementedCases = [[TanhConvNonlinearity(), Tanh],
-                          [RectifierConvNonlinearity, RectifiedLinear]]
+    implemented_cases = [[SigmoidConvNonlinearity(), Sigmoid],
+                         [IdentityConvNonlinearity(), Linear]]
 
-    for ConvNonlinearity, MLPNonlinearity in UnimplementedCases:
-        check_unimplemented_case(ConvNonlinearity)
+    unimplemented_cases = [[TanhConvNonlinearity(), Tanh],
+                           [RectifierConvNonlinearity, RectifiedLinear]]
 
-    for ConvNonlinearity, MLPNonlinearity in ImplementedCases:
-        check_implemented_case(ConvNonlinearity, MLPNonlinearity)
+    for conv_nonlinearity, mlp_nonlinearity in unimplemented_cases:
+        check_unimplemented_case(conv_nonlinearity)
+
+    for conv_nonlinearity, mlp_nonlinearity in implemented_cases:
+        check_implemented_case(conv_nonlinearity, mlp_nonlinearity)
 
 
 if __name__ == "__main__":

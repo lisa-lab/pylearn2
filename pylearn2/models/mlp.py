@@ -2674,8 +2674,10 @@ class ConvNonlinearity(object):
 
         return rval
 
-    def cost(self, Y, Y_hat):
+    def cost(self, Y, Y_hat, batch_axis):
         """
+        The cost of outputting Y_hat when the true output is Y.
+
         Parameters
         ----------
         Y : theano.gof.Variable
@@ -2721,12 +2723,12 @@ class IdentityConvNonlinearity(ConvNonlinearity):
 
         return rval
 
-    @wraps(ConvNonlinearity.cost)
+    @wraps(ConvNonlinearity.cost, append=True)
     def cost(self, Y, Y_hat, batch_axis):
         """
         Notes
         -----
-        Mean squared error across batches
+        Mean squared error across examples in a batch
         """
         return T.sum(T.mean(T.sqr(Y-Y_hat), axis=batch_axis))
 
@@ -2847,7 +2849,7 @@ class SigmoidConvNonlinearity(ConvNonlinearity):
 
         return rval
 
-    @wraps(ConvNonlinearity.cost)
+    @wraps(ConvNonlinearity.cost, append=True)
     def cost(self, Y, Y_hat, batch_axis):
         """
         Notes
@@ -3300,12 +3302,12 @@ class ConvElemwise(Layer):
 
         return p
 
-    @wraps(Layer.cost)
+    @wraps(Layer.cost, append=True)
     def cost(self, Y, Y_hat):
         """
         Notes
         -----
-        The cost method calls self.nonlin.cost
+        The cost method calls `self.nonlin.cost`
         """
 
         batch_axis = self.output_space.get_batch_axis()
