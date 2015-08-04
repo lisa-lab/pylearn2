@@ -101,26 +101,28 @@ class Maxout(Layer):
     init_bias : float or ndarray, optional
         A value that can be broadcasted to a numpy vector.
         All biases are initialized to this number.
-    W_lr_scale: float, optional
+    W_lr_scale : float, optional
         The learning rate on the weights for this layer is multiplied by
         this scaling factor
-    b_lr_scale: float, optional
+    b_lr_scale : float, optional
         The learning rate on the biases for this layer is multiplied by
         this scaling factor
-    max_col_norm: float, optional
+    max_col_norm : float, optional
         The norm of each column of the weight matrix is constrained to
         have at most this norm. If unspecified, no constraint. Constraint
         is enforced by re-projection (if necessary) at the end of each
         update.
-    max_row_norm: float, optional
+    max_row_norm : float, optional
         Like max_col_norm, but applied to the rows.
-    mask_weights: ndarray, optional
+    mask_weights : ndarray, optional
         A binary matrix multiplied by the weights after each update,
         allowing you to restrict their connectivity.
-    min_zero: bool, optional
+    min_zero : bool, optional
         If true, includes a zero in the set we take a max over for each
         maxout unit. This is equivalent to pooling over rectified
         linear units.
+    kwargs : dict
+        Passed on to superclass
     """
 
     def __str__(self):
@@ -149,7 +151,8 @@ class Maxout(Layer):
                  max_col_norm=None,
                  max_row_norm=None,
                  mask_weights=None,
-                 min_zero=False):
+                 min_zero=False,
+                 **kwargs):
 
         super(Maxout, self).__init__()
 
