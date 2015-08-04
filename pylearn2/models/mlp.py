@@ -1141,6 +1141,8 @@ class Softmax(Layer):
         the same element can be included more than once).
     non_redundant : bool
         If True, learns only n_classes - 1 biases and weight vectors
+    kwargs : dict
+        Passed on to the superclass.
     """
 
     def __init__(self, n_classes, layer_name, irange=None,
@@ -1149,9 +1151,10 @@ class Softmax(Layer):
                  b_lr_scale=None, max_row_norm=None,
                  no_affine=False,
                  max_col_norm=None, init_bias_target_marginals=None,
-                 binary_target_dim=None, non_redundant=False):
+                 binary_target_dim=None, non_redundant=False,
+                 **kwargs):
 
-        super(Softmax, self).__init__()
+        super(Softmax, self).__init__(**kwargs)
 
         if max_col_norm is not None:
             self.extensions.append(MaxL2FilterNorm(max_col_norm, axis=0))
