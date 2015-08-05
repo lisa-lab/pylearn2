@@ -1,6 +1,7 @@
 """
 Classes for constraining the norms of weight matrices.
 """
+import numpy as np
 import warnings
 
 from theano import tensor as T
@@ -131,7 +132,7 @@ class ConstrainFilterMaxNorm(ModelExtension):
                 min_limit = self.min_limit
 
             if self.max_limit is None:
-                max_limit = max_norms.max()
+                max_limit = np.inf
             else:
                 max_limit = self.max_limit
 

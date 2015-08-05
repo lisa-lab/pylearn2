@@ -1897,6 +1897,8 @@ class Linear(Layer):
         median of the data.
     use_bias : bool, optional
         If False, does not add the bias term to the output.
+    kwargs : dict
+        Passed on to superclass constructor.
     """
 
     def __init__(self,
@@ -1916,14 +1918,15 @@ class Linear(Layer):
                  min_col_norm=None,
                  copy_input=None,
                  use_abs_loss=False,
-                 use_bias=True):
+                 use_bias=True,
+                 **kwargs):
 
         if copy_input is not None:
             raise AssertionError(
                 "The copy_input option had a bug and has "
                 "been removed from the library.")
 
-        super(Linear, self).__init__()
+        super(Linear, self).__init__(**kwargs)
 
         if use_bias and init_bias is None:
             init_bias = 0.
