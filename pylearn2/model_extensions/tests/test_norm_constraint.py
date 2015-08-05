@@ -14,6 +14,7 @@ from pylearn2.utils import sharedX
 
 
 class ModelWithW(Model):
+
     """
     A dummy model that has some weights.
 
@@ -63,6 +64,7 @@ def test_max_l2_filter_norm():
     assert W[0, 2] == 1.
     assert W[0, 3] == 1., W[0, 3]
 
+
 def test_constrain_filter_max_norm():
     """
     Test that ConstrainFilterNorm matches a manual implementation.
@@ -97,5 +99,3 @@ def test_constrain_filter_max_norm():
     assert W[0, 1] == 0.5
     assert W[0, 2] == 1.
     assert W[0, 3] == 1., W[0, 3]
-
-

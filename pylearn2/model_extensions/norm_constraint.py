@@ -76,12 +76,27 @@ class ConstrainFilterL2Norm(ModelExtension):
             scale = desired_norms / T.maximum(1e-7, l2_norms)
             updates[W] = updated_W * scale
 
+
 class MaxL2FilterNorm(ConstrainFilterL2Norm):
 
-  def __init__(self, *args, **kwargs):
-    warnings.warn("MaxL2FilterNorm is deprecated and may be removed on or"
-                  " after 2016-01-31. Use ConstrainFilterL2Norm.")
-    super(MaxL2FilterNorm, self).__init__(*args, **kwargs)
+    """
+    A copy of ConstrainFilterL2Norm, made to preserve the old class name.
+
+    This name is deprecated.
+
+    Parameters
+    ----------
+    args : list
+        Passed on to the superclass.
+    kwargs : dict
+        Passed on to the superclass.
+    """
+
+    def __init__(self, *args, **kwargs):
+        warnings.warn("MaxL2FilterNorm is deprecated and may be removed on or"
+                      " after 2016-01-31. Use ConstrainFilterL2Norm.")
+        super(MaxL2FilterNorm, self).__init__(*args, **kwargs)
+
 
 class ConstrainFilterMaxNorm(ModelExtension):
 
@@ -137,10 +152,10 @@ class ConstrainFilterMaxNorm(ModelExtension):
                 max_limit = self.max_limit
 
             if self.min_limit is not None:
-              # This would be a pretty weird feature to want but I put
-              # the interface here for compatibility with the L2 norm
-              # constraint class.
-              raise NotImplementedError()
+                # This would be a pretty weird feature to want but I put
+                # the interface here for compatibility with the L2 norm
+                # constraint class.
+                raise NotImplementedError()
 
             if self.max_limit is not None:
-              updates[W] = T.clip(updated_W, -self.max_limit, self.max_limit)
+                updates[W] = T.clip(updated_W, -self.max_limit, self.max_limit)

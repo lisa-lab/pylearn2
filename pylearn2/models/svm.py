@@ -17,7 +17,12 @@ except ImportError:
 
     class OneVsRestClassifier(object):
         """
-        See `sklearn.multiclass.OneVsRestClassifier`.
+        Dummy replacement for `sklearn.multiclass.OneVsRestClassifier`.
+
+        Parameters
+        ----------
+        estimator : see `sklearn` doc.
+            See `sklearn` doc.
 
         Notes
         -----
