@@ -1,24 +1,25 @@
 """
-.. todo::
-
-    WRITEME
+Classes for making simple 2D visualizations.
 """
 import numpy as N
 from theano.compat.six.moves import xrange
 from theano import config
 
 
-class Graph2D:
+class Graph2D(object):
     """
-    .. todo::
-
-        WRITEME
+    A class for plotting simple graphs in two dimensions.
 
     Parameters
     ----------
-    shape : WRITEME
-    xlim : WRITEME
-    ycenter : WRITEME
+    shape : tuple
+        The shape of the display of the graph in (rows, cols)
+        format. Units are pixels
+    xlim : tuple
+        A tuple specifying (xmin, xmax). This determines what
+        portion of the real numbers are displayed in the graph.
+    ycenter : float
+        The coordinate of the center pixel along the y axis.
     """
     def __init__(self, shape, xlim, ycenter):
         self.xmin = 0.
@@ -31,9 +32,12 @@ class Graph2D:
 
     def set_shape(self, shape):
         """
-        .. todo::
+        Sets the shape of the display (in pixels)
 
-            WRITEME
+        Parameters
+        ----------
+        shape : tuple
+            The (rows, columns) of the display.
         """
         self.rows = shape[0]
         self.cols = shape[1]
@@ -42,21 +46,27 @@ class Graph2D:
 
     def set_xlim(self, xlim):
         """
-        .. todo::
+        Sets the range of space that is plotted in the graph.
 
-            WRITEME
+        Parameters
+        ----------
+        xlim : tuple
+            The range (xmin, xmax)
         """
-        #x coordinate of center of leftmost pixel
+        # x coordinate of center of leftmost pixel
         self.xmin = xlim[0]
-        #x coordinate of center of rightmost pixel
+        # x coordinate of center of rightmost pixel
         self.xmax = xlim[1]
         self.delta_x = (self.xmax-self.xmin)/float(self.cols-1)
 
     def set_ycenter(self, ycenter):
         """
-        .. todo::
+        Sets the y coordinate of the central pixel of the display.
 
-            WRITEME
+        Parameters
+        ----------
+        ycenter : float
+            The desired coordinate.
         """
         self.delta_y = self.delta_x
         self.ymin = ycenter - (self.rows / 2) * self.delta_y
@@ -64,9 +74,12 @@ class Graph2D:
 
     def render(self):
         """
-        .. todo::
+        Renders the graph.
 
-            WRITEME
+        Returns
+        -------
+        output : ndarray
+            An ndarray in (rows, cols, RGB) format.
         """
         rval = N.zeros((self.rows, self.cols, 3))
 
@@ -78,9 +91,19 @@ class Graph2D:
 
     def get_coords_for_col(self, i):
         """
-        .. todo::
+        Returns the coordinates of every pixel in column i of the
+        graph.
 
-            WRITEME
+        Parameters
+        ----------
+        i : int
+            Column index
+
+        Returns
+        -------
+        coords : ndarray
+            A vector containing the real-number coordinates of every
+            pixel in column i of the graph.
         """
         X = N.zeros((self.rows,2),dtype=config.floatX)
         X[:,0] = self.xmin + float(i) * self.delta_x
@@ -89,34 +112,46 @@ class Graph2D:
 
         return X
 
-class HeatMap:
+class HeatMap(object):
     """
-    .. todo::
-
-        WRITEME
+    A class for plotting 2-D functions as heatmaps.
 
     Parameters
     ----------
-    f : WRITEME
+    f : callable
         A callable that takes a design matrix of 2D coordinates and returns a
         vector containing the function value at those coordinates
-    normalizer : WRITEME
+    normalizer : callable, optional
         None or a callable that takes a 2D numpy array and returns a 2D numpy
         array
-    render_mode : WRITEME
+    render_mode : str
         * 'o' : opaque.
         * 'r' : render only to the (r)ed channel
     """
-    def __init__(self, f, normalizer, render_mode = 'o'):
+    def __init__(self, f, normalizer=None, render_mode = 'o'):
         self.f = f
         self.normalizer = normalizer
         self.render_mode = render_mode
 
     def render(self, prev_layer, parent):
         """
-        .. todo::
+        Renders the heatmap.
 
-            WRITEME
+        Parameters
+        ----------
+        prev_layer : numpy ndarray
+            An image that will be copied into the new output.
+            The new image will be rendered on top of the first
+            one, i.e., `prev_layer` will be visible through the
+            new heatmap if the new heatmap is not rendered in
+            fully opaque mode.
+        parent : Graph2D
+            A Graph2D object that defines the coordinate system
+            of the heatmap.
+
+        Returns
+        -------
+        img : The rendered heatmap
         """
         my_img = prev_layer * 0.0
 

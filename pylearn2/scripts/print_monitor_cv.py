@@ -10,9 +10,9 @@ from __future__ import print_function
 __author__ = "Steven Kearnes"
 __copyright__ = "Copyright 2014, Stanford University"
 __license__ = "3-clause BSD"
-__maintainer__ = "Steven Kearnes"
 
 import argparse
+from collections import Iterable
 import numpy as np
 
 from pylearn2.utils import serial
@@ -35,6 +35,8 @@ def main(models, all=False):
     values = {}
     for filename in np.atleast_1d(models):
         this_models = serial.load(filename)
+        if not isinstance(this_models, Iterable):
+            this_models = [this_models]
         for model in list(this_models):
             monitor = model.monitor
             channels = monitor.channels

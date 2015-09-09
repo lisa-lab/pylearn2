@@ -135,15 +135,18 @@ class Autoencoder(AbstractAutoencoder):
         `True`, the decoder weight matrix will be constrained to be equal
         to the transpose of the encoder weight matrix.
     irange : float, optional
-        Width of the initial range around 0 from which to sample initial
-        values for the weights.
+        If specified, initialized each weight randomly in U(-irange, irange).
+        Must be specified if istdev is not. Defaults to 1e-3.
+    istdev : float, optional
+        If specified, initialize each weight randomly from N(0,istdev). Must
+        be specified if irange is not. Default to None.
     rng : RandomState object or seed, optional
         NumPy random number generator object (or seed to create one) used
         to initialize the model parameters.
     """
 
     def __init__(self, nvis, nhid, act_enc, act_dec,
-                 tied_weights=False, irange=1e-3, rng=9001):
+                 tied_weights=False, irange=1e-3, istdev=None, rng=9001):
         """
         WRITEME
         """
@@ -158,6 +161,7 @@ class Autoencoder(AbstractAutoencoder):
         self.nvis = nvis
         self.nhid = nhid
         self.irange = irange
+        self.istdev = istdev
         self.tied_weights = tied_weights
         self.rng = make_np_rng(rng, which_method="randn")
         self._initialize_hidbias()
@@ -210,7 +214,7 @@ class Autoencoder(AbstractAutoencoder):
         if not self.tied_weights:
             self._params.append(self.w_prime)
 
-    def _initialize_weights(self, nvis, rng=None, irange=None):
+    def _initialize_weights(self, nvis, rng=None, irange=None, istdev=None):
         """
         .. todo::
 
@@ -220,12 +224,22 @@ class Autoencoder(AbstractAutoencoder):
             rng = self.rng
         if irange is None:
             irange = self.irange
+        if istdev is None:
+            istdev = self.istdev
+
         # TODO: use weight scaling factor if provided, Xavier's default else
-        self.weights = sharedX(
-            (.5 - rng.rand(nvis, self.nhid)) * irange,
-            name='W',
-            borrow=True
-        )
+        if irange is not None:
+            assert istdev is None
+            W = rng.uniform(
+                -irange,
+                irange,
+                (nvis, self.nhid)
+            )
+        else:
+            assert istdev is not None
+            W = rng.randn(nvis, self.nhid) * istdev
+
+        self.weights = sharedX(W, name='W', borrow=True)
 
     def _initialize_hidbias(self):
         """
@@ -251,7 +265,7 @@ class Autoencoder(AbstractAutoencoder):
             borrow=True
         )
 
-    def _initialize_w_prime(self, nvis, rng=None, irange=None):
+    def _initialize_w_prime(self, nvis, rng=None, irange=None, istdev=None):
         """
         .. todo::
 
@@ -265,11 +279,17 @@ class Autoencoder(AbstractAutoencoder):
             rng = self.rng
         if irange is None:
             irange = self.irange
-        self.w_prime = sharedX(
-            (.5 - rng.rand(self.nhid, nvis)) * irange,
-            name='Wprime',
-            borrow=True
-        )
+        if istdev is None:
+            istdev = self.istdev
+
+        if irange is not None:
+            assert istdev is None
+            W = (.5 - rng.rand(self.nhid, nvis)) * irange
+        else:
+            assert istdev is not None
+            W = rng.randn(self.nhid, nvis) * istdev
+
+        self.w_prime = sharedX(W, name='Wprime', borrow=True)
 
     def set_visible_size(self, nvis, rng=None):
         """
@@ -427,16 +447,6 @@ class DenoisingAutoencoder(Autoencoder):
     corruptor : object
         Instance of a corruptor object to use for corrupting the
         input.
-    nvis : int
-        WRITEME
-    nhid : int
-        WRITEME
-    act_enc : WRITEME
-    act_dec : WRITEME
-    tied_weights : bool, optional
-        WRITEME
-    irange : WRITEME
-    rng : WRITEME
 
     Notes
     -----
@@ -445,15 +455,16 @@ class DenoisingAutoencoder(Autoencoder):
     for details.
     """
     def __init__(self, corruptor, nvis, nhid, act_enc, act_dec,
-                 tied_weights=False, irange=1e-3, rng=9001):
+                 tied_weights=False, irange=1e-3, istdev=None, rng=9001):
         super(DenoisingAutoencoder, self).__init__(
-            nvis,
-            nhid,
-            act_enc,
-            act_dec,
-            tied_weights,
-            irange,
-            rng
+            nvis=nvis,
+            nhid=nhid,
+            act_enc=act_enc,
+            act_dec=act_dec,
+            tied_weights=tied_weights,
+            irange=irange,
+            istdev=istdev,
+            rng=rng
         )
         self.corruptor = corruptor
 
@@ -612,15 +623,6 @@ class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
         Instance of a corruptor object to use for corrupting the input.
     num_corruptions : integer
         number of corrupted inputs to use
-    nvis : int
-        WRITEME
-    nhid : int
-        WRITEME
-    act_enc : WRITEME
-    act_dec : WRITEME
-    tied_weights : WRITEME
-    irange : WRITEME
-    rng : WRITEME
 
     Notes
     -----
@@ -629,15 +631,17 @@ class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
     docstring for details.
     """
     def __init__(self, corruptor, num_corruptions, nvis, nhid, act_enc,
-                 act_dec, tied_weights=False, irange=1e-3, rng=9001):
+                 act_dec, tied_weights=False, irange=1e-3, istdev=None,
+                 rng=9001):
         super(HigherOrderContractiveAutoencoder, self).__init__(
-            nvis,
-            nhid,
-            act_enc,
-            act_dec,
-            tied_weights,
-            irange,
-            rng
+            nvis=nvis,
+            nhid=nhid,
+            act_enc=act_enc,
+            act_dec=act_dec,
+            tied_weights=tied_weights,
+            irange=irange,
+            istdev=istdev,
+            rng=rng
         )
         self.corruptor = corruptor
         self.num_corruptions = num_corruptions
@@ -693,7 +697,7 @@ class UntiedAutoencoder(Autoencoder):
         super(UntiedAutoencoder, self).__init__(
             nvis=base.nvis, nhid=base.nhid, act_enc=base.act_enc,
             act_dec=base.act_dec, tied_weights=True, irange=base.irange,
-            rng=base.rng)
+            istdev=base.istdev, rng=base.rng)
 
         self.weights = theano.shared(base.weights.get_value(borrow=False),
                                      name='weights')
@@ -770,6 +774,29 @@ class DeepComposedAutoencoder(AbstractAutoencoder):
         """
         for autoencoder in self.autoencoders:
             autoencoder.modify_updates(updates)
+
+
+class StackedDenoisingAutoencoder(DeepComposedAutoencoder):
+    """
+    A stacked denoising autoencoder learns a representation of the input by
+    reconstructing a noisy version of it.
+
+    Parameters
+    ----------
+    autoencoders : list
+        A list of autoencoder objects.
+    corruptor : object
+        Instance of a corruptor object to use for corrupting the
+        input.
+    """
+    def __init__(self, autoencoders, corruptor):
+        super(StackedDenoisingAutoencoder, self).__init__(autoencoders)
+        self.corruptor = corruptor
+
+    @functools.wraps(AbstractAutoencoder.reconstruct)
+    def reconstruct(self, inputs):
+        corrupted = self.corruptor(inputs)
+        return super(StackedDenoisingAutoencoder, self).reconstruct(corrupted)
 
 
 def build_stacked_ae(nvis, nhids, act_enc, act_dec,

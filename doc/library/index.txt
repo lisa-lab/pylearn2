@@ -17,7 +17,6 @@ Library Documentation
    alex
    scripts
    config
-   costs
    devtools
    distributions
    energy_functions

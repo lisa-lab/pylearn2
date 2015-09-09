@@ -1,7 +1,7 @@
 """
 Training costs for unsupervised learning of energy-based models
 """
-import functools
+from functools import wraps
 import logging
 import numpy as np
 import sys
@@ -41,44 +41,67 @@ class NCE(DefaultDataSpecsMixin, Cost):
     """
     Noise-Contrastive Estimation
 
-    See "Noise-Contrastive Estimation: \
-         A new estimation principle for unnormalized models"
-    by Gutmann and Hyvarinen
+    See "Noise-Contrastive Estimation: A new estimation principle for
+    unnormalized models" by Gutmann and Hyvarinen
 
     Parameters
     ----------
     noise : WRITEME
         A Distribution from which noisy examples are generated
-    noise_per_clean : WRITEME
+    noise_per_clean : int
         Number of noisy examples to generate for each clean example given
+
     """
     def h(self, X, model):
         """
-        .. todo::
+        Computes `h` from the NCE paper.
 
-            WRITEME
+        Parameters
+        ----------
+        X : Theano matrix
+            Batch of input data
+        model : Model
+            Any model with a `log_prob` method.
+
+        Returns
+        -------
+        h : A theano symbol for the `h` function from the paper.
         """
         return - T.nnet.sigmoid(self.G(X, model))
 
     def G(self, X, model):
         """
-        .. todo::
+        Computes `G` from the NCE paper.
 
-            WRITEME
+        Parameters
+        ----------
+        X : Theano matrix
+            Batch of input data
+        model : Model
+            Any model with a `log_prob` method.
+
+        Returns
+        -------
+        G : A theano symbol for the `G` function from the paper.
         """
         return model.log_prob(X) - self.noise.log_prob(X)
 
     def expr(self, model, data, noisy_data=None):
         """
-        .. todo::
+        Computes the NCE objective.
 
-            WRITEME
+        Parameters
+        ----------
+        model : Model
+            Any Model that implements a `log_probs` method.
+        data : Theano matrix
+        noisy_data : Theano matrix, optional
+            The noise samples used for noise-contrastive
+            estimation. Will be generated internally if not
+            provided. The keyword argument allows FixedVarDescr
+            to provide the same noise across several steps of
+            a line search.
         """
-        # noisy_data is not considered part of the data.
-        # If you don't pass it in, it will be generated internally
-        # Passing it in lets you keep it constant while doing
-        # a learn search across several theano function calls
-        # and stuff like that
         space, source = self.get_data_specs(model)
         space.validate(data)
         X = data
@@ -95,11 +118,6 @@ class NCE(DefaultDataSpecsMixin, Cost):
             Y = noisy_data
         else:
             Y = self.noise.random_design_matrix(m_noise)
-
-        # Y = Print('Y',attrs=['min','max'])(Y)
-
-        # hx = self.h(X, model)
-        # hy = self.h(Y, model)
 
         log_hx = -T.nnet.softplus(-self.G(X, model))
         log_one_minus_hy = -T.nnet.softplus(self.G(Y, model))
@@ -141,12 +159,8 @@ class SM(DefaultDataSpecsMixin, Cost):
         assert lambd >= 0
         self.lambd = lambd
 
+    @wraps(Cost.expr)
     def expr(self, model, data):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.get_data_specs(model)[0].validate(data)
         X = data
         X_name = 'X' if X.name is None else X.name
@@ -188,7 +202,7 @@ class SMD(DefaultDataSpecsMixin, Cost):
         super(SMD, self).__init__()
         self.corruptor = corruptor
 
-    @functools.wraps(Cost.expr)
+    @wraps(Cost.expr)
     def expr(self, model, data):
         self.get_data_specs(model)[0].validate(data)
         X = data
@@ -223,9 +237,6 @@ class SMD(DefaultDataSpecsMixin, Cost):
 
         return smd
 
-    def get_data_specs(self, model):
-        return (model.get_input_space(), model.get_input_source())
-
 
 class SML(Cost):
     """
@@ -252,6 +263,7 @@ class SML(Cost):
         self.nchains = batch_size
         self.nsteps = nsteps
 
+    @wraps(Cost.get_gradients)
     def get_gradients(self, model, data, **kwargs):
         cost = self._cost(model, data, **kwargs)
 
@@ -269,6 +281,20 @@ class SML(Cost):
         return gradients, updates
 
     def _cost(self, model, data):
+        """
+        A fake cost that we differentiate symbolically to derive the SML
+        update rule.
+
+        Parameters
+        ----------
+        model : Model
+        data : Batch in get_data_specs format
+
+        Returns
+        -------
+        cost : 0-d Theano tensor
+            The fake cost
+        """
 
         if not hasattr(self, 'sampler'):
             self.sampler = BlockGibbsSampler(
@@ -289,16 +315,18 @@ class SML(Cost):
 
         return ml_cost
 
+    @wraps(Cost.expr)
     def expr(self, model, data):
         return None
 
+    @wraps(Cost.get_data_specs)
     def get_data_specs(self, model):
         return (model.get_input_space(), model.get_input_source())
 
 
 class CDk(Cost):
     """
-    Contrastive Divergence
+    Contrastive Divergence.
 
     See "Training products of experts by minimizing contrastive divergence"
     by Geoffrey E. Hinton (2002)
@@ -328,6 +356,7 @@ class CDk(Cost):
 
         return ml_cost, neg_v
 
+    @wraps(Cost.get_gradients)
     def get_gradients(self, model, data, **kwargs):
         cost, neg_v = self._cost(model, data, **kwargs)
 
@@ -342,8 +371,10 @@ class CDk(Cost):
 
         return gradients, updates
 
+    @wraps(Cost.expr)
     def expr(self, model, data):
         return None
 
+    @wraps(Cost.expr)
     def get_data_specs(self, model):
         return (model.get_input_space(), model.get_input_source())

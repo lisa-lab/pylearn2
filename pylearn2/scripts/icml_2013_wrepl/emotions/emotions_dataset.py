@@ -51,6 +51,7 @@ class EmotionsDataset(DenseDesignMatrix):
         del self.test_args['start']
         del self.test_args['stop']
         del self.test_args['self']
+        del self.test_args['__class__']
 
         files = {'train': 'train.csv', 'public_test' : 'test.csv'}
 
@@ -79,7 +80,11 @@ class EmotionsDataset(DenseDesignMatrix):
 
         view_converter = DefaultViewConverter(shape=[48,48,1], axes=axes)
 
-        super(EmotionsDataset, self).__init__(X=X, y=y, y_labels=7, view_converter=view_converter)
+        if y is None:
+            y_labels = None
+        else:
+            y_labels = 7
+        super(EmotionsDataset, self).__init__(X=X, y=y, y_labels=y_labels, view_converter=view_converter)
 
         if preprocessor:
             preprocessor.apply(self, can_fit=fit_preprocessor)
@@ -112,20 +117,20 @@ class EmotionsDataset(DenseDesignMatrix):
         reader = csv.reader(csv_file)
 
         # Discard header
-        row = reader.next()
+        row = next(reader)
 
         y_list = []
         X_list = []
 
         for row in reader:
             if expect_labels:
-                y_str, X_row_str = row
+                y_str, X_row_str = (row[0], row[1])
                 y = int(y_str)
-                y_list.append(y)
+                y_list.append([y])
             else:
-                X_row_str ,= row
+                X_row_str = row[1]
             X_row_strs = X_row_str.split(' ')
-            X_row = map(lambda x: float(x), X_row_strs)
+            X_row = [float(x) for x in X_row_strs]
             X_list.append(X_row)
 
         X = np.asarray(X_list).astype('float32')

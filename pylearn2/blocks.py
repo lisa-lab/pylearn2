@@ -131,8 +131,15 @@ class StackedBlocks(Block):
         super(StackedBlocks, self).__init__()
 
         self._layers = layers
-        # Do not duplicate the parameters if some are shared between layers
-        self._params = set([p for l in self._layers for p in l._params])
+        self._params = set()
+        for l in self._layers:
+            if not hasattr(l, '_params'):
+                self._params = None
+                break
+            else:
+                # Do not duplicate the parameters if some are shared
+                # between layers
+                self._params.update(l._params)
 
     def layers(self):
         """
@@ -242,7 +249,8 @@ class StackedBlocks(Block):
         layer : WRITEME
         """
         self._layers.append(layer)
-        self._params.update(layer._params)
+        if self._params is not None:
+            self._params.update(layer._params)
 
     def get_input_space(self):
         """

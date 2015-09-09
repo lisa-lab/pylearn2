@@ -1,6 +1,9 @@
 """
 Unit tests for the RNN model
+
+Disabled because RNNWrapper is no longer a metaclass for MLP.
 """
+from nose.plugins.skip import SkipTest
 import unittest
 
 import numpy as np
@@ -22,6 +25,12 @@ class TestRNNs(unittest.TestCase):
     ----------
     None
     """
+    def setUp(self):
+        """
+        Skip all tests.
+        """
+        raise SkipTest('Sandbox RNNs are disabled.')
+
     def test_fprop(self):
         """
         Use an RNN without non-linearity to create the Mersenne numbers

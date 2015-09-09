@@ -101,26 +101,28 @@ class Maxout(Layer):
     init_bias : float or ndarray, optional
         A value that can be broadcasted to a numpy vector.
         All biases are initialized to this number.
-    W_lr_scale: float, optional
+    W_lr_scale : float, optional
         The learning rate on the weights for this layer is multiplied by
         this scaling factor
-    b_lr_scale: float, optional
+    b_lr_scale : float, optional
         The learning rate on the biases for this layer is multiplied by
         this scaling factor
-    max_col_norm: float, optional
+    max_col_norm : float, optional
         The norm of each column of the weight matrix is constrained to
         have at most this norm. If unspecified, no constraint. Constraint
         is enforced by re-projection (if necessary) at the end of each
         update.
-    max_row_norm: float, optional
+    max_row_norm : float, optional
         Like max_col_norm, but applied to the rows.
-    mask_weights: ndarray, optional
+    mask_weights : ndarray, optional
         A binary matrix multiplied by the weights after each update,
         allowing you to restrict their connectivity.
-    min_zero: bool, optional
+    min_zero : bool, optional
         If true, includes a zero in the set we take a max over for each
         maxout unit. This is equivalent to pooling over rectified
         linear units.
+    kwargs : dict
+        Passed on to superclass
     """
 
     def __str__(self):
@@ -149,9 +151,10 @@ class Maxout(Layer):
                  max_col_norm=None,
                  max_row_norm=None,
                  mask_weights=None,
-                 min_zero=False):
+                 min_zero=False,
+                 **kwargs):
 
-        super(Maxout, self).__init__()
+        super(Maxout, self).__init__(**kwargs)
 
         detector_layer_dim = num_units * num_pieces
         pool_size = num_pieces
@@ -165,11 +168,11 @@ class Maxout(Layer):
         self.b = sharedX(np.zeros((self.detector_layer_dim,)) + init_bias,
                          name=(layer_name + '_b'))
 
-        if max_row_norm is not None:
-            raise NotImplementedError()
-
         if max_col_norm is not None:
-            self.extensions.append(MaxL2FilterNorm(max_col_norm))
+            self.extensions.append(MaxL2FilterNorm(max_col_norm, axis=0))
+
+        if max_row_norm is not None:
+            self.extensions.append(MaxL2FilterNorm(max_row_norm, axis=1))
 
     @functools.wraps(Model.get_lr_scalers)
     def get_lr_scalers(self):
@@ -644,6 +647,11 @@ class MaxoutConvC01B(Layer):
         self.__dict__.update(locals())
         del self.self
 
+        if max_kernel_norm is not None:
+            self.extensions.append(
+                MaxL2FilterNorm(max_kernel_norm, axis=(0, 1, 2))
+            )
+
     @functools.wraps(Model.get_lr_scalers)
     def get_lr_scalers(self):
 
@@ -677,11 +685,11 @@ class MaxoutConvC01B(Layer):
             The Space that the input will lie in.
         """
 
+        rng = self.mlp.rng
+
         setup_detector_layer_c01b(layer=self,
                                   input_space=space,
-                                  rng=self.mlp.rng)
-
-        rng = self.mlp.rng
+                                  rng=rng)
 
         detector_shape = self.detector_space.shape
 
@@ -728,31 +736,6 @@ class MaxoutConvC01B(Layer):
                                         axes=('c', 0, 1, 'b'))
 
         logger.info('Output space: {0}'.format(self.output_space.shape))
-
-    def _modify_updates(self, updates):
-        """
-        Replaces the values in `updates` if needed to enforce the options set
-        in the __init__ method, including `max_kernel_norm`.
-
-        Parameters
-        ----------
-        updates : OrderedDict
-            A dictionary mapping parameters (including parameters not
-            belonging to this model) to updated values of those parameters.
-            The dictionary passed in contains the updates proposed by the
-            learning algorithm. This function modifies the dictionary
-            directly. The modified version will be compiled and executed
-            by the learning algorithm.
-        """
-
-        if self.max_kernel_norm is not None:
-            W, = self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=(0, 1, 2)))
-                desired_norms = T.clip(row_norms, 0, self.max_kernel_norm)
-                scales = desired_norms / (1e-7 + row_norms)
-                updates[W] = (updated_W * scales.dimshuffle('x', 'x', 'x', 0))
 
     @functools.wraps(Model.get_params)
     def get_params(self):
@@ -1093,6 +1076,11 @@ class MaxoutLocalC01B(Layer):
         self.__dict__.update(locals())
         del self.self
 
+        if max_kernel_norm is not None:
+            self.extensions.append(
+                MaxL2FilterNorm(max_kernel_norm, axis=(2, 3, 4))
+            )
+
     @functools.wraps(Model.get_lr_scalers)
     def get_lr_scalers(self):
 
@@ -1261,33 +1249,6 @@ class MaxoutLocalC01B(Layer):
             raise NotImplementedError("Pooling is not implemented for CPU")
 
         logger.info('Output space: {0}'.format(self.output_space.shape))
-
-    def _modify_updates(self, updates):
-        """
-        Replaces the values in `updates` if needed to enforce the options set
-        in the __init__ method, including `max_kernel_norm`.
-
-        Parameters
-        ----------
-        updates : OrderedDict
-            A dictionary mapping parameters (including parameters not
-            belonging to this model) to updated values of those parameters.
-            The dictionary passed in contains the updates proposed by the
-            learning algorithm. This function modifies the dictionary
-            directly. The modified version will be compiled and executed
-            by the learning algorithm.
-        """
-
-        if self.max_kernel_norm is not None:
-            W, = self.transformer.get_params()
-            if W in updates:
-                # TODO:    push some of this into the transformer itself
-                updated_W = updates[W]
-                updated_norms = self.get_filter_norms(updated_W)
-                desired_norms = T.clip(updated_norms, 0, self.max_kernel_norm)
-                scales = desired_norms / (1e-7 + updated_norms)
-                updates[W] = (updated_W *
-                              scales.dimshuffle(0, 1, 'x', 'x', 'x', 2, 3))
 
     @functools.wraps(Model.get_params)
     def get_params(self):

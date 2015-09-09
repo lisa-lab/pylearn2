@@ -18,15 +18,23 @@ from theano.compat import six
 from theano.compat.six.moves import reduce, xrange
 from theano import config
 from theano.gof.op import get_debug_values
-from theano.sandbox.rng_mrg import MRG_RandomStreams
+from theano.sandbox.cuda import cuda_enabled
 from theano.sandbox.cuda.dnn import dnn_available, dnn_pool
+from theano.sandbox.rng_mrg import MRG_RandomStreams
 from theano.tensor.signal.downsample import max_pool_2d
 import theano.tensor as T
 
 from pylearn2.compat import OrderedDict
 from pylearn2.costs.mlp import Default
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels
-from pylearn2.linear import conv2d
+# Try to import the fast cudnn library, else fallback to conv2d
+if cuda_enabled and dnn_available():
+    try:
+        from pylearn2.linear import cudnn2d as conv2d
+    except ImportError:
+        from pylearn2.linear import conv2d
+else:
+    from pylearn2.linear import conv2d
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.model_extensions.norm_constraint import MaxL2FilterNorm
 from pylearn2.models.model import Model
@@ -57,8 +65,6 @@ from pylearn2.expr.nnet import (elemwise_kl, kl, compute_precision,
 from pylearn2.costs.mlp import L1WeightDecay as _L1WD
 from pylearn2.costs.mlp import WeightDecay as _WD
 
-from pylearn2.sandbox.rnn.models.mlp_hook import RNNWrapper
-
 
 logger = logging.getLogger(__name__)
 
@@ -78,13 +84,8 @@ logger.debug("MLP changing the recursion limit.")
 # precisely when you're going to exceed the stack segment.
 sys.setrecursionlimit(40000)
 
-if six.PY3:
-    LayerBase = six.with_metaclass(RNNWrapper, Model)
-else:
-    LayerBase = Model
 
-
-class Layer(LayerBase):
+class Layer(Model):
 
     """
     Abstract class. A Layer of an MLP.
@@ -104,9 +105,6 @@ class Layer(LayerBase):
     Block interface were upgraded to be that flexible, then we could make this
     a block.
     """
-    # This enables RNN compatibility
-    __metaclass__ = RNNWrapper
-
     # When applying dropout to a layer's input, use this for masked values.
     # Usually this will be 0, but certain kinds of layers may want to override
     # this behaviour.
@@ -608,7 +606,6 @@ class MLP(Layer):
         else:
             X = data
             Y = None
-        state = X
         rval = self.get_layer_monitoring_channels(state_below=X,
                                                   targets=Y)
 
@@ -1144,6 +1141,8 @@ class Softmax(Layer):
         the same element can be included more than once).
     non_redundant : bool
         If True, learns only n_classes - 1 biases and weight vectors
+    kwargs : dict
+        Passed on to the superclass.
     """
 
     def __init__(self, n_classes, layer_name, irange=None,
@@ -1152,12 +1151,16 @@ class Softmax(Layer):
                  b_lr_scale=None, max_row_norm=None,
                  no_affine=False,
                  max_col_norm=None, init_bias_target_marginals=None,
-                 binary_target_dim=None, non_redundant=False):
+                 binary_target_dim=None, non_redundant=False,
+                 **kwargs):
 
-        super(Softmax, self).__init__()
+        super(Softmax, self).__init__(**kwargs)
 
         if max_col_norm is not None:
-            self.extensions.append(MaxL2FilterNorm(max_col_norm))
+            self.extensions.append(MaxL2FilterNorm(max_col_norm, axis=0))
+
+        if max_row_norm is not None:
+            self.extensions.append(MaxL2FilterNorm(max_row_norm, axis=1))
 
         if non_redundant:
             if init_bias_target_marginals:
@@ -1489,14 +1492,6 @@ class Softmax(Layer):
 
         if self.no_affine:
             return
-        if self.max_row_norm is not None:
-            W = self.W
-            if W in updates:
-                updated_W = updates[W]
-                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=1))
-                desired_norms = T.clip(row_norms, 0, self.max_row_norm)
-                scales = desired_norms / (1e-7 + row_norms)
-                updates[W] = updated_W * scales.dimshuffle(0, 'x')
 
 
 class SoftmaxPool(Layer):
@@ -1509,20 +1504,27 @@ class SoftmaxPool(Layer):
     Parameters
     ----------
     detector_layer_dim : WRITEME
-    layer_name : WRITEME
+    layer_name : str
+        The name of the layer. All layers in an MLP must have a unique name.
     pool_size : WRITEME
-    irange : WRITEME
-    sparse_init : WRITEME
+    irange : float, optional
+        If specified, initialized each weight randomly in U(-irange, irange).
+    sparse_init : int, optional
+        If specified, initial sparse_init number of weights for each unit from
+        N(0,1).
     sparse_stdev : WRITEME
     include_prob : float, optional
         Probability of including a weight element in the set of weights
         initialized to U(-irange, irange). If not included it is
         initialized to 0.
     init_bias : WRITEME
-    W_lr_scale : WRITEME
-    b_lr_scale : WRITEME
+    W_lr_scale : float, optional
+        Multiply the learning rate on the weights by this constant.
+    b_lr_scale : float, optional
+        Multiply the learning rate on the biases by this constant.
     mask_weights : WRITEME
-    max_col_norm : WRITEME
+    max_col_norm : float, optional
+        Maximum norm for a column of the weight matrix.
     """
 
     def __init__(self,
@@ -1544,6 +1546,9 @@ class SoftmaxPool(Layer):
 
         self.b = sharedX(np.zeros((self.detector_layer_dim,)) + init_bias,
                          name=(layer_name + '_b'))
+
+        if max_col_norm is not None:
+            self.extensions.append(MaxL2FilterNorm(max_col_norm, axis=0))
 
     @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
@@ -1639,14 +1644,6 @@ class SoftmaxPool(Layer):
             W, = self.transformer.get_params()
             if W in updates:
                 updates[W] = updates[W] * self.mask
-
-        if self.max_col_norm is not None:
-            W, = self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
     @wraps(Layer.get_params)
     def get_params(self):
@@ -1854,9 +1851,13 @@ class Linear(Layer):
         The number of elements in the output of the layer.
     layer_name : str
         The name of the layer. All layers in an MLP must have a unique name.
-    irange : WRITEME
-    istdev : WRITEME
-    sparse_init : WRITEME
+    irange : float, optional
+        If specified, initialized each weight randomly in U(-irange, irange).
+    istdev : float, optional
+        If specified, initialize each weight randomly from N(0,istdev).
+    sparse_init : int, optional
+        If specified, initial sparse_init number of weights for each unit from
+        N(0,1).
     sparse_stdev : WRITEME
     include_prob : float
         Probability of including a weight element in the set of weights
@@ -1879,8 +1880,10 @@ class Linear(Layer):
     mask_weights : ndarray, optional
         If provided, the weights will be multiplied by this mask after each
         learning update.
-    max_row_norm : WRITEME
-    max_col_norm : WRITEME
+    max_row_norm : float, optional
+        Maximum norm for a row of the weight matrix.
+    max_col_norm : float, optional
+        Maximum norm for a column of the weight matrix.
     min_col_norm : WRITEME
     copy_input : REMOVED
     use_abs_loss : bool, optional
@@ -1894,6 +1897,8 @@ class Linear(Layer):
         median of the data.
     use_bias : bool, optional
         If False, does not add the bias term to the output.
+    kwargs : dict
+        Passed on to superclass constructor.
     """
 
     def __init__(self,
@@ -1913,14 +1918,15 @@ class Linear(Layer):
                  min_col_norm=None,
                  copy_input=None,
                  use_abs_loss=False,
-                 use_bias=True):
+                 use_bias=True,
+                 **kwargs):
 
         if copy_input is not None:
             raise AssertionError(
                 "The copy_input option had a bug and has "
                 "been removed from the library.")
 
-        super(Linear, self).__init__()
+        super(Linear, self).__init__(**kwargs)
 
         if use_bias and init_bias is None:
             init_bias = 0.
@@ -1934,6 +1940,20 @@ class Linear(Layer):
         else:
             assert b_lr_scale is None
             init_bias is None
+
+        if (((max_col_norm is not None) or (min_col_norm is not None))
+                and (max_row_norm is not None)):
+            raise ValueError('Column and row constraint '
+                             'at the same time is forbidden.')
+
+        if (max_col_norm is not None) or (min_col_norm is not None):
+            self.extensions.append(MaxL2FilterNorm(
+                limit=max_col_norm,
+                min_limit=min_col_norm,
+                axis=0))
+
+        if max_row_norm is not None:
+            self.extensions.append(MaxL2FilterNorm(max_row_norm, axis=1))
 
     @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
@@ -2023,32 +2043,6 @@ class Linear(Layer):
             W, = self.transformer.get_params()
             if W in updates:
                 updates[W] = updates[W] * self.mask
-
-        if self.max_row_norm is not None:
-            W, = self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=1))
-                desired_norms = T.clip(row_norms, 0, self.max_row_norm)
-                scales = desired_norms / (1e-7 + row_norms)
-                updates[W] = updated_W * scales.dimshuffle(0, 'x')
-
-        if self.max_col_norm is not None or self.min_col_norm is not None:
-            assert self.max_row_norm is None
-            if self.max_col_norm is not None:
-                max_col_norm = self.max_col_norm
-            if self.min_col_norm is None:
-                self.min_col_norm = 0
-            W, = self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                if self.max_col_norm is None:
-                    max_col_norm = col_norms.max()
-                desired_norms = T.clip(col_norms,
-                                       self.min_col_norm,
-                                       max_col_norm)
-                updates[W] = updated_W * desired_norms / (1e-7 + col_norms)
 
     @wraps(Layer.get_params)
     def get_params(self):
@@ -2769,7 +2763,6 @@ class SigmoidConvNonlinearity(ConvNonlinearity):
         """
         Applies the sigmoid nonlinearity over the convolutional layer.
         """
-        rval = OrderedDict()
         p = T.nnet.sigmoid(linear_response)
         return p
 
@@ -2847,7 +2840,6 @@ class TanhConvNonlinearity(ConvNonlinearity):
 
 
 class ConvElemwise(Layer):
-
     """
     Generic convolutional elemwise layer.
     Takes the ConvNonlinearity object as an argument and implements
@@ -2948,7 +2940,6 @@ class ConvElemwise(Layer):
                  output_normalization=None,
                  kernel_stride=(1, 1),
                  monitor_style="classification"):
-        super(ConvElemwise, self).__init__()
 
         if (irange is None) and (sparse_init is None):
             raise AssertionError("You should specify either irange or "
@@ -2961,20 +2952,25 @@ class ConvElemwise(Layer):
 
         if pool_type is not None:
             assert pool_shape is not None, (
-                "You should specify the shape of "
-                "the spatial %s-pooling." % pool_type)
+                "You should specify the shape of the spatial %s-pooling." %
+                pool_type)
             assert pool_stride is not None, (
-                "You should specify the strides of "
-                "the spatial %s-pooling." % pool_type)
+                "You should specify the strides of the spatial %s-pooling." %
+                pool_type)
 
         assert nonlinearity is not None
-
+        super(ConvElemwise, self).__init__()
         self.nonlin = nonlinearity
         self.__dict__.update(locals())
         assert monitor_style in ['classification', 'detection'], (
             "%s.monitor_style should be either"
             "detection or classification" % self.__class__.__name__)
         del self.self
+
+        if max_kernel_norm is not None:
+            self.extensions.append(
+                MaxL2FilterNorm(max_kernel_norm, axis=(1, 2, 3))
+            )
 
     def initialize_transformer(self, rng):
         """
@@ -2988,6 +2984,7 @@ class ConvElemwise(Layer):
         """
         if self.irange is not None:
             assert self.sparse_init is None
+
             self.transformer = conv2d.make_random_conv2D(
                 irange=self.irange,
                 input_space=self.input_space,
@@ -3005,6 +3002,8 @@ class ConvElemwise(Layer):
                 subsample=self.kernel_stride,
                 border_mode=self.border_mode,
                 rng=rng)
+        else:
+            raise ValueError('irange and sparse_init cannot be both None')
 
     def initialize_output_space(self):
         """
@@ -3096,18 +3095,6 @@ class ConvElemwise(Layer):
         logger.info('Detector space: {0}'.format(self.detector_space.shape))
 
         self.initialize_output_space()
-
-    @wraps(Layer._modify_updates)
-    def _modify_updates(self, updates):
-        if self.max_kernel_norm is not None:
-            W, = self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=(1, 2, 3)))
-                desired_norms = T.clip(row_norms, 0, self.max_kernel_norm)
-                updates[W] = updated_W * (
-                    desired_norms /
-                    (1e-7 + row_norms)).dimshuffle(0, 'x', 'x', 'x')
 
     @wraps(Layer.get_params)
     def get_params(self):
@@ -3216,7 +3203,6 @@ class ConvElemwise(Layer):
 
     @wraps(Layer.fprop)
     def fprop(self, state_below):
-
         self.input_space.validate(state_below)
 
         z = self.transformer.lmul(state_below)
@@ -3236,6 +3222,7 @@ class ConvElemwise(Layer):
             self.detector_space.validate(d)
 
         if self.pool_type is not None:
+            # Format the input to be supported by max pooling
             if not hasattr(self, 'detector_normalization'):
                 self.detector_normalization = None
 
@@ -3250,6 +3237,7 @@ class ConvElemwise(Layer):
                 p = max_pool(bc01=d, pool_shape=self.pool_shape,
                              pool_stride=self.pool_stride,
                              image_shape=self.detector_space.shape)
+
             elif self.pool_type == 'mean':
                 p = mean_pool(bc01=d, pool_shape=self.pool_shape,
                               pool_stride=self.pool_stride,
@@ -3962,6 +3950,10 @@ class LinearGaussian(Linear):
         return (0.5 * T.dot(T.sqr(Y - Y_hat), self.beta).mean() -
                 0.5 * T.log(self.beta).sum())
 
+    @wraps(Linear.cost_matrix)
+    def cost_matrix(self, Y, Y_hat):
+        return 0.5 * T.sqr(Y - Y_hat) * self.beta - 0.5 * T.log(self.beta)
+
     @wraps(Layer._modify_updates)
     def _modify_updates(self, updates):
 
@@ -4500,11 +4492,6 @@ class FlattenerLayer(Layer):
 
         super(FlattenerLayer, self).set_mlp(mlp)
         self.raw_layer.set_mlp(mlp)
-
-    @wraps(Layer.get_weights)
-    def get_weights(self):
-
-        return self.raw_layer.get_weights()
 
 
 class WindowLayer(Layer):

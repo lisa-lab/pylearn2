@@ -201,7 +201,7 @@ class OneHotFormatter(object):
         else:
             if mode == 'concatenate':
                 one_hot = tensor.zeros((targets.shape[0] * targets.shape[1],
-                                        self._max_labels))
+                                        self._max_labels), dtype=self._dtype)
                 one_hot = tensor.set_subtensor(
                     one_hot[tensor.arange(targets.size),
                             targets.flatten()], 1)
@@ -209,13 +209,14 @@ class OneHotFormatter(object):
                     (targets.shape[0], targets.shape[1] * self._max_labels)
                 )
             elif mode == 'merge':
-                one_hot = tensor.zeros((targets.shape[0], self._max_labels))
+                one_hot = tensor.zeros((targets.shape[0], self._max_labels),
+                                       dtype=self._dtype)
                 one_hot = tensor.set_subtensor(
                     one_hot[tensor.arange(targets.size) % targets.shape[0],
                             targets.T.flatten()], 1)
             else:
                 one_hot = tensor.zeros((targets.shape[0], targets.shape[1],
-                                        self._max_labels))
+                                        self._max_labels), dtype=self._dtype)
                 one_hot = tensor.set_subtensor(one_hot[
                     tensor.arange(targets.shape[0]).reshape((targets.shape[0],
                                                              1)),
