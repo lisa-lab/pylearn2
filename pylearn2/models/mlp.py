@@ -2764,11 +2764,6 @@ class RectifierConvNonlinearity(ConvNonlinearity):
             linear_response * (linear_response < 0.)
         return p
 
-    @wraps(ConvNonlinearity.cost)
-    def cost(self, Y, Y_hat, batch_axis):
-        raise NotImplementedError(
-            str(type(self)) + " does not implement cost function.")
-
 
 class SigmoidConvNonlinearity(ConvNonlinearity):
 
@@ -2879,11 +2874,6 @@ class TanhConvNonlinearity(ConvNonlinearity):
         """
         p = T.tanh(linear_response)
         return p
-
-    @wraps(ConvNonlinearity.cost)
-    def cost(self, Y, Y_hat, batch_axis):
-        raise NotImplementedError(
-            str(type(self)) + " does not implement cost function.")
 
 
 class ConvElemwise(Layer):
