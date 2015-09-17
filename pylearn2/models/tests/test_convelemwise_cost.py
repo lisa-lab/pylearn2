@@ -6,7 +6,11 @@ by comparing to standard MLP's.
 """
 
 import numpy as np
+from numpy.testing import assert_raises
+
 import theano
+from theano.tests.unittest_tools import assert_allclose
+
 from pylearn2.models.mlp import MLP
 from pylearn2.models.mlp import Sigmoid, Tanh, Linear, RectifiedLinear
 from pylearn2.models.mlp import ConvElemwise
@@ -17,12 +21,12 @@ from pylearn2.models.mlp import IdentityConvNonlinearity
 from pylearn2.models.mlp import RectifierConvNonlinearity
 
 
-def check_implemented_case(conv_nonlinearity, mlp_nonlinearity):
+def check_case(conv_nonlinearity, mlp_nonlinearity, cost_implemented=True):
     """Check that ConvNonLinearity and MLPNonlinearity are consistent.
 
     This is done by building an MLP with a ConvElemwise layer with the
     supplied non-linearity, an MLP with a dense layer, and checking that
-    the output and costs are consistent.
+    the outputs (and costs if applicable) are consistent.
 
     Parameters
     ----------
@@ -31,6 +35,10 @@ def check_implemented_case(conv_nonlinearity, mlp_nonlinearity):
 
     mlp_nonlinearity: subclass of `mlp.Linear`
         The fully-connected MLP layer (including non-linearity).
+
+    check_implemented: bool
+        If `True`, check that both costs give consistent results.
+        If `False`, check that both costs raise `NotImplementedError`.
     """
 
     # Create fake data
@@ -105,47 +113,17 @@ def check_implemented_case(conv_nonlinearity, mlp_nonlinearity):
     f = theano.function([X1], Y1_hat)
 
     # Check that the two models give the same output
-    assert np.linalg.norm(f(x_mlp).flatten() - g(x).flatten()) < 10**-3
+    assert_allclose(f(x_mlp).flatten(), g(x).flatten())
 
-    # Check that the two models have the same costs:
-    mlp_cost = theano.function([X1, Y1], mlp_model.cost(Y1, Y1_hat))
-    conv_cost = theano.function([X, Y], conv_model.cost(Y, Y_hat))
-
-    assert np.linalg.norm(conv_cost(x, y) - mlp_cost(x_mlp, y_mlp)) < 10**-3
-
-
-def check_unimplemented_case(conv_nonlinearity):
-    """Check a ConvNonlinearity does not have a `cost` method.
-
-    If the `cost` method gets implemented in the future, it should
-    be checked against a reference dense implementation.
-
-    Parameters
-    ----------
-    conv_nonlinearity: subclass of `ConvNonlinearity`
-        The non-linearity to provide to a `ConvElemwise` layer.
-    """
-
-    conv_model = MLP(
-        input_space=Conv2DSpace(shape=[1, 1],
-                                axes=['b', 0, 1, 'c'],
-                                num_channels=1),
-        layers=[ConvElemwise(layer_name='conv',
-                             nonlinearity=conv_nonlinearity,
-                             output_channels=1,
-                             kernel_shape=[1, 1],
-                             pool_shape=[1, 1],
-                             pool_stride=[1, 1],
-                             irange=1.0)],
-        batch_size=1
-    )
-
-    X = conv_model.get_input_space().make_theano_batch()
-    Y = conv_model.get_target_space().make_theano_batch()
-    Y_hat = conv_model.fprop(X)
-
-    assert np.testing.assert_raises(NotImplementedError,
-                                    conv_model.cost, Y, Y_hat)
+    if cost_implemented:
+        # Check that the two models have the same costs
+        mlp_cost = theano.function([X1, Y1], mlp_model.cost(Y1, Y1_hat))
+        conv_cost = theano.function([X, Y], conv_model.cost(Y, Y_hat))
+        assert_allclose(conv_cost(x, y), mlp_cost(x_mlp, y_mlp))
+    else:
+        # Check that both costs are not implemented
+        assert_raises(NotImplementedError, conv_model.cost, Y, Y_hat)
+        assert_raises(NotImplementedError, mlp_model.cost, Y1, Y1_hat)
 
 
 def test_all_costs():
@@ -155,17 +133,13 @@ def test_all_costs():
     of `Linear`, or their `cost` method should not be implemented.
     """
 
-    implemented_cases = [[SigmoidConvNonlinearity(), Sigmoid],
-                         [IdentityConvNonlinearity(), Linear]]
+    cases = [[SigmoidConvNonlinearity(), Sigmoid, True],
+             [IdentityConvNonlinearity(), Linear, True],
+             [TanhConvNonlinearity(), Tanh, False],
+             [RectifierConvNonlinearity(), RectifiedLinear, False]]
 
-    unimplemented_cases = [[TanhConvNonlinearity(), Tanh],
-                           [RectifierConvNonlinearity, RectifiedLinear]]
-
-    for conv_nonlinearity, mlp_nonlinearity in unimplemented_cases:
-        check_unimplemented_case(conv_nonlinearity)
-
-    for conv_nonlinearity, mlp_nonlinearity in implemented_cases:
-        check_implemented_case(conv_nonlinearity, mlp_nonlinearity)
+    for conv_nonlinearity, mlp_nonlinearity, cost_implemented in cases:
+        check_case(conv_nonlinearity, mlp_nonlinearity, cost_implemented)
 
 
 if __name__ == "__main__":
