@@ -9,6 +9,7 @@ import numpy as np
 from numpy.testing import assert_raises
 
 import theano
+from theano import config
 from theano.tests.unittest_tools import assert_allclose
 
 from pylearn2.models.mlp import MLP
@@ -54,8 +55,8 @@ def check_case(conv_nonlinearity, mlp_nonlinearity, cost_implemented=True):
     x = np.random.rand(batch_size, r, s, 1)
     y = np.random.randint(2, size=[batch_size, output_channels, 1, 1])
 
-    x = x.astype('float32')
-    y = y.astype('float32')
+    x = x.astype(config.floatX)
+    y = y.astype(config.floatX)
 
     x_mlp = x.flatten().reshape(batch_size, nvis)
     y_mlp = y.flatten().reshape(batch_size, output_channels)
@@ -93,17 +94,11 @@ def check_case(conv_nonlinearity, mlp_nonlinearity, cost_implemented=True):
 
     W, b = conv_model.get_param_values()
 
-    W = W.astype('float32')
-    b = b.astype('float32')
-
-    W_mlp = np.zeros(shape=(output_channels, nvis))
+    W_mlp = np.zeros(shape=(output_channels, nvis), dtype=config.floatX)
     for k in range(output_channels):
         W_mlp[k] = W[k, 0].flatten()[::-1]
     W_mlp = W_mlp.T
     b_mlp = b.flatten()
-
-    W_mlp = W_mlp.astype('float32')
-    b_mlp = b_mlp.astype('float32')
 
     mlp_model.set_param_values([W_mlp, b_mlp])
 
