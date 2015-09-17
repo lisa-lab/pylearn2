@@ -108,7 +108,7 @@ def check_case(conv_nonlinearity, mlp_nonlinearity, cost_implemented=True):
     f = theano.function([X1], Y1_hat)
 
     # Check that the two models give the same output
-    assert_allclose(f(x_mlp).flatten(), g(x).flatten())
+    assert_allclose(f(x_mlp).flatten(), g(x).flatten(), rtol=1e-5, atol=5e-5)
 
     if cost_implemented:
         # Check that the two models have the same costs
