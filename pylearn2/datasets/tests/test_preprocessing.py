@@ -239,7 +239,7 @@ class testZCA:
 
         # Check if preprocessed data matrix is white
         assert_allclose(np.cov(preprocessed_X.transpose(),
-                               bias=1), identity, rtol=1e-4)
+                               bias=1), identity, rtol=1e-4, atol=1e-4)
 
         # Check if we obtain correct solution
         zca_transformed_X = np.array(
@@ -290,7 +290,8 @@ class testZCA:
                                         fit_preprocessor=True)
 
             preprocessed_X = dataset.get_design_matrix()
-            assert_allclose(self.X, preprocessor.inverse(preprocessed_X))
+            assert_allclose(self.X, preprocessor.inverse(preprocessed_X),
+                            atol=5e-5, rtol=1e-5)
 
         test(store_inverse=True)
         test(store_inverse=False)

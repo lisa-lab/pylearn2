@@ -5,7 +5,7 @@ Note: this code is inspired from the following matlab source :
 
 import theano
 import theano.tensor as TT
-from theano.sandbox.scan import scan
+from theano import scan
 import numpy
 from pylearn2.utils import constantX
 from pylearn2.expr.basic import multiple_switch, symGivens2, \
@@ -351,74 +351,71 @@ def minres(compute_Av,
 
     states = []
     # 0 niter
-    states.append(constantX([0]))
+    states.append(constantX(0))
     # 1 beta
-    states.append(constantX([0]))
+    states.append(constantX(0))
     # 2 betan
-    states.append(TT.unbroadcast(TT.shape_padleft(beta1), 0))
+    states.append(beta1)
     # 3 phi
-    states.append(TT.unbroadcast(TT.shape_padleft(beta1), 0))
+    states.append(beta1)
     # 4 Acond
-    states.append(constantX([1]))
+    states.append(constantX(1))
     # 5 cs
-    states.append(constantX([-1]))
+    states.append(constantX(-1))
     # 6 dbarn
-    states.append(constantX([0]))
+    states.append(constantX(0))
     # 7 eplnn
-    states.append(constantX([0]))
+    states.append(constantX(0))
     # 8 rnorm
-    states.append(TT.unbroadcast(TT.shape_padleft(beta1), 0))
+    states.append(beta1)
     # 9 sn
-    states.append(constantX([0]))
+    states.append(constantX(0))
     # 10 Tnorm
-    states.append(constantX([0]))
+    states.append(constantX(0))
     # 11 rnorml
-    states.append(TT.unbroadcast(TT.shape_padleft(beta1), 0))
+    states.append(beta1)
     # 12 xnorm
-    states.append(constantX([0]))
+    states.append(constantX(0))
     # 13 Dnorm
-    states.append(constantX([0]))
+    states.append(constantX(0))
     # 14 gamma
-    states.append(constantX([0]))
+    states.append(constantX(0))
     # 15 pnorm
-    states.append(constantX([0]))
+    states.append(constantX(0))
     # 16 gammal
-    states.append(constantX([0]))
+    states.append(constantX(0))
     # 17 Axnorm
-    states.append(constantX([0]))
+    states.append(constantX(0))
     # 18 relrnorm
-    states.append(constantX([1]))
+    states.append(constantX(1))
     # 19 relArnorml
-    states.append(constantX([1]))
+    states.append(constantX(1))
     # 20 Anorm
-    states.append(constantX([0]))
+    states.append(constantX(0))
     # 21 flag
-    states.append(constantX([0]))
-    xs = [TT.unbroadcast(TT.shape_padleft(TT.zeros_like(b)), 0) for b in bs]
-    ds = [TT.unbroadcast(TT.shape_padleft(TT.zeros_like(b)), 0) for b in bs]
-    dls = [TT.unbroadcast(TT.shape_padleft(TT.zeros_like(b)), 0) for b in bs]
-    r1s = [TT.unbroadcast(TT.shape_padleft(r1), 0) for r1 in r1s]
-    r2s = [TT.unbroadcast(TT.shape_padleft(r2), 0) for r2 in r2s]
-    r3s = [TT.unbroadcast(TT.shape_padleft(r3), 0) for r3 in r3s]
+    states.append(constantX(0))
+    xs = [TT.zeros_like(b) for b in bs]
+    ds = [TT.zeros_like(b) for b in bs]
+    dls = [TT.zeros_like(b) for b in bs]
 
     rvals, loc_updates = scan(
         loop,
-        states=states + xs + r1s + r2s + r3s + dls + ds,
+        outputs_info=(states + xs + r1s + r2s + r3s + dls + ds),
         n_steps=maxit + numpy.int32(1),
         name='minres',
         profile=profile,
         mode=theano.Mode(linker='cvm'))
     assert isinstance(loc_updates, dict) and 'Ordered' in str(type(loc_updates))
 
-    niters = TT.cast(rvals[0][0], 'int32')
-    flag = TT.cast(rvals[21][0], 'int32')
-    relres = rvals[18][0]
-    relAres = rvals[19][0]
-    Anorm = rvals[20][0]
-    Acond = rvals[4][0]
-    xnorm = rvals[12][0]
-    Axnorm = rvals[17][0]
-    sol = [x[0] for x in rvals[22: 22 + n_params]]
+    niters = TT.cast(rvals[0][-1], 'int32')
+    flag = TT.cast(rvals[21][-1], 'int32')
+    relres = rvals[18][-1]
+    relAres = rvals[19][-1]
+    Anorm = rvals[20][-1]
+    Acond = rvals[4][-1]
+    xnorm = rvals[12][-1]
+    Axnorm = rvals[17][-1]
+    sol = [x[-1] for x in rvals[22: 22 + n_params]]
     return (sol,
             flag,
             niters,
