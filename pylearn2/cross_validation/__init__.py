@@ -35,7 +35,8 @@ class TrainCV(object):
     algorithm : TrainingAlgorithm
         Training algorithm.
     algorithm_monitoring_datasets : list or None
-        Subsets of the dataset to be monitored. Leave as None to monitor all subsets.
+        Subsets of the dataset to be monitored.
+        Leave as None to monitor all subsets.
     save_path : str or None
         Output filename for trained models. Also used (with modification)
         for individual models if save_folds is True.
@@ -50,7 +51,8 @@ class TrainCV(object):
     cv_extensions : list or None
         TrainCVExtension objects for the parent TrainCV object.
     """
-    def __init__(self, dataset_iterator, model, algorithm=None, algorithm_monitoring_datasets=None,
+    def __init__(self, dataset_iterator, model, algorithm=None, 
+                 algorithm_monitoring_datasets=None,
                  save_path=None, save_freq=0, extensions=None,
                  allow_overwrite=True, save_folds=False, cv_extensions=None):
         self.dataset_iterator = dataset_iterator
@@ -81,7 +83,9 @@ class TrainCV(object):
             if algorithm_monitoring_datasets is None:
                 monitoring_datasets = datasets
             else:
-                monitoring_datasets = {k:v for (k,v) in datasets.items() if k in algorithm_monitoring_datasets}
+                monitoring_datasets = dict(
+                    (k, v) for (k, v) in datasets.iteritems() 
+                    if k in algorithm_monitoring_datasets)
             this_algorithm._set_monitoring_dataset(monitoring_datasets)
 
             # extensions
