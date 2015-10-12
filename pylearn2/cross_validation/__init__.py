@@ -1,4 +1,4 @@
-﻿"""
+"""
 Cross validation module.
 
 Each fold of cross validation is a separate experiment, so we create a
@@ -51,7 +51,7 @@ class TrainCV(object):
     cv_extensions : list or None
         TrainCVExtension objects for the parent TrainCV object.
     """
-    def __init__(self, dataset_iterator, model, algorithm=None, 
+    def __init__(self, dataset_iterator, model, algorithm=None,
                  algorithm_monitoring_datasets=None,
                  save_path=None, save_freq=0, extensions=None,
                  allow_overwrite=True, save_folds=False, cv_extensions=None):
@@ -84,7 +84,7 @@ class TrainCV(object):
                 monitoring_datasets = datasets
             else:
                 monitoring_datasets = dict(
-                    (k, v) for (k, v) in datasets.iteritems() 
+                    (k, v) for (k, v) in datasets.iteritems()
                     if k in algorithm_monitoring_datasets)
             this_algorithm._set_monitoring_dataset(monitoring_datasets)
 
