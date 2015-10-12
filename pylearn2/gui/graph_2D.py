@@ -6,7 +6,7 @@ from theano.compat.six.moves import xrange
 from theano import config
 
 
-class Graph2D:
+class Graph2D(object):
     """
     A class for plotting simple graphs in two dimensions.
 
@@ -112,25 +112,23 @@ class Graph2D:
 
         return X
 
-class HeatMap:
+class HeatMap(object):
     """
-    .. todo::
-
-        WRITEME
+    A class for plotting 2-D functions as heatmaps.
 
     Parameters
     ----------
-    f : WRITEME
+    f : callable
         A callable that takes a design matrix of 2D coordinates and returns a
         vector containing the function value at those coordinates
-    normalizer : WRITEME
+    normalizer : callable, optional
         None or a callable that takes a 2D numpy array and returns a 2D numpy
         array
-    render_mode : WRITEME
+    render_mode : str
         * 'o' : opaque.
         * 'r' : render only to the (r)ed channel
     """
-    def __init__(self, f, normalizer, render_mode = 'o'):
+    def __init__(self, f, normalizer=None, render_mode = 'o'):
         self.f = f
         self.normalizer = normalizer
         self.render_mode = render_mode
@@ -141,8 +139,15 @@ class HeatMap:
 
         Parameters
         ----------
-        prev_layer : WRITEME
-        parent : WRITEME
+        prev_layer : numpy ndarray
+            An image that will be copied into the new output.
+            The new image will be rendered on top of the first
+            one, i.e., `prev_layer` will be visible through the
+            new heatmap if the new heatmap is not rendered in
+            fully opaque mode.
+        parent : Graph2D
+            A Graph2D object that defines the coordinate system
+            of the heatmap.
 
         Returns
         -------

@@ -38,7 +38,7 @@ from theano.compat.six.moves import xrange
 import theano
 import theano.tensor as T
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
-from theano.sandbox.scan import scan
+from theano import scan
 
 import pylearn2
 from pylearn2.compat import OrderedDict
@@ -482,9 +482,6 @@ def _e_step(psamples, W_list, b_list, n_steps=100, eps=1e-5):
     """
     depth = len(psamples)
 
-    new_psamples = [T.unbroadcast(T.shape_padleft(psample))
-                    for psample in psamples]
-
     # now alternate mean-field inference for even/odd layers
     def mf_iteration(*psamples):
         new_psamples = [p for p in psamples]
@@ -502,11 +499,11 @@ def _e_step(psamples, W_list, b_list, n_steps=100, eps=1e-5):
 
     new_psamples, updates = scan(
         mf_iteration,
-        states=new_psamples,
+        outputs_info=psamples,
         n_steps=n_steps
     )
 
-    return [x[0] for x in new_psamples]
+    return [x[-1] for x in new_psamples]
 
 
 def estimate_likelihood(W_list, b_list, trainset, testset, free_energy_fn=None,

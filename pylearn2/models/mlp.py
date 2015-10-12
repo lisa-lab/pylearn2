@@ -65,8 +65,6 @@ from pylearn2.expr.nnet import (elemwise_kl, kl, compute_precision,
 from pylearn2.costs.mlp import L1WeightDecay as _L1WD
 from pylearn2.costs.mlp import WeightDecay as _WD
 
-from pylearn2.sandbox.rnn.models.mlp_hook import RNNWrapper
-
 
 logger = logging.getLogger(__name__)
 
@@ -86,13 +84,8 @@ logger.debug("MLP changing the recursion limit.")
 # precisely when you're going to exceed the stack segment.
 sys.setrecursionlimit(40000)
 
-if six.PY3:
-    LayerBase = six.with_metaclass(RNNWrapper, Model)
-else:
-    LayerBase = Model
 
-
-class Layer(LayerBase):
+class Layer(Model):
 
     """
     Abstract class. A Layer of an MLP.
@@ -112,9 +105,6 @@ class Layer(LayerBase):
     Block interface were upgraded to be that flexible, then we could make this
     a block.
     """
-    # This enables RNN compatibility
-    __metaclass__ = RNNWrapper
-
     # When applying dropout to a layer's input, use this for masked values.
     # Usually this will be 0, but certain kinds of layers may want to override
     # this behaviour.
@@ -1151,6 +1141,8 @@ class Softmax(Layer):
         the same element can be included more than once).
     non_redundant : bool
         If True, learns only n_classes - 1 biases and weight vectors
+    kwargs : dict
+        Passed on to the superclass.
     """
 
     def __init__(self, n_classes, layer_name, irange=None,
@@ -1159,9 +1151,10 @@ class Softmax(Layer):
                  b_lr_scale=None, max_row_norm=None,
                  no_affine=False,
                  max_col_norm=None, init_bias_target_marginals=None,
-                 binary_target_dim=None, non_redundant=False):
+                 binary_target_dim=None, non_redundant=False,
+                 **kwargs):
 
-        super(Softmax, self).__init__()
+        super(Softmax, self).__init__(**kwargs)
 
         if max_col_norm is not None:
             self.extensions.append(MaxL2FilterNorm(max_col_norm, axis=0))
@@ -1904,6 +1897,8 @@ class Linear(Layer):
         median of the data.
     use_bias : bool, optional
         If False, does not add the bias term to the output.
+    kwargs : dict
+        Passed on to superclass constructor.
     """
 
     def __init__(self,
@@ -1923,14 +1918,15 @@ class Linear(Layer):
                  min_col_norm=None,
                  copy_input=None,
                  use_abs_loss=False,
-                 use_bias=True):
+                 use_bias=True,
+                 **kwargs):
 
         if copy_input is not None:
             raise AssertionError(
                 "The copy_input option had a bug and has "
                 "been removed from the library.")
 
-        super(Linear, self).__init__()
+        super(Linear, self).__init__(**kwargs)
 
         if use_bias and init_bias is None:
             init_bias = 0.
@@ -2684,6 +2680,27 @@ class ConvNonlinearity(object):
 
         return rval
 
+    def cost(self, Y, Y_hat, batch_axis):
+        """
+        The cost of outputting Y_hat when the true output is Y.
+
+        Parameters
+        ----------
+        Y : theano.gof.Variable
+            Output of `fprop`
+        Y_hat : theano.gof.Variable
+            Targets
+        batch_axis : integer
+            axis representing batch dimension
+
+        Returns
+        -------
+        cost : theano.gof.Variable
+            0-D tensor describing the cost
+        """
+        raise NotImplementedError(
+            str(type(self)) + " does not implement cost function.")
+
 
 class IdentityConvNonlinearity(ConvNonlinearity):
 
@@ -2711,6 +2728,15 @@ class IdentityConvNonlinearity(ConvNonlinearity):
             rval["misclass"] = T.cast(incorrect, config.floatX).mean()
 
         return rval
+
+    @wraps(ConvNonlinearity.cost, append=True)
+    def cost(self, Y, Y_hat, batch_axis):
+        """
+        Notes
+        -----
+        Mean squared error across examples in a batch
+        """
+        return T.sum(T.mean(T.sqr(Y-Y_hat), axis=batch_axis))
 
 
 class RectifierConvNonlinearity(ConvNonlinearity):
@@ -2823,6 +2849,19 @@ class SigmoidConvNonlinearity(ConvNonlinearity):
             rval['per_output_f1_min'] = f1.min()
 
         return rval
+
+    @wraps(ConvNonlinearity.cost, append=True)
+    def cost(self, Y, Y_hat, batch_axis):
+        """
+        Notes
+        -----
+        Cost mean across units, mean across batch of KL divergence
+        KL(P || Q) where P is defined by Y and Q is defined by Y_hat
+        KL(P || Q) = p log p - p log q + (1-p) log (1-p) - (1-p) log (1-q)
+        """
+        ave_total = kl(Y=Y, Y_hat=Y_hat, batch_axis=batch_axis)
+        ave = ave_total.mean()
+        return ave
 
 
 class TanhConvNonlinearity(ConvNonlinearity):
@@ -3259,39 +3298,16 @@ class ConvElemwise(Layer):
 
         return p
 
+    @wraps(Layer.cost, append=True)
     def cost(self, Y, Y_hat):
         """
-        Cost for convnets is hardcoded to be the cost for sigmoids.
-        TODO: move the cost into the non-linearity class.
-
-        Parameters
-        ----------
-        Y : theano.gof.Variable
-            Output of `fprop`
-        Y_hat : theano.gof.Variable
-            Targets
-
-        Returns
-        -------
-        cost : theano.gof.Variable
-            0-D tensor describing the cost
-
         Notes
         -----
-        Cost mean across units, mean across batch of KL divergence
-        KL(P || Q) where P is defined by Y and Q is defined by Y_hat
-        KL(P || Q) = p log p - p log q + (1-p) log (1-p) - (1-p) log (1-q)
+        The cost method calls `self.nonlin.cost`
         """
-        assert self.nonlin.non_lin_name == "sigmoid", ("ConvElemwise "
-                                                       "supports "
-                                                       "cost function "
-                                                       "for only "
-                                                       "sigmoid layer "
-                                                       "for now.")
+
         batch_axis = self.output_space.get_batch_axis()
-        ave_total = kl(Y=Y, Y_hat=Y_hat, batch_axis=batch_axis)
-        ave = ave_total.mean()
-        return ave
+        return self.nonlin.cost(Y=Y, Y_hat=Y_hat, batch_axis=batch_axis)
 
 
 class ConvRectifiedLinear(ConvElemwise):

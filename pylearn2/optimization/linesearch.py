@@ -9,7 +9,7 @@ See :
 import theano
 import theano.tensor as TT
 from theano.ifelse import ifelse
-from theano.sandbox.scan import scan
+from theano import scan
 import numpy
 
 one = TT.constant(numpy.asarray(1, dtype=theano.config.floatX))
@@ -109,27 +109,23 @@ def scalar_armijo_search(phi, phi0, derphi0, c1=constant(1e-4),
         return [alpha1, alpha2, phi_a1, phi_a2], \
                 theano.scan_module.until(end_condition)
 
-    states = []
-    states += [TT.unbroadcast(TT.shape_padleft(alpha0), 0)]
-    states += [TT.unbroadcast(TT.shape_padleft(alpha1), 0)]
-    states += [TT.unbroadcast(TT.shape_padleft(phi_a0), 0)]
-    states += [TT.unbroadcast(TT.shape_padleft(phi_a1), 0)]
+    states = [alpha0, alpha1, phi_a0, phi_a1]
     # print 'armijo'
     rvals, _ = scan(
                 armijo,
-                states=states,
+                outputs_info=states,
                 n_steps=n_iters,
                 name='armijo',
                 mode=theano.Mode(linker='cvm'),
                 profile=profile)
 
-    sol_scan = rvals[1][0]
+    sol_scan = rvals[1][-1]
     a_opt = ifelse(csol1, one,
                 ifelse(csol2, alpha1,
                     sol_scan))
     score = ifelse(csol1, phi_a0,
                    ifelse(csol2, phi_a1,
-                          rvals[2][0]))
+                          rvals[2][-1]))
     return a_opt, score
 
 
@@ -279,31 +275,26 @@ def scalar_search_wolfe2(phi,
                             cond1,
                             cond2,
                             cond3)))
-    states = []
-    states += [TT.unbroadcast(TT.shape_padleft(alpha0), 0)]
-    states += [TT.unbroadcast(TT.shape_padleft(alpha1), 0)]
-    states += [TT.unbroadcast(TT.shape_padleft(phi_a0), 0)]
-    states += [TT.unbroadcast(TT.shape_padleft(phi_a1), 0)]
-    states += [TT.unbroadcast(TT.shape_padleft(derphi_a0), 0)]
+    states = [alpha0, alpha1, phi_a0, phi_a1, derphi_a0]
     # i_t
-    states += [TT.unbroadcast(TT.shape_padleft(zero), 0)]
+    states.append(zero)
     # alpha_star
-    states += [TT.unbroadcast(TT.shape_padleft(zero), 0)]
+    states.append(zero)
     # phi_star
-    states += [TT.unbroadcast(TT.shape_padleft(zero), 0)]
+    states.append(zero)
     # derphi_star
-    states += [TT.unbroadcast(TT.shape_padleft(zero), 0)]
+    states.append(zero)
     # print 'while_search'
     outs, updates = scan(while_search,
-                         states=states,
+                         outputs_info=states,
                          n_steps=maxiter,
                          name='while_search',
                          mode=theano.Mode(linker='cvm_nogc'),
                          profile=profile)
     # print 'done_while_search'
-    out3 = outs[-3][0]
-    out2 = outs[-2][0]
-    out1 = outs[-1][0]
+    out3 = outs[-3][-1]
+    out2 = outs[-2][-1]
+    out1 = outs[-1][-1]
     alpha_star, phi_star, derphi_star = \
             ifelse(TT.eq(alpha1, zero),
                         (nan, phi0, nan),
@@ -629,28 +620,19 @@ def _zoom(a_lo, a_hi, phi_lo, phi_hi, derphi_lo,
     derphi_lo.name = 'derphi_lo'
     vderphi_aj = ifelse(cond1, nan, TT.switch(cond2, derphi_aj, nan),
                         name='vderphi_aj')
-    states = []
-    states += [TT.unbroadcast(TT.shape_padleft(phi_rec), 0)]
-    states += [TT.unbroadcast(TT.shape_padleft(a_rec), 0)]
-    states += [TT.unbroadcast(TT.shape_padleft(a_lo), 0)]
-    states += [TT.unbroadcast(TT.shape_padleft(a_hi), 0)]
-    states += [TT.unbroadcast(TT.shape_padleft(phi_hi), 0)]
-    states += [TT.unbroadcast(TT.shape_padleft(phi_lo), 0)]
-    states += [TT.unbroadcast(TT.shape_padleft(derphi_lo), 0)]
-    states += [TT.unbroadcast(TT.shape_padleft(zero), 0)]
-    states += [TT.unbroadcast(TT.shape_padleft(zero), 0)]
-    states += [TT.unbroadcast(TT.shape_padleft(zero), 0)]
+    states = [phi_rec, a_rec, a_lo, a_hi, phi_hi, phi_lo, derphi_lo, zero, zero, zero]
+
     # print'while_zoom'
     outs, updates = scan(while_zoom,
-                         states=states,
+                         outputs_info=states,
                          n_steps=maxiter,
                          name='while_zoom',
                          mode=theano.Mode(linker='cvm_nogc'),
                          profile=profile)
     # print 'done_while'
-    a_star = ifelse(onlyif, a_j, outs[7][0], name='astar')
-    val_star = ifelse(onlyif, phi_aj, outs[8][0], name='valstar')
-    valprime = ifelse(onlyif, vderphi_aj, outs[9][0], name='valprime')
+    a_star = ifelse(onlyif, a_j, outs[7][-1], name='astar')
+    val_star = ifelse(onlyif, phi_aj, outs[8][-1], name='valstar')
+    valprime = ifelse(onlyif, vderphi_aj, outs[9][-1], name='valprime')
 
     ## WARNING !! I ignore updates given by scan which I should not do !!!
     return a_star, val_star, valprime
