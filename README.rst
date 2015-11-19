@@ -2,6 +2,19 @@
 Pylearn2: A machine learning research library
 ==============================
 
+.. warning::
+
+   This project do not have current developer. We will continue to
+   review pull request and merge them when appropriate, but do not
+   expect new development unless someone decide to work on it.
+
+   There is other machine learning framework on top of Theano that
+   could interrest you like: `Blocks
+   <https://blocks.readthedocs.org/en/latest>`_, `Keras
+   <http://keras.io>`_ and `Lasagne
+   <https://lasagne.readthedocs.org/en/latest>`_.
+
+
 Pylearn2 is a library designed to make machine learning research easy.
 
 Pylearn2 has online `documentation <http://deeplearning.net/software/pylearn2/>`_.

@@ -1,9 +1,22 @@
 .. _index:
 
+.. warning::
+
+   This project do not have current developer. We will continue to
+   review pull request and merge them when appropriate, but do not
+   expect new development unless someone decide to work on it.
+
+   There is other machine learning framework on top of Theano that
+   could interrest you like: `Blocks
+   <https://blocks.readthedocs.org/en/latest>`_, `Keras
+   <http://keras.io>`_ and `Lasagne
+   <https://lasagne.readthedocs.org/en/latest>`_.
+
+
 Welcome
 =======
 
-Pylearn2 is still undergoing rapid development. Don't expect a clean road without bumps!
+Don't expect a clean road without bumps!
 If you find a bug please write to pylearn-dev@googlegroups.com.
 If you're a Pylearn2 developer and you find a bug, please write a unit test for it so
 the bug doesn't come back!
