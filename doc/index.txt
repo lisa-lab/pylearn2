@@ -2,12 +2,12 @@
 
 .. warning::
 
-   This project do not have current developer. We will continue to
-   review pull request and merge them when appropriate, but do not
-   expect new development unless someone decide to work on it.
+   This project does not have any current developer. We will continue
+   to review pull requests and merge them when appropriate, but do not
+   expect new development unless someone decides to work on it.
 
-   There is other machine learning framework on top of Theano that
-   could interrest you like: `Blocks
+   There are other machine learning frameworks built on top of Theano that
+   could interest you, such as: `Blocks
    <https://blocks.readthedocs.org/en/latest>`_, `Keras
    <http://keras.io>`_ and `Lasagne
    <https://lasagne.readthedocs.org/en/latest>`_.
