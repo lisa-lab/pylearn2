@@ -1,5 +1,8 @@
 .. _index:
 
+Welcome
+=======
+
 .. warning::
 
    This project does not have any current developer. We will continue
@@ -12,9 +15,6 @@
    <http://keras.io>`_ and `Lasagne
    <https://lasagne.readthedocs.org/en/latest>`_.
 
-
-Welcome
-=======
 
 Don't expect a clean road without bumps!
 If you find a bug please write to pylearn-dev@googlegroups.com.
