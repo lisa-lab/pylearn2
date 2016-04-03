@@ -6,6 +6,8 @@ before_install:
   - ./miniconda.sh -b
   - export PATH=/home/travis/miniconda/bin:/home/travis/miniconda2/bin:$PATH
   - conda update --yes conda
+  - conda install --yes conda=3.19
+
 install:
   - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then conda create --yes -q -n pyenv python=2.6 mkl pyzmq cython=0.21.1 pillow numpy=1.9.1 numpydoc scipy=0.14.0 pytables=3.1.1 numexpr=2.3.1 nose=1.3.4 pyyaml sphinx pyflakes argparse pip matplotlib scikit-learn h5py libgfortran; fi
   - if [[ $TRAVIS_PYTHON_VERSION == '3.4' ]]; then conda create --yes -q -n pyenv python=3.4 mkl pyzmq cython=0.21.1 pillow numpy=1.9.1 numpydoc scipy=0.14.0 pytables=3.1.1 numexpr=2.3.1 nose=1.3.4 pyyaml sphinx pyflakes pip matplotlib scikit-learn h5py libgfortran; fi
