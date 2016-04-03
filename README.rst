@@ -2,7 +2,7 @@
 Pylearn2: A machine learning research library
 ==============================
 
-.. warning::
+**Warning** :
 
    This project does not have any current developer. We will continue
    to review pull requests and merge them when appropriate, but do not
