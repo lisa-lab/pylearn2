@@ -31,7 +31,7 @@ def print_monitor(args):
         print('time trained: ', max(channels[key].time_record[-1] for key in
               channels))
         for key in sorted(channels.keys()):
-            print(key, ':', channels[key].val_record[-1])
+            print(model_path, ':', key, ':', channels[key].val_record[-1])
 
 
 if __name__ == '__main__':
