@@ -62,7 +62,7 @@ bc01 = X.dimshuffle('x', 2, 0, 1)
 Z = T.nnet.conv2d(input=bc01, filters=kernels, subsample = (means.shape[1] / 2, means.shape[2] /2),
         filter_shape = kernels.get_value().shape)
 
-F = T.signal.downsample.max_pool_2d(Z, (2, 2))
+F = T.signal.pool.pool_2d(Z, (2, 2))
 
 F = T.clip(F - .5, 0., 10.)
 
