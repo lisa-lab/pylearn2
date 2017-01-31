@@ -324,7 +324,7 @@ class MaxPool(GpuOp):
         return [MaxPoolGrad(self.ds, self.stride, self.start)(x, maxout, gz)]
 
     # Make sure the cuda_convnet library is compiled and up-to-date
-    def make_thunk(self, node, storage_map, compute_map, no_recycling):
+    def make_thunk(self, *args, **kwargs):
         """
         .. todo::
 
@@ -333,8 +333,7 @@ class MaxPool(GpuOp):
         if not convnet_available():
             raise RuntimeError('Could not compile cuda_convnet')
 
-        return super(MaxPool, self).make_thunk(
-                node, storage_map, compute_map, no_recycling)
+        return super(MaxPool, self).make_thunk(*args, **kwargs)
 
 
 class MaxPoolRop(GpuOp):
