@@ -7,7 +7,7 @@ from __future__ import print_function
 
 from pylearn2.utils import serial
 from pylearn2.datasets import preprocessing
-from pylearn2.utils import string
+from pylearn2.utils import string_utils as string
 from pylearn2.datasets.cifar100 import CIFAR100
 
 data_dir = string.preprocess('${PYLEARN2_DATA_PATH}/cifar100')
