@@ -81,7 +81,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
                               "http://www.cs.utoronto.ca/~kriz/cifar.html")
             datasets[name] = cache.datasetCache.cache_file(fname)
 
-        lenx = numpy.ceil((ntrain + nvalid) / 10000.) * 10000
+        lenx = int(numpy.ceil((ntrain + nvalid) / 10000.) * 10000)
         x = numpy.zeros((lenx, self.img_size), dtype=dtype)
         y = numpy.zeros((lenx, 1), dtype=dtype)
 
