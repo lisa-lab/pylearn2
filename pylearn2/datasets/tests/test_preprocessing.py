@@ -9,10 +9,12 @@ from theano import config
 import theano
 from theano.tests.unittest_tools import assert_allclose
 
+from pylearn2.datasets import cifar10
 from pylearn2.utils import as_floatX
 from pylearn2.utils import isfinite
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
+from pylearn2.datasets.preprocessing import RemoveMean
 from pylearn2.datasets.preprocessing import (GlobalContrastNormalization,
                                              ExtractGridPatches,
                                              ReassembleGridPatches,
@@ -20,6 +22,8 @@ from pylearn2.datasets.preprocessing import (GlobalContrastNormalization,
                                              RGB_YUV,
                                              ZCA,
                                              PCA)
+from pylearn2.testing.datasets import random_dense_design_matrix
+
 
 
 class testGlobalContrastNormalization:
@@ -367,3 +371,12 @@ class testPCA:
 
         assert self.dataset.get_design_matrix().shape[1] ==\
             self.num_components - 1
+
+    def test_mean_keep_dimensions(self):
+        data_set = cifar10.CIFAR10(which_set="train")
+        pp = RemoveMean(axis=1)
+
+        data_set.apply_preprocessor(pp, can_fit=True)
+        result = data_set.get_design_matrix()
+
+        assert isfinite(result)
