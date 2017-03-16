@@ -32,11 +32,17 @@ numpydoc_show_class_members = False
 
 todo_include_todos = True
 
+# We do it like this to support multiple sphinx version without having warning.
+# Our buildbot consider warning as error.
 try:
-    from sphinx.ext import pngmath
-    extensions.append('sphinx.ext.pngmath')
+    from sphinx.ext import imgmath
+    extensions.append('sphinx.ext.imgmath')
 except ImportError:
-    pass
+    try:
+        from sphinx.ext import pngmath
+        extensions.append('sphinx.ext.pngmath')
+    except ImportError:
+        pass
 
 
 # Add any paths that contain templates here, relative to this directory.
