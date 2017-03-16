@@ -171,11 +171,17 @@ htmlhelp_basename = 'theanodoc'
 # Options for LaTeX output
 # ------------------------
 
-# The paper size ('letter' or 'a4').
-#latex_paper_size = 'letter'
+latex_elements = {
+    # The paper size ('letter' or 'a4').
+    #latex_paper_size = 'letter',
 
-# The font size ('10pt', '11pt' or '12pt').
-latex_font_size = '11pt'
+    # The font size ('10pt', '11pt' or '12pt').
+    'pointsize': '11pt',
+
+    # Additional stuff for the LaTeX preamble.
+    #latex_preamble = '',
+}
+
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, document class [howto/manual]).
