@@ -1066,17 +1066,11 @@ class IndexSpace(SimplyTypedSpace):
 
     @functools.wraps(Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
-        if batch_size == 1:
-            rval = tensor.lrow(name=name)
-        else:
-            rval = tensor.lmatrix(name=name)
+        rval = tensor.lmatrix(name=name)
 
         if theano.config.compute_test_value != 'off':
-            if batch_size == 1:
-                n = 1
-            else:
-                # TODO: try to extract constant scalar value from batch_size
-                n = 4
+            # TODO: try to extract constant scalar value from batch_size
+            n = 4
             rval.tag.test_value = self.get_origin_batch(batch_size=n,
                                                         dtype=dtype)
         return rval
@@ -1193,17 +1187,11 @@ class VectorSpace(SimplyTypedSpace):
                                           "for sparse case")
             rval = theano.sparse.csr_matrix(name=name, dtype=dtype)
         else:
-            if batch_size == 1:
-                rval = tensor.row(name=name, dtype=dtype)
-            else:
-                rval = tensor.matrix(name=name, dtype=dtype)
+            rval = tensor.matrix(name=name, dtype=dtype)
 
         if theano.config.compute_test_value != 'off':
-            if batch_size == 1:
-                n = 1
-            else:
-                # TODO: try to extract constant scalar value from batch_size
-                n = 4
+            # TODO: try to extract constant scalar value from batch_size
+            n = 4
             rval.tag.test_value = self.get_origin_batch(batch_size=n,
                                                         dtype=dtype)
         return rval
@@ -1888,6 +1876,9 @@ class Conv2DSpace(SimplyTypedSpace):
         dtype = self._clean_dtype_arg(dtype)
         broadcastable = [False] * 4
         broadcastable[self.axes.index('c')] = (self.num_channels == 1)
+
+        # TODO: special-casing batch_size == 1 has been removed elsewhere. Can
+        # we remove it here too?
         broadcastable[self.axes.index('b')] = (batch_size == 1)
         broadcastable = tuple(broadcastable)
 
@@ -1895,11 +1886,8 @@ class Conv2DSpace(SimplyTypedSpace):
                           broadcastable=broadcastable
                           )(name=name)
         if theano.config.compute_test_value != 'off':
-            if batch_size == 1:
-                n = 1
-            else:
-                # TODO: try to extract constant scalar value from batch_size
-                n = 4
+            # TODO: try to extract constant scalar value from batch_size
+            n = 4
             rval.tag.test_value = self.get_origin_batch(batch_size=n,
                                                         dtype=dtype)
         return rval
