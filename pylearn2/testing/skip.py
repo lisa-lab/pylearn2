@@ -54,7 +54,7 @@ def skip_if_no_sklearn():
 
 
 def skip_if_no_gpu():
-    if cuda.cuda_available == False:
+    if cuda.cuda_available == False or cuda.cuda_enabled == False:
         raise SkipTest('Optional package cuda disabled.')
 
 
