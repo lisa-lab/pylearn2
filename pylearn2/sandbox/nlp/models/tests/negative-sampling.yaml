@@ -1,0 +1,64 @@
+!obj:pylearn2.train.Train {
+    dataset: &train !obj:pylearn2.datasets.vector_spaces_dataset.VectorSpacesDataset {
+        data: [
+                  !obj:numpy.random.randint { 
+                          'low': 0, 
+                          'high': &max_context_labels 10, 
+                          'size':[5, 16] 
+                        },
+                  !obj:numpy.random.randint { 
+                          'low': 0, 
+                          'high': &max_target_labels 12, 
+                          'size':[5, 1] 
+                        },
+                  !obj:numpy.random.randint { 
+                          'low': 0, 
+                          'high': *max_target_labels, 
+                          'size':[5, 1] 
+                        },
+              ],
+        data_specs: [
+                !obj:pylearn2.space.CompositeSpace { components: [
+                        &feature !obj:pylearn2.space.IndexSpace { 
+                            dim: 16,
+                            max_labels: *max_context_labels,
+                        },
+                        &target_pos !obj:pylearn2.space.IndexSpace {
+                            dim: 1,
+                            max_labels: *max_target_labels,
+                        },
+                        &target_neg !obj:pylearn2.space.IndexSpace {
+                            dim: 1,
+                            max_labels: *max_target_labels,
+                        },
+                    ] },
+                [ 'feature', 'target_pos', 'target_neg' ],
+              ]
+    },
+    model: !obj:pylearn2.models.mlp.MLP {
+        layers: [
+            !obj:pylearn2.sandbox.nlp.models.mlp.ProjectionLayer {
+                layer_name: 'projection',
+                dim: 4,
+                irange: 0.05,
+            }, !obj:pylearn2.sandbox.nlp.models.mlp.ContrastiveProbabilityLayer {
+                layer_name: 'contrast',
+                n_classes: *max_target_labels,
+                binary_target_dim: 1,
+                irange: 0.01,
+            },
+        ],
+        input_space: *feature,
+        input_source: 'feature',
+        target_source: ['target_pos', 'target_neg']
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        train_iteration_mode: 'random_uniform',
+        batch_size: 5,
+        batches_per_iter: 1,
+        learning_rate: 0.01,
+        termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
+            max_epochs: 10,
+        },
+    },
+}

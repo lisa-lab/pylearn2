@@ -18,3 +18,11 @@ def test_projection_layer_yaml():
     with open(os.path.join(test_dir, 'composite.yaml')) as f:
         train = yaml_parse.load(f.read())
         train.main_loop()
+
+
+def test_contrastive_probability_layer_yaml():
+    """Test negative sampling."""
+    test_dir = os.path.dirname(__file__)
+    with open(os.path.join(test_dir, 'negative-sampling.yaml')) as f:
+        train = yaml_parse.load(f.read())
+        train.main_loop()
