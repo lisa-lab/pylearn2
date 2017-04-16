@@ -73,7 +73,7 @@
         learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
             init_momentum: .5
         },
-        termination_criterion: !obj:pylearn2.termination_criteria.And {
+        termination_criterion: !obj:pylearn2.termination_criteria.Or {
             criteria: [
                 !obj:pylearn2.termination_criteria.MonitorBased {
                     channel_name: "valid_mlp1_mlp2_y_misclass",

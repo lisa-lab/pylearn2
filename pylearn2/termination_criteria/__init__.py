@@ -235,11 +235,11 @@ class EpochCounter(TerminationCriterion):
 
 class And(TerminationCriterion):
     """
-    Keep learning until any of a set of criteria wants to stop.
+    Stop learning if all of a set of criteria decide to stop.
 
     Termination criterion representing the logical conjunction
-    of several individual criteria. Optimization continues only
-    if every constituent criterion returns `True`.
+    of several individual criteria. Optimization stops only
+    if every constituent criterion returns `False`.
 
     Parameters
     ----------
@@ -255,17 +255,18 @@ class And(TerminationCriterion):
 
     @functools.wraps(TerminationCriterion.continue_learning)
     def continue_learning(self, model):
-        return all(criterion.continue_learning(model)
-                   for criterion in self._criteria)
+        decisions = [c.continue_learning(model) for c in self._criteria]
+        # return False if all decisions are False, True otherwise
+        return not all(not d for d in decisions)
 
 
 class Or(TerminationCriterion):
     """
-    Keep learning as long as any of some set of criteria say to do so.
+    Stop learning if one of a set of criteria decides to stop.
 
     Termination criterion representing the logical disjunction
-    of several individual criteria. Optimization continues if
-    any of the constituent criteria return `True`.
+    of several individual criteria. Optimization stops if
+    any of the constituent criteria return `False`.
 
     Parameters
     ----------
@@ -281,5 +282,6 @@ class Or(TerminationCriterion):
 
     @functools.wraps(TerminationCriterion.continue_learning)
     def continue_learning(self, model):
-        return any(criterion.continue_learning(model)
-                   for criterion in self._criteria)
+        decisions = [c.continue_learning(model) for c in self._criteria]
+        # return False if any decision is False, True otherwise
+        return not any(not d for d in decisions)

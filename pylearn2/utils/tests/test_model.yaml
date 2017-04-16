@@ -22,7 +22,7 @@
         monitoring_dataset: {
             'train': *train
         },
-        termination_criterion: !obj:pylearn2.termination_criteria.And {
+        termination_criterion: !obj:pylearn2.termination_criteria.Or {
             criteria: [
                 !obj:pylearn2.termination_criteria.EpochCounter {
                     max_epochs: 10000

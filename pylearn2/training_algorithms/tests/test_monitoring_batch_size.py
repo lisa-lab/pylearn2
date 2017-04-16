@@ -40,7 +40,7 @@ test_yaml = """
         },
         monitoring_batch_size: 500,
         batch_size: 100,
-        termination_criterion: !obj:pylearn2.termination_criteria.And {
+        termination_criterion: !obj:pylearn2.termination_criteria.Or {
             criteria: [
                 !obj:pylearn2.termination_criteria.EpochCounter {
                     max_epochs: 1,

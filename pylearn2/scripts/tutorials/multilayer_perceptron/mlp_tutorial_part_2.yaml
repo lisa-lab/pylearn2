@@ -35,7 +35,7 @@
                               which_set: 'test',
                           }
             },
-        termination_criterion: !obj:pylearn2.termination_criteria.And {
+        termination_criterion: !obj:pylearn2.termination_criteria.Or {
             criteria: [
                 !obj:pylearn2.termination_criteria.MonitorBased {
                     channel_name: "valid_y_misclass"
