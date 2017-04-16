@@ -1,0 +1,77 @@
+!obj:pylearn2.train.Train {
+    dataset: &data !obj:pylearn2.datasets.binarizer.Binarizer {
+        raw: &raw_train !obj:pylearn2.datasets.mnist.MNIST {
+            which_set: "train",
+            one_hot: 1,
+            start: 0,
+            stop: %(train_stop)i
+        }
+    },
+    model: !obj:pylearn2.models.dbm.DBM {
+        batch_size: %(batch_size)i,
+        niter: 10,
+        inference_procedure: !obj:pylearn2.models.dbm.WeightDoubling {},
+        visible_layer: !obj:pylearn2.models.dbm.BinaryVector {
+            nvis: 784,
+        },
+        hidden_layers: [
+            !obj:pylearn2.models.dbm.BinaryVectorMaxPool {
+                layer_name: 'h1',
+                detector_layer_dim: %(detector_layer_1_dim)i,
+                pool_size: 1,
+                irange: 0.001,
+            },
+            !obj:pylearn2.models.dbm.BinaryVectorMaxPool {
+                layer_name: 'h2',
+                detector_layer_dim: %(detector_layer_2_dim)i,
+                pool_size: 1,
+                irange: 0.001,
+            },
+        ]
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        learning_rate: 0.005,
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: 0.5,
+        },
+        monitoring_batches: %(monitoring_batches)i,
+        monitoring_dataset: {
+            'test': !obj:pylearn2.datasets.mnist.MNIST {
+                which_set: 'test',
+                one_hot: 1
+            }
+        },
+        cost : !obj:pylearn2.costs.cost.SumOfCosts {
+            costs: [
+                !obj:pylearn2.costs.dbm.VariationalPCD {
+                    num_chains: 100,
+                    num_gibbs_steps: 5,
+                },
+                !obj:pylearn2.costs.dbm.WeightDecay {
+                    coeffs: [ .0002, .0002 ],
+                },
+                !obj:pylearn2.costs.dbm.TorontoSparsity {
+                    targets: [ .2, .1 ],
+                    coeffs: [ .001, .001 ],
+                }
+            ]
+        },  
+        termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter { 
+            max_epochs: %(max_epochs)i
+        },
+        update_callbacks: [
+            !obj:pylearn2.training_algorithms.sgd.CustomizedLROverEpoch {
+            }
+        ]
+    },
+    extensions: [
+        !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
+            final_momentum: 0.9,
+            start: 1,
+            saturate: 6,
+        },
+    ],
+    save_path: "%(save_path)s/dbm_mnist.pkl",
+    save_freq : %(max_epochs)i
+}
+

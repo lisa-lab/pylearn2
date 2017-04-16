@@ -1,0 +1,64 @@
+!obj:pylearn2.train.Train {
+    dataset: !obj:pylearn2.datasets.mnist.MNIST { 
+        which_set: 'train',
+        one_hot: 1,
+        start: 0,
+        stop: %(train_stop)i,
+    },
+    model: !obj:pylearn2.models.mlp.MLP {
+        batch_size: %(batch_size)i,
+        layers: [
+            !obj:pylearn2.models.mlp.Sigmoid {
+                layer_name: 'h0',
+                dim: %(n_h0)i,
+                sparse_init: 15,
+            },
+            !obj:pylearn2.models.mlp.Sigmoid {
+                layer_name: 'h1',
+                dim: %(n_h1)i,
+                sparse_init: 15,
+            },
+            !obj:pylearn2.models.mlp.Softmax {
+                layer_name: 'y',
+                n_classes: 10,
+                istdev: 0.01,
+            }
+        ],
+        nvis: %(nvis)i,
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        learning_rate: 1,
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: 0.5,
+        },
+        monitoring_dataset: {
+             'test': !obj:pylearn2.datasets.mnist.MNIST {
+                          which_set: 'test',
+                          one_hot: 1
+             },
+        },
+        cost: !obj:pylearn2.costs.mlp.dropout.Dropout {
+            input_include_probs: {'h0': .8, 'h1': 0.5, 'y': 0.5},
+        },
+        termination_criterion: !obj:pylearn2.termination_criteria.And {
+            criteria: [
+                !obj:pylearn2.termination_criteria.EpochCounter {
+                    max_epochs: %(max_epochs)i
+                }
+            ]
+        }
+    },
+    extensions: [
+        !obj:pylearn2.training_algorithms.sgd.MomentumAdjustor {
+            start: 1,
+            saturate: 500,
+            final_momentum: 0.99,
+        },
+        !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
+            channel_name: 'test_y_misclass',
+            save_path: "%(save_path)s/dbm_mnist_mlp_dropout.pkl",
+            store_best_model: True
+        },
+    ]
+}
+
