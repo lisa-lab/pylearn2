@@ -336,6 +336,8 @@ class WeightActs(BaseActs):
 
         { // setup_nv_weights_grad brace # 1
 
+        CNDA_BEGIN_ALLOW_THREADS; // No more Python API calls after this
+
         NVMatrix nv_weights_grads(%(weights_grads)s, filters_dims[0] * filterSize
                                   * filterSize, numFilters,
                                   "weight_acts:nv_weights_grads");
@@ -381,6 +383,7 @@ class WeightActs(BaseActs):
             #define SCALE_SUM 1
             nv_weights_grads.addSum(nv_partialsum, AXIS, SCALE_THIS, SCALE_SUM);
         }
+        CNDA_END_ALLOW_THREADS;
         """
 
         braces = '}' * num_braces

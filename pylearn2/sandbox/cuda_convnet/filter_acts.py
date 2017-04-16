@@ -284,6 +284,8 @@ class FilterActs(BaseActs):
 
         { // setup_nv_filters brace # 1
 
+        CNDA_BEGIN_ALLOW_THREADS; // No more Python API calls after this
+
         NVMatrix nv_targets(%(targets)s, target_dims[0] * target_dims[1]
          * target_dims[2], target_dims[3], "filter_acts:nv_targets");
 
@@ -307,6 +309,8 @@ class FilterActs(BaseActs):
                        imgSizeY, numModulesY, numModulesX,
                        paddingStart, moduleStride, img_channels,
                        numGroups, scaleTargets, scaleOutput);
+
+        CNDA_END_ALLOW_THREADS;
         """
 
         braces = '}' * num_braces

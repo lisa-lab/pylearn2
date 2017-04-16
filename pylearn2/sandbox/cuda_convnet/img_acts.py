@@ -355,6 +355,9 @@ class ImageActs(BaseActs):
         }
 
         { // setup_nv_filters brace # 1
+
+        CNDA_BEGIN_ALLOW_THREADS; // No more Python API calls after this
+
         const int imgSizeY = (int)target_rows;
         const int imgSizeX = (int)target_cols;
 
@@ -376,6 +379,8 @@ class ImageActs(BaseActs):
                     imgSizeY, imgSizeX, numModulesY,
                     paddingStart, moduleStride, filter_channels,
                     numGroups);
+
+        CNDA_END_ALLOW_THREADS;
         """
 
         braces = '}' * num_braces
