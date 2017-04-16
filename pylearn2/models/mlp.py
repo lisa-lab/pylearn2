@@ -7,6 +7,7 @@ __credits__ = ["Ian Goodfellow", "David Warde-Farley"]
 __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 
+import copy
 import logging
 import math
 import operator
@@ -57,6 +58,8 @@ from pylearn2.utils import wraps
 from pylearn2.utils import contains_inf
 from pylearn2.utils import isfinite
 from pylearn2.utils.data_specs import DataSpecsMapping
+from pylearn2.utils.data_specs import is_flat_specs
+from pylearn2.utils.exc import reraise_as
 
 from pylearn2.expr.nnet import (elemwise_kl, kl, compute_precision,
                                 compute_recall, compute_f1)
@@ -377,6 +380,193 @@ class Layer(Model):
             str(type(self)) + " does not implement set_input_space.")
 
 
+class NeuralNet(Model):
+    def __init__(self, layers, inputs={}, batch_size=None, input_space=None,
+                 input_source='features', nvis=None, seed=None, **kwargs):
+        super(NeuralNet, self).__init__(**kwargs)
+
+        self.seed = seed
+        self.setup_rng()
+
+        # Perform some basic validation on the `layers` argument
+        assert isinstance(layers, list)
+        assert len(layers) >= 1
+        # Check for nested neural networks and merge them if necessary
+        for i, layer in enumerate(layers):
+            if isinstance(layer, self.__class__):
+                layers = layers[:i] + layer.layers + layers[i + 1:]
+                layer.inputs.update(inputs)
+                inputs = layer.inputs
+        # In the new DAG structure we don't allowe CompositeLayers anymore
+        for layer in layers:
+            assert isinstance(layer, Layer)
+            assert not isinstance(layer, CompositeLayer)
+            assert not isinstance(layer, MLP)
+
+        # Ensure that each layer has a unique name, and set the top level MLP
+        self.layer_names = []
+        for layer in layers:
+            if layer.layer_name in self.layer_names:
+                raise ValueError("NeuralNet.__init__ given two or more layers "
+                                 "with same name: " + layer.layer_name)
+            if layer.layer_name in input_source:
+                raise ValueError("NeuralNet.__init__ given a layer with same "
+                                 "name as input source: " + layer.layer_name)
+            # TODO
+            # This causes problems right now, because if we want to change the
+            # nested layers' NeuralNet/MLP to the top-level one, the
+            # set_mlp(self) will raise an error because it is already set
+            # assert layer.get_mlp() is None
+            layer.set_mlp(self)
+            self.layer_names.append(layer.layer_name)
+        self.layers = layers
+
+        assert len(self.layers) == len(self.layer_names)
+
+        self.batch_size = batch_size
+        self.force_batch_size = batch_size
+
+        # Set the input source and space
+        self._input_source = input_source
+        if nvis is not None:
+            assert input_space is None
+            input_space = VectorSpace(nvis)
+        else:
+            assert input_space is not None
+        self.input_space = input_space
+
+        # Check whether the input_space and input_source structures match
+        try:
+            DataSpecsMapping((input_space, input_source))
+        except ValueError:
+            reraise_as(ValueError("The structures of `input_space`, %s, and "
+                                  "`input_source`, %s do not match. If you "
+                                  "specified a CompositeSpace as an input, "
+                                  "be sure to specify the data sources as well"
+                                  % (input_space, input_source)))
+        assert is_flat_specs((input_space, input_source))
+
+        # If the inputs to a layer are not defined then it takes the previously
+        # defined layer's output as an input.
+        for i, layer_name in enumerate(self.layer_names):
+            if layer_name not in inputs:
+                if i == 0:
+                    # This only works for a single input, if there are
+                    # multiple inputs, then the input to the first layer
+                    # must explicitly be given
+                    assert isinstance(input_source, basestring)
+                    inputs[layer_name] = list([input_source])
+                else:
+                    inputs[layer_name] = list([self.layer_names[i - 1]])
+        self.inputs = inputs
+
+        # Topologically sort the layers so that we can set the input spaces
+        self.topo_sorted_layers = self.topological_sort(inputs)
+        self._update_layer_input_spaces()
+
+        self.freeze_set = set([])
+
+    def topological_sort(self, inputs):
+        """
+        Returns a list of data sources and layer names in topologically
+        sorted order. Note that this is only possible if the graph
+        doesn't contain cycles, so this method ensures that the graph
+        is a DAG as well.
+
+        Parameters
+        ----------
+        inputs : dict
+            Dictionary of layer names to their inputs, which can either be
+            other layer names or input sources.
+        """
+        if isinstance(self._input_source, basestring):
+            start_nodes = set([self._input_source])
+        else:
+            start_nodes = set(self._input_source)
+        sorted_list = []
+        edges = copy.deepcopy(inputs)
+        while start_nodes:
+            sorted_list.append(start_nodes.pop())
+            for target_node, source_nodes in edges.iteritems():
+                if sorted_list[-1] in source_nodes:
+                    edges[target_node].remove(sorted_list[-1])
+                    if not edges[target_node]:
+                        start_nodes.add(target_node)
+        if any(edges.values()):
+            raise ValueError("The inputs given to the NeuralNet's __init__ "
+                             "method describe a cyclical graph.")
+        return sorted_list
+
+    def _update_layer_input_spaces(self):
+        """
+        Tells each layer what its input space should be.
+
+        Notes
+        -----
+        This usually resets the layer's parameters!
+        """
+        # Create tuples of input spaces and sources
+        if isinstance(self.input_space, CompositeSpace):
+            input_space = self.input_space.components
+        else:
+            input_space = (self.input_space,)
+        if isinstance(self._input_source, basestring):
+            input_source = (self._input_source,)
+        else:
+            input_source = self._input_source
+
+        # Create lists of topologically sorted layer names and layers
+        sorted_layer_names = self.topo_sorted_layers[len(input_source):]
+        sorted_layers = sorted(
+            self.layers,
+            key=lambda layer: sorted_layer_names.index(layer.layer_name)
+        )
+
+        # Set the input spaces
+        for layer_name, layer in safe_zip(sorted_layer_names, sorted_layers):
+            if len(self.inputs[layer_name]) == 1:
+                input_name = self.inputs[layer_name][0]
+                if input_name in self.layer_names:
+                    layer.set_input_space(
+                        sorted_layers[sorted_layer_names.index(
+                            input_name
+                        )].get_output_space()
+                    )
+                else:
+                    layer.set_input_space(
+                        input_space[input_source.index(input_name)]
+                    )
+            else:
+                component_spaces = []
+                for input_name in self.inputs[layer_name]:
+                    if input_name in self.layer_names:
+                        component_spaces.append(
+                            sorted_layers[sorted_layer_names.index(
+                                input_name
+                            )].get_output_space()
+                        )
+                    else:
+                        component_spaces.append(
+                            input_space[input_source.index(input_name)]
+                        )
+                layer.set_input_space(CompositeSpace(component_spaces))
+
+    def setup_rng(self):
+        """
+        Sets the RNG to be used by the neural network as well as all of
+        its layers. It uses the seed provided in the class constructor,
+        or a default value otherwise.
+
+        Parameters
+        ----------
+        None
+        """
+        if self.seed is None:
+            self.seed = [2013, 1, 4]
+
+        self.rng = np.random.RandomState(self.seed)
+
+
 class MLP(Layer):
 
     """
@@ -501,9 +691,13 @@ class MLP(Layer):
 
     def setup_rng(self):
         """
-        .. todo::
+        Sets the RNG to be used by the neural network as well as all of
+        its layers. It uses the seed provided in the class constructor,
+        or a default value otherwise.
 
-            WRITEME
+        Parameters
+        ----------
+        None
         """
         assert not self._nested, "Nested MLPs should use their parent's RNG"
         if self.seed is None:
