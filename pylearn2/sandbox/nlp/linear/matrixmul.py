@@ -29,7 +29,7 @@ class MatrixMul(matrixmul.MatrixMul):
 
         if x.ndim == 2:
             shape = (x.shape[0], x.shape[1] * self._W.shape[1])
-            return self._W[x.flatten()].reshape(shape)
+            return self._W[x.flatten().dimshuffle(0)].reshape(shape)
         elif x.ndim == 1:
             return self._W[x].flatten()
         else:
