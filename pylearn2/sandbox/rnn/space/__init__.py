@@ -69,16 +69,10 @@ class SequenceSpace(space.CompositeSpace):
     @wraps(space.Space._format_as_impl)
     def _format_as_impl(self, is_numeric, batch, space):
         assert isinstance(space, SequenceSpace)
-        if is_numeric:
-            rval = np.apply_over_axes(
-                lambda batch, axis: self.space._format_as_impl(
-                    is_numeric=is_numeric,
-                    batch=batch,
-                    space=space.space),
-                batch, 0)
-        else:
-            NotImplementedError("Can't convert SequenceSpace Theano variables")
-        return rval
+        data, mask = batch
+        formatted_data = self.data_space._format_as_impl(
+            is_numeric, data, space.data_space)
+        return (formatted_data, mask)
 
 
 class SequenceDataSpace(space.SimplyTypedSpace):
@@ -116,11 +110,11 @@ class SequenceDataSpace(space.SimplyTypedSpace):
         else:
             if isinstance(space, SequenceDataSpace):
                 if is_numeric:
-                    formatted_batch = np.transpose(np.asarray([
+                    formatted_batch = np.swapaxes(np.asarray([
                         self.space._format_as_impl(is_numeric, sample,
                                                    space.space)
-                        for sample in np.transpose(batch, (1, 0, 2))
-                    ]), (1, 0, 2))
+                        for sample in np.swapaxes(batch, 0, 1)
+                    ]), 0, 1)
                 else:
                     formatted_batch, _ = scan(
                         fn=lambda elem: self.space._format_as_impl(
@@ -181,11 +175,16 @@ class SequenceDataSpace(space.SimplyTypedSpace):
 
     @wraps(space.Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
-
         dtype = self._clean_dtype_arg(dtype)
-        broadcastable = [False] * 3
-        broadcastable[1] = (batch_size == 1)
-        broadcastable[2] = (self.dim == 1)
+        if not isinstance(self.space, Conv2DSpace):
+            broadcastable = [False] * 3
+            broadcastable[1] = (batch_size == 1)
+            broadcastable[2] = (self.dim == 1)
+        else:
+            broadcastable = [False] * 5
+            broadcastable[self.space.axes.index('b') + 1] = (batch_size == 1)
+            broadcastable[self.space.axes.index('c') + 1] = (
+                self.space.num_channels == 1)
         broadcastable = tuple(broadcastable)
 
         rval = TensorType(dtype=dtype,
