@@ -666,7 +666,7 @@ class RemoveMean(ExamplewisePreprocessor):
         """
         X = dataset.get_design_matrix()
         if can_fit:
-            self._mean = X.mean(axis=self._axis)
+            self._mean = X.mean(axis=self._axis, keepdims=True)
         else:
             if self._mean is None:
                 raise ValueError("can_fit is False, but RemoveMean object "
