@@ -654,7 +654,7 @@ class RemoveMean(ExamplewisePreprocessor):
         semantics as the `axis` parameter of `numpy.mean`.
     """
 
-    def __init__(self, axis=0):
+    def __init__(self, axis=1):
         self._axis = axis
         self._mean = None
 
