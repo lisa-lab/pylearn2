@@ -2978,7 +2978,7 @@ class ConvElemwise(Layer):
                  pool_type=None,
                  pool_shape=None,
                  pool_stride=None,
-                 tied_b=None,
+                 tied_b=True,
                  detector_normalization=None,
                  output_normalization=None,
                  kernel_stride=(1, 1),
@@ -3252,7 +3252,7 @@ class ConvElemwise(Layer):
         if not hasattr(self, 'tied_b'):
             self.tied_b = False
 
-        if self.tied_b:
+        if self.tied_b = True:
             b = self.b.dimshuffle('x', 0, 'x', 'x')
         else:
             b = self.b.dimshuffle('x', 0, 1, 2)
