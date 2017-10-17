@@ -1259,7 +1259,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         """
 
         if node is None:
-            node = file_handle.getNode('/', 'Data')
+            node = file_handle.get_node('/', 'Data')
 
         data_size = data_x.shape[0]
         last = np.floor(data_size / float(batch_size)) * batch_size
@@ -1291,7 +1291,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         ensure_tables()
         # TODO is there any smarter and more efficient way to this?
 
-        data = h5file.getNode('/', "Data")
+        data = h5file.get_node('/', "Data")
         try:
             gcolumns = h5file.createGroup('/', "Data_", "Data")
         except tables.exceptions.NodeError:

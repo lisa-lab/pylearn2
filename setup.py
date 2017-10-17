@@ -5,7 +5,7 @@ from setuptools import setup, find_packages, Extension
 from setuptools.command.install import install
 import numpy
 
-from theano.compat.six.moves import input
+from six.moves import input
 
 # Because many people neglected to run the pylearn2/utils/setup.py script
 # separately, we compile the necessary Cython extensions here but because

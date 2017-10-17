@@ -73,6 +73,7 @@ def check_call_arguments(to_call, kwargs):
         # bound method, which has 'self' listed as an argument, but
         # which should not be supplied by kwargs
         is_bound = hasattr(to_call, 'im_self') or hasattr(to_call, '__self__')
+        is_bound = True
         if len(missing) > 1 or missing[0] != 'self' or not is_bound:
             if 'self' in missing:
                 missing.remove('self')

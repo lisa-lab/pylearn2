@@ -35,7 +35,7 @@ __email__ = "pylearn-dev@googlegroups"
 import functools
 import warnings
 import numpy as np
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 import theano
 import theano.sparse
 from theano import tensor
@@ -1210,7 +1210,7 @@ class VectorSpace(SimplyTypedSpace):
 
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
-        return self.dim
+        return int(self.dim)
 
     @functools.wraps(Space._format_as_impl)
     def _format_as_impl(self, is_numeric, batch, space):
@@ -1958,7 +1958,7 @@ class Conv2DSpace(SimplyTypedSpace):
         if not hasattr(self, 'num_channels'):
             self.num_channels = self.nchannels
 
-        return self.shape[0] * self.shape[1] * self.num_channels
+        return int(self.shape[0] * self.shape[1] * self.num_channels)
 
     @functools.wraps(Space._validate_impl)
     def _validate_impl(self, is_numeric, batch):
@@ -2216,8 +2216,8 @@ class CompositeSpace(Space):
 
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
-        return sum([component.get_total_dimension() for component in
-                    self.components])
+        return int(sum([component.get_total_dimension() for component in
+                    self.components]))
 
     @functools.wraps(Space.make_shared_batch)
     def make_shared_batch(self, batch_size, name=None, dtype=None):
