@@ -31,7 +31,7 @@ class RocAucScoreOp(gof.Op):
     use_c_code : WRITEME
     """
     def __init__(self, name='roc_auc', use_c_code=theano.config.cxx):
-        super(RocAucScoreOp, self).__init__(use_c_code)
+        super(RocAucScoreOp, self).__init__()
         self.name = name
 
     def make_node(self, y_true, y_score):
