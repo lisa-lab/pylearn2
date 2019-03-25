@@ -5,7 +5,7 @@ from __future__ import print_function
 
 import os
 import uuid
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from pylearn2.utils.string_utils import find_number
 from pylearn2.utils.string_utils import preprocess
 from pylearn2.utils.string_utils import tokenize_by_number

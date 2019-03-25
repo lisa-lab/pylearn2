@@ -7,7 +7,7 @@ and its label.
 """
 import numpy as np
 
-from theano.compat.six.moves import input
+from six.moves import input
 
 from pylearn2.datasets.norb_small import FoveatedNORB
 from pylearn2.gui.patch_viewer import PatchViewer

@@ -7,7 +7,7 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from pylearn2.compat import OrderedDict
 from pylearn2.utils import py_integer_types
 

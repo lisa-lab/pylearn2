@@ -10,7 +10,7 @@ __maintainer__ = "LISA Lab"
 import functools
 import logging
 
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from theano import gof
 import theano.tensor as T
 import theano

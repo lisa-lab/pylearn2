@@ -2,7 +2,7 @@ import struct
 import tempfile
 
 import numpy
-from theano.compat import six
+import six
 
 from pylearn2.utils.mnist_ubyte import read_mnist_images, read_mnist_labels
 from pylearn2.utils.mnist_ubyte import MNIST_LABEL_MAGIC, MNIST_IMAGE_MAGIC

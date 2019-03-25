@@ -2,14 +2,14 @@
 Support code for pooling operations (in pooled ICA type models, for now).
 """
 import numpy as np
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 import theano
 import warnings
 try:
     import scipy.sparse
 except ImportError:
     warnings.warn("Could not import scipy")
-from theano.compat.six.moves import zip as izip
+from six.moves import zip as izip
 
 from pylearn2.utils.exc import reraise_as
 

@@ -9,7 +9,7 @@ import operator
 import numpy
 import theano
 from theano import tensor
-from theano.compat.six.moves import zip as izip, reduce
+from six.moves import zip as izip, reduce
 
 # Local imports
 from pylearn2.blocks import Block, StackedBlocks

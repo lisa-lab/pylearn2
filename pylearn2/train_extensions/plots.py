@@ -17,7 +17,7 @@ import numpy
 np = numpy
 from pylearn2.train_extensions import TrainExtension
 
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 
 from pylearn2.utils import as_floatX, wraps
 

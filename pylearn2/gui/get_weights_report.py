@@ -5,7 +5,7 @@
 """
 import logging
 
-from theano.compat.six.moves import input
+from six.moves import input
 
 from pylearn2.utils import serial
 from pylearn2.gui import patch_viewer

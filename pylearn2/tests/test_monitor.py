@@ -3,7 +3,7 @@ from __future__ import print_function
 import numpy as np
 import warnings
 from nose.tools import assert_raises
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 
 from theano.compat import exc_message
 from theano import shared

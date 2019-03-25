@@ -9,7 +9,7 @@ import cPickle as pickle
 import itertools
 
 import numpy as np
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 import theano.tensor as T
 
 from pylearn2.expr.activations import rescaled_softmax

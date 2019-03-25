@@ -4,7 +4,7 @@ Tests of expr.evaluation
 
 import numpy as np
 
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 
 from pylearn2.expr.evaluation import all_pr
 

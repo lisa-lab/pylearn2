@@ -10,7 +10,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from theano import tensor as T
 
 from pylearn2.linear.linear_transform import LinearTransform

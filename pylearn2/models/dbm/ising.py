@@ -35,7 +35,7 @@ import numpy as np
 
 from theano import function
 from theano.gof.op import get_debug_values
-from theano.compat.six.moves import reduce
+from six.moves import reduce
 from theano.compile.sharedvalue import SharedVariable
 import theano.tensor as T
 import warnings

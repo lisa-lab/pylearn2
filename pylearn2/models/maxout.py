@@ -30,8 +30,8 @@ import logging
 import numpy as np
 import warnings
 
-from theano.compat.six.moves import xrange
-from theano.compat.six.moves import zip as izip
+from six.moves import xrange
+from six.moves import zip as izip
 from theano.sandbox import cuda
 from theano import tensor as T
 

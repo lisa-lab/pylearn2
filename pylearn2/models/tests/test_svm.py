@@ -4,7 +4,7 @@ from __future__ import print_function
 from pylearn2.datasets.mnist import MNIST
 from pylearn2.testing.skip import skip_if_no_sklearn, skip_if_no_data
 import numpy as np
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 import unittest
 DenseMulticlassSVM = None
 

@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import numpy as np
-from theano.compat.six.moves import cStringIO, xrange
+from six.moves import cStringIO, xrange
 import theano.tensor as T
 from theano.tests import disturb_mem
 from theano.tests.record import Record, RecordMode

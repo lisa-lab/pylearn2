@@ -13,7 +13,7 @@ import time
 import warnings
 
 import numpy as np
-from theano.compat.six.moves import input, xrange
+from six.moves import input, xrange
 from theano import config, function
 from theano import scan
 from theano.gof.op import get_debug_values, debug_error_message, debug_assert

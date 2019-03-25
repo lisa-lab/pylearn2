@@ -13,7 +13,7 @@ import numpy as np
 import random
 assert hasattr(np, 'exp')
 
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from theano import config
 from theano import function
 from theano.sandbox.rng_mrg import MRG_RandomStreams

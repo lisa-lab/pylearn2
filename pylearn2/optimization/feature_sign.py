@@ -15,8 +15,8 @@ from itertools import count
 
 import logging
 import numpy as np
-from theano.compat import six
-from theano.compat.six.moves import zip as izip
+import six
+from six.moves import zip as izip
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)

@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import numpy as np
 import os
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 
 #check that the right files are present
 names = os.listdir('.')

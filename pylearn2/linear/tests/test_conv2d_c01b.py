@@ -1,6 +1,6 @@
 import theano
 from theano import tensor
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 import numpy
 from pylearn2.linear.conv2d_c01b import (Conv2D, make_random_conv2D,
     make_sparse_random_conv2D, setup_detector_layer_c01b)

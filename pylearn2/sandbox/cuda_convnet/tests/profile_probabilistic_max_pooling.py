@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import theano.tensor as T
 import numpy as np
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from theano import config
 from theano import function
 import time

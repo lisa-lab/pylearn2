@@ -20,7 +20,7 @@ import logging
 import warnings
 
 import numpy as np
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 
 from pylearn2.datasets import cache
 from pylearn2.utils.iteration import (

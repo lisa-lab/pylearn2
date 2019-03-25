@@ -2,7 +2,7 @@
 
 import logging
 import numpy
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from pylearn2.blocks import Block
 from pylearn2.models.model import Model
 from pylearn2.space import VectorSpace

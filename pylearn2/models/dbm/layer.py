@@ -13,7 +13,7 @@ import functools
 import logging
 import numpy as np
 import operator
-from theano.compat.six.moves import input, reduce, xrange
+from six.moves import input, reduce, xrange
 import time
 import warnings
 
