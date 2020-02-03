@@ -329,7 +329,7 @@ class StochasticMaxPool(GpuOp):
         return [MaxPoolGrad(self.ds, self.stride, self.start)(x, maxout, gz), zeros_like(seed)]
 
     # Make sure the cuda_convnet library is compiled and up-to-date
-    def make_thunk(self, node, storage_map, compute_map, no_recycling):
+    def make_thunk(self, *args, **kwargs):
         """
         .. todo::
 
@@ -338,8 +338,7 @@ class StochasticMaxPool(GpuOp):
         if not convnet_available():
             raise RuntimeError('Could not compile cuda_convnet')
 
-        return super(StochasticMaxPool, self).make_thunk(
-                node, storage_map, compute_map, no_recycling)
+        return super(StochasticMaxPool, self).make_thunk(*args, **kwargs)
 
 class WeightedMaxPool(GpuOp):
     """

@@ -1,9 +1,9 @@
+from collections import Counter
 import copy
 
 import numpy
 from theano.compat.six.moves import xrange
 import theano
-from theano.compat.python2x import Counter
 
 from pylearn2.sandbox.cuda_convnet.stochastic_pool import (stochastic_max_pool_c01b,
                                                            weighted_max_pool_c01b)
