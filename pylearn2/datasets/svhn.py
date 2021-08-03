@@ -369,7 +369,7 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
         rng = make_np_rng(None, 322, which_method="shuffle")
 
         def design_matrix_view(data_x):
-            """reshape data_x to deisng matrix view
+            """reshape data_x to design matrix view
             """
             data_x = numpy.transpose(data_x, axes=[3, 2, 0, 1])
             data_x = data_x.reshape((data_x.shape[0], 32 * 32 * 3))

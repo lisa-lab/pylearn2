@@ -605,7 +605,7 @@ def applySparseFilter(kerns, kshp, nkern, images, imgshp, step=(1,1), bias=None,
     Output feature map will have shape
     `batch_size x number of kernels * output_size`.
 
-    Each filter is applied seperately to consecutive output pixels.
+    Each filter is applied separately to consecutive output pixels.
 
     Parameters
     ----------

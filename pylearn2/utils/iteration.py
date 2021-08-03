@@ -305,7 +305,7 @@ class ForcedEvenIterator(SubsetIterator):
         Raises
         ------
         StopException
-            When _base_iterator reachs the end of the dataset
+            When _base_iterator reaches the end of the dataset
 
         Notes
         -----

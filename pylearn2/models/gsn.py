@@ -254,7 +254,7 @@ class GSN(StackedBlocks, Model):
             A time step consists of a call to the _update function
             (so updating both the even and odd layers). When there is no
             walkback, the GSN runs long enough for signal from the bottom
-            layer to propogate to the top layer and then back to the bottom.
+            layer to propagate to the top layer and then back to the bottom.
             The walkback parameter adds single steps on top of the default.
         """
         # the indices which are being set
@@ -288,7 +288,7 @@ class GSN(StackedBlocks, Model):
 
         self._set_activations(minibatch)
 
-        # intialize steps
+        # initialize steps
         steps = [self.activations[:]]
 
         self.apply_postact_corruption(self.activations,
