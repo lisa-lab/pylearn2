@@ -198,7 +198,7 @@ class Layer(Model):
         Y_hat : theano.gof.Variable
             The predictions.
             Assumed to be the output of the layer's `fprop` method.
-            The implmentation is permitted to do things like look at the
+            The implementation is permitted to do things like look at the
             ancestors of `Y_hat` in the theano graph. This is useful for
             e.g. computing numerically stable *log* probabilities when
             `Y_hat` is the *probability*.

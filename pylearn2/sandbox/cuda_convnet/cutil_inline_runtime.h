@@ -239,7 +239,7 @@ inline int cutGetMaxGflopsGraphicsDeviceId()
 		char *fmt2		= (char*)malloc(fmt2_sz);
 		va_list  vlist;
 		va_start(vlist, fmt);
-		while((_vsnprintf(fmt2, fmt2_sz, fmt, vlist)) < 0) // means there wasn't anough room
+		while((_vsnprintf(fmt2, fmt2_sz, fmt, vlist)) < 0) // means there wasn't enough room
 		{
 			fmt2_sz *= 2;
 			if(fmt2) free(fmt2);

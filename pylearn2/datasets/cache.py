@@ -57,7 +57,7 @@ class LocalDatasetCache:
 
     def cache_file(self, filename):
         """
-        Caches a file locally if possible. If caching was succesfull, or if
+        Caches a file locally if possible. If caching was successful, or if
         the file was previously successfully cached, this method returns the
         path to the local copy of the file. If not, it returns the path to
         the original file.

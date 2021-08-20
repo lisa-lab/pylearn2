@@ -1777,7 +1777,7 @@ def test_batch_size_specialization():
 
 def test_empty_monitoring_datasets():
     """
-    Test that handling of monitoring datasets dictionnary
+    Test that handling of monitoring datasets dictionary
     does not fail when it is empty.
     """
 

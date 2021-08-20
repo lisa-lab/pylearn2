@@ -193,7 +193,7 @@ def test_np_format_as_composite_composite():
 
     def make_composite_space(image_space):
         """
-        Returns a compsite space with a particular tree structure.
+        Returns a composite space with a particular tree structure.
         """
         return CompositeSpace((CompositeSpace((image_space,) * 2),
                                VectorSpace(dim=1)))
