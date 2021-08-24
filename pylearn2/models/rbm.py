@@ -9,11 +9,11 @@ import logging
 import numpy
 N = numpy
 np = numpy
-from theano.compat import six
-from theano.compat.six.moves import xrange
+import six
+from six.moves import xrange
 import theano
 from theano import tensor
-from theano.compat.six.moves import zip as izip
+from six.moves import zip as izip
 T = tensor
 from theano.tensor import nnet
 

@@ -6,7 +6,7 @@ from pylearn2.testing.skip import skip_if_no_gpu
 skip_if_no_gpu()
 
 import numpy as np
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from theano import shared
 from theano.tensor import grad, constant
 from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs

@@ -17,7 +17,7 @@ from functools import wraps
 import logging
 import warnings
 import numpy as np
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.config import yaml_parse
 from pylearn2.datasets import control

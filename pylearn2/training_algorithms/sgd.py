@@ -15,7 +15,7 @@ import logging
 import warnings
 
 import numpy as np
-from theano.compat import six
+import six
 from theano import config
 from theano import function
 from theano.gof.op import get_debug_values

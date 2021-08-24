@@ -16,7 +16,7 @@ import numpy as np
 import operator
 import warnings
 
-from theano.compat.six.moves import reduce, xrange
+from six.moves import reduce, xrange
 from theano import config
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 RandomStreams = MRG_RandomStreams

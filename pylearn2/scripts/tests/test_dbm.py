@@ -15,7 +15,7 @@ from nose.tools import with_setup
 from pylearn2.datasets import control
 from pylearn2.utils import serial
 from theano import function
-from theano.compat.six.moves import cPickle
+from six.moves import cPickle
 
 
 def setup():

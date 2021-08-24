@@ -25,7 +25,7 @@ from pylearn2.utils import safe_zip, wraps, py_integer_types
 from pylearn2.utils.iteration import FiniteDatasetIterator
 from pylearn2.utils.exc import reraise_as
 from pylearn2.space import Space, CompositeSpace
-from theano.compat.six import string_types
+from six import string_types
 
 
 class HDF5Dataset(Dataset):

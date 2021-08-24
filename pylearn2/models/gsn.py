@@ -20,7 +20,7 @@ import functools
 import warnings
 
 import numpy as np
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 import theano
 T = theano.tensor
 

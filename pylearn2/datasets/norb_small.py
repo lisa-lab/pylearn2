@@ -7,7 +7,7 @@ import numpy
 np = numpy
 import os
 
-from theano.compat.six.moves import reduce
+from six.moves import reduce
 
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.datasets import retina

@@ -3,8 +3,8 @@
 import os
 import re
 
-from theano.compat.six import string_types
-from theano.compat.six.moves import xrange
+from six import string_types
+from six.moves import xrange
 
 from pylearn2.utils.exc import EnvironmentVariableError, NoDataPathError
 from pylearn2.utils.exc import reraise_as

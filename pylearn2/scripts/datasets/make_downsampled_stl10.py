@@ -12,7 +12,7 @@ This script also translates the data to lie in [-127.5, 127.5] instead of
 
 from __future__ import print_function
 
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from pylearn2.datasets.stl10 import STL10
 from pylearn2.datasets.preprocessing import Downsample
 from pylearn2.utils import string_utils as string
