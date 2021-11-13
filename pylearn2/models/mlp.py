@@ -3832,6 +3832,52 @@ def L1WeightDecay(*args, **kwargs):
     return _L1WD(*args, **kwargs)
 
 
+class QuantileRegression(Linear):
+    """
+    A linear layer for quantile regression.
+
+    A QuantileRegression (http://en.wikipedia.org/wiki/Quantile_regression)
+    is a linear layer that uses a specific cost that makes it possible to get
+    an estimator of a specific percentile of a posterior distribution.
+
+    Parameters
+    ----------
+    layer_name: str
+        The layer name
+    percentile: float (0 < percentile < 1)
+        Percentile being estimated.
+
+    """
+    def __init__(self,
+                 layer_name,
+                 percentile=0.2,
+                 **kargs):
+        Linear.__init__(self, 1, layer_name, **kargs)
+        self.percentile = percentile
+
+    @wraps(Layer.get_layer_monitoring_channels)
+    def get_layer_monitoring_channels(self,
+                                      state_below=None,
+                                      state=None,
+                                      targets=None):
+        rval = Linear.get_layer_monitoring_channels(
+            self,
+            state_below,
+            state,
+            targets)
+        assert isinstance(rval, OrderedDict)
+        if targets:
+            rval['qcost'] = (T.abs_(targets - state) * (0.5 +
+                             (self.percentile - 0.5) *
+                             T.sgn(targets - state))).mean()
+        return rval
+
+    @wraps(Layer.cost_matrix)
+    def cost_matrix(self, Y, Y_hat):
+        return T.abs_(Y - Y_hat) * (0.5 + (self.percentile - 0.5) *
+                                    T.sgn(Y - Y_hat))
+
+
 class LinearGaussian(Linear):
 
     """
