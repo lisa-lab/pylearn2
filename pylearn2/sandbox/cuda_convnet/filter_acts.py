@@ -154,7 +154,8 @@ class FilterActs(BaseActs):
         basic_setup = """
         #define scaleTargets 0
         #define scaleOutput 1
-        """
+        int conv = %d;
+        """ % self.conv
 
         if self.dense_connectivity:
             basic_setup += """
@@ -200,6 +201,16 @@ class FilterActs(BaseActs):
         """
         num_braces += 1
 
+        # p + (m_x - 1) * s + f >= i_x
+        # p + (m_x - 1) * s >= i_x - f
+        # m_x = (i_x - f - p) / s + 1
+        div_ms_y = "((imgSizeY - 2*paddingStart - filter_rows) / moduleStride)"
+        div_ms_x = "((imgSizeX - 2*paddingStart - filter_cols) / moduleStride)"
+        mod_ms_y = "((imgSizeY - 2*paddingStart - filter_rows) % moduleStride)"
+        mod_ms_x = "((imgSizeX - 2*paddingStart - filter_cols) % moduleStride)"
+        target_rows = "%s + ((%s > 0) ? 1 : 0) + 1" % (div_ms_y, mod_ms_y)
+        target_cols = "%s + ((%s > 0) ? 1 : 0) + 1" % (div_ms_x, mod_ms_x)
+
         # Convert filters into nv_filters, an NVMatrix, for compatibility
         # with the cuda-convnet functions
         setup_nv_filters = self._argument_contiguity_check("filters") + """
@@ -217,11 +228,16 @@ class FilterActs(BaseActs):
         const int filter_cols = filters_dims[2];
         const int num_filters = filters_dims[3];
 
-        if (numGroups * filter_channels != img_channels)
+        const int target_rows = %(target_rows)s;
+        const int target_cols = %(target_cols)s;
+        int filterModuleMult = conv ? 1 : target_rows * target_cols;
+        printf("target row, col %%d %%d filterModuleMult %%d\\n", target_rows, target_cols, filterModuleMult);
+
+        if (((numGroups * filter_channels) / filterModuleMult) != img_channels)
         {
             PyErr_Format(PyExc_ValueError,
-            "# input channels mismatch. images have %%d but filters have %%d groups of %%d for a total of %%d.",
-            img_channels, numGroups, filter_channels, numGroups * filter_channels);
+            "# input channels mismatch. images have %%d but filters have %%d groups of %%d for a total of %%d. filterModuleMultfil=%%d",
+            img_channels, numGroups, filter_channels, numGroups * filter_channels, filterModuleMult);
             %(fail)s;
         }
 
@@ -249,29 +265,18 @@ class FilterActs(BaseActs):
 
         { // setup_nv_filters brace 2
 
-
-        NVMatrix nv_filters(%(filters)s, filter_channels * filter_rows *
-        filter_cols, num_filters, "filter_acts:nv_filters");
+        NVMatrix nv_filters(%(filters)s,
+                            filter_channels * filter_rows * filter_cols,
+                            num_filters, "filter_acts:nv_filters");
         """
         num_braces += 2
 
-        # p + (m_x - 1) * s + f >= i_x
-        # p + (m_x - 1) * s >= i_x - f
-        # m_x = (i_x - f - p) / s + 1
-        div_ms_y = "((imgSizeY - 2*paddingStart - filter_rows) / moduleStride)"
-        div_ms_x = "((imgSizeX - 2*paddingStart - filter_cols) / moduleStride)"
-        mod_ms_y = "((imgSizeY - 2*paddingStart - filter_rows) % moduleStride)"
-        mod_ms_x = "((imgSizeX - 2*paddingStart - filter_cols) % moduleStride)"
-        target_rows = "%s + ((%s > 0) ? 1 : 0) + 1" % (div_ms_y, mod_ms_y)
-        target_cols = "%s + ((%s > 0) ? 1 : 0) + 1" % (div_ms_x, mod_ms_x)
-
         setup_nv_targets = """
-
 
         int target_dims [] = {
             num_filters,
-            %(target_rows)s,
-            %(target_cols)s,
+            target_rows,
+            target_cols,
             batch_size };
 
         #define numModulesY target_dims[1]
@@ -303,10 +308,16 @@ class FilterActs(BaseActs):
         # nv_filters.getNumRows() by numFilterColors
         #
         do_convolution = """
-        convFilterActs(nv_images, nv_filters, nv_targets,
-                       imgSizeY, numModulesY, numModulesX,
-                       paddingStart, moduleStride, img_channels,
-                       numGroups, scaleTargets, scaleOutput);
+        if (conv)
+            convFilterActs(nv_images, nv_filters, nv_targets,
+                           imgSizeY, numModulesY, numModulesX,
+                           paddingStart, moduleStride, img_channels,
+                           numGroups, scaleTargets, scaleOutput);
+        else
+            localFilterActs(nv_images, nv_filters, nv_targets,
+                           imgSizeY, numModulesY, numModulesX,
+                           paddingStart, moduleStride, img_channels,
+                           numGroups, scaleTargets, scaleOutput);
         """
 
         braces = '}' * num_braces
@@ -322,13 +333,13 @@ class FilterActs(BaseActs):
 
         return rval
 
-    def c_code_cache_version(self):
+#    def c_code_cache_version(self):
         """
         .. todo::
 
             WRITEME
         """
-        return (10,)
+#        return (10,)
 
     def R_op(self, inputs, evals):
         """
@@ -375,8 +386,10 @@ class FilterActs(BaseActs):
 
         ishape = images.shape[1:3]
         fshape = filters.shape[1:3]
-        d_images = ImageActs(self.pad, self.partial_sum, self.stride)(
-            dout, filters, ishape)
-        d_filters = WeightActs(self.pad, self.partial_sum, self.stride)(
-            images, dout, fshape)[0]
+        d_images = ImageActs(
+            self.pad, self.partial_sum, self.stride, self.conv)(
+                dout, filters, ishape)
+        d_filters = WeightActs(
+            self.pad, self.partial_sum, self.stride, self.conv)(
+                images, dout, fshape)[0]
         return d_images, d_filters

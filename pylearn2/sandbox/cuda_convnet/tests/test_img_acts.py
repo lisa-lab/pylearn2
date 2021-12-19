@@ -1,4 +1,5 @@
 from __future__ import print_function
+import warnings
 
 __authors__ = "David Warde-Farley, Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
@@ -11,7 +12,6 @@ from pylearn2.testing.skip import skip_if_no_gpu
 skip_if_no_gpu()
 
 import numpy as np
-import warnings
 
 from theano import function
 from theano.sandbox.cuda import gpu_from_host
@@ -24,6 +24,7 @@ from theano.tensor.nnet.conv import conv2d
 
 from pylearn2.sandbox.cuda_convnet.img_acts import ImageActs
 
+
 def test_match_full_conv():
 
     # Tests that running ImageActs with no padding is the same as running
@@ -32,63 +33,75 @@ def test_match_full_conv():
     # In other words, if convolution computes H=XK, we now compute
     # R=HK^T
 
-    rng = np.random.RandomState([2013, 1, 29])
+    for conv in [False, True]:
+        rng = np.random.RandomState([2013, 1, 29])
 
-    batch_size = 2
-    rows = 6
-    cols = 7
-    channels = 3
-    filter_rows = 5
-    filter_cols = filter_rows
-    num_filters = 16
+        batch_size = 2
+        rows = 6
+        cols = 7
+        channels = 3
+        filter_rows = 5
+        filter_cols = filter_rows
+        num_filters = 16
+        out_rows = rows - filter_rows + 1
+        out_cols = cols - filter_cols + 1
+        if conv:
+            mul_filters = 1
+        else:
+            mul_filters = out_rows * out_cols
 
-    hid_acts = shared(rng.uniform(-1., 1., (num_filters,
-                                            rows - filter_rows + 1,
-                                            cols - filter_cols + 1,
-                                            batch_size)
-    ).astype('float32'), name='hidacts')
+        hid_acts = shared(rng.uniform(-1., 1., (num_filters,
+                                                out_rows,
+                                                out_cols,
+                                                batch_size)
+                                  ).astype('float32'), name='hidacts')
 
-    filters = shared(rng.uniform(-1., 1., (channels, filter_rows,
-        filter_cols, num_filters)).astype('float32'), name='filters')
+        filters = shared(rng.uniform(
+            -1., 1.,
+            (channels * mul_filters, filter_rows, filter_cols, num_filters)
+        ).astype('float32'),
+                         name='filters')
 
-    gpu_images = gpu_from_host(hid_acts)
-    gpu_filters = gpu_from_host(filters)
+        gpu_images = gpu_from_host(hid_acts)
+        gpu_filters = gpu_from_host(filters)
 
-    output = ImageActs()(gpu_images, gpu_filters, as_tensor_variable((6, 7)))
-    output = host_from_gpu(output)
+        output = ImageActs(conv=conv)(
+            gpu_images, gpu_filters, as_tensor_variable((6, 7)))
+        output = host_from_gpu(output)
 
-    images_bc01 = hid_acts.dimshuffle(3,0,1,2)
-    filters_bc01 = filters.dimshuffle(3,0,1,2)
-    # need to tranpose the kernel stack to do imgActs rather than filterActs
-    filters_bc01 = filters_bc01.dimshuffle(1, 0, 2, 3)
-    # In order to do the transpose operation, we must flip the kernels
-    # But in theano's conv2d, the kernels get flipped anyway
-    # so in this case, we do not flip the kernel
+        images_bc01 = hid_acts.dimshuffle(3,0,1,2)
+        filters_bc01 = filters.dimshuffle(3,0,1,2)
+        # need to tranpose the kernel stack to do imgActs rather than filterActs
+        filters_bc01 = filters_bc01.dimshuffle(1, 0, 2, 3)
+        # In order to do the transpose operation, we must flip the kernels
+        # But in theano's conv2d, the kernels get flipped anyway
+        # so in this case, we do not flip the kernel
 
-    output_conv2d = conv2d(images_bc01, filters_bc01, border_mode='full')
+        output_conv2d = conv2d(images_bc01, filters_bc01, border_mode='full')
 
-    output_conv2d = output_conv2d.dimshuffle(1,2,3,0)
+        output_conv2d = output_conv2d.dimshuffle(1,2,3,0)
 
-    f = function([], [output, output_conv2d])
+        f = function([], [output, output_conv2d])
 
-    output, output_conv2d = f()
+        output, output_conv2d = f()
 
-    warnings.warn("""test_match_full_conv success criterion is not very strict. Can we verify that this is OK?
-                     One possibility is that theano is numerically unstable and Alex's code is better.
-                     Probably theano CPU 64 bit is OK but it's worth checking the others.""")
-    if np.abs(output - output_conv2d).max() > 2.4e-6:
-        assert type(output) == type(output_conv2d)
-        assert output.dtype == output_conv2d.dtype
-        if output.shape != output_conv2d.shape:
-            print('cuda-convnet shape: ',output.shape)
-            print('theano shape: ',output_conv2d.shape)
+        warnings.warn("""test_match_full_conv success criterion is not very strict. Can we verify that this is OK?
+                         One possibility is that theano is numerically unstable and Alex's code is better.
+                         Probably theano CPU 64 bit is OK but it's worth checking the others.""")
+        if np.abs(output - output_conv2d).max() > 2.4e-6:
+            assert type(output) == type(output_conv2d)
+            assert output.dtype == output_conv2d.dtype
+            if output.shape != output_conv2d.shape:
+                print('cuda-convnet shape: ',output.shape)
+                print('theano shape: ',output_conv2d.shape)
+                assert False
+            err = np.abs(output - output_conv2d)
+            print('absolute error range: ', (err.min(), err.max()))
+            print('mean absolute error: ', err.mean())
+            print('cuda-convnet value range: ', (output.min(), output.max()))
+            print('theano value range: ', (output_conv2d.min(), output_conv2d.max()))
             assert False
-        err = np.abs(output - output_conv2d)
-        print('absolute error range: ', (err.min(), err.max()))
-        print('mean absolute error: ', err.mean())
-        print('cuda-convnet value range: ', (output.min(), output.max()))
-        print('theano value range: ', (output_conv2d.min(), output_conv2d.max()))
-        assert False
+
 
 def test_match_full_conv_grad():
 
