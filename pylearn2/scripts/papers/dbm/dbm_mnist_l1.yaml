@@ -1,0 +1,39 @@
+!obj:pylearn2.train.Train {
+    dataset: &data !obj:pylearn2.datasets.binarizer.Binarizer {
+        raw: &raw_train !obj:pylearn2.datasets.mnist.MNIST {
+            which_set: "train",
+            start: 0,
+            stop: %(train_stop)i
+        }
+    },
+    model: !obj:pylearn2.models.rbm.RBM {
+        nvis : 784,
+        nhid : %(nhid)i,
+        irange : 0.001,
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        learning_rate : 0.05,
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: 0.5,
+        },
+        batch_size : %(batch_size)i,
+        monitoring_batches : %(monitoring_batches)i,
+        monitoring_dataset : *data,
+        cost: !obj:pylearn2.costs.ebm_estimation.CDk {
+            nsteps : 1,
+        },
+        termination_criterion : !obj:pylearn2.termination_criteria.EpochCounter {
+            max_epochs: %(max_epochs)i,
+        },
+    },
+    extensions: [
+        !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
+            start: 1,
+            saturate: 6,
+            final_momentum: 0.9,
+        },
+    ],
+    save_path: "%(save_path)s/dbm_mnist_l1.pkl",
+    save_freq: %(max_epochs)i
+}
+

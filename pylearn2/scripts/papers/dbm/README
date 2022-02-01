@@ -1,0 +1,25 @@
+The files in this directory recreate the experiment reported in the
+paper
+
+An efficient learning procedure for Deep Boltzmann Machines. G. Hinton, and R. Salakhutdinov.
+
+The procedure is divided in three phases: pretraining of RBMs, training and finetuning. The test_dbm_mnist script allows to enable each phase of training and to select whether the DBM
+is composed of a softmax layer or not, and whether the MLP has to do finetuning with dropout or not.
+This implementation works only for DBMs with 2 hidden layers: the stacking of RBMs to compose the DBM needs some changes to Contrastive Divergence algorithm that have not been implemented here.
+However, it has been shown that using more than 2 layers in a DBM, does not guarantee to improve performances.
+
+As explained in the paper, the finetuning procedure uses an augmented input to feed the MLP and this implementation creates it using augment_input.py and
+mnistaugmented.py in pylearn2/datasets/. The latter takes the mnist dataset and augment it. Eventually, it saves .pkl files of the augmented dataset 
+because data augmentation is a time-consuming operation.
+
+There are two tests in /tests. The script to run the whole procedure, with all the right parameters, reaches the result published by Hinton & Salakhutdinov. The fast version of it, is
+suitable to be run on travis. It does not perform well because it uses a very small training set and a very small number of epochs. 
+
+NO DROPOUT RESULTS:
+The test returns a 0.94% test error WITHOUT softmax on the top of the DBM and dropout.
+DROPOUT RESULTS:
+The test returns a 0.84% test error WITH softmax on the top of the DBM and dropout.
+
+Experiments have been performed on Ubuntu 14.04 LTS using a NVIDIA Tesla C1060 GPU and a 8-core Intel(R) Core(TM) i7 CPU 920 @ 2.67GHz. I used openblas-base and numpy version 1.9.0, 
+scipy version 0.13.3, theano version 0.6.0 and pylearn2 with 6264 commits.
+ 
