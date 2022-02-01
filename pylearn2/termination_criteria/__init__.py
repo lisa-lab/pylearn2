@@ -41,8 +41,8 @@ class TerminationCriterion(object):
 class MonitorBased(TerminationCriterion):
     """
     A termination criterion that pulls out the specified channel in
-    the model's monitor and checks to see if it has decreased by a
-    certain proportion of the lowest value in the last N epochs.
+    the model's monitor and checks to see if it has decreased/increased
+    by a certain proportion of the lowest value in the last N epochs.
 
     Parameters
     ----------
@@ -55,14 +55,23 @@ class MonitorBased(TerminationCriterion):
         Name of the channel to examine. If None and the monitor
         has only one channel, this channel will be used; otherwise, an
         error will be raised.
+    higher_is_better : bool, optional
+        Whether a higher value of channel_name indicates a better model.
+        When True, prop_decrease is treated like prop_increase.
     """
-
-    def __init__(self, prop_decrease=.01, N=5, channel_name=None):
+    def __init__(self, prop_decrease=.01, N=5, channel_name=None,
+                 higher_is_better=False):
         self._channel_name = channel_name
         self.prop_decrease = prop_decrease
         self.N = N
         self.countdown = N
-        self.best_value = np.inf
+        self.higher_is_better = higher_is_better
+        if higher_is_better:
+            self.coeff = -1.
+        else:
+            self.coeff = 1.
+
+        self.best_value = self.coeff * np.inf
 
     def continue_learning(self, model):
         """
@@ -94,12 +103,14 @@ class MonitorBased(TerminationCriterion):
         # called unless the channel value is lower than the best value times
         # the prop_decrease factor, in which case the countdown is reset to N
         # and the best value is updated
-        if v[-1] < (1. - self.prop_decrease) * self.best_value:
+        if self.coeff * v[-1] < (self.coeff *
+                                 (1. - (self.coeff * self.prop_decrease)) *
+                                 self.best_value):
             self.countdown = self.N
         else:
             self.countdown = self.countdown - 1
 
-        if v[-1] < self.best_value:
+        if self.coeff * v[-1] < self.coeff * self.best_value:
             self.best_value = v[-1]
 
         # The optimization continues until the countdown has reached 0,
