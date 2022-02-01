@@ -2029,6 +2029,7 @@ class GaussianVisLayer(VisibleLayer):
         locations, ie mu should be a vector with one elem per channel
     bias_from_marginals : WRITEME
     beta_lr_scale : WRITEME
+    mu_lr_scale : WRITEME
     axes : tuple
         WRITEME
     """
@@ -2045,6 +2046,7 @@ class GaussianVisLayer(VisibleLayer):
             tie_mu = None,
             bias_from_marginals = None,
             beta_lr_scale = 'by_sharing',
+            mu_lr_scale = 'by_sharing',
             axes = ('b', 0, 1, 'c')):
         super(type(self), self).__init__()
 
@@ -2148,12 +2150,17 @@ class GaussianVisLayer(VisibleLayer):
             rval[self.beta] = self.beta_lr_scale
 
         assert self.tie_mu in [None, 'locations']
-        if self.tie_mu == 'locations':
-            warn = True
-            assert self.nvis is None
-            rval[self.mu] = 1./num_loc
-            logger.warning("mu lr_scaler hardcoded to 1/sharing")
-
+        if self.mu_lr_scale == 'by_sharing':
+            if self.tie_mu == 'locations':
+                assert self.nvis is None
+                warn = True
+                rval[self.mu] = 1. / num_loc
+                logger.warning("mu lr_scaler hardcoded to 1/sharing")
+        elif self.mu_lr_scale == None:
+            pass
+        else:
+            rval[self.mu] = self.mu_lr_scale
+        
         return rval
 
     @functools.wraps(Model._modify_updates)
