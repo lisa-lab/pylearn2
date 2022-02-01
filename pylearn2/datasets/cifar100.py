@@ -3,7 +3,7 @@ The CIFAR-100 dataset.
 """
 import numpy as np
 N = np
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from pylearn2.datasets.dense_design_matrix import (DenseDesignMatrix,
                                                    DefaultViewConverter)
 from pylearn2.utils import serial

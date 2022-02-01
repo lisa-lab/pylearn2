@@ -4,7 +4,7 @@ import nose
 import unittest
 
 import numpy as np
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 import theano
 
 from .localdot import LocalDot

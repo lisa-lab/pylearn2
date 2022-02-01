@@ -12,7 +12,7 @@ except ImportError:
     warnings.warn("Couldn't import tables, so far SVHN is "
                   "only supported with PyTables")
 import numpy
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from theano import config
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load

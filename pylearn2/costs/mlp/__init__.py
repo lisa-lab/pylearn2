@@ -10,7 +10,7 @@ import warnings
 
 import theano
 from theano import tensor as T
-from theano.compat.six.moves import reduce
+from six.moves import reduce
 
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin, NullDataSpecsMixin
 from pylearn2.utils import safe_izip

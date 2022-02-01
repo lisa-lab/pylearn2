@@ -10,7 +10,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 import numpy as np
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
 from pylearn2.utils import contains_nan

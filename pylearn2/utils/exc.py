@@ -3,7 +3,7 @@ __author__ = "Ian Goodfellow"
 import sys
 
 from pylearn2.utils.common_strings import environment_variable_essay
-from theano.compat import six
+import six
 
 
 class EnvironmentVariableError(Exception):

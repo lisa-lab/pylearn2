@@ -9,7 +9,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "LISA Lab"
 __email__ = "pylearn-dev@googlegroups"
 
-from theano.compat.six import Iterator
+from six import Iterator
 
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.space import CompositeSpace

@@ -4,7 +4,7 @@ Functionality for display and saving images of collections of images patches.
 from __future__ import division
 
 import numpy as np
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
 from pylearn2.utils.image import Image, ensure_Image
 from pylearn2.utils.image import show

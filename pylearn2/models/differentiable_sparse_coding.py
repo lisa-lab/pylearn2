@@ -11,7 +11,7 @@ __email__ = "pylearn-dev@googlegroups"
 
 import logging
 import numpy as N
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 import theano.tensor as T
 
 import theano

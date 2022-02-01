@@ -30,7 +30,7 @@ __maintainer__ = "LISA Lab"
 
 import numpy as np
 import sys
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from pylearn2.config import yaml_parse
 from pylearn2.gui.patch_viewer import PatchViewer
 from pylearn2.gui.patch_viewer import make_viewer

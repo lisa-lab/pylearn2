@@ -11,7 +11,7 @@ __licence__   = "BSD 3-Clause http://www.opensource.org/licenses/BSD-3-Clause "
 import logging
 import os, sys, tarfile
 
-from theano.compat.six.moves import input
+from six.moves import input
 
 logger = logging.getLogger(__name__)
 

@@ -7,7 +7,7 @@ from galatea.s3c.feature_loading import get_features
 from pylearn2.utils import serial
 from pylearn2.datasets.cifar10 import CIFAR10
 from pylearn2.datasets.cifar100 import CIFAR100
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 import gc
 gc.collect()
 

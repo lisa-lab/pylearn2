@@ -2,7 +2,7 @@
 Classes for making simple 2D visualizations.
 """
 import numpy as N
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from theano import config
 
 

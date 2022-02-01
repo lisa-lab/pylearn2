@@ -19,7 +19,7 @@ __email__ = "pylearn-dev@googlegroups"
 import sys
 import logging
 
-from theano.compat import six
+import six
 
 from pylearn2.devtools.list_files import list_files
 from pylearn2.utils.shell import run_shell_command

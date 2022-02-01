@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import numpy as np
-from theano.compat.six.moves import xrange
+from six.moves import xrange
 from pylearn2.models.mnd import DiagonalMND
 from pylearn2.models.mnd import kl_divergence
 from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
