@@ -215,10 +215,10 @@ class ExtractGridPatches(Preprocessor):
         X = dataset.get_topological_view()
         num_topological_dimensions = len(X.shape) - 2
         if num_topological_dimensions != len(self.patch_shape):
-            raise ValueError("ExtractGridPatches with "
-                             + str(len(self.patch_shape))
-                             + " topological dimensions called on"
-                             + " dataset with " +
+            raise ValueError("ExtractGridPatches with " +
+                             str(len(self.patch_shape)) +
+                             " topological dimensions called on" +
+                             " dataset with " +
                              str(num_topological_dimensions) + ".")
         num_patches = X.shape[0]
         max_strides = [X.shape[0] - 1]
@@ -414,11 +414,11 @@ class ExtractPatches(Preprocessor):
         num_topological_dimensions = len(X.shape) - 2
 
         if num_topological_dimensions != len(self.patch_shape):
-            raise ValueError("ExtractPatches with "
-                             + str(len(self.patch_shape))
-                             + " topological dimensions called on "
-                             + "dataset with "
-                             + str(num_topological_dimensions) + ".")
+            raise ValueError("ExtractPatches with " +
+                             str(len(self.patch_shape)) +
+                             " topological dimensions called on " +
+                             "dataset with " +
+                             str(num_topological_dimensions) + ".")
 
         # batch size
         output_shape = [self.num_patches]
@@ -1913,3 +1913,57 @@ class ShuffleAndSplit(Preprocessor):
         dataset.X = X[start:stop, :]
         if y is not None:
             dataset.y = y[start:stop, :]
+
+
+class MinMaxScaling(ExamplewisePreprocessor):
+    """
+    Subtracts the min and divides by the \|max - min\|.
+
+    Parameters
+    ----------
+    global_mean : bool, optional
+        If `True`, subtract the (scalar) min over every element
+        in the design matrix. If `False`, subtract the min from
+        each column (feature) separately. Default is `False`.
+    global_std : bool, optional
+        If `True`, after centering, divide by the (scalar)
+        \|max - min\| of every element in the design matrix. If `False`,
+        divide by the column-wise (per-feature) \|max - min\|.
+        Default is `False`.
+    mm_eps : float, optional
+        Stabilization factor added to the \|max - min\| before
+        dividing, to prevent \|max - min\| very close to zero
+        from causing the feature values to blow up too much.
+        Default is `1e-4`.
+    """
+
+    def __init__(self, global_min=False, global_max=False, mm_eps=1e-4):
+        self._global_min = global_min
+        self._global_max = global_max
+        self._mm_eps = mm_eps
+        self._min = None
+        self._max = None
+
+    def apply(self, dataset, can_fit=False):
+        """
+        :math:`\hat{x} = \frac{x - min(x)}{\mid max(x) - min(x) \mid}`
+        """
+        X = dataset.get_design_matrix()
+        if can_fit:
+            self._min = X.min() if self._global_min else X.min(axis=0)
+            self._max = X.max() if self._global_max else X.max(axis=0)
+        else:
+            if self._min is None or self._max is None:
+                raise ValueError("can_fit is False, but Normalization object "
+                                 "has no stored min or max")
+        new = (X - self._min) / (self._mm_eps +
+                                 numpy.abs(self._max - self._min))
+        dataset.set_design_matrix(new)
+
+    def as_block(self):
+        if self._min is None or self._max is None:
+            raise ValueError("can't convert %s to block without fitting"
+                             % self.__class__.__name__)
+        return ExamplewiseAddScaleTransform(
+            add=-self._min,
+            multiply=numpy.abs(self._max - self._min) ** -1)
