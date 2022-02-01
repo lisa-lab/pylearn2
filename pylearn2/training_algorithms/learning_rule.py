@@ -508,3 +508,68 @@ class RMSProp(LearningRule):
             updates[param] = param + delta_x_t
 
         return updates
+
+
+class Adam(LearningRule):
+    """
+    Implements the Adam learning rule as described in:
+    "Adam: A Method for Stochastic Optimization",
+    Diederik P. Kingma, Jimmy Lei Ba.
+
+    Parameters
+    ----------
+    b1 : float, optional
+        Decay rate for first moment estimate.
+    b2 : float, optional
+        Decay rate for second moment estimate.
+    eps : float, optional
+        Denominator minimum value.
+    lamb : float, optional
+        Decay rate for first moment decay rate.
+    """
+
+    def __init__(self, b1=.9, b2=.999, eps=1.e-8, lamb=(1.-1.e-8)):
+        assert b1 > 0. and b1 <= 1.
+        assert b2 > 0. and b2 <= 1.
+        self.b1 = b1
+        self.b2 = b2
+        self.eps = eps
+        self.lamb = lamb
+
+    def get_updates(self, learning_rate, grads, lr_scalers=None):
+        """
+        Compute the Adam updates
+
+        Parameters
+        ----------
+        learning_rate : float
+            Learning rate coefficient.
+        grads : dict
+            A dictionary mapping from the model's parameters to their
+            gradients.
+        lr_scalers : dict
+            A dictionary mapping from the model's parameters to a learning
+            rate multiplier.
+        """
+        updates = OrderedDict()
+        t = sharedX(0.)
+        t_p1 = t+1.
+        b1t = self.b1*(self.lamb**t)
+        for param in grads.keys():
+            alpha = learning_rate *lr_scalers.get(param, 1.)
+            # m: first moment estimate
+            m = sharedX(param.get_value() * 0.)
+            # v: second moment estimate
+            v = sharedX(param.get_value() * 0.)
+
+            mt = (1.-b1t)*grads[param] + b1t*m
+            vt = (1.-self.b2)*T.sqr(grads[param]) + self.b2*v
+            at = alpha*T.sqrt(1-self.b2**2)/(1-b1t)
+            delta = -at * mt / (T.sqrt(vt) + self.eps)
+
+            updates[param] = param + delta
+            updates[m] = mt
+            updates[v] = vt
+        updates[t] = t_p1
+
+        return updates
