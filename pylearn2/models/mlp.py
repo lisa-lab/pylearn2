@@ -1190,7 +1190,7 @@ class Softmax(Layer):
         self.output_space = VectorSpace(n_classes)
         if not no_affine:
             self.b = sharedX(np.zeros((n_classes - self.non_redundant,)),
-                             name='softmax_b')
+                             name=layer_name+'_b')
             if init_bias_target_marginals:
 
                 y = init_bias_target_marginals.y
@@ -1334,7 +1334,7 @@ class Softmax(Layer):
                             idx = rng.randint(0, self.input_dim)
                         W[idx, i] = rng.randn()
 
-            self.W = sharedX(W,  'softmax_W')
+            self.W = sharedX(W,  self.layer_name+'_W')
 
             self._params = [self.b, self.W]
 
