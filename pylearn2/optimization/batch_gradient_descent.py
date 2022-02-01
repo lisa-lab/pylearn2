@@ -350,9 +350,10 @@ class BatchGradientDescent(object):
                     if self.verbose:
                         logger.info('\t{0} {1}'.format(alpha, obj))
 
-                    # Use <= rather than = so if there are ties
-                    # the bigger step size wins
-                    if obj <= best_obj:
+                    # Should not use <= instead of < because, for a flat
+                    # objective, this leads to an infinite loop due to the
+                    # condition used to grow the step sizes
+                    if obj < best_obj:
                         best_obj = obj
                         best_alpha = alpha
                         best_alpha_ind = ind
@@ -374,7 +375,8 @@ class BatchGradientDescent(object):
                     alpha_list = [alpha / 3. for alpha in alpha_list]
                     if self.verbose:
                         logger.info('shrinking the step size')
-                elif best_alpha_ind > len(alpha_list) - 2:
+                elif best_alpha_ind >= len(alpha_list) - 1:
+                    # Grow the step size if the last step size was used
                     alpha_list = [alpha * 2. for alpha in alpha_list]
                     if self.verbose:
                         logger.info('growing the step size')
