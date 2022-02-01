@@ -36,9 +36,9 @@ def get_weights_report(model_path=None,
     rescale : str
         A string specifying how to rescale the filter images:
             - 'individual' (default) : scale each filter so that it
-                  uses as much as possible of the dynamic range
-                  of the display under the constraint that 0
-                  is gray and no value gets clipped
+              uses as much as possible of the dynamic range
+              of the display under the constraint that 0
+              is gray and no value gets clipped
             - 'global' : scale the whole ensemble of weights
             - 'none' :   don't rescale
     dataset : pylearn2.datasets.dataset.Dataset

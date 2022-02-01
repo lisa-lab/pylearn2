@@ -277,15 +277,15 @@ class HDF5Dataset(Dataset):
         """
         Retrieves the requested elements from the dataset.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         sources : tuple
             A tuple of source identifiers
         indexes : slice or list
             A slice or a list of indexes
 
-        Return
-        ------
+        Returns
+        -------
         rval : tuple
             A tuple of batches, one for each source
         """
@@ -329,8 +329,8 @@ class HDF5Dataset(Dataset):
         returing a list of num_examples. Do not rely on this function unless
         unavoidable.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         source_or_alias : str, optional
             The source you want the number of examples of
         """
@@ -363,8 +363,8 @@ class alias_dict(OrderedDict):
         """
         Returns the item corresponding to a key or an alias.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         key_or_alias: any valid key for a dictionary
             A key or an alias.
         """
@@ -379,8 +379,8 @@ class alias_dict(OrderedDict):
         """
         Add an element to the dictionary
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         keys: either a tuple `(key, alias)` or any valid key for a dictionary
             The key and optionally the alias of the new element.
         value: any input accepted as value by a dictionary
@@ -419,8 +419,8 @@ class alias_dict(OrderedDict):
         Add an alias to a key of the dictionary that doesn't have already an
         alias.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         keys: any valid key for a dictionary
            A key of the dictionary.
         alias: any input accepted as key by a dictionary
@@ -446,8 +446,8 @@ class alias_dict(OrderedDict):
         """
         Returns true if the key or alias is an element of the dictionary
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         keys_or_alias: any valid key for a dictionary
             The key or the alias to look for.
         """

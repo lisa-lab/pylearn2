@@ -282,23 +282,22 @@ class S3C(Model, Block):
     local_rf_src : Dataset, optional
         if not None, it should be a dataset.
         it requires the following other params:
-
-        - local_rf_shape : a 2 tuple
-        - One of:
-
-            - local_rf_stride: a 2 tuple or None
-                if specified, pull out patches on a regular grid
-            - local_rf_max_shape: a 2 tuple or None
-                if specified, pull out patches of random shape and
-                location
-            - local_rf_draw_patches : WRITEME
-                if true, local receptive fields are patches from
-                local_rf_src. otherwise, they're random patches.
-                will initialize the weights to have only local
-                receptive fields. (won't make a sparse matrix or
-                anything like that)
+        - `local_rf_shape` : a 2 tuple
+        - One of `local_rf_stride`, `local_rf_max_shape`, `local_rf_draw_patches`
 
         incompatible with random_patches_src for now
+    local_rf_shape : a 2 tuple
+    local_rf_stride: a 2 tuple or None
+        if specified, pull out patches on a regular grid
+    local_rf_max_shape: a 2 tuple or None
+        if specified, pull out patches of random shape and
+        location
+    local_rf_draw_patches : WRITEME
+        if true, local receptive fields are patches from
+        local_rf_src. otherwise, they're random patches.
+        will initialize the weights to have only local
+        receptive fields. (won't make a sparse matrix or
+        anything like that)
     init_unit_W : bool
         if True, initializes weights with unit norm
     """
